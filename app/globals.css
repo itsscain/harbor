@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* ── Harbor design system ─────────────────────────────────────────────────── */
+@theme {
+  /* Brand palette */
+  --color-harbor: #0c3b47; /* Deep Harbor — primary */
+  --color-water: #18606f; /* Mid Water */
+  --color-beacon: #f6b23d; /* Beacon — accent, use sparingly */
+  --color-seafoam: #cfe6e1; /* Sea Foam */
+  --color-seafog: #edf3f3; /* Sea Fog — cool off-white background */
+  --color-ink: #0f2a33; /* Ink — text */
+  --color-muted: #5c7178; /* Muted text */
+
+  /* Tints for surfaces / borders */
+  --color-harbor-50: #f1f6f7;
+  --color-harbor-100: #dceaed;
+  --color-harbor-700: #134752;
+  --color-harbor-900: #0c3b47;
+  --color-beacon-soft: #fde9c6;
+
+  /* Fonts (wired in app/layout.tsx via next/font) */
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Radii */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+:root {
+  --background: var(--color-seafog);
+  --foreground: var(--color-ink);
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* The recurring beacon-glow motif */
+.beacon-glow {
+  box-shadow:
+    0 0 0 0 rgba(246, 178, 61, 0.35),
+    0 18px 50px -20px rgba(12, 59, 71, 0.45);
+}
+.beacon-ring {
+  background: radial-gradient(
+    circle at center,
+    rgba(246, 178, 61, 0.28) 0%,
+    rgba(246, 178, 61, 0) 70%
+  );
+}
+
+/* Kiosk: large, calm, predictable tap targets for children */
+.kiosk-tap {
+  min-height: 96px;
+  min-width: 96px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus visibility for accessibility */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-beacon);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced motion everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Gentle reward pop (kiosk) — disabled under reduced-motion by the rule above */
+@keyframes reward-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-reward {
+  animation: reward-pop 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes beacon-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+}
+.animate-beacon {
+  animation: beacon-pulse 4s ease-in-out infinite;
+}

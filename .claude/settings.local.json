@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Force -Path \"C:\\\\Users\\\\penda\\\\HARBOR\" | Select-Object Mode, Length, Name; Write-Output \"---NODE---\"; \\(Get-Command node -ErrorAction SilentlyContinue\\).Source; node -v 2>$null; Write-Output \"---NPM---\"; \\(Get-Command npm -ErrorAction SilentlyContinue\\).Source; npm -v 2>$null; Write-Output \"---GIT---\"; \\(Get-Command git -ErrorAction SilentlyContinue\\).Source; git --version 2>$null)",
+      "mcp__a606cd3a-e67d-41ad-bb24-1174bcdfa0d3__list_organizations"
+    ]
+  }
+}
