@@ -91,7 +91,7 @@ export function HomeView({
 
   return (
     <div className="min-h-full bg-seafog">
-      <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:max-w-5xl">
         {/* Greeting + clock */}
         <div className="mb-5 flex items-end justify-between">
           <div>
@@ -177,7 +177,7 @@ export function HomeView({
 
         {/* Children tiles */}
         <h2 className="mb-2 font-display text-lg font-bold text-harbor">Tap to start your day</h2>
-        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {children.map((c) => {
             const p = childProgress(c.id);
             return (

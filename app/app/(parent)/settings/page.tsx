@@ -3,7 +3,7 @@ import { KeyRound, Tablet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Input, Field, Button } from "@/components/ui/primitives";
+import { Card, Badge, Input, Field, Button, Textarea } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
@@ -56,6 +56,20 @@ export default async function SettingsPage() {
                   name="weatherCity"
                   defaultValue={(s.weather as { label?: string } | undefined)?.label ?? ""}
                   placeholder="Austin, Texas"
+                />
+              </Field>
+              <Field label="Quiet hours start" hint="Wall dims to a soft clock at night.">
+                <Input name="quietStart" type="time" defaultValue={(s.quietStart as string) ?? ""} />
+              </Field>
+              <Field label="Quiet hours end">
+                <Input name="quietEnd" type="time" defaultValue={(s.quietEnd as string) ?? ""} />
+              </Field>
+              <Field label="Photo slideshow URLs" className="sm:col-span-2" hint="One image URL per line — they cross-fade on the idle screensaver.">
+                <Textarea
+                  name="homePhotos"
+                  defaultValue={((s.homePhotos as string[] | undefined) ?? []).join("\n")}
+                  placeholder={"https://…/photo1.jpg\nhttps://…/photo2.jpg"}
+                  className="font-mono text-xs"
                 />
               </Field>
               <label className="flex items-center gap-2 text-sm font-medium text-ink">

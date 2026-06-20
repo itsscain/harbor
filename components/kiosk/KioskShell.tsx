@@ -9,8 +9,19 @@ import { CalendarView } from "./CalendarView";
 import { ListsView } from "./ListsView";
 import { CalmCorner } from "./CalmCorner";
 import { ParentGate } from "./ParentGate";
-import { Screensaver } from "./Screensaver";
+import { Screensaver, SleepMode } from "./Screensaver";
 import { cn } from "@/lib/cn";
+
+function inQuietHours(start?: string, end?: string, d = new Date()): boolean {
+  if (!start || !end) return false;
+  const cur = d.getHours() * 60 + d.getMinutes();
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const s = sh * 60 + sm;
+  const e = eh * 60 + em;
+  if (s === e) return false;
+  return s < e ? cur >= s && cur < e : cur >= s || cur < e; // handles overnight
+}
 
 type Kiosk = ReturnType<typeof useKiosk>;
 type View =
@@ -26,12 +37,22 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const [gate, setGate] = useState(false);
   const [menu, setMenu] = useState(false);
   const [asleep, setAsleep] = useState(false);
+  const [, setTick] = useState(0);
   const lastActivity = useRef(Date.now());
 
   const settings = (state?.snapshot.household.settings ?? {}) as Record<string, unknown>;
   const idleMs = ((settings.idleSeconds as number) || 120) * 1000;
   const screensaverOn = settings.screensaver !== false;
-  const photoUrl = typeof settings.homePhotoUrl === "string" ? (settings.homePhotoUrl as string) : null;
+  const quietStart = settings.quietStart as string | undefined;
+  const quietEnd = settings.quietEnd as string | undefined;
+  const photos =
+    (settings.homePhotos as string[] | undefined)?.length
+      ? (settings.homePhotos as string[])
+      : typeof settings.homePhotoUrl === "string" && settings.homePhotoUrl
+        ? [settings.homePhotoUrl as string]
+        : [];
+  const quietConfigured = Boolean(quietStart && quietEnd);
+  const sleepEnabled = screensaverOn || quietConfigured;
 
   // If the current child was removed via sync, fall back Home.
   useEffect(() => {
@@ -40,15 +61,22 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
     }
   }, [view, state]);
 
-  // Idle → return Home and show the screensaver. Any input wakes it.
+  // Re-evaluate quiet hours roughly each minute.
   useEffect(() => {
-    if (!screensaverOn) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Idle → return Home and show the screensaver / sleep mode. Any input wakes it.
+  useEffect(() => {
+    if (!sleepEnabled) return;
     const onActivity = () => {
       lastActivity.current = Date.now();
       if (asleep) setAsleep(false);
     };
     window.addEventListener("pointerdown", onActivity);
     window.addEventListener("keydown", onActivity);
+    window.addEventListener("touchstart", onActivity, { passive: true });
     const id = window.setInterval(() => {
       if (Date.now() - lastActivity.current > idleMs) {
         setAsleep(true);
@@ -62,8 +90,9 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       window.clearInterval(id);
       window.removeEventListener("pointerdown", onActivity);
       window.removeEventListener("keydown", onActivity);
+      window.removeEventListener("touchstart", onActivity);
     };
-  }, [screensaverOn, idleMs, asleep]);
+  }, [sleepEnabled, idleMs, asleep]);
 
   if (!state) return null;
 
@@ -119,9 +148,11 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
 
       {menu && <ParentMenu kiosk={kiosk} onClose={() => setMenu(false)} />}
 
-      {asleep && screensaverOn && (
-        <Screensaver photoUrl={photoUrl} onWake={() => setAsleep(false)} />
-      )}
+      {asleep && inQuietHours(quietStart, quietEnd) ? (
+        <SleepMode onWake={() => setAsleep(false)} />
+      ) : asleep && screensaverOn ? (
+        <Screensaver photos={photos} onWake={() => setAsleep(false)} />
+      ) : null}
     </div>
   );
 }

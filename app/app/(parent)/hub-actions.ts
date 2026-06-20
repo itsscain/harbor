@@ -356,11 +356,23 @@ export async function updateKioskSettings(formData: FormData) {
     }
   }
 
+  const photosRaw = formData.get("homePhotos");
+  const homePhotos =
+    photosRaw == null
+      ? (current.homePhotos as string[] | undefined)
+      : String(photosRaw)
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter((s) => /^https?:\/\//i.test(s));
+
   const next = {
     ...current,
     idleSeconds: Math.max(30, int(formData.get("idleSeconds"), 120)),
     screensaver: formData.get("screensaver") === "on",
     homePhotoUrl: str(formData.get("homePhotoUrl")),
+    homePhotos,
+    quietStart: str(formData.get("quietStart")),
+    quietEnd: str(formData.get("quietEnd")),
     weather,
   };
   const { error } = await supabase

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Home as HomeIcon, Plus, Check } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -74,7 +75,7 @@ export function ListsView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => void 
             </button>
           ))}
           {items.length === 0 && (
-            <p className="py-10 text-center text-muted">The list is empty. Add the first thing you need.</p>
+            <EmptyState title="The list is empty" body="Add the first thing you need — tap the box above." />
           )}
         </div>
       </main>

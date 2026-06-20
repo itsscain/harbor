@@ -18,6 +18,7 @@ import { runsToday } from "@/lib/kiosk/calendar";
 import { childColor } from "@/lib/kiosk/colors";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
 import { cn } from "@/lib/cn";
@@ -224,9 +225,10 @@ export function ChildView({
             )}
           </>
         ) : (
-          <div className="flex h-full items-center justify-center text-center text-muted">
-            <p>No routines yet for {child.name}. A grown-up can add some in the Harbor app.</p>
-          </div>
+          <EmptyState
+            title={`No routines yet for ${child.name}`}
+            body="A grown-up can add a Morning, Bedtime, or First-Then routine from the Harbor app — templates make it one tap."
+          />
         )}
       </main>
 
