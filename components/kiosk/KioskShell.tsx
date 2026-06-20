@@ -126,22 +126,65 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   );
 }
 
+const SYNC_LABEL: Record<string, string> = {
+  idle: "",
+  syncing: "Syncing…",
+  ok: "Backed up to the cloud",
+  error: "Sync hiccup — will retry automatically",
+  offline: "Offline — the wall keeps working",
+  "no-plus": "Local only · Harbor Plus adds cloud backup",
+};
+
+function relativeTime(iso: string | null): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(diff)) return "";
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  return `${Math.round(hrs / 24)} d ago`;
+}
+
 function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const [confirmUnpair, setConfirmUnpair] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const children = kiosk.state?.snapshot.children ?? [];
+  const syncText = SYNC_LABEL[kiosk.syncStatus] ?? "";
+  const lastSync = relativeTime(kiosk.lastSync);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
       <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl">
         <h2 className="font-display text-xl font-extrabold text-harbor">Parent menu</h2>
-        <p className="mt-1 text-sm text-muted">{kiosk.online ? "Online" : "Offline — the wall keeps working"}</p>
+        <p className="mt-1 text-sm text-muted">
+          {syncText || (kiosk.online ? "Online" : "Offline — the wall keeps working")}
+          {lastSync ? ` · last synced ${lastSync}` : ""}
+        </p>
 
         <div className="mt-5 space-y-2">
+          {!confirmReset ? (
+            <MenuRow
+              icon={RotateCcw}
+              label="Reset all kids' checkmarks for today"
+              onClick={() => setConfirmReset(true)}
+            />
+          ) : (
+            <button
+              onClick={() => {
+                children.forEach((c) => kiosk.resetDay(c.id));
+                setConfirmReset(false);
+              }}
+              className="kiosk-tap w-full rounded-2xl bg-amber-500 py-4 font-bold text-white"
+            >
+              Tap again to reset today for everyone
+            </button>
+          )}
           <MenuRow
-            icon={RotateCcw}
-            label="Reset today's checkmarks"
-            onClick={() => children.forEach((c) => kiosk.resetDay(c.id))}
+            icon={RefreshCw}
+            label={kiosk.syncStatus === "syncing" ? "Syncing…" : "Sync now"}
+            onClick={() => void kiosk.syncNow()}
           />
-          <MenuRow icon={RefreshCw} label="Sync now" onClick={() => void kiosk.syncNow()} />
           {!confirmUnpair ? (
             <MenuRow icon={LogOut} label="Unpair this device" danger onClick={() => setConfirmUnpair(true)} />
           ) : (

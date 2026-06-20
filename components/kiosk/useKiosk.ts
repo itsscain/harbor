@@ -17,11 +17,13 @@ import type {
 } from "@/lib/kiosk/types";
 
 export type KioskStatus = "loading" | "unpaired" | "ready" | "error";
+export type SyncStatus = "idle" | "syncing" | "ok" | "error" | "offline" | "no-plus";
 
 export function useKiosk() {
   const [state, setState] = useState<KioskState | null>(null);
   const [status, setStatus] = useState<KioskStatus>("loading");
   const [online, setOnline] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const stateRef = useRef<KioskState | null>(null);
   stateRef.current = state;
 
@@ -68,8 +70,24 @@ export function useKiosk() {
   const runSync = useCallback(async () => {
     const before = stateRef.current;
     if (!before) return;
-    const synced = await syncNow(before);
-    if (synced === before) return; // offline, not Plus, or nothing changed
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setSyncStatus("offline");
+      return;
+    }
+    if (!before.snapshot.household.plus_active) {
+      setSyncStatus("no-plus");
+      return;
+    }
+    setSyncStatus("syncing");
+    let synced: KioskState;
+    try {
+      synced = await syncNow(before);
+    } catch {
+      setSyncStatus("error");
+      return;
+    }
+    setSyncStatus("ok");
+    if (synced === before) return; // nothing changed
 
     setState((prev) => {
       if (!prev) return prev;
@@ -348,6 +366,8 @@ export function useKiosk() {
     state,
     status,
     online,
+    syncStatus,
+    lastSync: state?.lastSync ?? null,
     pair,
     setPin,
     verifyPin,

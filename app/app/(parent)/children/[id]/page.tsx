@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Input, Field, Select, Button } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { titleCase } from "@/lib/format";
 import {
   updateChild,
@@ -245,9 +246,9 @@ export default async function ChildDetail({
 
             <div className="mt-4 flex justify-end">
               <form action={deleteRoutine.bind(null, r.id, child.id)}>
-                <Button type="submit" variant="danger" size="sm">
+                <ConfirmSubmit message={`Delete the "${r.name}" routine and its steps?`}>
                   <Trash2 className="h-4 w-4" /> Delete routine
-                </Button>
+                </ConfirmSubmit>
               </form>
             </div>
           </Card>
@@ -280,7 +281,11 @@ export default async function ChildDetail({
             <p className="text-sm text-muted">Hides this child from the wall.</p>
           </div>
           <form action={deleteChild.bind(null, child.id)}>
-            <Button type="submit" variant="danger">Remove</Button>
+            <ConfirmSubmit
+              message={`Remove ${child.name}? This hides them and all their routines from the wall.`}
+            >
+              Remove
+            </ConfirmSubmit>
           </form>
         </div>
       </Card>

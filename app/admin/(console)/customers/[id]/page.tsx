@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Button, Input, Field, Select } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { titleCase } from "@/lib/format";
 import { formatPairingCode } from "@/lib/codes";
 import { CustomerForm } from "./CustomerForm";
@@ -231,9 +232,9 @@ export default async function CustomerDetail({
             </p>
           </div>
           <form action={deleteCustomer.bind(null, customer.id)}>
-            <Button type="submit" variant="danger">
+            <ConfirmSubmit message={`Delete the customer record for ${customer.name}?`}>
               Delete
-            </Button>
+            </ConfirmSubmit>
           </form>
         </div>
       </Card>

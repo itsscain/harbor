@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Input, Field, Button } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { currency, amazonLink } from "@/lib/format";
 import { hardwareCost, type BuildWithSupplies } from "@/lib/types";
 import {
@@ -224,7 +225,9 @@ export default async function BuildDetail({
             <p className="text-sm text-muted">Removes the build and its supplies. Not reversible.</p>
           </div>
           <form action={deleteBuild.bind(null, build.id)}>
-            <Button type="submit" variant="danger">Delete</Button>
+            <ConfirmSubmit message={`Delete the ${build.name} build and all its supplies?`}>
+              Delete
+            </ConfirmSubmit>
           </form>
         </div>
       </Card>
