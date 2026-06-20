@@ -16,7 +16,7 @@ import type {
   KioskListItem,
 } from "@/lib/kiosk/types";
 
-export type KioskStatus = "loading" | "unpaired" | "ready";
+export type KioskStatus = "loading" | "unpaired" | "ready" | "error";
 
 export function useKiosk() {
   const [state, setState] = useState<KioskState | null>(null);
@@ -25,16 +25,26 @@ export function useKiosk() {
   const stateRef = useRef<KioskState | null>(null);
   stateRef.current = state;
 
-  // Initial load from IndexedDB.
+  // Initial load from IndexedDB. Never leave the wall stuck on the splash:
+  // a storage failure surfaces a recoverable error, and a watchdog catches hangs.
   useEffect(() => {
     let mounted = true;
-    loadState().then((s) => {
-      if (!mounted) return;
-      setState(s);
-      setStatus(s ? "ready" : "unpaired");
-    });
+    const watchdog = setTimeout(() => {
+      if (mounted) setStatus((st) => (st === "loading" ? "error" : st));
+    }, 8000);
+    loadState()
+      .then((s) => {
+        if (!mounted) return;
+        setState(s);
+        setStatus(s ? "ready" : "unpaired");
+      })
+      .catch(() => {
+        if (mounted) setStatus("error");
+      })
+      .finally(() => clearTimeout(watchdog));
     return () => {
       mounted = false;
+      clearTimeout(watchdog);
     };
   }, []);
 

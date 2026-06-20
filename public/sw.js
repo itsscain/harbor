@@ -1,7 +1,7 @@
-/* Harbor Kiosk service worker — precache the shell, runtime-cache assets,
-   serve the kiosk fully offline. Supabase (cross-origin) requests are left
-   untouched; the kiosk's sync layer handles being offline gracefully. */
-const CACHE = "harbor-kiosk-v1";
+/* Harbor Kiosk service worker — precache the shell, runtime-cache assets, and
+   guarantee the wall boots fully offline. Supabase (cross-origin) requests are
+   left untouched; the kiosk's sync layer handles being offline gracefully. */
+const CACHE = "harbor-kiosk-v2";
 const PRECACHE = [
   "/kiosk",
   "/manifest.webmanifest",
@@ -29,6 +29,23 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// The page, once loaded online, tells us exactly which /_next/static chunks it
+// used so we can cache them — guaranteeing a later cold offline boot has its JS.
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (data && data.type === "CACHE_ASSETS" && Array.isArray(data.urls)) {
+    event.waitUntil(
+      caches.open(CACHE).then((cache) =>
+        Promise.all(
+          data.urls.map((u) =>
+            cache.match(u).then((hit) => (hit ? null : cache.add(u).catch(() => null))),
+          ),
+        ),
+      ),
+    );
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -41,21 +58,23 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/kiosk", copy));
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put("/kiosk", copy));
+          }
           return res;
         })
-        .catch(() => caches.match("/kiosk").then((r) => r || caches.match("/kiosk"))),
+        .catch(async () => (await caches.match("/kiosk")) || Response.error()),
     );
     return;
   }
 
-  // Static assets (incl. /_next/static): stale-while-revalidate.
+  // Static assets (incl. /_next/static): stale-while-revalidate, cache only OK.
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
         .then((res) => {
-          if (res && res.status === 200) {
+          if (res && res.ok) {
             const copy = res.clone();
             caches.open(CACHE).then((c) => c.put(req, copy));
           }

@@ -6,8 +6,11 @@ import type { KioskSnapshot, KioskState, Mutation } from "./types";
 type Identified = { id: string; deleted_at?: string | null };
 
 function mergeById<T extends Identified>(existing: T[], incoming: T[]): T[] {
-  const map = new Map(existing.map((x) => [x.id, x]));
-  for (const row of incoming) {
+  const base = Array.isArray(existing) ? existing : [];
+  const inc = Array.isArray(incoming) ? incoming : [];
+  const map = new Map(base.map((x) => [x.id, x]));
+  for (const row of inc) {
+    if (!row || !row.id) continue;
     if (row.deleted_at) map.delete(row.id);
     else map.set(row.id, row);
   }
@@ -57,6 +60,7 @@ function buildPayload(outbox: Mutation[]): Json {
 }
 
 function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
+  if (!snap || typeof snap !== "object") return state;
   const next: KioskState = {
     ...state,
     snapshot: {

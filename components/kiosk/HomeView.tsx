@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, ListChecks, Heart, Bell, Pin, ChevronRight, Star, Lock } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
-import { eventsForDay, formatEventTime } from "@/lib/kiosk/calendar";
+import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -56,7 +56,7 @@ export function HomeView({
 
   function childProgress(childId: string) {
     const routineIds = snap.routines
-      .filter((r) => r.child_id === childId && r.active)
+      .filter((r) => r.child_id === childId && r.active && runsToday(r.days_of_week))
       .map((r) => r.id);
     const steps = snap.steps.filter(
       (s) => routineIds.includes(s.routine_id) && s.step_type === "task",

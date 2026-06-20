@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Star,
   Check,
@@ -14,6 +14,7 @@ import {
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
+import { runsToday } from "@/lib/kiosk/calendar";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
@@ -56,10 +57,18 @@ export function ChildView({
   const child = state?.snapshot.children.find((c) => c.id === childId);
   const settings = child ? readChildSettings(child) : null;
 
+  // Re-render across midnight so "today" + day-of-week filtering stay correct
+  // on an always-on wall.
+  const [, setDayTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setDayTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const routines = useMemo(() => {
     if (!state || !child) return [];
     return state.snapshot.routines
-      .filter((r) => r.child_id === child.id && r.active)
+      .filter((r) => r.child_id === child.id && r.active && runsToday(r.days_of_week))
       .sort((a, b) => a.sort_order - b.sort_order);
   }, [state, child]);
 
@@ -76,6 +85,17 @@ export function ChildView({
   const [celebrate, setCelebrate] = useState<{ points: number } | null>(null);
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
+
+  // Honor the per-child "auto-read on open" accessibility setting: speak the
+  // routine name once when it opens (not on every render).
+  const activeRoutineId = activeRoutine?.id;
+  useEffect(() => {
+    if (settings?.autoRead && child && activeRoutineId) {
+      const r = routines.find((x) => x.id === activeRoutineId);
+      if (r) speak(`${child.name}'s ${r.name}`, settings.readAloud);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoutineId]);
 
   if (!state || !child || !settings) return null;
 
@@ -100,7 +120,10 @@ export function ChildView({
   const firstStep = steps.find((s) => s.step_type === "first");
   const thenStep = steps.find((s) => s.step_type === "then");
   const doneCount = scheduleSteps.filter((s) => prog.includes(s.id)).length;
-  const allDone = scheduleSteps.length > 0 && doneCount === scheduleSteps.length;
+  const isFirstThen = activeRoutine?.type === "first_then";
+  const allDone = isFirstThen
+    ? !!thenStep && prog.includes(thenStep.id)
+    : scheduleSteps.length > 0 && doneCount === scheduleSteps.length;
   const headerBg = THEME_BG[settings.theme] ?? THEME_BG.harbor;
 
   return (
@@ -179,7 +202,7 @@ export function ChildView({
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
                 <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-muted sm:rotate-0" />
-                <StepCard step={thenStep} label="Then" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} onTap={() => {}} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
+                <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

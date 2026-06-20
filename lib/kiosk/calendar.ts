@@ -73,6 +73,13 @@ export function upcomingDays(
   return out;
 }
 
+/** Whether a routine runs today, given its days_of_week (0=Sun..6=Sat).
+ *  Null/empty means "every day". */
+export function runsToday(daysOfWeek: number[] | null | undefined, date = new Date()): boolean {
+  if (!daysOfWeek || daysOfWeek.length === 0) return true;
+  return daysOfWeek.includes(date.getDay());
+}
+
 export function formatEventTime(event: KioskEvent): string {
   if (event.all_day) return "All day";
   const d = new Date(event.starts_at);
