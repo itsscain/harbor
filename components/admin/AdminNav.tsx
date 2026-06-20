@@ -8,11 +8,13 @@ import {
   ShoppingCart,
   Boxes,
   Users,
+  House,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/my-family", label: "My Family", icon: House },
   { href: "/admin/builds", label: "Build Catalog", icon: Package },
   { href: "/admin/shopping-list", label: "Shopping List", icon: ShoppingCart },
   { href: "/admin/inventory", label: "Inventory", icon: Boxes },
