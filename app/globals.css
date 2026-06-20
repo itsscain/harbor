@@ -78,10 +78,12 @@ h4,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Focus visibility for accessibility */
+/* Focus visibility for accessibility — a dual ring (beacon + dark halo) stays
+   visible on both light app surfaces and dark kiosk surfaces. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 3px solid var(--color-beacon);
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(15, 42, 51, 0.45);
   border-radius: 4px;
 }
 

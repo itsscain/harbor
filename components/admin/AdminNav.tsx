@@ -19,21 +19,26 @@ const items = [
   { href: "/admin/customers", label: "Customers", icon: Users },
 ];
 
-export function AdminNav() {
+export function AdminNav({
+  orientation = "vertical",
+}: {
+  orientation?: "vertical" | "horizontal";
+}) {
   const pathname = usePathname();
+  const horizontal = orientation === "horizontal";
   return (
-    <nav className="space-y-1">
+    <nav className={cn(horizontal ? "flex gap-1 overflow-x-auto" : "space-y-1")}>
       {items.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}
             href={href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
-              active
-                ? "bg-harbor text-white"
-                : "text-harbor hover:bg-harbor-50",
+              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+              horizontal ? "whitespace-nowrap" : "gap-3",
+              active ? "bg-harbor text-white" : "text-harbor hover:bg-harbor-50",
             )}
           >
             <Icon className="h-5 w-5" aria-hidden />

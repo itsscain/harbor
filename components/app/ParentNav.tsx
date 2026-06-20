@@ -24,11 +24,15 @@ export function ParentNav() {
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-semibold transition",
+                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-semibold transition",
                 active ? "text-harbor" : "text-muted",
               )}
             >
+              {active && (
+                <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-water" aria-hidden />
+              )}
               <Icon className={cn("h-6 w-6", active && "text-water")} />
               {label}
             </Link>

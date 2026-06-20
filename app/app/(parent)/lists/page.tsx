@@ -50,7 +50,10 @@ export default async function ListsPage() {
         {(items ?? []).map((item) => (
           <div key={item.id} className="flex items-center gap-3 rounded-xl border border-harbor-100 bg-white p-3">
             <form action={toggleListItem.bind(null, item.id, !item.checked)}>
-              <button className="flex h-8 w-8 items-center justify-center rounded-full text-harbor" aria-label="Toggle">
+              <button
+                className="flex h-11 w-11 items-center justify-center rounded-full text-harbor"
+                aria-label={`Mark ${item.name} ${item.checked ? "not done" : "done"}`}
+              >
                 {item.checked ? <Check className="h-6 w-6 text-emerald-600" /> : <Circle className="h-6 w-6 text-harbor-100" />}
               </button>
             </form>

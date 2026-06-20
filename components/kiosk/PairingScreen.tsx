@@ -42,6 +42,7 @@ export function PairingScreen({
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="ABCD-EFGH"
+            aria-label="Pairing code"
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
@@ -49,7 +50,7 @@ export function PairingScreen({
             className="w-full rounded-2xl border-2 border-white/20 bg-white/10 px-5 py-5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-white placeholder-white/40 outline-none focus:border-beacon"
           />
           {error && (
-            <p className="rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-100">
+            <p role="alert" className="rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-100">
               {error}
             </p>
           )}

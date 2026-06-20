@@ -103,10 +103,14 @@ export async function pairDevice(code: string): Promise<{
     p_code: normalizePairingCode(code),
   });
   if (error) {
-    if (error.message?.includes("invalid_or_used_code")) {
-      throw new Error("That code didn't work. Check it and try again.");
+    const msg = error.message ?? "";
+    if (msg.includes("invalid_or_used_code")) {
+      throw new Error("That code wasn't found. Double-check the setup email and try again.");
     }
-    throw new Error("Couldn't reach Harbor. Check the connection and retry.");
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      throw new Error("No internet yet. Connect this tablet to Wi-Fi, then try again.");
+    }
+    throw new Error("Couldn't reach Harbor just now. Check the connection and retry.");
   }
   return data as { device_secret: string; household_id: string; snapshot: KioskSnapshot };
 }

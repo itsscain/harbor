@@ -46,8 +46,8 @@ export default async function AdminLayout({
             </button>
           </form>
         </header>
-        <div className="md:hidden border-b border-harbor-100 bg-white px-2 py-2 overflow-x-auto">
-          <AdminNav />
+        <div className="md:hidden border-b border-harbor-100 bg-white px-2 py-2">
+          <AdminNav orientation="horizontal" />
         </div>
 
         <main className="mx-auto w-full max-w-6xl flex-1 p-5 sm:p-8">
