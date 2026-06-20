@@ -60,6 +60,9 @@ export default async function CalendarPage() {
           <label className="flex items-center gap-2 text-sm font-medium text-ink">
             <input type="checkbox" name="all_day" className="h-4 w-4" /> All day
           </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-ink">
+            <input type="checkbox" name="is_countdown" className="h-4 w-4" /> Countdown (birthday, vacation…)
+          </label>
           <div className="sm:col-span-2"><SubmitButton>Add event</SubmitButton></div>
         </form>
       </Card>

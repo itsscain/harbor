@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight } from "lucide-react";
+import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/primitives";
 
 export const metadata = { title: "More" };
 
 const links = [
+  { href: "/app/meals", label: "Meal plan", desc: "Plan the week's dinners", icon: UtensilsCrossed },
   { href: "/app/messages", label: "Message board", desc: "Notes & nudges for the wall", icon: MessageSquareHeart },
   { href: "/app/calm", label: "Calm Corner", desc: "Breathing, feelings, stories", icon: Heart },
   { href: "/app/insights", label: "Insights", desc: "Trends & gentle patterns", icon: BarChart3 },

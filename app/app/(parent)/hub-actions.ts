@@ -38,6 +38,7 @@ export async function addEvent(formData: FormData) {
     location: str(formData.get("location")),
     starts_at,
     all_day: allDay,
+    is_countdown: formData.get("is_countdown") === "on",
     person_label: str(formData.get("person_label")),
     color: str(formData.get("color")),
     recurrence_rule: str(formData.get("recurrence_rule")),
@@ -166,6 +167,33 @@ export async function deleteStoreItem(id: string) {
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/store");
+}
+
+// ── Meals (weekly meal planner; read-only on the wall) ───────────────────────
+export async function addMeal(formData: FormData) {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  const { error } = await supabase.from("meals").insert({
+    household_id,
+    date: str(formData.get("date")) ?? new Date().toISOString().slice(0, 10),
+    meal_type: str(formData.get("meal_type")) ?? "dinner",
+    title: String(formData.get("title") || "Dinner"),
+    emoji: str(formData.get("emoji")),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/meals");
+}
+
+export async function deleteMeal(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("meals")
+    .update({ deleted_at: nowIso() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/meals");
 }
 
 // ── Wall messages (bonus points applied server-side, never by the kiosk) ─────
@@ -302,11 +330,38 @@ export async function updateKioskSettings(formData: FormData) {
   if (!household) throw new Error("No household found.");
   const supabase = await createClient();
   const current = (household.settings ?? {}) as Record<string, unknown>;
+
+  // Optional weather location: geocode a city to lat/lon once, here.
+  let weather = current.weather as { lat: number; lon: number; label: string } | undefined;
+  const city = str(formData.get("weatherCity"));
+  const prevLabel = weather?.label ?? "";
+  if (city === null) {
+    weather = undefined;
+  } else if (city.toLowerCase() !== prevLabel.toLowerCase()) {
+    try {
+      const r = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`,
+      );
+      const j = await r.json();
+      const hit = j?.results?.[0];
+      if (hit) {
+        weather = {
+          lat: hit.latitude,
+          lon: hit.longitude,
+          label: [hit.name, hit.admin1].filter(Boolean).join(", "),
+        };
+      }
+    } catch {
+      /* leave existing weather if geocoding fails */
+    }
+  }
+
   const next = {
     ...current,
     idleSeconds: Math.max(30, int(formData.get("idleSeconds"), 120)),
     screensaver: formData.get("screensaver") === "on",
     homePhotoUrl: str(formData.get("homePhotoUrl")),
+    weather,
   };
   const { error } = await supabase
     .from("households")

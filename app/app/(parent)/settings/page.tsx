@@ -51,6 +51,13 @@ export default async function SettingsPage() {
               <Field label="Home photo URL (optional)">
                 <Input name="homePhotoUrl" type="url" defaultValue={(s.homePhotoUrl as string) ?? ""} placeholder="https://…" />
               </Field>
+              <Field label="Weather location (city)" hint="Shows the local forecast on the wall.">
+                <Input
+                  name="weatherCity"
+                  defaultValue={(s.weather as { label?: string } | undefined)?.label ?? ""}
+                  placeholder="Austin, Texas"
+                />
+              </Field>
               <label className="flex items-center gap-2 text-sm font-medium text-ink">
                 <input type="checkbox" name="screensaver" defaultChecked={s.screensaver !== false} className="h-4 w-4" />
                 Show screensaver when idle

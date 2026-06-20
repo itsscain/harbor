@@ -6,7 +6,14 @@ import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
 import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
+import { WeatherWidget } from "./WeatherWidget";
 import { cn } from "@/lib/cn";
+
+function daysUntil(iso: string): number {
+  const d = new Date(iso); d.setHours(0, 0, 0, 0);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - t.getTime()) / 86400000);
+}
 
 type Kiosk = ReturnType<typeof useKiosk>;
 
@@ -42,12 +49,25 @@ export function HomeView({
   const childrenById = new Map(snap.children.map((c) => [c.id, c]));
   const todays = eventsForDay(snap.events ?? [], now).slice(0, 4);
 
+  const hsettings = (snap.household.settings ?? {}) as Record<string, unknown>;
+  const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
+
+  const todayStr = now.toISOString().slice(0, 10);
+  const tonight =
+    (snap.meals ?? []).find((m) => m.date === todayStr && m.meal_type === "dinner") ??
+    (snap.meals ?? []).find((m) => m.date === todayStr);
+
+  const nextCountdown = (snap.events ?? [])
+    .filter((e) => e.is_countdown)
+    .map((e) => ({ e, d: daysUntil(e.starts_at) }))
+    .filter((x) => x.d >= 0)
+    .sort((a, b) => a.d - b.d)[0];
+
   const messages = (snap.wall_messages ?? [])
     .filter((m) => !m.expires_at || new Date(m.expires_at) > now)
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.created_at < b.created_at ? 1 : -1))
     .slice(0, 3);
 
-  const todayStr = now.toISOString().slice(0, 10);
   const dueReminders = (snap.reminders ?? []).filter(
     (r) => !r.done && r.due_date <= todayStr && (!r.snoozed_until || r.snoozed_until <= todayStr),
   );
@@ -80,18 +100,49 @@ export function HomeView({
               {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <p className="font-display text-4xl font-extrabold tabular-nums text-harbor">
-              {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-            </p>
-            <button
-              onClick={onParentMenu}
-              className="kiosk-tap flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-muted shadow-sm"
-            >
-              <Lock className="h-3.5 w-3.5" /> Parents
-            </button>
+          <div className="flex items-center gap-3">
+            {weather?.lat != null && weather?.lon != null && (
+              <WeatherWidget lat={weather.lat} lon={weather.lon} label={weather.label} />
+            )}
+            <div className="flex flex-col items-end gap-1">
+              <p className="font-display text-4xl font-extrabold tabular-nums text-harbor">
+                {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+              </p>
+              <button
+                onClick={onParentMenu}
+                className="kiosk-tap flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-muted shadow-sm"
+              >
+                <Lock className="h-3.5 w-3.5" /> Parents
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Countdown + tonight's dinner */}
+        {(nextCountdown || tonight) && (
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            {nextCountdown && (
+              <div className="flex items-center gap-3 rounded-2xl border border-beacon/40 bg-beacon-soft/40 p-4">
+                <span className="text-3xl">{nextCountdown.e.emoji ?? "🎉"}</span>
+                <div>
+                  <p className="font-display text-lg font-extrabold text-harbor">
+                    {nextCountdown.d === 0 ? "Today!" : `${nextCountdown.d} ${nextCountdown.d === 1 ? "sleep" : "sleeps"} to go`}
+                  </p>
+                  <p className="text-sm text-muted">{nextCountdown.e.title}</p>
+                </div>
+              </div>
+            )}
+            {tonight && (
+              <div className="flex items-center gap-3 rounded-2xl border border-harbor-100 bg-white p-4">
+                <span className="text-3xl">{tonight.emoji ?? "🍽️"}</span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted">Tonight&apos;s dinner</p>
+                  <p className="font-display text-lg font-bold text-harbor">{tonight.title}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Reminders banner */}
         {dueReminders.length > 0 && (
