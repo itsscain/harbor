@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Heart, BarChart3, CreditCard, Settings } from "lucide-react";
+import { Home, CalendarDays, ListChecks, Gift, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const items = [
   { href: "/app", label: "Home", icon: Home, exact: true },
-  { href: "/app/calm", label: "Calm", icon: Heart },
-  { href: "/app/insights", label: "Insights", icon: BarChart3 },
-  { href: "/app/billing", label: "Plus", icon: CreditCard },
-  { href: "/app/settings", label: "Settings", icon: Settings },
+  { href: "/app/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/app/lists", label: "Lists", icon: ListChecks },
+  { href: "/app/store", label: "Store", icon: Gift },
+  { href: "/app/more", label: "More", icon: LayoutGrid },
 ];
 
 export function ParentNav() {

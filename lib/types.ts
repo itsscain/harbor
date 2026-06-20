@@ -18,6 +18,11 @@ export type Referral = Tables<"referrals">;
 export type PlusSubscription = Tables<"plus_subscriptions">;
 export type DevicePairing = Tables<"device_pairings">;
 export type WaitlistEntry = Tables<"waitlist">;
+export type FamilyEvent = Tables<"events">;
+export type StoreItem = Tables<"store_items">;
+export type ListItem = Tables<"list_items">;
+export type WallMessage = Tables<"wall_messages">;
+export type Reminder = Tables<"reminders">;
 
 // Enum aliases.
 export type RoutineType = Enums<"routine_type">;

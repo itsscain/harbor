@@ -349,6 +349,78 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          all_day: boolean
+          child_id: string | null
+          color: string | null
+          created_at: string
+          deleted_at: string | null
+          emoji: string | null
+          ends_at: string | null
+          household_id: string
+          id: string
+          location: string | null
+          person_label: string | null
+          recurrence_rule: string | null
+          responsible_label: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          child_id?: string | null
+          color?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          ends_at?: string | null
+          household_id: string
+          id?: string
+          location?: string | null
+          person_label?: string | null
+          recurrence_rule?: string | null
+          responsible_label?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          child_id?: string | null
+          color?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          ends_at?: string | null
+          household_id?: string
+          id?: string
+          location?: string | null
+          person_label?: string | null
+          recurrence_rule?: string | null
+          responsible_label?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       households: {
         Row: {
           created_at: string
@@ -357,6 +429,7 @@ export type Database = {
           owner_id: string
           parent_pin_hash: string | null
           plus_active: boolean
+          settings: Json
           updated_at: string
         }
         Insert: {
@@ -366,6 +439,7 @@ export type Database = {
           owner_id: string
           parent_pin_hash?: string | null
           plus_active?: boolean
+          settings?: Json
           updated_at?: string
         }
         Update: {
@@ -375,6 +449,7 @@ export type Database = {
           owner_id?: string
           parent_pin_hash?: string | null
           plus_active?: boolean
+          settings?: Json
           updated_at?: string
         }
         Relationships: [
@@ -413,6 +488,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      list_items: {
+        Row: {
+          added_by_label: string | null
+          category: string | null
+          checked: boolean
+          created_at: string
+          deleted_at: string | null
+          household_id: string
+          id: string
+          list_kind: string
+          name: string
+          quantity: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          added_by_label?: string | null
+          category?: string | null
+          checked?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          household_id: string
+          id?: string
+          list_kind?: string
+          name: string
+          quantity?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          added_by_label?: string | null
+          category?: string | null
+          checked?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          household_id?: string
+          id?: string
+          list_kind?: string
+          name?: string
+          quantity?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plus_subscriptions: {
         Row: {
@@ -520,6 +648,63 @@ export type Database = {
           },
         ]
       }
+      reminders: {
+        Row: {
+          child_id: string | null
+          created_at: string
+          deleted_at: string | null
+          done: boolean
+          due_date: string
+          household_id: string
+          id: string
+          repeat_rule: string | null
+          snoozed_until: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          done?: boolean
+          due_date: string
+          household_id: string
+          id?: string
+          repeat_rule?: string | null
+          snoozed_until?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          done?: boolean
+          due_date?: string
+          household_id?: string
+          id?: string
+          repeat_rule?: string | null
+          snoozed_until?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reward_log: {
         Row: {
           child_id: string
@@ -529,6 +714,7 @@ export type Database = {
           id: string
           reason: string | null
           step_id: string | null
+          store_item_id: string | null
         }
         Insert: {
           child_id: string
@@ -538,6 +724,7 @@ export type Database = {
           id?: string
           reason?: string | null
           step_id?: string | null
+          store_item_id?: string | null
         }
         Update: {
           child_id?: string
@@ -547,6 +734,7 @@ export type Database = {
           id?: string
           reason?: string | null
           step_id?: string | null
+          store_item_id?: string | null
         }
         Relationships: [
           {
@@ -561,6 +749,13 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_log_store_item_id_fkey"
+            columns: ["store_item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
             referencedColumns: ["id"]
           },
         ]
@@ -601,6 +796,7 @@ export type Database = {
         Row: {
           created_at: string
           deleted_at: string | null
+          duration_min: number | null
           icon: string | null
           id: string
           label: string
@@ -608,12 +804,14 @@ export type Database = {
           photo_url: string | null
           reward_points: number
           routine_id: string
+          start_time: string | null
           step_type: Database["public"]["Enums"]["step_type"]
           updated_at: string
         }
         Insert: {
           created_at?: string
           deleted_at?: string | null
+          duration_min?: number | null
           icon?: string | null
           id?: string
           label: string
@@ -621,12 +819,14 @@ export type Database = {
           photo_url?: string | null
           reward_points?: number
           routine_id: string
+          start_time?: string | null
           step_type?: Database["public"]["Enums"]["step_type"]
           updated_at?: string
         }
         Update: {
           created_at?: string
           deleted_at?: string | null
+          duration_min?: number | null
           icon?: string | null
           id?: string
           label?: string
@@ -634,6 +834,7 @@ export type Database = {
           photo_url?: string | null
           reward_points?: number
           routine_id?: string
+          start_time?: string | null
           step_type?: Database["public"]["Enums"]["step_type"]
           updated_at?: string
         }
@@ -652,10 +853,13 @@ export type Database = {
           active: boolean
           child_id: string
           created_at: string
+          days_of_week: number[] | null
           deleted_at: string | null
+          end_time: string | null
           id: string
           name: string
           sort_order: number
+          start_time: string | null
           type: Database["public"]["Enums"]["routine_type"]
           updated_at: string
         }
@@ -663,10 +867,13 @@ export type Database = {
           active?: boolean
           child_id: string
           created_at?: string
+          days_of_week?: number[] | null
           deleted_at?: string | null
+          end_time?: string | null
           id?: string
           name: string
           sort_order?: number
+          start_time?: string | null
           type?: Database["public"]["Enums"]["routine_type"]
           updated_at?: string
         }
@@ -674,10 +881,13 @@ export type Database = {
           active?: boolean
           child_id?: string
           created_at?: string
+          days_of_week?: number[] | null
           deleted_at?: string | null
+          end_time?: string | null
           id?: string
           name?: string
           sort_order?: number
+          start_time?: string | null
           type?: Database["public"]["Enums"]["routine_type"]
           updated_at?: string
         }
@@ -687,6 +897,69 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_items: {
+        Row: {
+          child_id: string | null
+          cost_points: number
+          created_at: string
+          deleted_at: string | null
+          emoji: string | null
+          enabled: boolean
+          household_id: string
+          id: string
+          image_url: string | null
+          kind: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          child_id?: string | null
+          cost_points?: number
+          created_at?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          enabled?: boolean
+          household_id: string
+          id?: string
+          image_url?: string | null
+          kind?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string | null
+          cost_points?: number
+          created_at?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          enabled?: boolean
+          household_id?: string
+          id?: string
+          image_url?: string | null
+          kind?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_items_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
             referencedColumns: ["id"]
           },
         ]
@@ -717,6 +990,66 @@ export type Database = {
           town?: string | null
         }
         Relationships: []
+      }
+      wall_messages: {
+        Row: {
+          author_label: string | null
+          body: string
+          bonus_points: number
+          child_id: string | null
+          created_at: string
+          deleted_at: string | null
+          emoji: string | null
+          expires_at: string | null
+          household_id: string
+          id: string
+          pinned: boolean
+          updated_at: string
+        }
+        Insert: {
+          author_label?: string | null
+          body: string
+          bonus_points?: number
+          child_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          expires_at?: string | null
+          household_id: string
+          id?: string
+          pinned?: boolean
+          updated_at?: string
+        }
+        Update: {
+          author_label?: string | null
+          body?: string
+          bonus_points?: number
+          child_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          expires_at?: string | null
+          household_id?: string
+          id?: string
+          pinned?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_messages_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wall_messages_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

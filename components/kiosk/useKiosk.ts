@@ -9,7 +9,12 @@ import {
   todayKey,
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
-import type { KioskState, KioskStep } from "@/lib/kiosk/types";
+import type {
+  KioskState,
+  KioskStep,
+  KioskStoreItem,
+  KioskListItem,
+} from "@/lib/kiosk/types";
 
 export type KioskStatus = "loading" | "unpaired" | "ready";
 
@@ -205,6 +210,93 @@ export function useKiosk() {
     [update],
   );
 
+  // Redeem a parent-defined reward-store item (decrements points only).
+  const redeemStoreItem = useCallback(
+    (childId: string, item: KioskStoreItem) => {
+      update((s) => {
+        const have = s.points[childId] ?? 0;
+        if (item.cost_points <= 0 || item.cost_points > have) return s;
+        return {
+          ...s,
+          points: { ...s.points, [childId]: have - item.cost_points },
+          outbox: [
+            ...s.outbox,
+            {
+              kind: "redemption",
+              child_id: childId,
+              points: item.cost_points,
+              reason: item.label,
+              label: item.label,
+              store_item_id: item.id,
+              created_at: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    },
+    [update],
+  );
+
+  // Shared lists: optimistic add/check, synced via the guarded list_ops push.
+  const addListItem = useCallback(
+    (name: string, opts?: { category?: string | null; list_kind?: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      update((s) => {
+        const client_id = crypto.randomUUID();
+        const item: KioskListItem = {
+          id: client_id,
+          list_kind: opts?.list_kind ?? "grocery",
+          name: trimmed,
+          category: opts?.category ?? null,
+          quantity: null,
+          checked: false,
+          added_by_label: "Wall",
+          sort_order: 999,
+        };
+        return {
+          ...s,
+          snapshot: {
+            ...s.snapshot,
+            list_items: [...(s.snapshot.list_items ?? []), item],
+          },
+          outbox: [
+            ...s.outbox,
+            {
+              kind: "list_add",
+              client_id,
+              name: trimmed,
+              category: opts?.category ?? null,
+              list_kind: item.list_kind,
+              added_by_label: "Wall",
+              created_at: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    },
+    [update],
+  );
+
+  const checkListItem = useCallback(
+    (id: string, checked: boolean) => {
+      update((s) => ({
+        ...s,
+        snapshot: {
+          ...s.snapshot,
+          list_items: (s.snapshot.list_items ?? []).map((li) =>
+            li.id === id ? { ...li, checked } : li,
+          ),
+        },
+        outbox: [
+          ...s.outbox,
+          { kind: "list_check", id, checked, created_at: new Date().toISOString() },
+        ],
+      }));
+    },
+    [update],
+  );
+
   return {
     state,
     status,
@@ -217,6 +309,9 @@ export function useKiosk() {
     checkIn,
     resetDay,
     redeem,
+    redeemStoreItem,
+    addListItem,
+    checkListItem,
     syncNow: runSync,
   };
 }

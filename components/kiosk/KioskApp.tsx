@@ -3,7 +3,7 @@
 import { useKiosk } from "./useKiosk";
 import { PairingScreen } from "./PairingScreen";
 import { PinSetup } from "./PinSetup";
-import { KidShell } from "./KidShell";
+import { KioskShell } from "./KioskShell";
 import { LighthouseMark } from "@/components/brand/Logo";
 
 export function KioskApp() {
@@ -25,5 +25,5 @@ export function KioskApp() {
     return <PinSetup onDone={kiosk.setPin} />;
   }
 
-  return <KidShell kiosk={kiosk} />;
+  return <KioskShell kiosk={kiosk} />;
 }

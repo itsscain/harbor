@@ -16,6 +16,9 @@ export type KioskRoutine = {
   type: "schedule" | "first_then";
   active: boolean;
   sort_order: number;
+  start_time: string | null;
+  end_time: string | null;
+  days_of_week: number[] | null;
 };
 
 export type KioskStep = {
@@ -27,6 +30,8 @@ export type KioskStep = {
   photo_url: string | null;
   step_type: "task" | "first" | "then";
   reward_points: number;
+  start_time: string | null;
+  duration_min: number | null;
 };
 
 export type KioskCalmTool = {
@@ -38,26 +43,110 @@ export type KioskCalmTool = {
   sort_order: number;
 };
 
+export type KioskEvent = {
+  id: string;
+  child_id: string | null;
+  title: string;
+  emoji: string | null;
+  location: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  all_day: boolean;
+  person_label: string | null;
+  color: string | null;
+  responsible_label: string | null;
+  recurrence_rule: string | null;
+};
+
+export type KioskStoreItem = {
+  id: string;
+  child_id: string | null;
+  label: string;
+  emoji: string | null;
+  image_url: string | null;
+  cost_points: number;
+  kind: string;
+  sort_order: number;
+  enabled: boolean;
+};
+
+export type KioskListItem = {
+  id: string;
+  list_kind: string;
+  name: string;
+  category: string | null;
+  quantity: string | null;
+  checked: boolean;
+  added_by_label: string | null;
+  sort_order: number;
+};
+
+export type KioskWallMessage = {
+  id: string;
+  child_id: string | null;
+  body: string;
+  emoji: string | null;
+  author_label: string | null;
+  pinned: boolean;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export type KioskReminder = {
+  id: string;
+  child_id: string | null;
+  title: string;
+  due_date: string;
+  done: boolean;
+  snoozed_until: string | null;
+};
+
+export type KioskHousehold = {
+  id: string;
+  name: string;
+  plus_active: boolean;
+  parent_pin_set: boolean;
+  parent_pin_hash?: string | null;
+  settings?: Record<string, unknown> | null;
+};
+
 export type KioskSnapshot = {
-  household: {
-    id: string;
-    name: string;
-    plus_active: boolean;
-    parent_pin_set: boolean;
-    parent_pin_hash?: string | null;
-  };
+  household: KioskHousehold;
   children: KioskChild[];
   routines: KioskRoutine[];
   steps: KioskStep[];
   rewards: { child_id: string; points_total: number }[];
   calm_tools: KioskCalmTool[];
+  events: KioskEvent[];
+  store_items: KioskStoreItem[];
+  list_items: KioskListItem[];
+  wall_messages: KioskWallMessage[];
+  reminders: KioskReminder[];
   server_time: string;
 };
 
 export type Mutation =
   | { kind: "completion"; child_id: string; step_id: string; points: number; created_at: string }
   | { kind: "check_in"; child_id: string; feeling: string; note: string | null; created_at: string }
-  | { kind: "redemption"; child_id: string; points: number; reason: string; created_at: string };
+  | {
+      kind: "redemption";
+      child_id: string;
+      points: number;
+      reason: string;
+      store_item_id?: string | null;
+      label?: string | null;
+      created_at: string;
+    }
+  | {
+      kind: "list_add";
+      client_id: string;
+      name: string;
+      category: string | null;
+      list_kind: string;
+      added_by_label: string | null;
+      created_at: string;
+    }
+  | { kind: "list_check"; id: string; checked: boolean; created_at: string };
 
 export type DayProgress = { date: string; completed: string[] };
 

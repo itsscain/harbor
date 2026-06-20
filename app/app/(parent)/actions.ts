@@ -85,12 +85,19 @@ export async function addRoutine(childId: string, formData: FormData) {
 export async function updateRoutine(id: string, childId: string, formData: FormData) {
   await requireUser();
   const supabase = await createClient();
+  const days = formData
+    .getAll("days")
+    .map((d) => Number(d))
+    .filter((n) => Number.isFinite(n));
   const { error } = await supabase
     .from("routines")
     .update({
       name: String(formData.get("name") || ""),
       active: formData.get("active") === "on",
       sort_order: int(formData.get("sort_order"), 0),
+      start_time: str(formData.get("start_time")),
+      end_time: str(formData.get("end_time")),
+      days_of_week: days.length ? days : null,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
@@ -130,6 +137,7 @@ export async function addStep(routineId: string, childId: string, formData: Form
 export async function updateStep(id: string, childId: string, formData: FormData) {
   await requireUser();
   const supabase = await createClient();
+  const durationRaw = formData.get("duration_min");
   const { error } = await supabase
     .from("routine_steps")
     .update({
@@ -141,6 +149,8 @@ export async function updateStep(id: string, childId: string, formData: FormData
         | "then",
       reward_points: int(formData.get("reward_points"), 0),
       order_index: int(formData.get("order_index"), 0),
+      start_time: str(formData.get("start_time")),
+      duration_min: durationRaw ? int(durationRaw) : null,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { updateHouseholdName, setParentPin, clearParentPin } from "../actions";
+import { updateKioskSettings } from "../hub-actions";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -35,6 +36,31 @@ export default async function SettingsPage() {
           </Field>
           <SubmitButton variant="secondary">Save</SubmitButton>
         </form>
+      </Card>
+
+      <Card className="mb-4">
+        <h2 className="font-display text-base font-bold text-harbor">Wall display</h2>
+        <p className="text-sm text-muted">How the wall behaves when idle.</p>
+        {(() => {
+          const s = (household.settings ?? {}) as Record<string, unknown>;
+          return (
+            <form action={updateKioskSettings} className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label="Return to home after (seconds)">
+                <Input name="idleSeconds" type="number" min={30} defaultValue={(s.idleSeconds as number) ?? 120} />
+              </Field>
+              <Field label="Home photo URL (optional)">
+                <Input name="homePhotoUrl" type="url" defaultValue={(s.homePhotoUrl as string) ?? ""} placeholder="https://…" />
+              </Field>
+              <label className="flex items-center gap-2 text-sm font-medium text-ink">
+                <input type="checkbox" name="screensaver" defaultChecked={s.screensaver !== false} className="h-4 w-4" />
+                Show screensaver when idle
+              </label>
+              <div className="sm:col-span-2">
+                <SubmitButton variant="secondary">Save wall settings</SubmitButton>
+              </div>
+            </form>
+          );
+        })()}
       </Card>
 
       <Card className="mb-4">

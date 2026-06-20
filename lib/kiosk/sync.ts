@@ -18,15 +18,35 @@ function buildPayload(outbox: Mutation[]): Json {
   const check_ins: Json[] = [];
   const completions: Json[] = [];
   const redemptions: Json[] = [];
+  const list_ops: Json[] = [];
   for (const m of outbox) {
     if (m.kind === "check_in")
       check_ins.push({ child_id: m.child_id, feeling: m.feeling, note: m.note, created_at: m.created_at });
     else if (m.kind === "completion")
       completions.push({ child_id: m.child_id, step_id: m.step_id, points: m.points, created_at: m.created_at });
     else if (m.kind === "redemption")
-      redemptions.push({ child_id: m.child_id, points: m.points, reason: m.reason, created_at: m.created_at });
+      redemptions.push({
+        child_id: m.child_id,
+        points: m.points,
+        reason: m.reason,
+        label: m.label ?? null,
+        store_item_id: m.store_item_id ?? null,
+        created_at: m.created_at,
+      });
+    else if (m.kind === "list_add")
+      list_ops.push({
+        op: "add",
+        client_id: m.client_id,
+        name: m.name,
+        category: m.category,
+        list_kind: m.list_kind,
+        added_by_label: m.added_by_label,
+        created_at: m.created_at,
+      });
+    else if (m.kind === "list_check")
+      list_ops.push({ op: "check", id: m.id, checked: m.checked, created_at: m.created_at });
   }
-  return { check_ins, completions, redemptions };
+  return { check_ins, completions, redemptions, list_ops };
 }
 
 function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
@@ -39,6 +59,11 @@ function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
       routines: mergeById(state.snapshot.routines, snap.routines ?? []),
       steps: mergeById(state.snapshot.steps, snap.steps ?? []),
       calm_tools: mergeById(state.snapshot.calm_tools, snap.calm_tools ?? []),
+      events: mergeById(state.snapshot.events ?? [], snap.events ?? []),
+      store_items: mergeById(state.snapshot.store_items ?? [], snap.store_items ?? []),
+      list_items: mergeById(state.snapshot.list_items ?? [], snap.list_items ?? []),
+      wall_messages: mergeById(state.snapshot.wall_messages ?? [], snap.wall_messages ?? []),
+      reminders: mergeById(state.snapshot.reminders ?? [], snap.reminders ?? []),
       server_time: snap.server_time,
     },
     lastSync: snap.server_time,
