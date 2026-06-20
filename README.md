@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Harbor
 
-## Getting Started
+A family command center on a wall-mounted tablet — visual routines, a calm-down
+corner kids control, and kid-proof lockdown — for chaotic and neurodivergent
+households. **One payment, you own it, no required monthly fee.**
 
-First, run the development server:
+One Next.js app, four surfaces:
 
+| Route | Who | What |
+|---|---|---|
+| `/` | public | Marketing + Founding Family waitlist |
+| `/kiosk` | the wall | **Local-first PWA**, kiosk-locked, fully offline |
+| `/app` | parents | Manage children/routines, calm tools, insights, billing |
+| `/admin` | operator | Build catalog, sourcing, customers/installs, founder program, provisioning |
+
+## Stack
+Next.js 16 (App Router, React 19, Turbopack) · TypeScript · Tailwind v4 ·
+Supabase (Postgres + Auth + RLS) · Stripe (optional Plus) · IndexedDB + service
+worker for the offline kiosk.
+
+## Local development
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # fill in the values below
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment (`.env.local`)
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — required.
+- `SUPABASE_SERVICE_ROLE_KEY` — required for `/admin/setup`, parent invites, and
+  the Stripe webhook (Dashboard → Project Settings → API).
+- `ADMIN_EMAIL`, `ADMIN_TEMP_PASSWORD`, `SETUP_SECRET` — admin bootstrap.
+- `STRIPE_*` + `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` — optional; blank = Plus off,
+  app still runs. See [docs/STRIPE_SETUP.md](docs/STRIPE_SETUP.md).
+- `NEXT_PUBLIC_SITE_URL` — base URL for redirects.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
+Migrations live in [`supabase/migrations/`](supabase/migrations) and are applied via
+the Supabase MCP. Regenerate types after schema changes (Supabase MCP
+`generate_typescript_types` → `lib/database.types.ts`). RLS notes:
+[`supabase/SECURITY_NOTES.md`](supabase/SECURITY_NOTES.md).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## First-run setup
+1. Set env (incl. `SUPABASE_SERVICE_ROLE_KEY` and `SETUP_SECRET`).
+2. Visit `/admin/setup`, enter the setup secret + your email/password. The first
+   account becomes `admin`; the page then closes itself.
+3. In Admin, add a customer → **Provision** to create the household, invite the
+   parent, and mint a pairing code.
+4. On the wall tablet, open `/kiosk`, enter the pairing code, set a parent PIN.
 
-## Learn More
+## How the offline kiosk works
+The kiosk treats **IndexedDB on the device as the source of truth**. Daily use
+(routines, tap-to-complete, points, calm corner) needs no network. Pairing is the
+only step that requires the internet, once. When online **and** Plus is active, the
+kiosk syncs to Supabase for backup and to receive routine edits pushed from the
+parent app. Canceling Plus only disables those extras — the wall keeps working.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Build & deploy
+```bash
+npm run build
+```
+Deploy on Vercel; set the same env vars in the Vercel project. The Supabase project
+and (optional) Stripe webhook point at the deployed URL.
