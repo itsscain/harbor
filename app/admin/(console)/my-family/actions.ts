@@ -37,11 +37,12 @@ export async function setupMyFamily(formData: FormData) {
     if (error) throw new Error(error.message);
     household = data;
 
-    await supabase
+    const { error: subErr } = await supabase
       .from("plus_subscriptions")
       .insert({ household_id: household.id, status: "active" });
+    if (subErr) throw new Error(subErr.message);
 
-    await supabase.from("calm_tools").insert(
+    const { error: calmErr } = await supabase.from("calm_tools").insert(
       RECOMMENDED_CALM.map((c) => ({
         household_id: household!.id,
         tool_type: c.tool_type,
@@ -50,12 +51,22 @@ export async function setupMyFamily(formData: FormData) {
         enabled: true,
       })),
     );
+    if (calmErr) throw new Error(calmErr.message);
   }
 
-  const code = generatePairingCode();
-  await supabase
+  // Reuse an existing live pairing code rather than piling up new ones.
+  const { data: pending } = await supabase
     .from("device_pairings")
-    .insert({ household_id: household.id, code, status: "pending" });
+    .select("code")
+    .eq("household_id", household.id)
+    .eq("status", "pending")
+    .limit(1);
+  if (!pending || pending.length === 0) {
+    const { error } = await supabase
+      .from("device_pairings")
+      .insert({ household_id: household.id, code: generatePairingCode(), status: "pending" });
+    if (error) throw new Error(error.message);
+  }
 
   revalidatePath("/admin/my-family");
 }
@@ -63,11 +74,15 @@ export async function setupMyFamily(formData: FormData) {
 /** Mint another one-time pairing code (e.g. to pair a second wall). */
 export async function newOwnerPairingCode(householdId: string) {
   await requireAdmin();
+  // Don't trust the bound id — verify it's the caller's own household.
+  const household = await getMyHousehold();
+  if (!household || household.id !== householdId) {
+    throw new Error("That isn't your household.");
+  }
   const supabase = await createClient();
-  const code = generatePairingCode();
   const { error } = await supabase
     .from("device_pairings")
-    .insert({ household_id: householdId, code, status: "pending" });
+    .insert({ household_id: household.id, code: generatePairingCode(), status: "pending" });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/my-family");
 }

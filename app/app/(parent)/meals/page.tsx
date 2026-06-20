@@ -14,7 +14,8 @@ export default async function MealsPage() {
   const household = await getMyHousehold();
   if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const n = new Date();
+  const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
   const { data: meals } = await supabase
     .from("meals")
     .select("*")

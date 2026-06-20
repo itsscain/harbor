@@ -52,7 +52,7 @@ export function HomeView({
   const hsettings = (snap.household.settings ?? {}) as Record<string, unknown>;
   const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
 
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = todayKey(); // local calendar date (matches the rest of the wall)
   const tonight =
     (snap.meals ?? []).find((m) => m.date === todayStr && m.meal_type === "dinner") ??
     (snap.meals ?? []).find((m) => m.date === todayStr);

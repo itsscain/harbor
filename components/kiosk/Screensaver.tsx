@@ -26,6 +26,7 @@ export function Screensaver({
     return () => clearInterval(id);
   }, [photos.length]);
 
+  const safeIdx = photos.length ? idx % photos.length : 0;
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -43,7 +44,7 @@ export function Screensaver({
             src={src}
             alt=""
             className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000"
-            style={{ opacity: i === idx ? 0.45 : 0 }}
+            style={{ opacity: i === safeIdx ? 0.45 : 0 }}
           />
         ))
       ) : (

@@ -78,7 +78,10 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
     window.addEventListener("keydown", onActivity);
     window.addEventListener("touchstart", onActivity, { passive: true });
     const id = window.setInterval(() => {
-      if (Date.now() - lastActivity.current > idleMs) {
+      const idle = Date.now() - lastActivity.current > idleMs;
+      // Only "sleep" when something will actually render (screensaver on, or in
+      // quiet hours), so we never blank to nothing.
+      if (idle && (screensaverOn || inQuietHours(quietStart, quietEnd))) {
         setAsleep(true);
         setView({ k: "home" });
         setCalmOpen(false);

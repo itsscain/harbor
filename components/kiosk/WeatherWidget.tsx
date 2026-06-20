@@ -34,6 +34,7 @@ export function WeatherWidget({ lat, lon, label }: { lat: number; lon: number; l
     const id = setInterval(() => {
       fetchWeather(lat, lon)
         .then((next) => {
+          if (!alive) return;
           setW(next);
           try {
             localStorage.setItem(CACHE_KEY, JSON.stringify(next));
