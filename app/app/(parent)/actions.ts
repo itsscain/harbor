@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { hashPinServer } from "@/lib/pin";
+import { CHILD_PALETTE } from "@/lib/kiosk/colors";
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -39,13 +40,15 @@ export async function addChild(formData: FormData) {
   const household = await getMyHousehold();
   if (!household) throw new Error("No household found.");
   const supabase = await createClient();
+  const order = await nextOrder("children", "sort_order", "household_id", household.id);
   const { data, error } = await supabase
     .from("children")
     .insert({
       household_id: household.id,
       name: String(formData.get("name") || "New child"),
       avatar: str(formData.get("avatar")),
-      sort_order: await nextOrder("children", "sort_order", "household_id", household.id),
+      color: CHILD_PALETTE[order % CHILD_PALETTE.length].value,
+      sort_order: order,
     })
     .select("id")
     .single();
@@ -64,6 +67,7 @@ export async function updateChild(id: string, formData: FormData) {
     .update({
       name: String(formData.get("name") || ""),
       avatar: str(formData.get("avatar")),
+      color: str(formData.get("color")),
       sort_order: int(formData.get("sort_order"), 0),
     })
     .eq("id", id);

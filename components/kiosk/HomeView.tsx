@@ -5,6 +5,7 @@ import { CalendarDays, ListChecks, Heart, Bell, Pin, ChevronRight, Star, Lock } 
 import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
 import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
+import { childColor, eventColor } from "@/lib/kiosk/colors";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -38,6 +39,7 @@ export function HomeView({
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const children = [...snap.children].sort((a, b) => a.sort_order - b.sort_order);
+  const childrenById = new Map(snap.children.map((c) => [c.id, c]));
   const todays = eventsForDay(snap.events ?? [], now).slice(0, 4);
 
   const messages = (snap.wall_messages ?? [])
@@ -131,9 +133,15 @@ export function HomeView({
               <button
                 key={c.id}
                 onClick={() => onSelectChild(c.id)}
-                className="kiosk-tap flex items-center gap-4 rounded-3xl border-2 border-harbor-100 bg-white p-5 text-left transition active:scale-[0.99]"
+                style={{ borderLeftColor: childColor(c) }}
+                className="kiosk-tap flex items-center gap-4 rounded-3xl border-2 border-l-8 border-harbor-100 bg-white p-5 text-left transition active:scale-[0.99]"
               >
-                <span className="text-5xl">{c.avatar ?? "🙂"}</span>
+                <span
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-4xl"
+                  style={{ backgroundColor: childColor(c) + "22", boxShadow: `inset 0 0 0 2px ${childColor(c)}` }}
+                >
+                  {c.avatar ?? "🙂"}
+                </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-2xl font-extrabold text-harbor">{c.name}</p>
                   <p className="flex items-center gap-2 text-sm text-muted">
@@ -161,11 +169,15 @@ export function HomeView({
             {todays.length === 0 ? (
               <p className="text-sm text-muted">Nothing scheduled. Enjoy the calm.</p>
             ) : (
-              <ul className="space-y-0.5 text-sm text-ink">
+              <ul className="space-y-1 text-sm text-ink">
                 {todays.map((e) => (
-                  <li key={e.id}>
-                    <span className="font-semibold text-water">{formatEventTime(e)}</span> {e.emoji}{" "}
-                    {e.title}
+                  <li key={e.id} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: eventColor(e, childrenById) }}
+                    />
+                    <span className="font-semibold text-water">{formatEventTime(e)}</span>
+                    <span>{e.emoji} {e.title}</span>
                   </li>
                 ))}
               </ul>

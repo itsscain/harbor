@@ -15,6 +15,7 @@ import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
+import { childColor } from "@/lib/kiosk/colors";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
@@ -129,7 +130,10 @@ export function ChildView({
   return (
     <div className="flex min-h-full flex-col">
       {/* Header */}
-      <header className={cn("flex items-center justify-between gap-3 px-4 py-3 text-white", headerBg)}>
+      <header
+        className={cn("flex items-center justify-between gap-3 border-b-4 px-4 py-3 text-white", headerBg)}
+        style={{ borderBottomColor: childColor(child) }}
+      >
         <button
           onClick={onHome}
           className="kiosk-tap flex items-center gap-2 rounded-2xl bg-white/15 px-3 py-2 font-semibold"

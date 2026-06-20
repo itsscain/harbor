@@ -5,6 +5,7 @@ export type KioskChild = {
   id: string;
   name: string;
   avatar: string | null;
+  color: string | null;
   sort_order: number;
   settings: Record<string, unknown> | null;
 };
@@ -52,10 +53,21 @@ export type KioskEvent = {
   starts_at: string;
   ends_at: string | null;
   all_day: boolean;
+  is_countdown: boolean;
   person_label: string | null;
   color: string | null;
   responsible_label: string | null;
   recurrence_rule: string | null;
+};
+
+export type KioskMeal = {
+  id: string;
+  date: string;
+  meal_type: string;
+  title: string;
+  emoji: string | null;
+  notes: string | null;
+  sort_order: number;
 };
 
 export type KioskStoreItem = {
@@ -122,6 +134,7 @@ export type KioskSnapshot = {
   list_items: KioskListItem[];
   wall_messages: KioskWallMessage[];
   reminders: KioskReminder[];
+  meals: KioskMeal[];
   server_time: string;
 };
 

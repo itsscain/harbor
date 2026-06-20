@@ -198,6 +198,7 @@ export type Database = {
       children: {
         Row: {
           avatar: string | null
+          color: string | null
           created_at: string
           deleted_at: string | null
           household_id: string
@@ -209,6 +210,7 @@ export type Database = {
         }
         Insert: {
           avatar?: string | null
+          color?: string | null
           created_at?: string
           deleted_at?: string | null
           household_id: string
@@ -220,6 +222,7 @@ export type Database = {
         }
         Update: {
           avatar?: string | null
+          color?: string | null
           created_at?: string
           deleted_at?: string | null
           household_id?: string
@@ -360,6 +363,7 @@ export type Database = {
           ends_at: string | null
           household_id: string
           id: string
+          is_countdown: boolean
           location: string | null
           person_label: string | null
           recurrence_rule: string | null
@@ -378,6 +382,7 @@ export type Database = {
           ends_at?: string | null
           household_id: string
           id?: string
+          is_countdown?: boolean
           location?: string | null
           person_label?: string | null
           recurrence_rule?: string | null
@@ -396,6 +401,7 @@ export type Database = {
           ends_at?: string | null
           household_id?: string
           id?: string
+          is_countdown?: boolean
           location?: string | null
           person_label?: string | null
           recurrence_rule?: string | null
@@ -535,6 +541,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "list_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meals: {
+        Row: {
+          created_at: string
+          date: string
+          deleted_at: string | null
+          emoji: string | null
+          household_id: string
+          id: string
+          meal_type: string
+          notes: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          deleted_at?: string | null
+          emoji?: string | null
+          household_id: string
+          id?: string
+          meal_type?: string
+          notes?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          deleted_at?: string | null
+          emoji?: string | null
+          household_id?: string
+          id?: string
+          meal_type?: string
+          notes?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meals_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"

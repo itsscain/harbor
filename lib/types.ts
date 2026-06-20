@@ -23,6 +23,7 @@ export type StoreItem = Tables<"store_items">;
 export type ListItem = Tables<"list_items">;
 export type WallMessage = Tables<"wall_messages">;
 export type Reminder = Tables<"reminders">;
+export type Meal = Tables<"meals">;
 
 // Enum aliases.
 export type RoutineType = Enums<"routine_type">;
