@@ -1,0 +1,272 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Wind, Heart, Hand, BookOpen, X } from "lucide-react";
+import type { KioskCalmTool } from "@/lib/kiosk/types";
+import { cn } from "@/lib/cn";
+
+const FEELINGS = [
+  { key: "happy", emoji: "😊", label: "Happy" },
+  { key: "calm", emoji: "😌", label: "Calm" },
+  { key: "sad", emoji: "😢", label: "Sad" },
+  { key: "angry", emoji: "😠", label: "Angry" },
+  { key: "worried", emoji: "😟", label: "Worried" },
+  { key: "tired", emoji: "😴", label: "Tired" },
+  { key: "silly", emoji: "🤪", label: "Silly" },
+  { key: "excited", emoji: "🤩", label: "Excited" },
+];
+
+const TOOL_META: Record<
+  KioskCalmTool["tool_type"],
+  { label: string; icon: typeof Wind; blurb: string }
+> = {
+  breathing: { label: "Take a breath", icon: Wind, blurb: "Slow breathing together" },
+  feelings: { label: "How do I feel?", icon: Heart, blurb: "Tap how you feel" },
+  break: { label: "I need a break", icon: Hand, blurb: "A calm minute" },
+  social_story: { label: "A story", icon: BookOpen, blurb: "Read together" },
+};
+
+export function CalmCorner({
+  tools,
+  onCheckIn,
+  onClose,
+}: {
+  tools: KioskCalmTool[];
+  onCheckIn: (feeling: string) => void;
+  onClose: () => void;
+}) {
+  const [open, setOpen] = useState<KioskCalmTool | null>(null);
+  const enabled = tools.filter((t) => t.enabled);
+
+  return (
+    <div className="fixed inset-0 z-40 flex flex-col bg-gradient-to-b from-[#1b6b7a] to-harbor text-white">
+      <div className="flex items-center justify-between p-5">
+        <button
+          onClick={open ? () => setOpen(null) : onClose}
+          className="kiosk-tap flex items-center gap-2 rounded-full bg-white/15 px-4 py-3 font-semibold"
+        >
+          <ArrowLeft className="h-5 w-5" /> Back
+        </button>
+        <span className="font-display text-xl font-bold">Calm Corner</span>
+        <button
+          onClick={onClose}
+          className="kiosk-tap rounded-full bg-white/15 p-3"
+          aria-label="Close calm corner"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center p-6">
+        {!open ? (
+          <div className="grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+            {enabled.map((tool) => {
+              const meta = TOOL_META[tool.tool_type];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => setOpen(tool)}
+                  className="kiosk-tap flex items-center gap-4 rounded-3xl bg-white/10 p-6 text-left transition active:scale-[0.98] hover:bg-white/15"
+                >
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-beacon/90 text-harbor">
+                    <Icon className="h-8 w-8" />
+                  </span>
+                  <span>
+                    <span className="block font-display text-xl font-bold">
+                      {meta.label}
+                    </span>
+                    <span className="block text-seafoam">{meta.blurb}</span>
+                  </span>
+                </button>
+              );
+            })}
+            {enabled.length === 0 && (
+              <p className="text-center text-seafoam">
+                No calm tools set up yet.
+              </p>
+            )}
+          </div>
+        ) : open.tool_type === "breathing" ? (
+          <Breathing config={open.config} />
+        ) : open.tool_type === "feelings" ? (
+          <Feelings
+            config={open.config}
+            onPick={(f) => {
+              onCheckIn(f);
+            }}
+          />
+        ) : open.tool_type === "break" ? (
+          <BreakTimer config={open.config} />
+        ) : (
+          <SocialStory config={open.config} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Breathing ────────────────────────────────────────────────────────────────
+function Breathing({ config }: { config: Record<string, unknown> }) {
+  const pattern = useMemo(() => {
+    const raw = String(config.pattern ?? "4-4-4");
+    const parts = raw.split("-").map((n) => Number(n) || 4);
+    return { inhale: parts[0] ?? 4, hold: parts[1] ?? 0, exhale: parts[2] ?? 4 };
+  }, [config]);
+  const phases = useMemo(
+    () =>
+      [
+        { label: "Breathe in", secs: pattern.inhale, scale: 1 },
+        ...(pattern.hold ? [{ label: "Hold", secs: pattern.hold, scale: 1 }] : []),
+        { label: "Breathe out", secs: pattern.exhale, scale: 0.55 },
+      ] as const,
+    [pattern],
+  );
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setTimeout(() => setI((p) => (p + 1) % phases.length), phases[i].secs * 1000);
+    return () => clearTimeout(id);
+  }, [i, phases]);
+
+  const phase = phases[i];
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative flex h-72 w-72 items-center justify-center">
+        <div
+          className="absolute h-72 w-72 rounded-full bg-beacon/30"
+          style={{
+            transform: `scale(${phase.scale})`,
+            transition: `transform ${phase.secs}s ease-in-out`,
+          }}
+        />
+        <div
+          className="absolute h-52 w-52 rounded-full bg-beacon/50"
+          style={{
+            transform: `scale(${phase.scale})`,
+            transition: `transform ${phase.secs}s ease-in-out`,
+          }}
+        />
+        <span className="relative font-display text-3xl font-extrabold">
+          {phase.label}
+        </span>
+      </div>
+      <p className="mt-8 text-seafoam">Follow the circle. In and out.</p>
+    </div>
+  );
+}
+
+// ── Feelings ─────────────────────────────────────────────────────────────────
+function Feelings({
+  config,
+  onPick,
+}: {
+  config: Record<string, unknown>;
+  onPick: (feeling: string) => void;
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const options = Array.isArray(config.options)
+    ? FEELINGS.filter((f) => (config.options as string[]).includes(f.key))
+    : FEELINGS.slice(0, 6);
+  const list = options.length ? options : FEELINGS.slice(0, 6);
+
+  if (picked) {
+    const f = FEELINGS.find((x) => x.key === picked);
+    return (
+      <div className="text-center">
+        <div className="text-8xl animate-reward">{f?.emoji}</div>
+        <p className="mt-6 font-display text-2xl font-extrabold">
+          Thanks for sharing.
+        </p>
+        <p className="mt-2 text-seafoam">
+          It&apos;s okay to feel {f?.label.toLowerCase()}. You&apos;re doing great.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid w-full max-w-xl grid-cols-3 gap-4">
+      {list.map((f) => (
+        <button
+          key={f.key}
+          onClick={() => {
+            setPicked(f.key);
+            onPick(f.key);
+          }}
+          className="kiosk-tap flex flex-col items-center gap-2 rounded-3xl bg-white/10 p-5 active:scale-95"
+        >
+          <span className="text-5xl">{f.emoji}</span>
+          <span className="font-semibold">{f.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Break timer ──────────────────────────────────────────────────────────────
+function BreakTimer({ config }: { config: Record<string, unknown> }) {
+  const total = (Number(config.minutes) || 5) * 60;
+  const [left, setLeft] = useState(total);
+  useEffect(() => {
+    if (left <= 0) return;
+    const id = setTimeout(() => setLeft((l) => l - 1), 1000);
+    return () => clearTimeout(id);
+  }, [left]);
+  const m = Math.floor(left / 60);
+  const s = left % 60;
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="h-44 w-44 animate-beacon rounded-full bg-beacon/40" />
+      <p className="mt-8 font-display text-2xl font-extrabold">
+        {left > 0 ? "Take your time" : "Feeling better?"}
+      </p>
+      <p className="mt-2 text-5xl font-bold tabular-nums text-seafoam">
+        {left > 0 ? `${m}:${String(s).padStart(2, "0")}` : "💛"}
+      </p>
+      <p className="mt-4 max-w-xs text-seafoam">
+        Sit somewhere comfy. Breathe slowly. You can stay as long as you need.
+      </p>
+    </div>
+  );
+}
+
+// ── Social story ─────────────────────────────────────────────────────────────
+function SocialStory({ config }: { config: Record<string, unknown> }) {
+  const pages = Array.isArray(config.pages) ? (config.pages as string[]) : [];
+  const title = String(config.title ?? "A story");
+  const [p, setP] = useState(0);
+
+  if (!pages.length) {
+    return <p className="text-seafoam">This story has no pages yet.</p>;
+  }
+
+  return (
+    <div className="w-full max-w-xl text-center">
+      <p className="font-display text-lg font-bold text-seafoam">{title}</p>
+      <div className="mt-4 flex min-h-48 items-center justify-center rounded-3xl bg-white/10 p-8">
+        <p className="font-display text-2xl font-bold leading-relaxed">
+          {pages[p]}
+        </p>
+      </div>
+      <div className="mt-6 flex items-center justify-center gap-4">
+        <button
+          onClick={() => setP((x) => Math.max(0, x - 1))}
+          disabled={p === 0}
+          className="kiosk-tap rounded-2xl bg-white/15 px-6 py-4 font-bold disabled:opacity-40"
+        >
+          Back
+        </button>
+        <span className="text-seafoam">
+          {p + 1} / {pages.length}
+        </span>
+        <button
+          onClick={() => setP((x) => Math.min(pages.length - 1, x + 1))}
+          disabled={p === pages.length - 1}
+          className="kiosk-tap rounded-2xl bg-beacon px-6 py-4 font-bold text-harbor disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}

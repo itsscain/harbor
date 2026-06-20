@@ -10,13 +10,5 @@ export function generatePairingCode(): string {
   return raw;
 }
 
-/** Format a stored code for display, e.g. ABCDEFGH → ABCD-EFGH. */
-export function formatPairingCode(code: string): string {
-  const c = code.toUpperCase();
-  return c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
-}
-
-/** Normalize user-typed input back to the stored form (strip dashes/spaces). */
-export function normalizePairingCode(input: string): string {
-  return input.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-}
+// Re-export the pure helpers so server code can keep importing from "@/lib/codes".
+export { formatPairingCode, normalizePairingCode } from "@/lib/pairing-format";
