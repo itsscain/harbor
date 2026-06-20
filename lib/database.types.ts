@@ -708,6 +708,7 @@ export type Database = {
       reward_log: {
         Row: {
           child_id: string
+          client_op_id: string | null
           created_at: string
           deleted_at: string | null
           delta: number
@@ -718,6 +719,7 @@ export type Database = {
         }
         Insert: {
           child_id: string
+          client_op_id?: string | null
           created_at?: string
           deleted_at?: string | null
           delta: number
@@ -728,6 +730,7 @@ export type Database = {
         }
         Update: {
           child_id?: string
+          client_op_id?: string | null
           created_at?: string
           deleted_at?: string | null
           delta?: number

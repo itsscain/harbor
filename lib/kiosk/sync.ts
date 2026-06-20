@@ -23,9 +23,16 @@ function buildPayload(outbox: Mutation[]): Json {
     if (m.kind === "check_in")
       check_ins.push({ child_id: m.child_id, feeling: m.feeling, note: m.note, created_at: m.created_at });
     else if (m.kind === "completion")
-      completions.push({ child_id: m.child_id, step_id: m.step_id, points: m.points, created_at: m.created_at });
+      completions.push({
+        op_id: m.op_id,
+        child_id: m.child_id,
+        step_id: m.step_id,
+        points: m.points,
+        created_at: m.created_at,
+      });
     else if (m.kind === "redemption")
       redemptions.push({
+        op_id: m.op_id,
         child_id: m.child_id,
         points: m.points,
         reason: m.reason,

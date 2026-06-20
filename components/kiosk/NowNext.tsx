@@ -45,25 +45,30 @@ export function NowNext({
     return () => clearInterval(id);
   }, []);
 
-  if (timed.length === 0) return null;
-
   let currentIdx = -1;
   for (let i = 0; i < timed.length; i++) {
     if (timed[i].min <= nowMin) currentIdx = i;
   }
   const current = currentIdx >= 0 ? timed[currentIdx] : null;
   const next = timed[currentIdx + 1] ?? null;
+  const nextId = next?.step.id ?? null;
+  const nextMin = next?.min ?? null;
+  const nextLabel = next?.step.label ?? "";
 
-  // Proactive 2-minute transition warning.
+  // Proactive 2-minute transition warning. Runs unconditionally (no-op when no
+  // next step) so hook order is stable regardless of the step data.
   useEffect(() => {
-    if (!next) return;
-    const mins = next.min - nowMin;
-    if (mins <= 2 && mins > 0 && warnedFor.current !== next.step.id) {
-      warnedFor.current = next.step.id;
+    if (nextId == null || nextMin == null) return;
+    const mins = nextMin - nowMin;
+    if (mins <= 2 && mins > 0 && warnedFor.current !== nextId) {
+      warnedFor.current = nextId;
       tone(sound);
-      speak(`Two minutes until ${next.step.label}`, readAloud);
+      speak(`Two minutes until ${nextLabel}`, readAloud);
     }
-  }, [nowMin, next, sound, readAloud]);
+  }, [nowMin, nextId, nextMin, nextLabel, sound, readAloud]);
+
+  // All hooks have run — safe to bail out of rendering now.
+  if (timed.length === 0) return null;
 
   let pct = 0;
   if (current && next && next.min > current.min) {

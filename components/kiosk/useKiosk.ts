@@ -52,14 +52,48 @@ export function useKiosk() {
   );
 
   // Background sync (no-op unless online + Plus). Daily use never needs this.
+  // Reconciles against live state: mutations enqueued during the network await
+  // are preserved (and their optimistic effects re-applied) so a tap mid-sync is
+  // never lost.
   const runSync = useCallback(async () => {
-    const current = stateRef.current;
-    if (!current) return;
-    const next = await syncNow(current);
-    if (next !== current) {
-      void persistState(next);
-      setState(next);
-    }
+    const before = stateRef.current;
+    if (!before) return;
+    const synced = await syncNow(before);
+    if (synced === before) return; // offline, not Plus, or nothing changed
+
+    setState((prev) => {
+      if (!prev) return prev;
+      // Entries appended after sync began (update() appends to the end).
+      const newEntries = prev.outbox.slice(before.outbox.length);
+
+      const points = { ...synced.points };
+      const listItems = [...(synced.snapshot.list_items ?? [])];
+      for (const m of newEntries) {
+        if (m.kind === "completion")
+          points[m.child_id] = (points[m.child_id] ?? 0) + m.points;
+        else if (m.kind === "redemption")
+          points[m.child_id] = Math.max(0, (points[m.child_id] ?? 0) - m.points);
+        else if (m.kind === "list_add") {
+          if (!listItems.some((li) => li.id === m.client_id)) {
+            const opt = (prev.snapshot.list_items ?? []).find((li) => li.id === m.client_id);
+            if (opt) listItems.push(opt);
+          }
+        } else if (m.kind === "list_check") {
+          const idx = listItems.findIndex((li) => li.id === m.id);
+          if (idx >= 0) listItems[idx] = { ...listItems[idx], checked: m.checked };
+        }
+      }
+
+      const merged: KioskState = {
+        ...synced,
+        outbox: newEntries,
+        progress: prev.progress, // keep completions enqueued during the await
+        points,
+        snapshot: { ...synced.snapshot, list_items: listItems },
+      };
+      void persistState(merged);
+      return merged;
+    });
   }, []);
 
   useEffect(() => {
@@ -144,6 +178,7 @@ export function useKiosk() {
             ...s.outbox,
             {
               kind: "completion",
+              op_id: crypto.randomUUID(),
               child_id: childId,
               step_id: step.id,
               points: step.reward_points,
@@ -198,6 +233,7 @@ export function useKiosk() {
             ...s.outbox,
             {
               kind: "redemption",
+              op_id: crypto.randomUUID(),
               child_id: childId,
               points,
               reason,
@@ -223,6 +259,7 @@ export function useKiosk() {
             ...s.outbox,
             {
               kind: "redemption",
+              op_id: crypto.randomUUID(),
               child_id: childId,
               points: item.cost_points,
               reason: item.label,

@@ -126,10 +126,11 @@ export type KioskSnapshot = {
 };
 
 export type Mutation =
-  | { kind: "completion"; child_id: string; step_id: string; points: number; created_at: string }
+  | { kind: "completion"; op_id: string; child_id: string; step_id: string; points: number; created_at: string }
   | { kind: "check_in"; child_id: string; feeling: string; note: string | null; created_at: string }
   | {
       kind: "redemption";
+      op_id: string;
       child_id: string;
       points: number;
       reason: string;
