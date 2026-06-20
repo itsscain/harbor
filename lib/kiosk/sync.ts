@@ -47,6 +47,9 @@ function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
   const points = { ...next.points };
   for (const rw of snap.rewards ?? []) points[rw.child_id] = rw.points_total;
   next.points = points;
+
+  // Adopt an account-level PIN set remotely; keep the local PIN if none.
+  if (snap.household?.parent_pin_hash) next.pinHash = snap.household.parent_pin_hash;
   return next;
 }
 

@@ -83,7 +83,9 @@ export function useKiosk() {
       deviceSecret: res.device_secret,
       householdId: res.household_id,
       snapshot: res.snapshot,
-      pinHash: null,
+      // Adopt an account PIN set in the companion app, if any; otherwise the
+      // installer sets a local PIN on the next screen.
+      pinHash: res.snapshot.household.parent_pin_hash ?? null,
       lastSync: res.snapshot.server_time ?? null,
       points,
       progress: {},

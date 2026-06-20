@@ -44,6 +44,7 @@ export type KioskSnapshot = {
     name: string;
     plus_active: boolean;
     parent_pin_set: boolean;
+    parent_pin_hash?: string | null;
   };
   children: KioskChild[];
   routines: KioskRoutine[];

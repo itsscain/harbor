@@ -31,6 +31,7 @@ export async function getProfile(): Promise<Profile | null> {
 export async function requireUser(next = "/app"): Promise<Profile> {
   const profile = await getProfile();
   if (!profile) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (profile.must_change_password) redirect("/account/password");
   return profile;
 }
 
@@ -38,6 +39,7 @@ export async function requireUser(next = "/app"): Promise<Profile> {
 export async function requireAdmin(): Promise<Profile> {
   const profile = await getProfile();
   if (!profile) redirect("/login?next=/admin");
+  if (profile.must_change_password) redirect("/account/password");
   if (profile.role !== "admin") redirect("/app");
   return profile;
 }
