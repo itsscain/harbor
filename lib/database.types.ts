@@ -1,33 +1,890 @@
-/**
- * Placeholder Supabase types. Regenerated from the live schema after the
- * migrations in Milestone 2 via the Supabase MCP (generate_typescript_types).
- * Until then this keeps the client generics happy without enforcing columns.
- */
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
-
-type GenericRow = Record<string, unknown>;
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      [key: string]: {
-        Row: GenericRow;
-        Insert: GenericRow;
-        Update: GenericRow;
-        Relationships: [];
-      };
-    };
-    Views: { [key: string]: { Row: GenericRow } };
+      build_supplies: {
+        Row: {
+          build_id: string
+          created_at: string
+          id: string
+          item: string
+          optional: boolean
+          quantity: number
+          sort_order: number
+          unit_cost: number
+          updated_at: string
+          url: string | null
+          vendor: string
+        }
+        Insert: {
+          build_id: string
+          created_at?: string
+          id?: string
+          item: string
+          optional?: boolean
+          quantity?: number
+          sort_order?: number
+          unit_cost?: number
+          updated_at?: string
+          url?: string | null
+          vendor?: string
+        }
+        Update: {
+          build_id?: string
+          created_at?: string
+          id?: string
+          item?: string
+          optional?: boolean
+          quantity?: number
+          sort_order?: number
+          unit_cost?: number
+          updated_at?: string
+          url?: string | null
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_supplies_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "builds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builds: {
+        Row: {
+          created_at: string
+          founder_price: number
+          id: string
+          is_default: boolean
+          name: string
+          screen_size: string | null
+          sort_order: number
+          standard_price: number
+          tablet_model: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          founder_price?: number
+          id?: string
+          is_default?: boolean
+          name: string
+          screen_size?: string | null
+          sort_order?: number
+          standard_price?: number
+          tablet_model?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          founder_price?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          screen_size?: string | null
+          sort_order?: number
+          standard_price?: number
+          tablet_model?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      calm_tools: {
+        Row: {
+          child_id: string | null
+          config: Json
+          created_at: string
+          deleted_at: string | null
+          enabled: boolean
+          household_id: string
+          id: string
+          sort_order: number
+          tool_type: Database["public"]["Enums"]["calm_tool_type"]
+          updated_at: string
+        }
+        Insert: {
+          child_id?: string | null
+          config?: Json
+          created_at?: string
+          deleted_at?: string | null
+          enabled?: boolean
+          household_id: string
+          id?: string
+          sort_order?: number
+          tool_type: Database["public"]["Enums"]["calm_tool_type"]
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string | null
+          config?: Json
+          created_at?: string
+          deleted_at?: string | null
+          enabled?: boolean
+          household_id?: string
+          id?: string
+          sort_order?: number
+          tool_type?: Database["public"]["Enums"]["calm_tool_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calm_tools_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calm_tools_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      check_ins: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          feeling: string
+          id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          feeling: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          feeling?: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      children: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          deleted_at: string | null
+          household_id: string
+          id: string
+          name: string
+          settings: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          household_id: string
+          id?: string
+          name: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          household_id?: string
+          id?: string
+          name?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "children_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          build_id: string | null
+          created_at: string
+          email: string | null
+          founder_number: number | null
+          household_id: string | null
+          id: string
+          install_date: string | null
+          install_fee: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["customer_status"]
+          updated_at: string
+        }
+        Insert: {
+          build_id?: string | null
+          created_at?: string
+          email?: string | null
+          founder_number?: number | null
+          household_id?: string | null
+          id?: string
+          install_date?: string | null
+          install_fee?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["customer_status"]
+          updated_at?: string
+        }
+        Update: {
+          build_id?: string | null
+          created_at?: string
+          email?: string | null
+          founder_number?: number | null
+          household_id?: string | null
+          id?: string
+          install_date?: string | null
+          install_fee?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["customer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "builds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_pairings: {
+        Row: {
+          code: string
+          created_at: string
+          device_label: string | null
+          device_secret: string | null
+          household_id: string
+          id: string
+          last_synced_at: string | null
+          paired_at: string | null
+          status: Database["public"]["Enums"]["pairing_status"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          device_label?: string | null
+          device_secret?: string | null
+          household_id: string
+          id?: string
+          last_synced_at?: string | null
+          paired_at?: string | null
+          status?: Database["public"]["Enums"]["pairing_status"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          device_label?: string | null
+          device_secret?: string | null
+          household_id?: string
+          id?: string
+          last_synced_at?: string | null
+          paired_at?: string | null
+          status?: Database["public"]["Enums"]["pairing_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_pairings_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          parent_pin_hash: string | null
+          plus_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          parent_pin_hash?: string | null
+          plus_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          parent_pin_hash?: string | null
+          plus_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "households_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory: {
+        Row: {
+          created_at: string
+          id: string
+          on_hand_qty: number
+          part_name: string
+          reorder_threshold: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          on_hand_qty?: number
+          part_name: string
+          reorder_threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          on_hand_qty?: number
+          part_name?: string
+          reorder_threshold?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plus_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          household_id: string
+          id: string
+          plan: Database["public"]["Enums"]["plus_plan"] | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          household_id: string
+          id?: string
+          plan?: Database["public"]["Enums"]["plus_plan"] | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          household_id?: string
+          id?: string
+          plan?: Database["public"]["Enums"]["plus_plan"] | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plus_subscriptions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          must_change_password: boolean
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          must_change_password?: boolean
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          must_change_password?: boolean
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_contact: string | null
+          referred_name: string
+          referring_customer_id: string | null
+          status: Database["public"]["Enums"]["referral_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_contact?: string | null
+          referred_name: string
+          referring_customer_id?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_contact?: string | null
+          referred_name?: string
+          referring_customer_id?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referring_customer_id_fkey"
+            columns: ["referring_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_log: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          delta: number
+          id: string
+          reason: string | null
+          step_id: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          delta: number
+          id?: string
+          reason?: string | null
+          step_id?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          delta?: number
+          id?: string
+          reason?: string | null
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_log_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_log_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          child_id: string
+          created_at: string
+          id: string
+          points_total: number
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          id?: string
+          points_total?: number
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          id?: string
+          points_total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routine_steps: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          icon: string | null
+          id: string
+          label: string
+          order_index: number
+          photo_url: string | null
+          reward_points: number
+          routine_id: string
+          step_type: Database["public"]["Enums"]["step_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string | null
+          id?: string
+          label: string
+          order_index?: number
+          photo_url?: string | null
+          reward_points?: number
+          routine_id: string
+          step_type?: Database["public"]["Enums"]["step_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string | null
+          id?: string
+          label?: string
+          order_index?: number
+          photo_url?: string | null
+          reward_points?: number
+          routine_id?: string
+          step_type?: Database["public"]["Enums"]["step_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_steps_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routines: {
+        Row: {
+          active: boolean
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          sort_order: number
+          type: Database["public"]["Enums"]["routine_type"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          type?: Database["public"]["Enums"]["routine_type"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          type?: Database["public"]["Enums"]["routine_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routines_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          kids_count: number | null
+          name: string
+          town: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          kids_count?: number | null
+          name: string
+          town?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          kids_count?: number | null
+          name?: string
+          town?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
-      [key: string]: { Args: Record<string, unknown>; Returns: unknown };
-    };
-    Enums: { [key: string]: string };
-    CompositeTypes: { [key: string]: GenericRow };
-  };
-};
+      child_is_mine: { Args: { c: string }; Returns: boolean }
+      household_is_mine: { Args: { hh: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
+      kiosk_snapshot: {
+        Args: { p_household: string; p_since: string }
+        Returns: Json
+      }
+      routine_is_mine: { Args: { r: string }; Returns: boolean }
+      rpc_kiosk_pair: { Args: { p_code: string }; Returns: Json }
+      rpc_kiosk_pull: {
+        Args: { p_secret: string; p_since?: string }
+        Returns: Json
+      }
+      rpc_kiosk_push: {
+        Args: { p_payload: Json; p_secret: string }
+        Returns: Json
+      }
+    }
+    Enums: {
+      calm_tool_type: "breathing" | "feelings" | "break" | "social_story"
+      customer_status: "lead" | "scheduled" | "installed"
+      pairing_status: "pending" | "paired"
+      plus_plan: "monthly" | "annual"
+      referral_status: "pending" | "contacted" | "converted" | "declined"
+      routine_type: "schedule" | "first_then"
+      step_type: "task" | "first" | "then"
+      user_role: "admin" | "parent"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      calm_tool_type: ["breathing", "feelings", "break", "social_story"],
+      customer_status: ["lead", "scheduled", "installed"],
+      pairing_status: ["pending", "paired"],
+      plus_plan: ["monthly", "annual"],
+      referral_status: ["pending", "contacted", "converted", "declined"],
+      routine_type: ["schedule", "first_then"],
+      step_type: ["task", "first", "then"],
+      user_role: ["admin", "parent"],
+    },
+  },
+} as const
