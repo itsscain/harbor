@@ -17,6 +17,23 @@ function int(v: FormDataEntryValue | null, fb = 0): number {
 }
 
 // ── Children ─────────────────────────────────────────────────────────────────
+async function nextOrder(
+  table: "children" | "routines" | "routine_steps",
+  column: "sort_order" | "order_index",
+  fkColumn: string,
+  fkValue: string,
+): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from(table)
+    .select(column)
+    .eq(fkColumn, fkValue)
+    .order(column, { ascending: false })
+    .limit(1);
+  const top = (data?.[0] as Record<string, number> | undefined)?.[column];
+  return (typeof top === "number" ? top : -1) + 1;
+}
+
 export async function addChild(formData: FormData) {
   await requireUser();
   const household = await getMyHousehold();
@@ -28,7 +45,7 @@ export async function addChild(formData: FormData) {
       household_id: household.id,
       name: String(formData.get("name") || "New child"),
       avatar: str(formData.get("avatar")),
-      sort_order: int(formData.get("sort_order"), 0),
+      sort_order: await nextOrder("children", "sort_order", "household_id", household.id),
     })
     .select("id")
     .single();
@@ -76,7 +93,7 @@ export async function addRoutine(childId: string, formData: FormData) {
     child_id: childId,
     name: String(formData.get("name") || "New routine"),
     type: (String(formData.get("type") || "schedule")) as "schedule" | "first_then",
-    sort_order: int(formData.get("sort_order"), 0),
+    sort_order: await nextOrder("routines", "sort_order", "child_id", childId),
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
@@ -104,6 +121,88 @@ export async function updateRoutine(id: string, childId: string, formData: FormD
   revalidatePath(`/app/children/${childId}`);
 }
 
+type TemplateStep = { icon: string; label: string; points?: number; step_type?: "task" | "first" | "then" };
+const ROUTINE_TEMPLATES: Record<string, { name: string; type: "schedule" | "first_then"; steps: TemplateStep[] }> = {
+  morning: {
+    name: "Morning",
+    type: "schedule",
+    steps: [
+      { icon: "🌅", label: "Wake up" },
+      { icon: "🚽", label: "Bathroom" },
+      { icon: "👕", label: "Get dressed", points: 5 },
+      { icon: "🪥", label: "Brush teeth", points: 5 },
+      { icon: "🥣", label: "Breakfast", points: 5 },
+      { icon: "🎒", label: "Shoes & bag", points: 5 },
+    ],
+  },
+  bedtime: {
+    name: "Bedtime",
+    type: "schedule",
+    steps: [
+      { icon: "🛁", label: "Bath time" },
+      { icon: "🌙", label: "Pajamas", points: 5 },
+      { icon: "🪥", label: "Brush teeth", points: 5 },
+      { icon: "📖", label: "Story", points: 10 },
+      { icon: "💡", label: "Lights out" },
+    ],
+  },
+  afterschool: {
+    name: "After school",
+    type: "schedule",
+    steps: [
+      { icon: "🍎", label: "Snack" },
+      { icon: "🎒", label: "Unpack bag" },
+      { icon: "✏️", label: "Homework", points: 10 },
+      { icon: "🧸", label: "Free play" },
+      { icon: "🧹", label: "Tidy up", points: 5 },
+    ],
+  },
+  firstthen: {
+    name: "First / Then",
+    type: "first_then",
+    steps: [
+      { icon: "🧸", label: "Clean up", step_type: "first" },
+      { icon: "📺", label: "Screen time", step_type: "then" },
+    ],
+  },
+};
+
+/** One-tap: create a routine pre-filled from a template (vs adding each step). */
+export async function addRoutineFromTemplate(childId: string, formData: FormData) {
+  await requireUser();
+  const key = String(formData.get("template") || "");
+  const tpl = ROUTINE_TEMPLATES[key];
+  if (!tpl) return;
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("routines")
+    .select("sort_order")
+    .eq("child_id", childId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const nextOrder = ((existing?.[0]?.sort_order as number) ?? 0) + 1;
+
+  const { data: routine, error } = await supabase
+    .from("routines")
+    .insert({ child_id: childId, name: tpl.name, type: tpl.type, sort_order: nextOrder })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  const rows = tpl.steps.map((s, i) => ({
+    routine_id: routine.id,
+    label: s.label,
+    icon: s.icon,
+    step_type: s.step_type ?? ("task" as const),
+    reward_points: s.points ?? 0,
+    order_index: i,
+  }));
+  const { error: stepErr } = await supabase.from("routine_steps").insert(rows);
+  if (stepErr) throw new Error(stepErr.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
 export async function deleteRoutine(id: string, childId: string) {
   await requireUser();
   const supabase = await createClient();
@@ -128,7 +227,7 @@ export async function addStep(routineId: string, childId: string, formData: Form
       | "first"
       | "then",
     reward_points: int(formData.get("reward_points"), 0),
-    order_index: int(formData.get("order_index"), 0),
+    order_index: await nextOrder("routine_steps", "order_index", "routine_id", routineId),
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
@@ -148,12 +247,38 @@ export async function updateStep(id: string, childId: string, formData: FormData
         | "first"
         | "then",
       reward_points: int(formData.get("reward_points"), 0),
-      order_index: int(formData.get("order_index"), 0),
       start_time: str(formData.get("start_time")),
       duration_min: durationRaw ? int(durationRaw) : null,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
+/** Move a step up/down by swapping order_index with its neighbor. */
+export async function moveStep(id: string, childId: string, dir: "up" | "down") {
+  await requireUser();
+  const supabase = await createClient();
+  const { data: step } = await supabase
+    .from("routine_steps")
+    .select("id, routine_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!step) return;
+  const { data: siblings } = await supabase
+    .from("routine_steps")
+    .select("id, order_index")
+    .eq("routine_id", step.routine_id)
+    .is("deleted_at", null)
+    .order("order_index");
+  const list = siblings ?? [];
+  const idx = list.findIndex((s) => s.id === id);
+  const swap = dir === "up" ? idx - 1 : idx + 1;
+  if (idx < 0 || swap < 0 || swap >= list.length) return;
+  const a = list[idx];
+  const b = list[swap];
+  await supabase.from("routine_steps").update({ order_index: b.order_index }).eq("id", a.id);
+  await supabase.from("routine_steps").update({ order_index: a.order_index }).eq("id", b.id);
   revalidatePath(`/app/children/${childId}`);
 }
 
@@ -198,7 +323,8 @@ export async function updateCalmTool(id: string, formData: FormData) {
   try {
     config = JSON.parse(String(formData.get("config") || "{}"));
   } catch {
-    return; // ignore malformed JSON
+    // Surface the problem instead of silently no-op'ing (which looked like success).
+    throw new Error("Those settings aren't valid JSON — check the format and try again.");
   }
   const { error } = await supabase
     .from("calm_tools")

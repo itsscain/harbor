@@ -220,6 +220,54 @@ export async function deleteMessage(id: string) {
   revalidatePath("/app/messages");
 }
 
+// ── One-tap starter content ──────────────────────────────────────────────────
+export async function seedCalmTools() {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("calm_tools")
+    .select("tool_type")
+    .eq("household_id", household_id)
+    .is("deleted_at", null);
+  const have = new Set((existing ?? []).map((t) => t.tool_type));
+  const recommended = [
+    { tool_type: "breathing", config: { pattern: "4-7-8", rounds: 4 }, sort_order: 1 },
+    { tool_type: "feelings", config: { options: ["happy", "calm", "sad", "angry", "worried", "tired"] }, sort_order: 2 },
+    { tool_type: "break", config: { minutes: 5 }, sort_order: 3 },
+    {
+      tool_type: "social_story",
+      config: { title: "Big feelings are okay", pages: ["Everyone has big feelings.", "I can take a slow breath.", "I can ask for help.", "The feeling gets smaller. I'm okay."] },
+      sort_order: 4,
+    },
+  ].filter((r) => !have.has(r.tool_type as never));
+  if (recommended.length) {
+    await supabase.from("calm_tools").insert(
+      recommended.map((r) => ({
+        household_id,
+        tool_type: r.tool_type as "breathing" | "feelings" | "break" | "social_story",
+        config: r.config as never,
+        sort_order: r.sort_order,
+        enabled: true,
+      })),
+    );
+  }
+  revalidatePath("/app/calm");
+}
+
+export async function dismissOnboarding() {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) return;
+  const supabase = await createClient();
+  const current = (household.settings ?? {}) as Record<string, unknown>;
+  await supabase
+    .from("households")
+    .update({ settings: { ...current, onboardingDismissed: true } as never })
+    .eq("id", household.id);
+  revalidatePath("/app");
+}
+
 // ── Per-child accessibility settings (merge into children.settings jsonb) ─────
 export async function updateChildSettings(childId: string, formData: FormData) {
   await requireUser();

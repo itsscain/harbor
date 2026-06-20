@@ -6,6 +6,7 @@ import { Card, Badge, Select, Field, Textarea } from "@/components/ui/primitives
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { titleCase } from "@/lib/format";
 import { addCalmTool, updateCalmTool, deleteCalmTool } from "../actions";
+import { seedCalmTools } from "../hub-actions";
 
 export const metadata = { title: "Calm Corner" };
 export const dynamic = "force-dynamic";
@@ -72,7 +73,17 @@ export default async function CalmPage() {
           </Card>
         ))}
         {(tools ?? []).length === 0 && (
-          <Card><p className="text-sm text-muted">No calm tools yet — add some below.</p></Card>
+          <Card className="text-center">
+            <p className="text-sm text-muted">No calm tools yet.</p>
+            <form action={seedCalmTools} className="mt-3">
+              <SubmitButton variant="beacon" savedText="Added!">
+                Add recommended calm tools
+              </SubmitButton>
+            </form>
+            <p className="mt-2 text-xs text-muted">
+              Adds breathing, a feelings check-in, an &quot;I need a break&quot; timer, and a calming story.
+            </p>
+          </Card>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Trash2, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Input, Field, Select, Button } from "@/components/ui/primitives";
@@ -11,11 +11,13 @@ import {
   updateChild,
   deleteChild,
   addRoutine,
+  addRoutineFromTemplate,
   updateRoutine,
   deleteRoutine,
   addStep,
   updateStep,
   deleteStep,
+  moveStep,
 } from "../../actions";
 import { updateChildSettings } from "../../hub-actions";
 
@@ -164,59 +166,77 @@ export default async function ChildDetail({
 
             {/* Steps */}
             <div className="mt-4 space-y-2">
-              {rSteps.map((s) => (
-                <form
-                  key={s.id}
-                  action={updateStep.bind(null, s.id, child.id)}
-                  className="grid grid-cols-12 items-end gap-2 rounded-xl border border-harbor-100 p-3"
-                >
-                  <Field label="Emoji" className="col-span-3 sm:col-span-1">
-                    <Input name="icon" defaultValue={s.icon ?? ""} className="text-center text-xl" />
-                  </Field>
-                  <Field label="Label" className="col-span-9 sm:col-span-4">
-                    <Input name="label" defaultValue={s.label} />
-                  </Field>
-                  <Field label="Type" className="col-span-5 sm:col-span-2">
-                    <Select name="step_type" defaultValue={s.step_type}>
-                      <option value="task">Task</option>
-                      <option value="first">First</option>
-                      <option value="then">Then</option>
-                    </Select>
-                  </Field>
-                  <Field label="Time" className="col-span-4 sm:col-span-1">
-                    <Input name="start_time" type="time" defaultValue={s.start_time ? s.start_time.slice(0, 5) : ""} />
-                  </Field>
-                  <Field label="Mins" className="col-span-3 sm:col-span-1">
-                    <Input name="duration_min" type="number" defaultValue={s.duration_min ?? ""} />
-                  </Field>
-                  <Field label="Order" className="col-span-2 sm:col-span-1">
-                    <Input name="order_index" type="number" defaultValue={s.order_index} />
-                  </Field>
-                  <Field label="Pts" className="col-span-3 sm:col-span-1">
-                    <Input name="reward_points" type="number" defaultValue={s.reward_points} />
-                  </Field>
-                  <div className="col-span-12 flex items-center gap-2 sm:col-span-1">
-                    <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+              {rSteps.length === 0 && (
+                <p className="rounded-xl bg-harbor-50 px-3 py-3 text-sm text-muted">
+                  No steps yet — add the first one below, or start from a template.
+                </p>
+              )}
+              {rSteps.map((s, i) => (
+                <div key={s.id} className="flex items-stretch gap-2">
+                  <form
+                    action={updateStep.bind(null, s.id, child.id)}
+                    className="grid flex-1 grid-cols-12 items-end gap-2 rounded-xl border border-harbor-100 p-3"
+                  >
+                    <Field label="Emoji" className="col-span-3 sm:col-span-1">
+                      <Input name="icon" defaultValue={s.icon ?? ""} className="text-center text-xl" />
+                    </Field>
+                    <Field label="Label" className="col-span-9 sm:col-span-4">
+                      <Input name="label" defaultValue={s.label} />
+                    </Field>
+                    <Field label="Type" className="col-span-5 sm:col-span-2">
+                      <Select name="step_type" defaultValue={s.step_type}>
+                        <option value="task">Task</option>
+                        <option value="first">First</option>
+                        <option value="then">Then</option>
+                      </Select>
+                    </Field>
+                    <Field label="Time" className="col-span-4 sm:col-span-2">
+                      <Input name="start_time" type="time" defaultValue={s.start_time ? s.start_time.slice(0, 5) : ""} />
+                    </Field>
+                    <Field label="Mins" className="col-span-3 sm:col-span-1">
+                      <Input name="duration_min" type="number" defaultValue={s.duration_min ?? ""} />
+                    </Field>
+                    <Field label="Pts" className="col-span-3 sm:col-span-1">
+                      <Input name="reward_points" type="number" defaultValue={s.reward_points} />
+                    </Field>
+                    <div className="col-span-12 flex items-center gap-2 sm:col-span-1">
+                      <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+                    </div>
+                  </form>
+                  <div className="flex w-11 flex-col items-center justify-center gap-1">
+                    <form action={moveStep.bind(null, s.id, child.id, "up")}>
+                      <button
+                        type="submit"
+                        disabled={i === 0}
+                        aria-label={`Move ${s.label} up`}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-harbor-100 text-harbor disabled:opacity-30"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                    </form>
+                    <form action={moveStep.bind(null, s.id, child.id, "down")}>
+                      <button
+                        type="submit"
+                        disabled={i === rSteps.length - 1}
+                        aria-label={`Move ${s.label} down`}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-harbor-100 text-harbor disabled:opacity-30"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                    </form>
+                    <form action={deleteStep.bind(null, s.id, child.id)}>
+                      <ConfirmSubmit
+                        message={`Delete "${s.label}"?`}
+                        aria-label={`Delete ${s.label}`}
+                        className="h-9 w-9 px-0 py-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </ConfirmSubmit>
+                    </form>
                   </div>
-                </form>
+                </div>
               ))}
             </div>
-
-            {/* delete-step buttons (avoid nested forms) */}
-            {rSteps.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {rSteps.map((s) => (
-                  <form key={s.id} action={deleteStep.bind(null, s.id, child.id)}>
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> {s.icon} {s.label}
-                    </button>
-                  </form>
-                ))}
-              </div>
-            )}
 
             {/* add step */}
             <form
@@ -258,7 +278,24 @@ export default async function ChildDetail({
       {/* add routine */}
       <Card className="mb-4">
         <h3 className="font-display text-base font-bold text-harbor">Add a routine</h3>
-        <form action={addRoutine.bind(null, child.id)} className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+        <p className="mt-1 text-sm text-muted">Start from a template — fills in the steps for you:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["morning", "🌅 Morning"],
+            ["bedtime", "🌙 Bedtime"],
+            ["afterschool", "🍎 After school"],
+            ["firstthen", "🔁 First / Then"],
+          ].map(([key, label]) => (
+            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
+              <input type="hidden" name="template" value={key} />
+              <SubmitButton size="sm" variant="secondary" savedText="Added">
+                {label}
+              </SubmitButton>
+            </form>
+          ))}
+        </div>
+        <p className="mt-4 text-sm font-semibold text-harbor">…or build your own:</p>
+        <form action={addRoutine.bind(null, child.id)} className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
           <Field label="Name">
             <Input name="name" required placeholder="Morning, Bedtime…" />
           </Field>
