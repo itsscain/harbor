@@ -38,7 +38,7 @@ export default async function MyFamilyPage() {
         />
         <Card className="max-w-xl border-beacon/40 bg-beacon-soft/30">
           <Sparkles className="h-8 w-8 text-beacon" />
-          <h2 className="mt-3 font-display text-xl font-bold text-harbor">
+          <h2 className="mt-3 text-display-sm text-harbor">
             Your own Harbor — on the house
           </h2>
           <p className="mt-2 text-sm text-muted">
@@ -95,7 +95,7 @@ export default async function MyFamilyPage() {
         <Card>
           <div className="flex items-center gap-2">
             <Tablet className="h-5 w-5 text-water" />
-            <h2 className="font-display text-base font-bold text-harbor">Walls</h2>
+            <h2 className="text-title text-harbor">Walls</h2>
           </div>
           <ul className="mt-3 space-y-2">
             {paired.map((p) => (
@@ -116,7 +116,7 @@ export default async function MyFamilyPage() {
         </Card>
 
         <Card>
-          <h2 className="font-display text-base font-bold text-harbor">Manage your family</h2>
+          <h2 className="text-title text-harbor">Manage your family</h2>
           <p className="mt-1 text-sm text-muted">
             Add kids, build routines, set rewards, and more in the parent app.
           </p>

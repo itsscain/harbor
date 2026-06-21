@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Input, Field, Button } from "@/components/ui/primitives";
+import { Card, Badge, Input, Field, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { currency, amazonLink } from "@/lib/format";
@@ -42,19 +41,12 @@ export default async function BuildDetail({
 
   return (
     <>
-      <Link
-        href="/admin/builds"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-harbor"
-      >
-        <ArrowLeft className="h-4 w-4" /> Build Catalog
-      </Link>
-
-      <PageHeader title={build.name} subtitle={`${build.tablet_model} · ${build.screen_size}`} />
+      <PageHeader backHref="/admin/builds" eyebrow="Build" title={build.name} subtitle={`${build.tablet_model} · ${build.screen_size}`} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Build fields */}
         <Card className="lg:col-span-2">
-          <h2 className="font-display text-lg font-bold text-harbor">Details</h2>
+          <h2 className="text-title text-harbor">Details</h2>
           <form action={updateBuild.bind(null, build.id)} className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Name">
               <Input name="name" defaultValue={build.name} required />
@@ -74,15 +66,9 @@ export default async function BuildDetail({
             <Field label="Founder price">
               <Input name="founder_price" type="number" step="0.01" defaultValue={Number(build.founder_price)} />
             </Field>
-            <label className="flex items-center gap-2 text-sm font-medium text-ink sm:col-span-2">
-              <input
-                type="checkbox"
-                name="is_default"
-                defaultChecked={build.is_default}
-                className="h-4 w-4 rounded border-harbor-100"
-              />
-              Mark as recommended default
-            </label>
+            <div className="rounded-xl border border-harbor-100 px-3.5 py-3 sm:col-span-2">
+              <Switch name="is_default" label="Mark as recommended default" defaultChecked={build.is_default} />
+            </div>
             <div className="sm:col-span-2">
               <SubmitButton pendingText="Saving…">Save details</SubmitButton>
             </div>
@@ -91,7 +77,7 @@ export default async function BuildDetail({
 
         {/* Margin summary */}
         <Card className="h-fit">
-          <h2 className="font-display text-lg font-bold text-harbor">Economics</h2>
+          <h2 className="text-title text-harbor">Economics</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted">Hardware (non-optional)</dt>
@@ -127,7 +113,7 @@ export default async function BuildDetail({
       {/* Supplies */}
       <Card className="mt-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-harbor">
+          <h2 className="text-title text-harbor">
             Supplies &amp; sourcing
           </h2>
           <Badge tone="neutral">{supplies.length} lines</Badge>
@@ -221,7 +207,7 @@ export default async function BuildDetail({
       <Card className="mt-4 border-red-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-lg font-bold text-red-700">Delete build</h2>
+            <h2 className="text-title text-red-700">Delete build</h2>
             <p className="text-sm text-muted">Removes the build and its supplies. Not reversible.</p>
           </div>
           <form action={deleteBuild.bind(null, build.id)}>

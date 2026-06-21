@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Button, Input, Field, Select } from "@/components/ui/primitives";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Card, Badge, Input, Field, Select } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { titleCase } from "@/lib/format";
@@ -67,14 +67,10 @@ export default async function CustomerDetail({
 
   return (
     <>
-      <Link
-        href="/admin/customers"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-harbor"
-      >
-        <ArrowLeft className="h-4 w-4" /> Customers
-      </Link>
-
       <PageHeader
+        backHref="/admin/customers"
+        eyebrow="Customers"
+        icon={<UserRound className="h-6 w-6" />}
         title={customer.name}
         subtitle={`Status: ${titleCase(customer.status)}`}
         actions={
@@ -86,7 +82,7 @@ export default async function CustomerDetail({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <h2 className="font-display text-lg font-bold text-harbor">Record</h2>
+          <h2 className="text-title text-harbor">Record</h2>
           <div className="mt-4">
             <CustomerForm
               customer={customer}
@@ -99,9 +95,7 @@ export default async function CustomerDetail({
         <div className="space-y-4">
           {/* Provisioning */}
           <Card>
-            <h2 className="font-display text-lg font-bold text-harbor">
-              Provisioning
-            </h2>
+            <h2 className="text-title text-harbor">Provisioning</h2>
             {!customer.household_id ? (
               <ProvisionPanel
                 customerId={customer.id}
@@ -159,7 +153,7 @@ export default async function CustomerDetail({
 
       {/* Referrals */}
       <Card className="mt-4">
-        <h2 className="font-display text-lg font-bold text-harbor">Referrals</h2>
+        <h2 className="text-title text-harbor">Referrals</h2>
         <div className="mt-3 space-y-2">
           {(referrals ?? []).map((r) => (
             <div
@@ -224,9 +218,7 @@ export default async function CustomerDetail({
       <Card className="mt-4 border-red-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-lg font-bold text-red-700">
-              Delete customer
-            </h2>
+            <h2 className="text-title text-red-700">Delete customer</h2>
             <p className="text-sm text-muted">
               Removes the customer record. Provisioned households are not deleted.
             </p>

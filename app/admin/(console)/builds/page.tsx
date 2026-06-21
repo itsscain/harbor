@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Card, Badge, Input, Field } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { currency } from "@/lib/format";
@@ -22,6 +23,8 @@ export default async function BuildsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Catalog"
+        icon={<Package className="h-6 w-6" />}
         title="Build Catalog"
         subtitle="Your product line. Hardware totals and margins calculate automatically from supplies."
       />
@@ -33,12 +36,10 @@ export default async function BuildsPage() {
           const founderMargin = Number(b.founder_price) - hw;
           return (
             <Link key={b.id} href={`/admin/builds/${b.id}`}>
-              <Card className="flex items-center justify-between hover:border-water/50">
+              <Card interactive className="flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="font-display text-lg font-bold text-harbor">
-                      {b.name}
-                    </h2>
+                    <h2 className="text-title text-harbor">{b.name}</h2>
                     {b.is_default && <Badge tone="beacon">Recommended</Badge>}
                   </div>
                   <p className="text-sm text-muted">
@@ -76,12 +77,17 @@ export default async function BuildsPage() {
             </Link>
           );
         })}
+        {builds.length === 0 && (
+          <EmptyState
+            icon={<Package className="h-9 w-9" />}
+            title="No builds yet"
+            body="Create your first build below — supplies, pricing, and margins all live on each build."
+          />
+        )}
       </div>
 
       <Card className="mt-6">
-        <h2 className="font-display text-lg font-bold text-harbor">
-          Add a new build
-        </h2>
+        <h2 className="text-title text-harbor">Add a new build</h2>
         <form action={createBuild} className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field label="Name">
             <Input name="name" required placeholder="Harbor …" />

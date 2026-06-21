@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Button, Field, Select, Input, Badge } from "@/components/ui/primitives";
+import { Card, Button, Field, Select, Input, Badge, Switch } from "@/components/ui/primitives";
 import { currency, amazonLink } from "@/lib/format";
 import { ExternalLink } from "lucide-react";
 import type { BuildWithSupplies } from "@/lib/types";
@@ -68,15 +68,9 @@ export default async function ShoppingListPage({
             <Input name="qty" type="number" min={1} defaultValue={qty} />
           </Field>
           <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-ink">
-              <input
-                type="checkbox"
-                name="optional"
-                defaultChecked={includeOptional}
-                className="h-4 w-4"
-              />
-              Include optional
-            </label>
+            <div className="rounded-xl border border-harbor-100 px-3 py-2.5">
+              <Switch name="optional" label="Include optional" defaultChecked={includeOptional} />
+            </div>
             <Button type="submit">Generate</Button>
           </div>
         </form>
@@ -85,7 +79,7 @@ export default async function ShoppingListPage({
       {selected && (
         <Card className="mt-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-lg font-bold text-harbor">
+            <h2 className="text-title text-harbor">
               {qty} × {selected.name}
             </h2>
             <Badge tone="beacon">Est. total {currency(grandTotal)}</Badge>

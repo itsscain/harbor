@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Card, Badge, Input, Field, Select } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { titleCase } from "@/lib/format";
@@ -37,12 +38,14 @@ export default async function CustomersPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Customers"
+        icon={<Users className="h-6 w-6" />}
         title="Customers & Installs"
         subtitle="Leads → scheduled → installed. Provision households and pair devices from each record."
       />
 
       <Card className="mb-4">
-        <h2 className="font-display text-lg font-bold text-harbor">Add a lead</h2>
+        <h2 className="text-title text-harbor">Add a lead</h2>
         <form action={createCustomer} className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field label="Name">
             <Input name="name" required placeholder="Family / contact name" />
@@ -76,12 +79,10 @@ export default async function CustomersPage() {
             : undefined;
           return (
             <Link key={c.id} href={`/admin/customers/${c.id}`}>
-              <Card className="flex items-center justify-between hover:border-water/50">
+              <Card interactive className="flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-display text-lg font-bold text-harbor">
-                      {c.name}
-                    </h2>
+                    <h2 className="text-title text-harbor">{c.name}</h2>
                     <Badge tone={statusTone[c.status]}>{titleCase(c.status)}</Badge>
                     {c.founder_number != null && (
                       <Badge tone="beacon">Founder #{c.founder_number}</Badge>
@@ -100,11 +101,11 @@ export default async function CustomersPage() {
           );
         })}
         {(customers ?? []).length === 0 && (
-          <Card>
-            <p className="py-6 text-center text-sm text-muted">
-              No customers yet. Add your first lead above.
-            </p>
-          </Card>
+          <EmptyState
+            icon={<Users className="h-9 w-9" />}
+            title="No customers yet"
+            body="Add your first lead with the form above, then provision a household and pair a device."
+          />
         )}
       </div>
     </>
