@@ -3,7 +3,7 @@ import { KeyRound, Tablet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Input, Field, Button, Textarea } from "@/components/ui/primitives";
+import { Card, Badge, Input, Field, Button, Textarea, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
       <PageHeader title="Settings" />
 
       <Card className="mb-4">
-        <h2 className="font-display text-base font-bold text-harbor">Household</h2>
+        <h2 className="text-title text-harbor">Household</h2>
         <form action={updateHouseholdName} className="mt-3 flex items-end gap-3">
           <Field label="Name" className="flex-1">
             <Input name="name" defaultValue={household.name} />
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card className="mb-4">
-        <h2 className="font-display text-base font-bold text-harbor">Wall display</h2>
+        <h2 className="text-title text-harbor">Wall display</h2>
         <p className="text-sm text-muted">How the wall behaves when idle.</p>
         {(() => {
           const s = (household.settings ?? {}) as Record<string, unknown>;
@@ -72,10 +72,14 @@ export default async function SettingsPage() {
                   className="font-mono text-xs"
                 />
               </Field>
-              <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                <input type="checkbox" name="screensaver" defaultChecked={s.screensaver !== false} className="h-4 w-4" />
-                Show screensaver when idle
-              </label>
+              <div className="rounded-xl border border-harbor-100 px-3.5 py-3 sm:col-span-2">
+                <Switch
+                  name="screensaver"
+                  label="Show screensaver when idle"
+                  hint="Photo slideshow or soft clock after the idle timeout."
+                  defaultChecked={s.screensaver !== false}
+                />
+              </div>
               <div className="sm:col-span-2">
                 <SubmitButton variant="secondary">Save wall settings</SubmitButton>
               </div>
@@ -87,7 +91,7 @@ export default async function SettingsPage() {
       <Card className="mb-4">
         <div className="flex items-center gap-2">
           <KeyRound className="h-5 w-5 text-water" />
-          <h2 className="font-display text-base font-bold text-harbor">Wall PIN</h2>
+          <h2 className="text-title text-harbor">Wall PIN</h2>
           {household.parent_pin_hash ? (
             <Badge tone="green">Set</Badge>
           ) : (
@@ -114,7 +118,7 @@ export default async function SettingsPage() {
       <Card className="mb-4">
         <div className="flex items-center gap-2">
           <Tablet className="h-5 w-5 text-water" />
-          <h2 className="font-display text-base font-bold text-harbor">Wall devices</h2>
+          <h2 className="text-title text-harbor">Wall devices</h2>
         </div>
         <ul className="mt-3 space-y-2">
           {(pairings ?? []).map((p) => (
@@ -134,7 +138,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <h2 className="font-display text-base font-bold text-harbor">Account</h2>
+        <h2 className="text-title text-harbor">Account</h2>
         <Link href="/account/password" className="mt-2 inline-block">
           <Button variant="secondary" size="sm">Change password</Button>
         </Link>
