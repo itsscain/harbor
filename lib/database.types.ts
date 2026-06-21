@@ -1116,6 +1116,7 @@ export type Database = {
     }
     Functions: {
       child_is_mine: { Args: { c: string }; Returns: boolean }
+      hard_delete_child: { Args: { p_child: string }; Returns: undefined }
       household_is_mine: { Args: { hh: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       kiosk_snapshot: {

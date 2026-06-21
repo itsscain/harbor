@@ -80,9 +80,28 @@ function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
     },
     lastSync: snap.server_time,
   };
+  // Apply hard-deletion tombstones: drop the child + everything tied to it locally.
+  const childDeletions = new Set(
+    (snap.deletions ?? []).filter((d) => d.entity === "child").map((d) => d.entity_id),
+  );
+  if (childDeletions.size) {
+    const s = next.snapshot;
+    const goneRoutineIds = new Set(
+      s.routines.filter((r) => childDeletions.has(r.child_id)).map((r) => r.id),
+    );
+    s.children = s.children.filter((c) => !childDeletions.has(c.id));
+    s.routines = s.routines.filter((r) => !childDeletions.has(r.child_id));
+    s.steps = s.steps.filter((st) => !goneRoutineIds.has(st.routine_id));
+    s.store_items = (s.store_items ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));
+    s.events = (s.events ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));
+    s.wall_messages = (s.wall_messages ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));
+    s.calm_tools = s.calm_tools.filter((x) => !x.child_id || !childDeletions.has(x.child_id));
+  }
+
   // Adopt server points (we only get here after a clean push, so no local loss).
   const points = { ...next.points };
   for (const rw of snap.rewards ?? []) points[rw.child_id] = rw.points_total;
+  for (const id of childDeletions) delete points[id];
   next.points = points;
 
   // Adopt an account-level PIN set remotely; keep the local PIN if none.

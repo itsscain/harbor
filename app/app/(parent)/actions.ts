@@ -122,17 +122,30 @@ export async function updateChild(id: string, formData: FormData) {
   revalidatePath(`/app/children/${id}`);
 }
 
+/** Hide a child from the wall (reversible). Soft-delete → syncs as a tombstone. */
 export async function deleteChild(id: string) {
   await requireUser();
   const supabase = await createClient();
-  // Soft-delete so the wall syncs the removal as a tombstone.
   const { error } = await supabase
     .from("children")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/app");
-  redirect("/app");
+  revalidatePath("/app/children");
+  redirect("/app/children");
+}
+
+/** Permanently delete a child and ALL their data (cascade) + a tombstone the wall
+ *  consumes to drop them. Irreversible. */
+export async function deleteChildPermanently(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("hard_delete_child", { p_child: id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app");
+  revalidatePath("/app/children");
+  redirect("/app/children");
 }
 
 // ── Routines ─────────────────────────────────────────────────────────────────

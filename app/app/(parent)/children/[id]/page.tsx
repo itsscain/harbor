@@ -10,6 +10,7 @@ import { titleCase } from "@/lib/format";
 import {
   updateChild,
   deleteChild,
+  deleteChildPermanently,
   addRoutine,
   addRoutineFromTemplate,
   updateRoutine,
@@ -279,18 +280,38 @@ export default async function ChildDetail({
       </Card>
 
       <Card className="border-red-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-title text-red-700">Remove child</h3>
-            <p className="text-sm text-muted">Hides this child from the wall.</p>
+        <h3 className="text-title text-red-700">Danger zone</h3>
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-ink">Hide from the wall</p>
+              <p className="text-sm text-muted">Removes {child.name} from the wall and app. Their data is kept.</p>
+            </div>
+            <form action={deleteChild.bind(null, child.id)}>
+              <ConfirmSubmit
+                title={`Hide ${child.name}?`}
+                confirmLabel="Hide"
+                message={`${child.name} will disappear from the wall and app, but their routines and history are kept.`}
+              >
+                Hide
+              </ConfirmSubmit>
+            </form>
           </div>
-          <form action={deleteChild.bind(null, child.id)}>
-            <ConfirmSubmit
-              message={`Remove ${child.name}? This hides them and all their routines from the wall.`}
-            >
-              Remove
-            </ConfirmSubmit>
-          </form>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-red-100 pt-3">
+            <div>
+              <p className="font-semibold text-ink">Delete permanently</p>
+              <p className="text-sm text-muted">Erases {child.name} and all their routines, points, and history. Can&apos;t be undone.</p>
+            </div>
+            <form action={deleteChildPermanently.bind(null, child.id)}>
+              <ConfirmSubmit
+                title={`Delete ${child.name} forever?`}
+                confirmLabel="Delete forever"
+                message={`This permanently erases ${child.name} and ALL their routines, rewards, points, and history from Harbor. This cannot be undone.`}
+              >
+                Delete
+              </ConfirmSubmit>
+            </form>
+          </div>
         </div>
       </Card>
     </>

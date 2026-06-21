@@ -135,6 +135,8 @@ export type KioskSnapshot = {
   wall_messages: KioskWallMessage[];
   reminders: KioskReminder[];
   meals: KioskMeal[];
+  /** Hard-deletion tombstones since the cursor — the wall removes these ids. */
+  deletions?: { entity: string; entity_id: string }[];
   server_time: string;
 };
 
