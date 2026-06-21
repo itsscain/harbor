@@ -1,9 +1,11 @@
-import { Trash2, Pin, Star } from "lucide-react";
+import { Trash2, Pin, Star, MessageSquareHeart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Input, Field, Select, Textarea, Badge } from "@/components/ui/primitives";
+import { Card, Input, Field, Select, Textarea, Badge, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { addMessage, deleteMessage } from "../hub-actions";
 
 export const metadata = { title: "Message board" };
@@ -11,7 +13,9 @@ export const dynamic = "force-dynamic";
 
 export default async function MessagesPage() {
   const household = await getMyHousehold();
-  if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
+  if (!household) {
+    return <EmptyState title="No household yet" body="Your message board will appear here once your household is set up." />;
+  }
   const supabase = await createClient();
   const [{ data: messages }, { data: children }] = await Promise.all([
     supabase.from("wall_messages").select("*").eq("household_id", household.id).is("deleted_at", null).order("created_at", { ascending: false }),
@@ -20,10 +24,15 @@ export default async function MessagesPage() {
 
   return (
     <>
-      <PageHeader title="Message board" subtitle="Notes and nudges that appear on the wall's home screen." />
+      <PageHeader
+        eyebrow="Connect"
+        icon={<MessageSquareHeart className="h-6 w-6" />}
+        title="Message board"
+        subtitle="Notes and nudges that appear on the wall's home screen."
+      />
 
-      <Card className="mb-4">
-        <h2 className="font-display text-base font-bold text-harbor">Post a note</h2>
+      <Card className="mb-6">
+        <h2 className="text-title text-harbor">Post a note</h2>
         <form action={addMessage} className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Message" className="sm:col-span-2">
             <Textarea name="body" required placeholder="Mom home by 5:30 — snack's in the fridge. You've got this!" />
@@ -41,9 +50,9 @@ export default async function MessagesPage() {
           <Field label="Bonus stars (optional)" hint="Awarded to the chosen child when posted.">
             <Input name="bonus_points" type="number" min={0} defaultValue={0} />
           </Field>
-          <label className="flex items-center gap-2 text-sm font-medium text-ink">
-            <input type="checkbox" name="pinned" className="h-4 w-4" /> Pin to top
-          </label>
+          <div className="rounded-xl border border-harbor-100 px-3.5 py-3 sm:col-span-2">
+            <Switch name="pinned" label="Pin to top" hint="Keeps it at the top of the wall." />
+          </div>
           <div className="sm:col-span-2"><SubmitButton>Post to the wall</SubmitButton></div>
         </form>
       </Card>
@@ -63,13 +72,19 @@ export default async function MessagesPage() {
               </div>
             </div>
             <form action={deleteMessage.bind(null, m.id)}>
-              <button className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50" aria-label="Delete message">
+              <ConfirmSubmit message="Delete this note from the wall?" aria-label="Delete message" className="h-9 w-9 px-0 py-0">
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </ConfirmSubmit>
             </form>
           </Card>
         ))}
-        {(messages ?? []).length === 0 && <p className="text-sm text-muted">No messages yet.</p>}
+        {(messages ?? []).length === 0 && (
+          <EmptyState
+            icon={<MessageSquareHeart className="h-9 w-9" />}
+            title="No notes yet"
+            body="Post an encouraging note or a heads-up — it shows on the wall’s home screen."
+          />
+        )}
       </div>
     </>
   );

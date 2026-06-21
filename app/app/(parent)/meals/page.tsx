@@ -4,6 +4,8 @@ import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Input, Field, Select } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { titleCase } from "@/lib/format";
 import { addMeal, deleteMeal } from "../hub-actions";
 
@@ -12,7 +14,9 @@ export const dynamic = "force-dynamic";
 
 export default async function MealsPage() {
   const household = await getMyHousehold();
-  if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
+  if (!household) {
+    return <EmptyState title="No household yet" body="Your meal plan will appear here once your household is set up." />;
+  }
   const supabase = await createClient();
   const n = new Date();
   const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
@@ -34,12 +38,15 @@ export default async function MealsPage() {
 
   return (
     <>
-      <PageHeader title="Meal plan" subtitle="Tonight's dinner shows on the wall. Plan the week in a minute." />
+      <PageHeader
+        eyebrow="Plan"
+        icon={<UtensilsCrossed className="h-6 w-6" />}
+        title="Meal plan"
+        subtitle="Tonight's dinner shows on the wall. Plan the week in a minute."
+      />
 
-      <Card className="mb-4">
-        <h2 className="flex items-center gap-2 font-display text-base font-bold text-harbor">
-          <UtensilsCrossed className="h-5 w-5" /> Add a meal
-        </h2>
+      <Card className="mb-6">
+        <h2 className="text-title text-harbor">Add a meal</h2>
         <form action={addMeal} className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Day"><Input name="date" type="date" defaultValue={today} required /></Field>
           <Field label="Meal">
@@ -71,16 +78,22 @@ export default async function MealsPage() {
                     <p className="text-xs text-muted">{titleCase(m.meal_type)}</p>
                   </div>
                   <form action={deleteMeal.bind(null, m.id)}>
-                    <button className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50" aria-label={`Delete ${m.title}`}>
+                    <ConfirmSubmit message={`Delete "${m.title}"?`} aria-label={`Delete ${m.title}`} className="h-9 w-9 px-0 py-0">
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </ConfirmSubmit>
                   </form>
                 </Card>
               ))}
             </div>
           </div>
         ))}
-        {(meals ?? []).length === 0 && <p className="text-sm text-muted">No meals planned yet.</p>}
+        {(meals ?? []).length === 0 && (
+          <EmptyState
+            icon={<UtensilsCrossed className="h-9 w-9" />}
+            title="No meals planned yet"
+            body="Add a dinner above and it’ll show as “Tonight’s dinner” on the wall."
+          />
+        )}
       </div>
     </>
   );
