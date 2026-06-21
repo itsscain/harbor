@@ -1,13 +1,18 @@
+import { Skeleton } from "@/components/ui/primitives";
+
 export default function ParentLoading() {
   return (
-    <div className="animate-pulse space-y-4">
-      <div className="h-8 w-40 rounded-lg bg-harbor-100" />
-      <div className="h-24 rounded-2xl bg-white" />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="h-20 rounded-2xl bg-white" />
-        <div className="h-20 rounded-2xl bg-white" />
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-8 w-48" />
       </div>
-      <div className="h-40 rounded-2xl bg-white" />
+      <Skeleton className="h-24 rounded-2xl" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Skeleton className="h-[72px] rounded-2xl" />
+        <Skeleton className="h-[72px] rounded-2xl" />
+      </div>
+      <Skeleton className="h-40 rounded-2xl" />
     </div>
   );
 }

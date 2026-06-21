@@ -2,8 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Trash2, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Input, Field, Select, Button } from "@/components/ui/primitives";
+import { Card, Badge, Input, Field, Select, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { titleCase } from "@/lib/format";
@@ -58,19 +57,41 @@ export default async function ChildDetail({
         .order("order_index")
     : { data: [] };
 
+  const color = childColor(child);
+  const colorName = CHILD_PALETTE.find((p) => p.value === color)?.name;
+
   return (
     <>
       <Link
-        href="/app"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-harbor"
+        href="/app/children"
+        className="mb-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 -ml-2.5 text-sm font-semibold text-muted transition hover:bg-harbor-50 hover:text-harbor"
       >
-        <ArrowLeft className="h-4 w-4" /> Home
+        <ArrowLeft className="h-4 w-4" /> Children
       </Link>
 
-      <PageHeader title={`${child.avatar ?? "🙂"} ${child.name}`} />
+      {/* Colored hero */}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-harbor-100 shadow-card animate-enter">
+        <div className="flex items-center gap-4 p-5" style={{ background: color + "14" }}>
+          <span
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-3xl"
+            style={{ background: color + "26", boxShadow: `inset 0 0 0 3px ${color}` }}
+          >
+            {child.avatar ?? "🙂"}
+          </span>
+          <div className="min-w-0">
+            <p className="text-eyebrow text-muted">Child profile</p>
+            <h1 className="truncate text-display text-harbor">{child.name}</h1>
+            {colorName && (
+              <span className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} /> {colorName}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
 
       <Card className="mb-4">
-        <h2 className="font-display text-base font-bold text-harbor">Profile</h2>
+        <h2 className="text-title text-harbor">Profile</h2>
         <form action={updateChild.bind(null, child.id)} className="mt-3 space-y-3">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <Field label="Name">
@@ -104,21 +125,20 @@ export default async function ChildDetail({
       </Card>
 
       <Card className="mb-4">
-        <h2 className="font-display text-base font-bold text-harbor">Accessibility &amp; wall</h2>
+        <h2 className="text-title text-harbor">Accessibility &amp; wall</h2>
         <p className="text-sm text-muted">How {child.name}&apos;s wall reads, sounds, and feels.</p>
         <form action={updateChildSettings.bind(null, child.id)} className="mt-3 space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="divide-y divide-harbor-100 rounded-xl border border-harbor-100">
             {[
-              { name: "readAloud", label: "Read aloud on tap", def: cs.readAloud !== false },
-              { name: "autoRead", label: "Auto-read on open", def: cs.autoRead === true },
-              { name: "sound", label: "Success sounds", def: cs.sound !== false },
-              { name: "haptics", label: "Vibrate on done", def: cs.haptics !== false },
-              { name: "reducedMotion", label: "Reduce motion", def: cs.reducedMotion === true },
+              { name: "readAloud", label: "Read aloud on tap", hint: "Speak each step when tapped", def: cs.readAloud !== false },
+              { name: "autoRead", label: "Auto-read on open", hint: "Read the routine aloud automatically", def: cs.autoRead === true },
+              { name: "sound", label: "Success sounds", hint: "Play a chime on completion", def: cs.sound !== false },
+              { name: "haptics", label: "Vibrate on done", hint: "Gentle buzz when a step is finished", def: cs.haptics !== false },
+              { name: "reducedMotion", label: "Reduce motion", hint: "Calmer, minimal animation", def: cs.reducedMotion === true },
             ].map((t) => (
-              <label key={t.name} className="flex items-center gap-2 rounded-xl border border-harbor-100 px-3 py-2.5 text-sm font-medium text-ink">
-                <input type="checkbox" name={t.name} defaultChecked={t.def} className="h-4 w-4" />
-                {t.label}
-              </label>
+              <div key={t.name} className="px-3.5 py-3">
+                <Switch name={t.name} label={t.label} hint={t.hint} defaultChecked={t.def} />
+              </div>
             ))}
           </div>
           <Field label="Wall theme">
@@ -297,7 +317,7 @@ export default async function ChildDetail({
 
       {/* add routine */}
       <Card className="mb-4">
-        <h3 className="font-display text-base font-bold text-harbor">Add a routine</h3>
+        <h3 className="text-title text-harbor">Add a routine</h3>
         <p className="mt-1 text-sm text-muted">Start from a template — fills in the steps for you:</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {[
@@ -334,7 +354,7 @@ export default async function ChildDetail({
       <Card className="border-red-200">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-display text-base font-bold text-red-700">Remove child</h3>
+            <h3 className="text-title text-red-700">Remove child</h3>
             <p className="text-sm text-muted">Hides this child from the wall.</p>
           </div>
           <form action={deleteChild.bind(null, child.id)}>
