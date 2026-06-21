@@ -7,6 +7,7 @@ import { todayKey } from "@/lib/kiosk/db";
 import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
+import { nextBirthday } from "@/lib/kiosk/birthday";
 import { WeatherWidget } from "./WeatherWidget";
 import { cn } from "@/lib/cn";
 
@@ -58,11 +59,19 @@ export function HomeView({
     (snap.meals ?? []).find((m) => m.date === todayStr && m.meal_type === "dinner") ??
     (snap.meals ?? []).find((m) => m.date === todayStr);
 
-  const nextCountdown = (snap.events ?? [])
+  const eventCountdowns = (snap.events ?? [])
     .filter((e) => e.is_countdown)
-    .map((e) => ({ e, d: daysUntil(e.starts_at) }))
-    .filter((x) => x.d >= 0)
-    .sort((a, b) => a.d - b.d)[0];
+    .map((e) => ({ emoji: e.emoji ?? "🎉", title: e.title, days: daysUntil(e.starts_at) }))
+    .filter((x) => x.days >= 0);
+  const birthdayCountdowns = children
+    .map((c) => {
+      const nb = nextBirthday(c.birthday);
+      if (!nb) return null;
+      const turns = nb.turning && nb.turning > 0 ? ` · turns ${nb.turning}` : "";
+      return { emoji: "🎂", title: `${c.name}'s birthday${turns}`, days: nb.daysUntil };
+    })
+    .filter((x): x is { emoji: string; title: string; days: number } => x !== null);
+  const nextCountdown = [...eventCountdowns, ...birthdayCountdowns].sort((a, b) => a.days - b.days)[0];
 
   const messages = (snap.wall_messages ?? [])
     .filter((m) => !m.expires_at || new Date(m.expires_at) > now)
@@ -121,12 +130,12 @@ export function HomeView({
           <div className="mb-5 grid gap-4 sm:grid-cols-2">
             {nextCountdown && (
               <div className="flex items-center gap-4 rounded-2xl border border-beacon/30 bg-beacon/10 p-4">
-                <span className="text-3xl">{nextCountdown.e.emoji ?? "🎉"}</span>
+                <span className="text-3xl">{nextCountdown.emoji}</span>
                 <div>
                   <p className="font-display text-lg font-extrabold text-beacon">
-                    {nextCountdown.d === 0 ? "Today!" : `${nextCountdown.d} ${nextCountdown.d === 1 ? "sleep" : "sleeps"} to go`}
+                    {nextCountdown.days === 0 ? "Today!" : `${nextCountdown.days} ${nextCountdown.days === 1 ? "sleep" : "sleeps"} to go`}
                   </p>
-                  <p className="text-sm text-kmute">{nextCountdown.e.title}</p>
+                  <p className="text-sm text-kmute">{nextCountdown.title}</p>
                 </div>
               </div>
             )}

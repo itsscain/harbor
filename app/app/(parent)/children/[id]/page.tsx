@@ -112,6 +112,9 @@ export default async function ChildDetail({
               <Input name="avatar" defaultValue={child.avatar ?? ""} className="w-24 text-center text-xl" />
             </Field>
           </div>
+          <Field label="Birthday" hint="Drives a “N sleeps until their birthday” countdown on the wall.">
+            <Input name="birthday" type="date" defaultValue={child.birthday ?? ""} className="w-full sm:w-56" />
+          </Field>
           <Field label="Color" hint="Shows on the wall calendar, tiles, and routine board.">
             <div className="flex flex-wrap gap-2">
               {CHILD_PALETTE.map((p) => (

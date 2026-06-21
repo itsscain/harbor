@@ -198,6 +198,7 @@ export type Database = {
       children: {
         Row: {
           avatar: string | null
+          birthday: string | null
           color: string | null
           created_at: string
           deleted_at: string | null
@@ -210,6 +211,7 @@ export type Database = {
         }
         Insert: {
           avatar?: string | null
+          birthday?: string | null
           color?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -222,6 +224,7 @@ export type Database = {
         }
         Update: {
           avatar?: string | null
+          birthday?: string | null
           color?: string | null
           created_at?: string
           deleted_at?: string | null

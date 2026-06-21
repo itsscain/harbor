@@ -87,6 +87,7 @@ export async function createChild(
       name,
       avatar: str(formData.get("avatar")),
       color,
+      birthday: str(formData.get("birthday")),
       sort_order: order,
     })
     .select("id, name, avatar, color")
@@ -114,6 +115,7 @@ export async function updateChild(id: string, formData: FormData) {
       // Only touch color when a swatch was actually chosen — a child with a
       // custom color (no matching radio) must not be wiped to null on save.
       ...(color ? { color } : {}),
+      birthday: str(formData.get("birthday")),
       sort_order: int(formData.get("sort_order"), 0),
     })
     .eq("id", id);

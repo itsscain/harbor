@@ -157,6 +157,20 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
             </div>
           </div>
 
+          {/* Birthday (optional) */}
+          <div className="space-y-1.5">
+            <label htmlFor="child-bday" className="block text-sm font-medium text-ink">
+              Birthday <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <input
+              id="child-bday"
+              name="birthday"
+              type="date"
+              className="rounded-xl border border-harbor-100 bg-white px-3.5 py-2.5 text-ink outline-none transition focus:border-water focus:ring-4 focus:ring-water/15"
+            />
+            <p className="text-xs text-muted">Adds a “N sleeps until their birthday” countdown on the wall.</p>
+          </div>
+
           {state.error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
           )}

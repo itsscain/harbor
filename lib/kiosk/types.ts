@@ -6,6 +6,7 @@ export type KioskChild = {
   name: string;
   avatar: string | null;
   color: string | null;
+  birthday: string | null;
   sort_order: number;
   settings: Record<string, unknown> | null;
 };
