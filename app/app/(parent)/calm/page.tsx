@@ -1,9 +1,12 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Select, Field, Textarea } from "@/components/ui/primitives";
+import { Card, Badge, Select, Field, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { CalmToolFields } from "@/components/app/CalmToolFields";
 import { titleCase } from "@/lib/format";
 import { addCalmTool, updateCalmTool, deleteCalmTool } from "../actions";
 import { seedCalmTools } from "../hub-actions";
@@ -11,17 +14,10 @@ import { seedCalmTools } from "../hub-actions";
 export const metadata = { title: "Calm Corner" };
 export const dynamic = "force-dynamic";
 
-const HINTS: Record<string, string> = {
-  breathing: 'e.g. {"pattern":"4-7-8","rounds":4}',
-  feelings: 'e.g. {"options":["happy","calm","sad","angry","worried","tired"]}',
-  break: 'e.g. {"minutes":5}',
-  social_story: 'e.g. {"title":"Going to the store","pages":["First…","Then…"]}',
-};
-
 export default async function CalmPage() {
   const household = await getMyHousehold();
   if (!household) {
-    return <Card><p className="text-muted">No household yet.</p></Card>;
+    return <EmptyState title="No household yet" body="Your Calm Corner tools will appear here once your household is set up." />;
   }
   const supabase = await createClient();
   const { data: tools } = await supabase
@@ -34,6 +30,8 @@ export default async function CalmPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Connect"
+        icon={<Heart className="h-6 w-6" />}
         title="Calm Corner"
         subtitle="The tools your kids can reach any time on the wall."
       />
@@ -47,48 +45,36 @@ export default async function CalmPage() {
                 {!t.enabled && <Badge tone="gray">Off</Badge>}
               </div>
               <form action={deleteCalmTool.bind(null, t.id)}>
-                <button
-                  type="submit"
-                  className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"
-                  aria-label="Delete tool"
-                >
+                <ConfirmSubmit message={`Remove the ${titleCase(t.tool_type)} tool?`} aria-label="Delete tool" className="h-9 w-9 px-0 py-0">
                   <Trash2 className="h-4 w-4" />
-                </button>
+                </ConfirmSubmit>
               </form>
             </div>
-            <form action={updateCalmTool.bind(null, t.id)} className="space-y-3">
-              <Field label="Settings (JSON)" hint={HINTS[t.tool_type]}>
-                <Textarea
-                  name="config"
-                  defaultValue={JSON.stringify(t.config, null, 2)}
-                  className="font-mono text-sm"
-                />
-              </Field>
-              <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                <input type="checkbox" name="enabled" defaultChecked={t.enabled} className="h-4 w-4" />
-                Enabled on the wall
-              </label>
-              <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+            <form action={updateCalmTool.bind(null, t.id)} className="space-y-4">
+              <CalmToolFields toolType={t.tool_type} config={(t.config ?? {}) as Record<string, unknown>} />
+              <div className="flex items-center justify-between gap-3 border-t border-harbor-100 pt-3">
+                <Switch name="enabled" label="Enabled on the wall" defaultChecked={t.enabled} className="flex-1" />
+                <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+              </div>
             </form>
           </Card>
         ))}
         {(tools ?? []).length === 0 && (
-          <Card className="text-center">
-            <p className="text-sm text-muted">No calm tools yet.</p>
-            <form action={seedCalmTools} className="mt-3">
-              <SubmitButton variant="beacon" savedText="Added!">
-                Add recommended calm tools
-              </SubmitButton>
-            </form>
-            <p className="mt-2 text-xs text-muted">
-              Adds breathing, a feelings check-in, an &quot;I need a break&quot; timer, and a calming story.
-            </p>
-          </Card>
+          <EmptyState
+            icon={<Heart className="h-9 w-9" />}
+            title="No calm tools yet"
+            body="Add breathing, a feelings check-in, an “I need a break” timer, and a calming story — one tap."
+            action={
+              <form action={seedCalmTools}>
+                <SubmitButton variant="beacon" savedText="Added!">Add recommended calm tools</SubmitButton>
+              </form>
+            }
+          />
         )}
       </div>
 
-      <Card className="mt-4">
-        <h3 className="font-display text-base font-bold text-harbor">Add a calm tool</h3>
+      <Card className="mt-6">
+        <h3 className="text-title text-harbor">Add a calm tool</h3>
         <form action={addCalmTool} className="mt-3 flex items-end gap-3">
           <Field label="Tool" className="flex-1">
             <Select name="tool_type" defaultValue="breathing">

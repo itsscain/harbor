@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KeyRound, Tablet } from "lucide-react";
+import { KeyRound, Tablet, Settings as SettingsIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -26,7 +26,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" />
+      <PageHeader eyebrow="Account" icon={<SettingsIcon className="h-6 w-6" />} title="Settings" />
 
       <Card className="mb-4">
         <h2 className="text-title text-harbor">Household</h2>

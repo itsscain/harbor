@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, CreditCard } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold, plusActive } from "@/lib/household";
 import { isStripeConfigured } from "@/lib/env";
@@ -34,17 +34,30 @@ export default async function BillingPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Account"
+        icon={<CreditCard className="h-6 w-6" />}
         title="Harbor Plus"
         subtitle="Optional. Your wall works free, forever — Plus just adds the extras."
         actions={isActive ? <Badge tone="green">Active</Badge> : undefined}
       />
 
       <Card className="mb-4">
-        <p className="font-display text-2xl font-extrabold text-harbor">
-          $3.99<span className="text-base font-medium text-muted">/mo</span>
-          <span className="mx-2 text-muted">·</span>
-          $39<span className="text-base font-medium text-muted">/yr</span>
-        </p>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <p className="text-display-sm text-harbor">
+            $3.99<span className="text-base font-medium text-muted">/mo</span>
+          </p>
+          <span className="text-muted">or</span>
+          <p className="text-display-sm text-harbor">
+            $39<span className="text-base font-medium text-muted">/yr</span>
+          </p>
+          <Badge tone="green">Save 18% yearly</Badge>
+        </div>
+        {isActive && sub?.current_period_end && (
+          <p className="mt-2 text-sm text-muted">
+            {sub.plan ? `${sub.plan} plan · ` : ""}renews{" "}
+            {new Date(sub.current_period_end).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </p>
+        )}
         <ul className="mt-4 space-y-2">
           {PLUS_FEATURES.map((f) => (
             <li key={f} className="flex items-start gap-2 text-sm text-ink">
