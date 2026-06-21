@@ -230,6 +230,20 @@ const ROUTINE_TEMPLATES: Record<string, { name: string; type: "schedule" | "firs
       { icon: "📺", label: "Screen time", step_type: "then" },
     ],
   },
+  midday: {
+    name: "Summer Day",
+    type: "schedule",
+    steps: [
+      { icon: "🥪", label: "Lunch", points: 5 },
+      { icon: "💧", label: "Water break" },
+      { icon: "😴", label: "Quiet / nap time", points: 5 },
+      { icon: "📖", label: "Read or draw", points: 5 },
+      { icon: "☀️", label: "Outside play" },
+      { icon: "🧹", label: "Tidy up", points: 5 },
+      { icon: "🍦", label: "Afternoon snack" },
+      { icon: "🎨", label: "Free / creative time" },
+    ],
+  },
 };
 
 /** One-tap: create a routine pre-filled from a template (vs adding each step). */

@@ -282,6 +282,7 @@ export default async function ChildDetail({
         <div className="mt-2 flex flex-wrap gap-2">
           {[
             ["morning", "🌅 Morning"],
+            ["midday", "☀️ Summer day"],
             ["bedtime", "🌙 Bedtime"],
             ["afterschool", "🍎 After school"],
             ["firstthen", "🔁 First / Then"],
