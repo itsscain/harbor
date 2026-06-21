@@ -47,13 +47,13 @@ export function StepRow({
   };
 
   return (
-    <div className="rounded-xl border border-harbor-100 bg-white transition focus-within:border-water/50 focus-within:shadow-card">
-      <div className="flex items-center gap-1.5 p-2">
+    <div className="overflow-hidden rounded-xl border border-harbor-100 bg-white transition focus-within:border-water/50 focus-within:shadow-card">
+      <div className="flex items-start gap-1.5 p-2">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={`${open ? "Collapse" : "Edit"} ${step.label}`}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-sunken text-2xl transition hover:bg-harbor-50 active:scale-95"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-harbor-50 text-2xl ring-1 ring-harbor-100 transition hover:bg-harbor-100 active:scale-95"
         >
           {step.icon ?? "•"}
         </button>
@@ -66,7 +66,7 @@ export function StepRow({
           onSubmit={() => setDirty(false)}
           className="min-w-0 flex-1"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex min-h-12 items-center gap-2">
             <input
               name="label"
               defaultValue={step.label}
@@ -89,13 +89,14 @@ export function StepRow({
               type="button"
               onClick={() => setOpen((o) => !o)}
               aria-label={open ? "Collapse" : "Expand"}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-harbor-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-harbor-50"
             >
               <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
             </button>
           </div>
 
-          <div className={cn(open ? "mt-3 grid gap-3 border-t border-harbor-100 pt-3 sm:grid-cols-2" : "hidden")}>
+          {/* Detail tray — kept in the DOM (hidden when collapsed) so a save never wipes fields */}
+          <div className={cn("mt-2 grid gap-3 rounded-xl bg-surface-sunken p-3 sm:grid-cols-2", !open && "hidden")}>
             <Field label="Emoji"><Input name="icon" defaultValue={step.icon ?? ""} className="text-center text-xl" /></Field>
             <Field label="Type">
               <Select name="step_type" defaultValue={step.step_type}>
@@ -121,13 +122,19 @@ export function StepRow({
               <ArrowDown className="h-4 w-4" />
             </button>
           </form>
+        </div>
+      </div>
+
+      {/* Delete lives in the expanded footer so collapsed rows stay clean */}
+      {open && (
+        <div className="flex justify-end border-t border-harbor-100 px-3 py-2">
           <form action={deleteStep.bind(null, step.id, childId)}>
-            <ConfirmSubmit message={`Delete "${step.label}"?`} aria-label={`Delete ${step.label}`} className="h-8 w-8 px-0 py-0">
-              <Trash2 className="h-4 w-4" />
+            <ConfirmSubmit message={`Delete "${step.label}"?`} aria-label={`Delete ${step.label}`} className="px-2.5 py-1.5 text-xs">
+              <Trash2 className="h-3.5 w-3.5" /> Delete step
             </ConfirmSubmit>
           </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }
