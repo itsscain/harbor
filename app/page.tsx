@@ -127,7 +127,7 @@ export default function Landing() {
 
       {/* Pillars */}
       <section className="mx-auto max-w-6xl px-5 py-16">
-        <p className="text-eyebrow text-center text-water">What's on the wall</p>
+        <p className="text-eyebrow text-center text-water">What&apos;s on the wall</p>
         <h2 className="mt-2 text-center font-display text-3xl font-extrabold tracking-tight text-harbor sm:text-4xl">
           Three things, done beautifully.
         </h2>

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Wind, Heart, Hand, BookOpen, X } from "lucide-react";
 import type { KioskCalmTool } from "@/lib/kiosk/types";
-import { cn } from "@/lib/cn";
 
 const FEELINGS = [
   { key: "happy", emoji: "😊", label: "Happy" },
@@ -15,6 +14,15 @@ const FEELINGS = [
   { key: "silly", emoji: "🤪", label: "Silly" },
   { key: "excited", emoji: "🤩", label: "Excited" },
 ];
+
+/** Resolve any saved feeling key — known ones get their emoji/label, custom ones
+ *  added by a parent fall back to a generic emoji + a friendly capitalized label. */
+function feelingMeta(key: string) {
+  const found = FEELINGS.find((f) => f.key === key.toLowerCase());
+  if (found) return found;
+  const label = key.charAt(0).toUpperCase() + key.slice(1);
+  return { key, emoji: "💭", label };
+}
 
 const TOOL_META: Record<
   KioskCalmTool["tool_type"],
@@ -113,6 +121,7 @@ function Breathing({ config }: { config: Record<string, unknown> }) {
     const parts = raw.split("-").map((n) => Number(n) || 4);
     return { inhale: parts[0] ?? 4, hold: parts[1] ?? 0, exhale: parts[2] ?? 4 };
   }, [config]);
+  const rounds = Math.max(1, Number(config.rounds) || 4);
   const phases = useMemo(
     () =>
       [
@@ -123,10 +132,27 @@ function Breathing({ config }: { config: Record<string, unknown> }) {
     [pattern],
   );
   const [i, setI] = useState(0);
+  const [cycles, setCycles] = useState(0);
+  const done = cycles >= rounds;
   useEffect(() => {
-    const id = setTimeout(() => setI((p) => (p + 1) % phases.length), phases[i].secs * 1000);
+    if (done) return;
+    const id = setTimeout(() => {
+      const next = (i + 1) % phases.length;
+      if (next === 0) setCycles((c) => c + 1);
+      setI(next);
+    }, phases[i].secs * 1000);
     return () => clearTimeout(id);
-  }, [i, phases]);
+  }, [i, phases, done]);
+
+  if (done) {
+    return (
+      <div className="text-center">
+        <div className="text-7xl animate-reward">🌬️</div>
+        <p className="mt-6 font-display text-2xl font-extrabold">Great breathing!</p>
+        <p className="mt-2 text-seafoam">You took {rounds} slow breaths.</p>
+      </div>
+    );
+  }
 
   const phase = phases[i];
   return (
@@ -164,21 +190,22 @@ function Feelings({
   onPick: (feeling: string) => void;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
-  const options = Array.isArray(config.options)
-    ? FEELINGS.filter((f) => (config.options as string[]).includes(f.key))
-    : FEELINGS.slice(0, 6);
-  const list = options.length ? options : FEELINGS.slice(0, 6);
+  const keys =
+    Array.isArray(config.options) && (config.options as string[]).length
+      ? (config.options as string[])
+      : FEELINGS.slice(0, 6).map((f) => f.key);
+  const list = keys.map(feelingMeta);
 
   if (picked) {
-    const f = FEELINGS.find((x) => x.key === picked);
+    const f = feelingMeta(picked);
     return (
       <div className="text-center">
-        <div className="text-8xl animate-reward">{f?.emoji}</div>
+        <div className="text-8xl animate-reward">{f.emoji}</div>
         <p className="mt-6 font-display text-2xl font-extrabold">
           Thanks for sharing.
         </p>
         <p className="mt-2 text-seafoam">
-          It&apos;s okay to feel {f?.label.toLowerCase()}. You&apos;re doing great.
+          It&apos;s okay to feel {f.label.toLowerCase()}. You&apos;re doing great.
         </p>
       </div>
     );

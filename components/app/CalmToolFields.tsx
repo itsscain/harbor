@@ -30,7 +30,9 @@ function Hidden({ value }: { value: unknown }) {
 }
 
 function Breathing({ config }: { config: Config }) {
-  const [pattern, setPattern] = useState(String(config.pattern ?? "4-7-8"));
+  // Map any legacy/non-numeric pattern (e.g. "box", "4-4-4-4") to a value the
+  // kiosk can parse and the Select can show.
+  const [pattern, setPattern] = useState(String(config.pattern ?? "4-7-8") === "4-7-8" ? "4-7-8" : "4-4-4");
   const [rounds, setRounds] = useState(Number(config.rounds ?? 4));
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -38,8 +40,7 @@ function Breathing({ config }: { config: Config }) {
       <Field label="Breathing pattern" hint="Inhale · hold · exhale (seconds)">
         <Select value={pattern} onChange={(e) => setPattern(e.target.value)}>
           <option value="4-7-8">Relaxing · 4-7-8</option>
-          <option value="box">Box · 4-4-4-4</option>
-          <option value="4-4-4">Simple · 4-4-4</option>
+          <option value="4-4-4">Box · 4-4-4</option>
         </Select>
       </Field>
       <Field label="Rounds">
@@ -67,7 +68,7 @@ function Feelings({ config }: { config: Config }) {
   );
   const [draft, setDraft] = useState("");
   const add = () => {
-    const v = draft.trim();
+    const v = draft.trim().toLowerCase();
     if (v && !options.includes(v)) setOptions([...options, v]);
     setDraft("");
   };

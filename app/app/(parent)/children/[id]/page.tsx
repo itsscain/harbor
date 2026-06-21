@@ -220,7 +220,14 @@ export default async function ChildDetail({
             >
               <Input name="icon" placeholder="➕" aria-label="Emoji" className="w-14 shrink-0 text-center text-xl" />
               <Input name="label" placeholder="Add a step…" required className="flex-1" />
-              <input type="hidden" name="step_type" value={r.type === "first_then" ? "first" : "task"} />
+              {r.type === "first_then" ? (
+                <Select name="step_type" defaultValue="first" aria-label="First or Then" className="w-28 shrink-0">
+                  <option value="first">First</option>
+                  <option value="then">Then</option>
+                </Select>
+              ) : (
+                <input type="hidden" name="step_type" value="task" />
+              )}
               <SubmitButton size="sm">Add</SubmitButton>
             </form>
 
