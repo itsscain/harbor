@@ -5,9 +5,12 @@ type ButtonVariant = "primary" | "secondary" | "beacon" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-harbor text-white hover:bg-harbor-700",
-  secondary: "border border-harbor-100 bg-white text-harbor hover:bg-harbor-50",
-  beacon: "bg-beacon text-harbor hover:brightness-95",
+  primary:
+    "bg-[linear-gradient(180deg,#16586a,#0c3b47)] text-white shadow-button hover:brightness-110",
+  secondary:
+    "border border-harbor-100 bg-white text-harbor hover:border-harbor-200 hover:shadow-card",
+  beacon:
+    "bg-[linear-gradient(180deg,#f8bf57,#f2a92f)] text-harbor shadow-button hover:brightness-105",
   ghost: "text-harbor hover:bg-harbor-50",
   danger: "border border-red-200 bg-white text-red-700 hover:bg-red-50",
 };
@@ -29,7 +32,8 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:opacity-60 disabled:pointer-events-none",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150",
+        "active:translate-y-px active:scale-[0.99] disabled:opacity-60 disabled:pointer-events-none disabled:active:translate-y-0",
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -42,17 +46,48 @@ export function Button({
 // ── Card ─────────────────────────────────────────────────────────────────────
 export function Card({
   className,
+  interactive = false,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLDivElement> & { interactive?: boolean }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-harbor-100 bg-white p-5 shadow-sm",
+        "rounded-2xl border border-harbor-100 bg-white p-5 shadow-card",
+        interactive &&
+          "transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-water/40 hover:shadow-card-hover",
         className,
       )}
       {...props}
     />
   );
+}
+
+// ── Section heading ───────────────────────────────────────────────────────────
+export function SectionHeader({
+  children,
+  eyebrow,
+  action,
+  className,
+}: {
+  children: React.ReactNode;
+  eyebrow?: string;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-3 flex items-end justify-between gap-3", className)}>
+      <div>
+        {eyebrow && <p className="text-eyebrow mb-1 text-muted">{eyebrow}</p>}
+        <h2 className="text-title text-harbor">{children}</h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("skeleton", className)} aria-hidden />;
 }
 
 // ── Badge ────────────────────────────────────────────────────────────────────
@@ -139,7 +174,7 @@ export function Field({
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-harbor-100 bg-white px-3.5 py-2.5 text-ink outline-none transition focus:border-water";
+  "w-full rounded-xl border border-harbor-100 bg-white px-3.5 py-2.5 text-ink outline-none transition placeholder:text-muted/60 focus:border-water focus:ring-4 focus:ring-water/15 hover:border-harbor-200";
 
 export function Input({
   className,
@@ -160,4 +195,35 @@ export function Select({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className={cn(fieldClass, "appearance-none", className)} {...props} />;
+}
+
+// ── Switch ────────────────────────────────────────────────────────────────────
+/** A branded toggle. Pure CSS (peer) so it works inside plain `<form action>`s
+ *  without client JS — submits like a checkbox under `name`. */
+export function Switch({
+  name,
+  defaultChecked,
+  label,
+  hint,
+  className,
+}: {
+  name: string;
+  defaultChecked?: boolean;
+  label: string;
+  hint?: string;
+  className?: string;
+}) {
+  return (
+    <label className={cn("flex cursor-pointer items-center justify-between gap-3", className)}>
+      <span>
+        <span className="block text-sm font-medium text-ink">{label}</span>
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
+      </span>
+      <span className="relative inline-flex shrink-0">
+        <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" />
+        <span className="block h-7 w-12 rounded-full bg-harbor-100 transition-colors duration-200 peer-checked:bg-water peer-focus-visible:ring-4 peer-focus-visible:ring-water/25" />
+        <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-card transition-transform duration-200 peer-checked:translate-x-5" />
+      </span>
+    </label>
+  );
 }
