@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, Trash2, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Badge, Input, Field, Select, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { StepRow } from "@/components/app/StepRow";
 import { titleCase } from "@/lib/format";
 import {
   updateChild,
@@ -14,9 +15,6 @@ import {
   updateRoutine,
   deleteRoutine,
   addStep,
-  updateStep,
-  deleteStep,
-  moveStep,
 } from "../../actions";
 import { updateChildSettings } from "../../hub-actions";
 import { CHILD_PALETTE, childColor } from "@/lib/kiosk/colors";
@@ -162,146 +160,68 @@ export default async function ChildDetail({
         const rSteps = (steps ?? []).filter((s) => s.routine_id === r.id);
         return (
           <Card key={r.id} className="mb-4">
+            {/* Routine header */}
             <form action={updateRoutine.bind(null, r.id, child.id)} className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
-                <Field label="Routine name">
-                  <Input name="name" defaultValue={r.name} />
-                </Field>
-                <Field label="Order">
-                  <Input name="sort_order" type="number" defaultValue={r.sort_order} className="w-20" />
-                </Field>
-                <label className="flex items-end gap-2 pb-2.5 text-sm font-medium text-ink">
-                  <input type="checkbox" name="active" defaultChecked={r.active} className="h-4 w-4" />
-                  Active
-                </label>
-                <div className="flex items-end">
-                  <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  name="name"
+                  defaultValue={r.name}
+                  aria-label="Routine name"
+                  className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-title text-harbor outline-none focus:bg-surface-sunken"
+                />
+                <Badge tone="neutral">{titleCase(r.type)}</Badge>
+                <Switch name="active" label="Active" defaultChecked={r.active} />
+                <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+              </div>
+              <details className="rounded-xl bg-surface-sunken px-3 py-2">
+                <summary className="cursor-pointer select-none text-sm font-semibold text-water">Schedule &amp; days</summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <Field label="Starts (time-aware)">
+                    <Input name="start_time" type="time" defaultValue={r.start_time ? r.start_time.slice(0, 5) : ""} />
+                  </Field>
+                  <Field label="Ends">
+                    <Input name="end_time" type="time" defaultValue={r.end_time ? r.end_time.slice(0, 5) : ""} />
+                  </Field>
+                  <Field label="Order">
+                    <Input name="sort_order" type="number" defaultValue={r.sort_order} className="w-24" />
+                  </Field>
+                  <Field label="Days" className="sm:col-span-3">
+                    <div className="flex flex-wrap gap-1">
+                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
+                        <label key={i} className="cursor-pointer">
+                          <input type="checkbox" name="days" value={i} defaultChecked={(r.days_of_week ?? []).includes(i)} className="peer sr-only" />
+                          <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                            {d}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
                 </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Starts (for time-aware)">
-                  <Input name="start_time" type="time" defaultValue={r.start_time ? r.start_time.slice(0, 5) : ""} />
-                </Field>
-                <Field label="Ends">
-                  <Input name="end_time" type="time" defaultValue={r.end_time ? r.end_time.slice(0, 5) : ""} />
-                </Field>
-                <Field label="Days">
-                  <div className="flex flex-wrap gap-1">
-                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
-                      <label key={i} className="cursor-pointer">
-                        <input type="checkbox" name="days" value={i} defaultChecked={(r.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
-                          {d}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </Field>
-              </div>
+              </details>
             </form>
-
-            <div className="mt-2 flex items-center gap-2">
-              <Badge tone="neutral">{titleCase(r.type)}</Badge>
-            </div>
 
             {/* Steps */}
             <div className="mt-4 space-y-2">
               {rSteps.length === 0 && (
-                <p className="rounded-xl bg-harbor-50 px-3 py-3 text-sm text-muted">
-                  No steps yet — add the first one below, or start from a template.
+                <p className="rounded-xl bg-surface-sunken px-3 py-4 text-center text-sm text-muted">
+                  No steps yet — add the first one below.
                 </p>
               )}
               {rSteps.map((s, i) => (
-                <div key={s.id} className="flex items-stretch gap-2">
-                  <form
-                    action={updateStep.bind(null, s.id, child.id)}
-                    className="grid flex-1 grid-cols-12 items-end gap-2 rounded-xl border border-harbor-100 p-3"
-                  >
-                    <Field label="Emoji" className="col-span-3 sm:col-span-1">
-                      <Input name="icon" defaultValue={s.icon ?? ""} className="text-center text-xl" />
-                    </Field>
-                    <Field label="Label" className="col-span-9 sm:col-span-4">
-                      <Input name="label" defaultValue={s.label} />
-                    </Field>
-                    <Field label="Type" className="col-span-5 sm:col-span-2">
-                      <Select name="step_type" defaultValue={s.step_type}>
-                        <option value="task">Task</option>
-                        <option value="first">First</option>
-                        <option value="then">Then</option>
-                      </Select>
-                    </Field>
-                    <Field label="Time" className="col-span-4 sm:col-span-2">
-                      <Input name="start_time" type="time" defaultValue={s.start_time ? s.start_time.slice(0, 5) : ""} />
-                    </Field>
-                    <Field label="Mins" className="col-span-3 sm:col-span-1">
-                      <Input name="duration_min" type="number" defaultValue={s.duration_min ?? ""} />
-                    </Field>
-                    <Field label="Pts" className="col-span-3 sm:col-span-1">
-                      <Input name="reward_points" type="number" defaultValue={s.reward_points} />
-                    </Field>
-                    <div className="col-span-12 flex items-center gap-2 sm:col-span-1">
-                      <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
-                    </div>
-                  </form>
-                  <div className="flex w-11 flex-col items-center justify-center gap-1">
-                    <form action={moveStep.bind(null, s.id, child.id, "up")}>
-                      <button
-                        type="submit"
-                        disabled={i === 0}
-                        aria-label={`Move ${s.label} up`}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-harbor-100 text-harbor disabled:opacity-30"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </button>
-                    </form>
-                    <form action={moveStep.bind(null, s.id, child.id, "down")}>
-                      <button
-                        type="submit"
-                        disabled={i === rSteps.length - 1}
-                        aria-label={`Move ${s.label} down`}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-harbor-100 text-harbor disabled:opacity-30"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </button>
-                    </form>
-                    <form action={deleteStep.bind(null, s.id, child.id)}>
-                      <ConfirmSubmit
-                        message={`Delete "${s.label}"?`}
-                        aria-label={`Delete ${s.label}`}
-                        className="h-9 w-9 px-0 py-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </ConfirmSubmit>
-                    </form>
-                  </div>
-                </div>
+                <StepRow key={s.id} step={s} childId={child.id} isFirst={i === 0} isLast={i === rSteps.length - 1} />
               ))}
             </div>
 
-            {/* add step */}
+            {/* add step — one quiet affordance */}
             <form
               action={addStep.bind(null, r.id, child.id)}
-              className="mt-4 grid grid-cols-12 items-end gap-2 border-t border-harbor-100 pt-4"
+              className="mt-3 flex items-center gap-2 border-t border-harbor-100 pt-3"
             >
-              <Field label="Emoji" className="col-span-3 sm:col-span-1">
-                <Input name="icon" placeholder="🪥" className="text-center text-xl" />
-              </Field>
-              <Field label="New step label" className="col-span-9 sm:col-span-5">
-                <Input name="label" placeholder="Brush teeth" required />
-              </Field>
-              <Field label="Type" className="col-span-5 sm:col-span-2">
-                <Select name="step_type" defaultValue={r.type === "first_then" ? "first" : "task"}>
-                  <option value="task">Task</option>
-                  <option value="first">First</option>
-                  <option value="then">Then</option>
-                </Select>
-              </Field>
-              <Field label="Points" className="col-span-4 sm:col-span-2">
-                <Input name="reward_points" type="number" defaultValue={0} />
-              </Field>
-              <div className="col-span-12 sm:col-span-2">
-                <SubmitButton size="sm">Add step</SubmitButton>
-              </div>
+              <Input name="icon" placeholder="➕" aria-label="Emoji" className="w-14 shrink-0 text-center text-xl" />
+              <Input name="label" placeholder="Add a step…" required className="flex-1" />
+              <input type="hidden" name="step_type" value={r.type === "first_then" ? "first" : "task"} />
+              <SubmitButton size="sm">Add</SubmitButton>
             </form>
 
             <div className="mt-4 flex justify-end">
