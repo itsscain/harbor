@@ -45,15 +45,15 @@ export function StoreView({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-gradient-to-b from-[#10454f] to-harbor text-white">
+    <div className="fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
       <div className="flex items-center justify-between p-5">
         <span className="font-display text-xl font-bold">Reward Store</span>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2">
+          <span className="flex items-center gap-1.5 rounded-full bg-kraise px-4 py-2">
             <Star className="h-5 w-5 fill-beacon text-beacon" />
             <span className="font-display text-lg font-extrabold tabular-nums">{points}</span>
           </span>
-          <button onClick={onClose} className="kiosk-tap rounded-full bg-white/15 p-3" aria-label="Close store">
+          <button onClick={onClose} className="kiosk-tap rounded-full bg-kraise p-3" aria-label="Close store">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -61,7 +61,7 @@ export function StoreView({
 
       <div className="flex-1 overflow-y-auto p-5">
         {items.length === 0 ? (
-          <p className="mt-10 text-center text-seafoam">
+          <p className="mt-10 text-center text-kmute">
             No rewards yet. A grown-up can add some in the Harbor app.
           </p>
         ) : (
@@ -71,18 +71,18 @@ export function StoreView({
               const isGoal = item.kind === "goal";
               const pct = Math.min(100, item.cost_points ? (points / item.cost_points) * 100 : 100);
               return (
-                <div key={item.id} className="rounded-3xl bg-white/10 p-5">
+                <div key={item.id} className="rounded-3xl bg-kpanel ring-1 ring-kline p-5">
                   <div className="flex items-center gap-4">
                     <span className="text-5xl">{item.emoji ?? "🎁"}</span>
                     <div className="min-w-0 flex-1">
                       <p className="font-display text-xl font-bold">{item.label}</p>
-                      <p className="flex items-center gap-1 text-seafoam">
+                      <p className="flex items-center gap-1 text-kmute">
                         <Star className="h-4 w-4 fill-beacon text-beacon" /> {item.cost_points}
                         {isGoal && <span className="ml-1">goal</span>}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/15">
+                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-kraise">
                     <div className="h-full rounded-full bg-beacon transition-all" style={{ width: `${pct}%` }} />
                   </div>
                   {!isGoal && (
@@ -95,7 +95,7 @@ export function StoreView({
                           ? "bg-emerald-500 text-white"
                           : affordable
                             ? "bg-beacon text-harbor"
-                            : "bg-white/10 text-seafoam",
+                            : "bg-kpanel ring-1 ring-kline text-kmute",
                       )}
                     >
                       {bought === item.id ? (
@@ -110,7 +110,7 @@ export function StoreView({
                     </button>
                   )}
                   {isGoal && (
-                    <p className="mt-3 text-center text-sm text-seafoam">
+                    <p className="mt-3 text-center text-sm text-kmute">
                       {affordable ? "Goal reached! 🎉" : `${item.cost_points - points} stars to go`}
                     </p>
                   )}
@@ -124,14 +124,14 @@ export function StoreView({
       {redeemed && (
         <button
           onClick={() => setRedeemed(null)}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-harbor/95 px-6 text-center"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-kbg2/97 px-6 text-center backdrop-blur-sm"
           aria-label="Continue"
         >
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className="animate-pop relative text-8xl">{redeemed.emoji ?? "🎁"}</span>
           <p className="relative mt-4 font-display text-4xl font-extrabold sm:text-5xl">You got it!</p>
-          <p className="relative mt-2 text-xl text-seafoam">{redeemed.label}</p>
-          <p className="relative mt-10 text-sm text-seafoam/70">Tap to keep going</p>
+          <p className="relative mt-2 text-xl text-kmute">{redeemed.label}</p>
+          <p className="relative mt-10 text-sm text-kmute/70">Tap to keep going</p>
         </button>
       )}
     </div>

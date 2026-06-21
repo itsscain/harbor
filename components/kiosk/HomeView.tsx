@@ -52,7 +52,7 @@ export function HomeView({
   const hsettings = (snap.household.settings ?? {}) as Record<string, unknown>;
   const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
 
-  const todayStr = todayKey(); // local calendar date (matches the rest of the wall)
+  const todayStr = todayKey();
   const tonight =
     (snap.meals ?? []).find((m) => m.date === todayStr && m.meal_type === "dinner") ??
     (snap.meals ?? []).find((m) => m.date === todayStr);
@@ -80,80 +80,75 @@ export function HomeView({
     const routineIds = snap.routines
       .filter((r) => r.child_id === childId && r.active && runsToday(r.days_of_week))
       .map((r) => r.id);
-    const steps = snap.steps.filter(
-      (s) => routineIds.includes(s.routine_id) && s.step_type === "task",
-    );
-    const completed =
-      state!.progress[childId]?.date === today ? state!.progress[childId].completed : [];
+    const steps = snap.steps.filter((s) => routineIds.includes(s.routine_id) && s.step_type === "task");
+    const completed = state!.progress[childId]?.date === today ? state!.progress[childId].completed : [];
     const done = steps.filter((s) => completed.includes(s.id)).length;
     return { done, total: steps.length, points: state!.points[childId] ?? 0 };
   }
 
   return (
-    <div className="min-h-full bg-seafog">
-      <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:max-w-5xl">
-        {/* Greeting + clock */}
-        <div className="mb-5 flex items-end justify-between">
+    <div className="min-h-dvh bg-kbg text-ktext">
+      <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-8 sm:py-8">
+        {/* Header */}
+        <header className="mb-7 flex items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-extrabold text-harbor">{greeting}</h1>
-            <p className="text-muted">
+            <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{greeting}</h1>
+            <p className="mt-1 text-kmute">
               {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {weather?.lat != null && weather?.lon != null && (
               <WeatherWidget lat={weather.lat} lon={weather.lon} label={weather.label} />
             )}
-            <div className="flex flex-col items-end gap-1">
-              <p className="font-display text-4xl font-extrabold tabular-nums text-harbor">
+            <div className="flex flex-col items-end gap-1.5">
+              <p className="font-display text-4xl font-extrabold tabular-nums leading-none sm:text-5xl">
                 {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
               </p>
               <button
                 onClick={onParentMenu}
-                className="kiosk-tap flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-muted shadow-sm"
+                className="kiosk-tap flex items-center gap-1.5 rounded-full bg-kpanel px-3 py-1.5 text-xs font-semibold text-kmute ring-1 ring-kline transition hover:text-ktext"
               >
                 <Lock className="h-3.5 w-3.5" /> Parents
               </button>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Countdown + tonight's dinner */}
+        {/* Highlight row */}
         {(nextCountdown || tonight) && (
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <div className="mb-5 grid gap-4 sm:grid-cols-2">
             {nextCountdown && (
-              <div className="flex items-center gap-3 rounded-2xl border border-beacon/40 bg-beacon-soft/40 p-4">
+              <div className="flex items-center gap-4 rounded-2xl border border-beacon/30 bg-beacon/10 p-4">
                 <span className="text-3xl">{nextCountdown.e.emoji ?? "🎉"}</span>
                 <div>
-                  <p className="font-display text-lg font-extrabold text-harbor">
+                  <p className="font-display text-lg font-extrabold text-beacon">
                     {nextCountdown.d === 0 ? "Today!" : `${nextCountdown.d} ${nextCountdown.d === 1 ? "sleep" : "sleeps"} to go`}
                   </p>
-                  <p className="text-sm text-muted">{nextCountdown.e.title}</p>
+                  <p className="text-sm text-kmute">{nextCountdown.e.title}</p>
                 </div>
               </div>
             )}
             {tonight && (
-              <div className="flex items-center gap-3 rounded-2xl border border-harbor-100 bg-white p-4">
+              <div className="flex items-center gap-4 rounded-2xl border border-kline bg-kpanel p-4 shadow-k">
                 <span className="text-3xl">{tonight.emoji ?? "🍽️"}</span>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted">Tonight&apos;s dinner</p>
-                  <p className="font-display text-lg font-bold text-harbor">{tonight.title}</p>
+                  <p className="text-eyebrow text-kmute">Tonight&apos;s dinner</p>
+                  <p className="mt-0.5 font-display text-lg font-bold text-ktext">{tonight.title}</p>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Reminders banner */}
+        {/* Reminders */}
         {dueReminders.length > 0 && (
-          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <Bell className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+            <Bell className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
             <div>
-              <p className="font-semibold text-amber-800">Don&apos;t forget</p>
-              <ul className="text-sm text-amber-800">
-                {dueReminders.map((r) => (
-                  <li key={r.id}>• {r.title}</li>
-                ))}
+              <p className="font-semibold text-amber-200">Don&apos;t forget</p>
+              <ul className="mt-0.5 text-sm text-amber-100/90">
+                {dueReminders.map((r) => <li key={r.id}>• {r.title}</li>)}
               </ul>
             </div>
           </div>
@@ -161,13 +156,13 @@ export function HomeView({
 
         {/* Messages */}
         {messages.length > 0 && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-5 space-y-2.5">
             {messages.map((m) => (
-              <div key={m.id} className="flex items-start gap-3 rounded-2xl border border-beacon/30 bg-beacon-soft/40 p-4">
+              <div key={m.id} className="flex items-start gap-3 rounded-2xl border border-beacon/25 bg-beacon/5 p-4">
                 <span className="text-2xl">{m.emoji ?? (m.pinned ? "📌" : "💬")}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-ink">{m.body}</p>
-                  {m.author_label && <p className="mt-0.5 text-xs font-semibold text-muted">— {m.author_label}</p>}
+                  <p className="text-ktext">{m.body}</p>
+                  {m.author_label && <p className="mt-0.5 text-xs font-semibold text-kmute">— {m.author_label}</p>}
                 </div>
                 {m.pinned && <Pin className="h-4 w-4 shrink-0 text-beacon" />}
               </div>
@@ -175,34 +170,43 @@ export function HomeView({
           </div>
         )}
 
-        {/* Children tiles */}
-        <h2 className="mb-2 font-display text-lg font-bold text-harbor">Tap to start your day</h2>
-        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Children */}
+        <h2 className="text-eyebrow mb-3 text-kmute">Tap to start the day</h2>
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {children.map((c) => {
             const p = childProgress(c.id);
+            const color = childColor(c);
+            const pct = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
             return (
               <button
                 key={c.id}
                 onClick={() => onSelectChild(c.id)}
-                style={{ borderLeftColor: childColor(c) }}
-                className="kiosk-tap flex items-center gap-4 rounded-3xl border-2 border-l-8 border-harbor-100 bg-white p-5 text-left transition active:scale-[0.99]"
+                className="kiosk-tap rounded-3xl border border-kline bg-kpanel p-5 text-left shadow-k transition hover:bg-kraise active:scale-[0.99]"
+                style={{ borderLeft: `6px solid ${color}` }}
               >
-                <span
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-4xl"
-                  style={{ backgroundColor: childColor(c) + "22", boxShadow: `inset 0 0 0 2px ${childColor(c)}` }}
-                >
-                  {c.avatar ?? "🙂"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-2xl font-extrabold text-harbor">{c.name}</p>
-                  <p className="flex items-center gap-2 text-sm text-muted">
-                    {p.total > 0 ? `${p.done}/${p.total} steps` : "No routine yet"}
-                    <span className="inline-flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-beacon text-beacon" /> {p.points}
-                    </span>
-                  </p>
+                <div className="flex items-center gap-4">
+                  <span
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-4xl"
+                    style={{ background: color + "26", boxShadow: `inset 0 0 0 2px ${color}` }}
+                  >
+                    {c.avatar ?? "🙂"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-display text-2xl font-extrabold text-ktext">{c.name}</p>
+                    <p className="mt-0.5 flex items-center gap-2 text-sm text-kmute">
+                      {p.total > 0 ? `${p.done}/${p.total} steps` : "No routine yet"}
+                      <span className="inline-flex items-center gap-1 text-beacon">
+                        <Star className="h-4 w-4 fill-beacon" /> {p.points}
+                      </span>
+                    </p>
+                  </div>
+                  <ChevronRight className="h-6 w-6 shrink-0 text-kmute" />
                 </div>
-                <ChevronRight className="h-6 w-6 text-muted" />
+                {p.total > 0 && (
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-kraise">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+                  </div>
+                )}
               </button>
             );
           })}
@@ -211,40 +215,33 @@ export function HomeView({
         {/* Today agenda */}
         <button
           onClick={onOpenCalendar}
-          className="mb-4 flex w-full items-center justify-between rounded-2xl border border-harbor-100 bg-white p-4 text-left"
+          className="kiosk-tap mb-4 flex w-full items-center justify-between gap-3 rounded-2xl border border-kline bg-kpanel p-5 text-left shadow-k transition hover:bg-kraise"
         >
           <div className="min-w-0 flex-1">
-            <p className="mb-1 flex items-center gap-2 font-display text-lg font-bold text-harbor">
-              <CalendarDays className="h-5 w-5" /> Today
+            <p className="mb-2 flex items-center gap-2 font-display text-lg font-bold text-ktext">
+              <CalendarDays className="h-5 w-5 text-kwater" /> Today
             </p>
             {todays.length === 0 ? (
-              <p className="text-sm text-muted">Nothing scheduled. Enjoy the calm.</p>
+              <p className="text-sm text-kmute">Nothing scheduled. Enjoy the calm. 🌊</p>
             ) : (
-              <ul className="space-y-1 text-sm text-ink">
+              <ul className="space-y-1.5 text-sm">
                 {todays.map((e) => (
                   <li key={e.id} className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: eventColor(e, childrenById) }}
-                    />
-                    <span className="font-semibold text-water">{formatEventTime(e)}</span>
-                    <span>{e.emoji} {e.title}</span>
+                    <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: eventColor(e, childrenById) }} />
+                    <span className="font-semibold text-kwater">{formatEventTime(e)}</span>
+                    <span className="text-ktext">{e.emoji} {e.title}</span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+          <ChevronRight className="h-5 w-5 shrink-0 text-kmute" />
         </button>
 
         {/* Quick actions */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-4">
           <QuickAction icon={CalendarDays} label="Calendar" onClick={onOpenCalendar} />
-          <QuickAction
-            icon={ListChecks}
-            label={groceriesLeft > 0 ? `List · ${groceriesLeft}` : "List"}
-            onClick={onOpenLists}
-          />
+          <QuickAction icon={ListChecks} label={groceriesLeft > 0 ? `List · ${groceriesLeft}` : "List"} onClick={onOpenLists} />
           <QuickAction icon={Heart} label="Calm" onClick={onOpenCalm} accent />
         </div>
       </div>
@@ -267,8 +264,10 @@ function QuickAction({
     <button
       onClick={onClick}
       className={cn(
-        "kiosk-tap flex flex-col items-center justify-center gap-1.5 rounded-2xl py-5 font-bold transition active:scale-[0.98]",
-        accent ? "bg-beacon text-harbor" : "bg-white text-harbor border border-harbor-100",
+        "kiosk-tap flex flex-col items-center justify-center gap-2 rounded-2xl py-6 font-bold transition active:scale-[0.98]",
+        accent
+          ? "bg-beacon text-harbor shadow-k"
+          : "border border-kline bg-kpanel text-ktext shadow-k hover:bg-kraise",
       )}
     >
       <Icon className="h-7 w-7" />

@@ -33,7 +33,7 @@ export function Screensaver({
   return (
     <button
       onClick={onWake}
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden bg-harbor text-white"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden bg-kbg2 text-white"
       aria-label="Tap to wake"
     >
       {photos.length > 0 ? (
@@ -55,8 +55,8 @@ export function Screensaver({
         <p className="mt-6 font-display text-7xl font-extrabold tabular-nums sm:text-8xl">
           {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
         </p>
-        <p className="mt-2 text-xl text-seafoam">{greeting}</p>
-        <p className="mt-10 text-sm text-seafoam/70">Tap anywhere to begin</p>
+        <p className="mt-2 text-xl text-kmute">{greeting}</p>
+        <p className="mt-10 text-sm text-kmute/80">Tap anywhere to begin</p>
       </div>
     </button>
   );

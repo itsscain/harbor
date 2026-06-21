@@ -43,14 +43,14 @@ export function PairingScreen({
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-harbor px-6 text-center text-white">
-      <div className="absolute inset-0 beacon-ring opacity-60" aria-hidden />
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-kbg px-6 text-center text-ktext">
+      <div className="absolute inset-0 beacon-ring opacity-50" aria-hidden />
       <div className="relative w-full max-w-md">
-        <LighthouseMark className="mx-auto h-16 w-16 text-white" />
+        <LighthouseMark className="mx-auto h-16 w-16 text-beacon" />
         <h1 className="mt-6 font-display text-3xl font-extrabold">
           Set up this Harbor
         </h1>
-        <p className="mt-2 text-seafoam">
+        <p className="mt-2 text-kmute">
           Enter the pairing code from your setup email to connect this wall to
           your household.
         </p>
@@ -65,7 +65,7 @@ export function PairingScreen({
             autoCorrect="off"
             spellCheck={false}
             inputMode="text"
-            className="w-full rounded-2xl border-2 border-white/20 bg-white/10 px-5 py-5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-white placeholder-white/40 outline-none focus:border-beacon"
+            className="w-full rounded-2xl border-2 border-kline bg-kpanel px-5 py-5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-ktext placeholder-kmute outline-none transition focus:border-beacon focus:ring-4 focus:ring-beacon/20"
           />
           {error && (
             <p role="alert" className="rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-100">
@@ -81,7 +81,7 @@ export function PairingScreen({
           </button>
         </form>
 
-        <p className="mt-6 text-xs text-seafoam/70">
+        <p className="mt-6 text-xs text-kmute">
           Daily use works fully offline. Pairing needs the internet just once.
         </p>
       </div>

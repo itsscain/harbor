@@ -18,7 +18,6 @@ import { runsToday } from "@/lib/kiosk/calendar";
 import { childColor } from "@/lib/kiosk/colors";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
 import { cn } from "@/lib/cn";
@@ -141,7 +140,7 @@ export function ChildView({
   const headerBg = THEME_BG[settings.theme] ?? THEME_BG.harbor;
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-dvh flex-col bg-kbg text-ktext">
       {/* Header */}
       <header
         className={cn("flex items-center justify-between gap-3 border-b-4 px-4 py-3 text-white", headerBg)}
@@ -179,8 +178,8 @@ export function ChildView({
               key={r.id}
               onClick={() => setRoutineId(r.id)}
               className={cn(
-                "kiosk-tap whitespace-nowrap rounded-full px-4 py-2 font-semibold",
-                r.id === activeRoutine?.id ? "bg-water text-white" : "bg-white text-harbor",
+                "kiosk-tap whitespace-nowrap rounded-full px-4 py-2 font-semibold transition",
+                r.id === activeRoutine?.id ? "bg-kwater text-harbor" : "bg-kpanel text-ktext ring-1 ring-kline",
               )}
             >
               {r.name}
@@ -195,18 +194,18 @@ export function ChildView({
             <NowNext steps={steps} sound={settings.sound} readAloud={settings.readAloud} />
 
             <div className="mb-3 flex items-center justify-between">
-              <h1 className="font-display text-2xl font-extrabold text-harbor">
+              <h1 className="font-display text-2xl font-extrabold text-ktext">
                 {activeRoutine.name}
               </h1>
               {scheduleSteps.length > 0 && (
-                <span className="text-sm font-semibold text-muted">
+                <span className="text-sm font-semibold text-kmute">
                   {doneCount} / {scheduleSteps.length} done
                 </span>
               )}
             </div>
 
             {scheduleSteps.length > 0 && (
-              <div className="mb-4 h-3 overflow-hidden rounded-full bg-white">
+              <div className="mb-4 h-3 overflow-hidden rounded-full bg-kraise">
                 <div
                   className="h-full rounded-full bg-beacon transition-all"
                   style={{ width: `${(doneCount / scheduleSteps.length) * 100}%` }}
@@ -215,7 +214,7 @@ export function ChildView({
             )}
 
             {allDone && (
-              <div className="mb-4 rounded-2xl bg-emerald-50 p-4 text-center font-display text-xl font-bold text-emerald-700">
+              <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
                 🎉 All done! Great job, {child.name}!
               </div>
             )}
@@ -242,30 +241,33 @@ export function ChildView({
             )}
           </>
         ) : (
-          <EmptyState
-            title={`No routines yet for ${child.name}`}
-            body="A grown-up can add a Morning, Bedtime, or First-Then routine from the Harbor app — templates make it one tap."
-          />
+          <div className="flex flex-1 flex-col items-center justify-center rounded-3xl border border-kline bg-kpanel p-10 text-center shadow-k">
+            <span className="text-5xl">🗓️</span>
+            <h3 className="mt-3 font-display text-xl font-bold text-ktext">No routines yet for {child.name}</h3>
+            <p className="mt-1.5 max-w-sm text-kmute">
+              A grown-up can add a Morning, Bedtime, or First-Then routine from the Harbor app — templates make it one tap.
+            </p>
+          </div>
         )}
       </main>
 
       {/* Footer actions */}
-      <footer className="grid grid-cols-3 gap-3 border-t border-harbor-100 bg-white p-4">
+      <footer className="grid grid-cols-3 gap-3 border-t border-kline bg-kpanel/80 p-4 backdrop-blur">
         <button
           onClick={() => setStoreOpen(true)}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-harbor py-5 text-lg font-bold text-white active:scale-[0.98]"
+          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline transition active:scale-[0.98]"
         >
-          <Gift className="h-6 w-6" /> Store
+          <Gift className="h-6 w-6 text-beacon" /> Store
         </button>
         <button
           onClick={() => setTimerOpen(true)}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-water py-5 text-lg font-bold text-white active:scale-[0.98]"
+          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline transition active:scale-[0.98]"
         >
-          <TimerIcon className="h-6 w-6" /> Timer
+          <TimerIcon className="h-6 w-6 text-kwater" /> Timer
         </button>
         <button
           onClick={onOpenCalm}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-beacon py-5 text-lg font-bold text-harbor active:scale-[0.98]"
+          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-beacon py-5 text-lg font-bold text-harbor shadow-k transition active:scale-[0.98]"
         >
           <Heart className="h-6 w-6" /> Calm
         </button>
@@ -285,7 +287,7 @@ export function ChildView({
       {bigCelebrate && (
         <button
           onClick={() => setBigCelebrate(false)}
-          className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-harbor/95 px-6 text-center text-white"
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-kbg2/97 px-6 text-center text-white backdrop-blur-sm"
           aria-label="Continue"
         >
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
@@ -332,13 +334,13 @@ function StepCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center justify-center gap-2 rounded-3xl border-2 p-4 text-center shadow-card transition",
+        "relative flex flex-col items-center justify-center gap-2 rounded-3xl border-2 p-4 text-center shadow-k transition",
         big ? "min-h-52" : "min-h-36",
         done
-          ? "border-emerald-300 bg-emerald-50"
+          ? "border-emerald-500/50 bg-emerald-500/15"
           : muted
-            ? "border-harbor-100 bg-white/50 opacity-50 shadow-none"
-            : "border-harbor-100 bg-white",
+            ? "border-kline bg-kpanel/50 opacity-50 shadow-none"
+            : "border-kline bg-kpanel",
       )}
     >
       <button
@@ -346,7 +348,7 @@ function StepCard({
           e.stopPropagation();
           onSpeak();
         }}
-        className="kiosk-tap absolute left-2 top-2 rounded-full p-2 text-muted hover:bg-harbor-50"
+        className="kiosk-tap absolute left-2 top-2 rounded-full p-2 text-kmute hover:bg-kraise"
         aria-label={`Read ${step.label} aloud`}
       >
         <Volume2 className="h-5 w-5" />
@@ -361,12 +363,12 @@ function StepCard({
         )}
       >
         {label && (
-          <span className="absolute right-3 top-3 rounded-full bg-harbor-50 px-2 py-0.5 text-xs font-bold uppercase text-harbor">
+          <span className="absolute right-3 top-3 rounded-full bg-kraise px-2 py-0.5 text-xs font-bold uppercase text-kmute">
             {label}
           </span>
         )}
         <span className={cn(big ? "text-7xl" : "text-5xl")}>{step.icon ?? "✅"}</span>
-        <span className={cn("font-display font-bold text-ink", big ? "text-2xl" : "text-lg")}>
+        <span className={cn("font-display font-bold text-ktext", big ? "text-2xl" : "text-lg")}>
           {step.label}
         </span>
         {step.reward_points > 0 && !done && (

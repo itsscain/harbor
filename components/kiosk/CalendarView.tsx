@@ -17,7 +17,7 @@ function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDat
 function startOfWeek(d: Date) { return addDays(startOfDay(d), -d.getDay()); }
 function sameDate(a: Date, b: Date) { return a.toDateString() === b.toDateString(); }
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const HOUR_H = 60; // px per hour in the time grid
+const HOUR_H = 60;
 
 function fmtHour(h: number) {
   const am = h < 12 || h === 24;
@@ -25,7 +25,6 @@ function fmtHour(h: number) {
   return `${hr} ${am ? "AM" : "PM"}`;
 }
 
-/** Is this an all-day or multi-day event (rendered as a top bar, not on the grid)? */
 function isAllDayish(e: KioskEvent): boolean {
   if (e.all_day) return true;
   const s = new Date(e.starts_at);
@@ -33,22 +32,19 @@ function isAllDayish(e: KioskEvent): boolean {
   return !!end && !sameDate(s, end);
 }
 
-/** Minutes-since-midnight start/end for a timed event, clamped to the day. */
 function eventMinutes(e: KioskEvent): { start: number; end: number } {
   const s = new Date(e.starts_at);
   const start = s.getHours() * 60 + s.getMinutes();
-  let end = start + 60; // default 1h
+  let end = start + 60;
   if (e.ends_at) {
     const en = new Date(e.ends_at);
-    const sameDay = sameDate(s, en);
-    end = sameDay ? en.getHours() * 60 + en.getMinutes() : 24 * 60;
+    end = sameDate(s, en) ? en.getHours() * 60 + en.getMinutes() : 24 * 60;
   }
   return { start, end: Math.max(end, start + 30) };
 }
 
 type Laid = { e: KioskEvent; start: number; end: number; col: number; cols: number };
 
-/** Greedy side-by-side layout for overlapping timed events. */
 function layoutDay(events: KioskEvent[]): Laid[] {
   const items = events
     .filter((e) => !isAllDayish(e))
@@ -92,7 +88,6 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
     const evs = eventsForDay(events, d);
     return filter ? evs.filter((e) => e.child_id === filter) : evs;
   };
-  // All-day/multi-day events that touch day d (spanning ranges included).
   const allDayFor = (d: Date): KioskEvent[] => {
     const day = startOfDay(d).getTime();
     return events.filter((e) => {
@@ -123,13 +118,13 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
   }, [anchor]);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-seafog">
-      <header className="flex items-center justify-between border-b border-harbor-100 bg-white px-4 py-3">
-        <button onClick={onHome} className="kiosk-tap flex items-center gap-2 rounded-2xl bg-harbor-50 px-3 py-2 font-semibold text-harbor">
+    <div className="flex h-dvh flex-col overflow-hidden bg-kbg text-ktext">
+      <header className="flex items-center justify-between border-b border-kline bg-kpanel px-4 py-3">
+        <button onClick={onHome} className="kiosk-tap flex items-center gap-2 rounded-2xl bg-kraise px-3 py-2 font-semibold text-ktext">
           <HomeIcon className="h-5 w-5" /> Home
         </button>
-        <span className="font-display text-xl font-extrabold text-harbor">Family Calendar</span>
-        <div className="flex items-center gap-1 rounded-full bg-harbor-50 p-1">
+        <span className="font-display text-xl font-extrabold text-ktext">Family Calendar</span>
+        <div className="flex items-center gap-1 rounded-full bg-kraise p-1">
           {(["day", "week", "month", "agenda"] as View[]).map((v) => (
             <button
               key={v}
@@ -137,7 +132,7 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
               aria-current={view === v ? "page" : undefined}
               className={cn(
                 "kiosk-tap rounded-full px-3 py-1.5 text-sm font-semibold capitalize transition",
-                view === v ? "bg-harbor text-white shadow-card" : "text-harbor",
+                view === v ? "bg-kwater text-harbor shadow-k" : "text-ktext",
               )}
             >
               {v}
@@ -148,12 +143,12 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
 
       {/* Per-person filter chips */}
       {children.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-harbor-100 bg-white px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 border-b border-kline bg-kpanel px-4 py-2.5">
           <button
             onClick={() => setFilter(null)}
             className={cn(
               "kiosk-tap rounded-full px-3 py-1.5 text-sm font-semibold transition",
-              filter === null ? "bg-water text-white" : "bg-harbor-50 text-harbor",
+              filter === null ? "bg-kwater text-harbor" : "bg-kraise text-ktext",
             )}
           >
             Everyone
@@ -166,7 +161,7 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
                 onClick={() => setFilter(active ? null : c.id)}
                 className={cn(
                   "kiosk-tap flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-sm font-semibold transition",
-                  active ? "text-white" : "bg-harbor-50 text-harbor",
+                  active ? "text-white" : "bg-kraise text-ktext",
                 )}
                 style={active ? { backgroundColor: childColor(c) } : undefined}
               >
@@ -186,13 +181,13 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
       {/* Navigation */}
       {view !== "agenda" && (
         <div className="flex items-center justify-between px-4 py-2.5">
-          <button onClick={() => shift(-1)} className="kiosk-tap rounded-xl bg-white p-2 text-harbor shadow-card" aria-label="Previous">
+          <button onClick={() => shift(-1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline" aria-label="Previous">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button onClick={() => setAnchor(startOfDay(new Date()))} className="font-display text-lg font-extrabold text-harbor">
+          <button onClick={() => setAnchor(startOfDay(new Date()))} className="font-display text-lg font-extrabold text-ktext">
             {title}
           </button>
-          <button onClick={() => shift(1)} className="kiosk-tap rounded-xl bg-white p-2 text-harbor shadow-card" aria-label="Next">
+          <button onClick={() => shift(1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline" aria-label="Next">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -200,7 +195,7 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
 
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
         {view === "agenda" && (
-          <div className="mx-auto max-w-3xl overflow-y-auto">
+          <div className="mx-auto h-full max-w-3xl overflow-y-auto">
             <AgendaView events={events} filter={filter} childrenById={childrenById} />
           </div>
         )}
@@ -211,7 +206,7 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
           <TimeGrid days={weekDays} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} onPickDay={(d) => { setAnchor(d); setView("day"); }} />
         )}
         {view === "month" && (
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto h-full max-w-5xl overflow-y-auto">
             <MonthGrid anchor={anchor} dayEvents={dayEvents} childrenById={childrenById} onPickDay={(d) => { setAnchor(d); setView("day"); }} />
           </div>
         )}
@@ -220,7 +215,6 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
   );
 }
 
-// ── Time grid (Day + Week) ─────────────────────────────────────────────────
 function TimeGrid({
   days,
   dayEvents,
@@ -237,7 +231,6 @@ function TimeGrid({
   const now = new Date();
   const today = startOfDay(now);
 
-  // Visible hour range: fit the week's events, padded, clamped to a calm default.
   const { from, to } = useMemo(() => {
     let lo = 8, hi = 18;
     for (const d of days) {
@@ -254,7 +247,6 @@ function TimeGrid({
   const hours = Array.from({ length: to - from }, (_, i) => from + i);
   const gridHeight = (to - from) * HOUR_H;
 
-  // Auto-scroll so "now" (or the morning) is in view.
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = scrollRef.current;
@@ -268,9 +260,9 @@ function TimeGrid({
   const hasAllDay = days.some((d) => allDayFor(d).length > 0);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-harbor-100 bg-white shadow-card">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-kline bg-kpanel shadow-k">
       {/* Day headers */}
-      <div className="flex border-b border-harbor-100" style={{ paddingRight: 6 }}>
+      <div className="flex border-b border-kline" style={{ paddingRight: 6 }}>
         <div className="w-12 shrink-0 sm:w-14" />
         {days.map((d) => {
           const isToday = sameDate(d, today);
@@ -278,13 +270,13 @@ function TimeGrid({
             <button
               key={d.toISOString()}
               onClick={() => onPickDay?.(d)}
-              className={cn("flex flex-1 flex-col items-center gap-0.5 py-2 transition", onPickDay && "hover:bg-harbor-50")}
+              className={cn("flex flex-1 flex-col items-center gap-0.5 py-2 transition", onPickDay && "hover:bg-kraise")}
             >
-              <span className={cn("text-xs font-semibold", isToday ? "text-water" : "text-muted")}>{DOW[d.getDay()]}</span>
+              <span className={cn("text-xs font-semibold", isToday ? "text-kwater" : "text-kmute")}>{DOW[d.getDay()]}</span>
               <span
                 className={cn(
                   "flex h-8 min-w-8 items-center justify-center rounded-full px-2 font-display text-lg font-extrabold",
-                  isToday ? "bg-water text-white" : "text-harbor",
+                  isToday ? "bg-kwater text-harbor" : "text-ktext",
                 )}
               >
                 {d.getDate()}
@@ -294,10 +286,10 @@ function TimeGrid({
         })}
       </div>
 
-      {/* All-day / multi-day bar row */}
+      {/* All-day / multi-day row */}
       {hasAllDay && (
-        <div className="flex border-b border-harbor-100 bg-surface-sunken" style={{ paddingRight: 6 }}>
-          <div className="flex w-12 shrink-0 items-center justify-end pr-1.5 text-[10px] font-semibold uppercase text-muted sm:w-14">All-day</div>
+        <div className="flex border-b border-kline bg-kraise" style={{ paddingRight: 6 }}>
+          <div className="flex w-12 shrink-0 items-center justify-end pr-1.5 text-[10px] font-semibold uppercase text-kmute sm:w-14">All-day</div>
           {days.map((d) => (
             <div key={d.toISOString()} className="flex-1 space-y-1 px-1 py-1.5">
               {allDayFor(d).map((e) => {
@@ -306,8 +298,8 @@ function TimeGrid({
                   <button
                     key={e.id}
                     onClick={() => speak(e.title)}
-                    className="block w-full truncate rounded-md px-1.5 py-1 text-left text-xs font-semibold text-ink"
-                    style={{ background: color + "26", borderLeft: `3px solid ${color}` }}
+                    className="block w-full truncate rounded-md px-1.5 py-1 text-left text-xs font-semibold text-ktext"
+                    style={{ background: color + "33", borderLeft: `3px solid ${color}` }}
                   >
                     {e.emoji ? `${e.emoji} ` : ""}{e.title}
                   </button>
@@ -321,16 +313,14 @@ function TimeGrid({
       {/* Scrollable time grid */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto">
         <div className="flex" style={{ height: gridHeight, paddingRight: 6 }}>
-          {/* Time axis */}
           <div className="relative w-12 shrink-0 sm:w-14">
             {hours.map((h, i) => (
-              <div key={h} className="absolute right-1.5 -translate-y-1/2 text-[11px] font-medium text-muted" style={{ top: i * HOUR_H }}>
+              <div key={h} className="absolute right-1.5 -translate-y-1/2 text-[11px] font-medium text-kmute" style={{ top: i * HOUR_H }}>
                 {i === 0 ? "" : fmtHour(h)}
               </div>
             ))}
           </div>
 
-          {/* Day columns */}
           {days.map((d) => {
             const laid = layoutDay(dayEvents(d));
             const isToday = sameDate(d, today);
@@ -338,13 +328,11 @@ function TimeGrid({
             const nowTop = ((nowMin - from * 60) / 60) * HOUR_H;
             const showNow = isToday && nowMin >= from * 60 && nowMin <= to * 60;
             return (
-              <div key={d.toISOString()} className="relative flex-1 border-l border-harbor-100">
-                {/* hour lines */}
+              <div key={d.toISOString()} className="relative flex-1 border-l border-kline-soft">
                 {hours.map((h, i) => (
-                  <div key={h} className="absolute inset-x-0 border-t border-harbor-50" style={{ top: i * HOUR_H }} />
+                  <div key={h} className="absolute inset-x-0 border-t border-kline-soft" style={{ top: i * HOUR_H }} />
                 ))}
 
-                {/* events */}
                 {laid.map(({ e, start, end, col, cols }) => {
                   const color = eventColor(e, childrenById);
                   const top = ((start - from * 60) / 60) * HOUR_H;
@@ -361,21 +349,18 @@ function TimeGrid({
                         height,
                         left: `calc(${col * widthPct}% + 2px)`,
                         width: `calc(${widthPct}% - 4px)`,
-                        background: color + "26",
+                        background: color + "33",
                         borderLeft: `3px solid ${color}`,
                       }}
                     >
-                      <span className="block truncate text-xs font-bold leading-tight text-ink">
+                      <span className="block truncate text-xs font-bold leading-tight text-ktext">
                         {e.emoji ? `${e.emoji} ` : ""}{e.title}
                       </span>
-                      {tall && (
-                        <span className="block truncate text-[10px] leading-tight text-muted">{formatEventTime(e)}</span>
-                      )}
+                      {tall && <span className="block truncate text-[10px] leading-tight text-kmute">{formatEventTime(e)}</span>}
                     </button>
                   );
                 })}
 
-                {/* now line */}
                 {showNow && (
                   <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: nowTop }}>
                     <div className="relative h-0 border-t-2 border-red-500">
@@ -396,16 +381,16 @@ function EventRow({ event, color }: { event: KioskEvent; color: string }) {
   return (
     <button
       onClick={() => speak(`${event.title} at ${formatEventTime(event)}`)}
-      className="flex w-full items-center gap-3 rounded-2xl border border-harbor-100 bg-white p-4 text-left shadow-card"
+      className="flex w-full items-center gap-3 rounded-2xl border border-kline bg-kpanel p-4 text-left shadow-k"
       style={{ borderLeft: `6px solid ${color}` }}
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ backgroundColor: color + "22" }}>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ backgroundColor: color + "33" }}>
         {event.emoji ?? "📅"}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-display text-lg font-bold text-harbor">{event.title}</p>
-        <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
-          <span className="font-semibold">{formatEventTime(event)}</span>
+        <p className="font-display text-lg font-bold text-ktext">{event.title}</p>
+        <p className="flex flex-wrap items-center gap-x-2 text-sm text-kmute">
+          <span className="font-semibold text-kwater">{formatEventTime(event)}</span>
           {event.person_label && <span>· {event.person_label}</span>}
           {event.location && (
             <span className="inline-flex items-center gap-0.5">· <MapPin className="h-3.5 w-3.5" /> {event.location}</span>
@@ -434,13 +419,13 @@ function AgendaView({
     if (evs.length) days.push({ date: d, evs });
   }
   if (days.length === 0) {
-    return <div className="rounded-2xl border border-harbor-100 bg-white p-6 text-center text-muted shadow-card">Nothing scheduled. Enjoy the calm. 🌊</div>;
+    return <div className="rounded-2xl border border-kline bg-kpanel p-6 text-center text-kmute shadow-k">Nothing scheduled. Enjoy the calm. 🌊</div>;
   }
   return (
     <div className="space-y-5 pb-4">
       {days.map(({ date, evs }) => (
         <div key={date.toISOString()}>
-          <p className="mb-1.5 text-sm font-semibold text-muted">
+          <p className="mb-1.5 text-sm font-semibold text-kmute">
             {date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           </p>
           <div className="space-y-2">
@@ -469,7 +454,7 @@ function MonthGrid({
   const month = anchor.getMonth();
   return (
     <div>
-      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted">
+      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-kmute">
         {DOW.map((d) => <div key={d}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1">
@@ -483,11 +468,11 @@ function MonthGrid({
               key={i}
               onClick={() => onPickDay(d)}
               className={cn(
-                "flex min-h-16 flex-col rounded-lg border p-1 text-left shadow-card transition hover:border-water/40 sm:min-h-20",
-                isToday ? "border-water bg-white" : inMonth ? "border-harbor-100 bg-white" : "border-transparent bg-white/40 shadow-none",
+                "flex min-h-16 flex-col rounded-lg border p-1 text-left transition hover:border-kwater/50 sm:min-h-20",
+                isToday ? "border-kwater bg-kpanel" : inMonth ? "border-kline bg-kpanel" : "border-transparent bg-kpanel/30",
               )}
             >
-              <span className={cn("text-xs font-bold", isToday ? "text-water" : inMonth ? "text-ink" : "text-muted/50")}>
+              <span className={cn("text-xs font-bold", isToday ? "text-kwater" : inMonth ? "text-ktext" : "text-kmute/50")}>
                 {d.getDate()}
               </span>
               <div className="mt-0.5 flex flex-wrap gap-0.5">

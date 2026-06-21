@@ -23,16 +23,16 @@ export function PinSetup({ onDone }: { onDone: (pin: string) => Promise<void> })
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-seafog px-6 text-center">
-      <ShieldCheck className="h-14 w-14 text-water" />
-      <h1 className="mt-4 font-display text-2xl font-extrabold text-harbor">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-kbg px-6 text-center text-ktext">
+      <ShieldCheck className="h-14 w-14 text-kwater" />
+      <h1 className="mt-4 font-display text-2xl font-extrabold text-ktext">
         {first ? "Confirm your parent PIN" : "Create a parent PIN"}
       </h1>
-      <p className="mt-2 max-w-sm text-muted">
+      <p className="mt-2 max-w-sm text-kmute">
         This 4-digit PIN keeps settings and editing safe from little hands. Kids
         never need it.
       </p>
-      {error && <p className="mt-3 text-sm font-semibold text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm font-semibold text-red-400">{error}</p>}
       <div className="mt-8">
         <PinPad onComplete={handle} />
       </div>

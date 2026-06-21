@@ -33,10 +33,10 @@ export function PinPad({
           <span
             key={i}
             className={cn(
-              "h-4 w-4 rounded-full border-2",
+              "h-4 w-4 rounded-full border-2 transition",
               i < pin.length
-                ? "border-harbor bg-harbor"
-                : "border-harbor/30 bg-transparent",
+                ? "border-kwater bg-kwater"
+                : "border-kline bg-transparent",
             )}
           />
         ))}
@@ -47,7 +47,7 @@ export function PinPad({
             key={n}
             type="button"
             onClick={() => press(String(n))}
-            className="kiosk-tap rounded-2xl bg-harbor-50 py-5 text-2xl font-bold text-harbor active:bg-harbor active:text-white"
+            className="kiosk-tap rounded-2xl bg-kraise py-5 text-2xl font-bold text-ktext ring-1 ring-kline active:bg-kwater active:text-harbor"
           >
             {n}
           </button>
@@ -63,7 +63,7 @@ export function PinPad({
         <button
           type="button"
           onClick={() => setPin((p) => p.slice(0, -1))}
-          className="kiosk-tap flex items-center justify-center rounded-2xl py-5 text-harbor active:bg-harbor-50"
+          className="kiosk-tap flex items-center justify-center rounded-2xl py-5 text-ktext active:bg-kraise"
           aria-label="Delete"
         >
           <Delete className="h-7 w-7" />

@@ -28,10 +28,10 @@ export function TransitionTimer({
   const done = left <= 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-harbor px-6 text-white">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-kbg2 px-6 text-white">
       <button
         onClick={onClose}
-        className="kiosk-tap absolute right-5 top-5 rounded-full bg-white/15 p-3"
+        className="kiosk-tap absolute right-5 top-5 rounded-full bg-kraise p-3 ring-1 ring-kline"
         aria-label="Close timer"
       >
         <X className="h-6 w-6" />

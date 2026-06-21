@@ -76,20 +76,20 @@ export function NowNext({
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-water/30 bg-white p-4">
+    <div className="mb-4 rounded-2xl border border-kwater/30 bg-kpanel p-4 shadow-k">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-water">Now</p>
-          <p className="truncate font-display text-xl font-bold text-harbor">
+          <p className="text-eyebrow text-kwater">Now</p>
+          <p className="mt-0.5 truncate font-display text-xl font-bold text-ktext">
             {current ? `${current.step.icon ?? ""} ${current.step.label}` : "Free time"}
           </p>
         </div>
         {next && (
           <>
-            <ArrowRight className="h-6 w-6 shrink-0 text-muted" />
+            <ArrowRight className="h-6 w-6 shrink-0 text-kmute" />
             <div className="min-w-0 text-right">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">Next</p>
-              <p className="truncate font-display text-xl font-bold text-ink">
+              <p className="text-eyebrow text-kmute">Next</p>
+              <p className="mt-0.5 truncate font-display text-xl font-bold text-kmute">
                 {next.step.icon ?? ""} {next.step.label}
               </p>
             </div>
@@ -97,9 +97,9 @@ export function NowNext({
         )}
       </div>
       {current && next && (
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-harbor-50">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-kraise">
           <div
-            className="h-full rounded-full bg-water transition-all"
+            className="h-full rounded-full bg-kwater transition-all"
             style={{ width: `${pct * 100}%` }}
           />
         </div>

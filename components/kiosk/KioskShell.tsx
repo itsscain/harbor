@@ -188,10 +188,10 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const syncText = SYNC_LABEL[kiosk.syncStatus] ?? "";
   const lastSync = relativeTime(kiosk.lastSync);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl">
-        <h2 className="font-display text-xl font-extrabold text-harbor">Parent menu</h2>
-        <p className="mt-1 text-sm text-muted">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center">
+      <div className="w-full max-w-md rounded-t-3xl bg-kpanel p-6 text-ktext ring-1 ring-kline shadow-k-pop sm:rounded-3xl">
+        <h2 className="font-display text-xl font-extrabold text-ktext">Parent menu</h2>
+        <p className="mt-1 text-sm text-kmute">
           {syncText || (kiosk.online ? "Online" : "Offline — the wall keeps working")}
           {lastSync ? ` · last synced ${lastSync}` : ""}
         </p>
@@ -231,7 +231,7 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
           )}
         </div>
 
-        <button onClick={onClose} className="kiosk-tap mt-5 w-full rounded-2xl bg-harbor py-4 font-bold text-white">
+        <button onClick={onClose} className="kiosk-tap mt-5 w-full rounded-2xl bg-kwater py-4 font-bold text-harbor shadow-k">
           Done
         </button>
       </div>
@@ -255,7 +255,7 @@ function MenuRow({
       onClick={onClick}
       className={cn(
         "kiosk-tap flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left font-semibold",
-        danger ? "bg-red-50 text-red-700" : "bg-harbor-50 text-harbor",
+        danger ? "bg-red-500/10 text-red-300" : "bg-kraise text-ktext",
       )}
     >
       <Icon className="h-5 w-5" />

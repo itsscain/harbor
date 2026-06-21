@@ -34,6 +34,19 @@
   --shadow-card-hover: 0 2px 4px rgba(12, 59, 71, 0.06), 0 12px 28px -8px rgba(12, 59, 71, 0.16);
   --shadow-pop: 0 8px 16px -4px rgba(12, 59, 71, 0.1), 0 24px 48px -12px rgba(12, 59, 71, 0.22);
   --shadow-button: 0 1px 2px rgba(12, 59, 71, 0.18), 0 2px 8px -2px rgba(24, 96, 111, 0.35);
+
+  /* ── Kiosk dark theme (the wall) — harbor-tinted, Discord/GitHub-calm ─────── */
+  --color-kbg: #0e171c; /* app background */
+  --color-kbg2: #0a1115; /* deepest (headers/screensaver) */
+  --color-kpanel: #16242b; /* cards / surfaces */
+  --color-kraise: #1e333b; /* elevated / hover */
+  --color-kline: #294852; /* borders */
+  --color-kline-soft: #1b2e36; /* subtle hairlines */
+  --color-ktext: #e9f1f2; /* primary text */
+  --color-kmute: #93a8b0; /* secondary text */
+  --color-kwater: #46b6d2; /* brightened water accent for dark */
+  --shadow-k: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -12px rgba(0, 0, 0, 0.6);
+  --shadow-k-pop: 0 20px 60px -16px rgba(0, 0, 0, 0.7);
 }
 
 :root {
@@ -109,6 +122,26 @@ h4,
     rgba(246, 178, 61, 0.28) 0%,
     rgba(246, 178, 61, 0) 70%
   );
+}
+
+/* ── Kiosk dark shell ──────────────────────────────────────────────────────
+   Applied at the kiosk root so native UI (scrollbars, time pickers) render dark
+   and any layout gaps fall back to the dark background. */
+.kiosk-root {
+  color-scheme: dark;
+  background: var(--color-kbg);
+  color: var(--color-ktext);
+}
+.kiosk-root ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.kiosk-root ::-webkit-scrollbar-thumb {
+  background: var(--color-kline);
+  border-radius: 9999px;
+}
+.kiosk-root ::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Kiosk: large, calm, predictable tap targets for children */
