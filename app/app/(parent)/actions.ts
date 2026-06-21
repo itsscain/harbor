@@ -59,6 +59,49 @@ export async function addChild(formData: FormData) {
   redirect(`/app/children/${data.id}`);
 }
 
+export type CreateChildState = {
+  ok?: boolean;
+  error?: string;
+  child?: { id: string; name: string; avatar: string | null; color: string };
+};
+
+/** Client-driven add: returns state (for a live, celebratory flow) instead of
+ *  redirecting. Used by the AddChildCard. */
+export async function createChild(
+  _prev: CreateChildState,
+  formData: FormData,
+): Promise<CreateChildState> {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) return { error: "No household found." };
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return { error: "Give your child a name to continue." };
+
+  const supabase = await createClient();
+  const order = await nextOrder("children", "sort_order", "household_id", household.id);
+  const color = str(formData.get("color")) ?? CHILD_PALETTE[order % CHILD_PALETTE.length].value;
+  const { data, error } = await supabase
+    .from("children")
+    .insert({
+      household_id: household.id,
+      name,
+      avatar: str(formData.get("avatar")),
+      color,
+      sort_order: order,
+    })
+    .select("id, name, avatar, color")
+    .single();
+  if (error) return { error: error.message };
+
+  await supabase.from("rewards").insert({ child_id: data.id, points_total: 0 });
+  revalidatePath("/app");
+  revalidatePath("/app/children");
+  return {
+    ok: true,
+    child: { id: data.id, name: data.name, avatar: data.avatar, color: data.color ?? color },
+  };
+}
+
 export async function updateChild(id: string, formData: FormData) {
   await requireUser();
   const supabase = await createClient();
