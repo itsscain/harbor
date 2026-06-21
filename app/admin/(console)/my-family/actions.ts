@@ -71,6 +71,32 @@ export async function setupMyFamily(formData: FormData) {
   revalidatePath("/admin/my-family");
 }
 
+/** Full "fresh start": wipe ALL family content from the owner's household and
+ *  tombstone the kids so paired walls clear too. Keeps the account + pairing. */
+export async function resetMyFamily() {
+  await requireAdmin();
+  const household = await getMyHousehold();
+  if (!household) return;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reset_household", { p_household: household.id });
+  if (error) throw new Error(error.message);
+
+  // Make sure a fresh setup link is available for re-pairing the wall clean.
+  const { data: pending } = await supabase
+    .from("device_pairings")
+    .select("code")
+    .eq("household_id", household.id)
+    .eq("status", "pending")
+    .limit(1);
+  if (!pending || pending.length === 0) {
+    await supabase
+      .from("device_pairings")
+      .insert({ household_id: household.id, code: generatePairingCode(), status: "pending" });
+  }
+  revalidatePath("/admin/my-family");
+  revalidatePath("/app");
+}
+
 /** Mint another one-time pairing code (e.g. to pair a second wall). */
 export async function newOwnerPairingCode(householdId: string) {
   await requireAdmin();

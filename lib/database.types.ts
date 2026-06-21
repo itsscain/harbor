@@ -1119,6 +1119,7 @@ export type Database = {
       hard_delete_child: { Args: { p_child: string }; Returns: undefined }
       household_is_mine: { Args: { hh: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      reset_household: { Args: { p_household: string }; Returns: undefined }
       kiosk_snapshot: {
         Args: { p_household: string; p_since: string }
         Returns: Json

@@ -10,6 +10,7 @@ import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { setupMyFamily, newOwnerPairingCode } from "./actions";
 import { PairingLink } from "./PairingLink";
+import { ResetFamily } from "./ResetFamily";
 
 export const metadata = { title: "My Family" };
 export const dynamic = "force-dynamic";
@@ -128,6 +129,8 @@ export default async function MyFamilyPage() {
           </Link>
         </Card>
       </div>
+
+      <ResetFamily />
     </>
   );
 }
