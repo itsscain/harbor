@@ -23,6 +23,7 @@ export function StoreView({
 }) {
   const { state } = kiosk;
   const [bought, setBought] = useState<string | null>(null);
+  const [redeemed, setRedeemed] = useState<KioskStoreItem | null>(null);
   if (!state) return null;
 
   const points = state.points[childId] ?? 0;
@@ -39,6 +40,8 @@ export function StoreView({
     speak(`You got ${item.label}!`, settings.readAloud);
     setBought(item.id);
     setTimeout(() => setBought(null), 1600);
+    setRedeemed(item);
+    setTimeout(() => setRedeemed(null), 2200);
   }
 
   return (
@@ -117,6 +120,20 @@ export function StoreView({
           </div>
         )}
       </div>
+
+      {redeemed && (
+        <button
+          onClick={() => setRedeemed(null)}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-harbor/95 px-6 text-center"
+          aria-label="Continue"
+        >
+          <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
+          <span className="animate-pop relative text-8xl">{redeemed.emoji ?? "🎁"}</span>
+          <p className="relative mt-4 font-display text-4xl font-extrabold sm:text-5xl">You got it!</p>
+          <p className="relative mt-2 text-xl text-seafoam">{redeemed.label}</p>
+          <p className="relative mt-10 text-sm text-seafoam/70">Tap to keep going</p>
+        </button>
+      )}
     </div>
   );
 }
