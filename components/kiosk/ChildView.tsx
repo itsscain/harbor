@@ -85,6 +85,7 @@ export function ChildView({
   }, [state, activeRoutine]);
 
   const [celebrate, setCelebrate] = useState<{ points: number } | null>(null);
+  const [bigCelebrate, setBigCelebrate] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
 
@@ -115,6 +116,17 @@ export function ChildView({
     if (step.reward_points > 0) {
       setCelebrate({ points: step.reward_points });
       setTimeout(() => setCelebrate(null), 1300);
+    }
+    // Does this tap finish the whole routine? → the big celebration moment.
+    const finishes = isFirstThen
+      ? !!thenStep && step.id === thenStep.id
+      : scheduleSteps.length > 0 && scheduleSteps.every((s) => s.id === step.id || prog.includes(s.id));
+    if (finishes) {
+      setBigCelebrate(true);
+      chime(settings!.sound);
+      haptic(60, settings!.haptics);
+      speak(`Amazing! You finished ${activeRoutine?.name ?? "your routine"}, ${child!.name}!`, settings!.readAloud);
+      setTimeout(() => setBigCelebrate(false), 4200);
     }
   }
 
@@ -150,7 +162,12 @@ export function ChildView({
         </button>
         <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-2">
           <Star className="h-5 w-5 fill-beacon text-beacon" />
-          <span className="font-display text-lg font-extrabold tabular-nums">{points}</span>
+          <span
+            key={points}
+            className={cn("font-display text-lg font-extrabold tabular-nums", !settings.reducedMotion && "animate-pop")}
+          >
+            {points}
+          </span>
         </div>
       </header>
 
@@ -265,6 +282,24 @@ export function ChildView({
         </div>
       )}
 
+      {bigCelebrate && (
+        <button
+          onClick={() => setBigCelebrate(false)}
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-harbor/95 px-6 text-center text-white"
+          aria-label="Continue"
+        >
+          <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
+          <span className={cn("relative text-8xl", !settings.reducedMotion && "animate-pop")}>{child.avatar ?? "🎉"}</span>
+          <p className="relative mt-4 font-display text-4xl font-extrabold sm:text-5xl">You did it, {child.name}!</p>
+          <p className="relative mt-2 text-xl text-seafoam">{activeRoutine?.name} complete</p>
+          <div className={cn("relative mt-6 flex items-center gap-2 rounded-full bg-white/15 px-6 py-3", !settings.reducedMotion && "animate-reward")}>
+            <Star className="h-7 w-7 fill-beacon text-beacon" />
+            <span className="font-display text-2xl font-extrabold">{points} stars</span>
+          </div>
+          <p className="relative mt-10 text-sm text-seafoam/70">Tap to keep going</p>
+        </button>
+      )}
+
       {storeOpen && (
         <StoreView kiosk={kiosk} childId={child.id} settings={settings} onClose={() => setStoreOpen(false)} />
       )}
@@ -297,12 +332,12 @@ function StepCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center justify-center gap-2 rounded-3xl border-2 p-4 text-center transition",
+        "relative flex flex-col items-center justify-center gap-2 rounded-3xl border-2 p-4 text-center shadow-card transition",
         big ? "min-h-52" : "min-h-36",
         done
           ? "border-emerald-300 bg-emerald-50"
           : muted
-            ? "border-harbor-100 bg-white/50 opacity-50"
+            ? "border-harbor-100 bg-white/50 opacity-50 shadow-none"
             : "border-harbor-100 bg-white",
       )}
     >
