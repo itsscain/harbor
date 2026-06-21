@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Wind, Heart, Hand, BookOpen, X } from "lucide-react";
 import type { KioskCalmTool } from "@/lib/kiosk/types";
 
@@ -190,6 +190,9 @@ function Feelings({
   onPick: (feeling: string) => void;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
+  // Synchronous latch — a double-tap must log exactly one check-in (the `picked`
+  // state guard only kicks in after the next render).
+  const submitting = useRef(false);
   const keys =
     Array.isArray(config.options) && (config.options as string[]).length
       ? (config.options as string[])
@@ -217,6 +220,8 @@ function Feelings({
         <button
           key={f.key}
           onClick={() => {
+            if (picked || submitting.current) return;
+            submitting.current = true;
             setPicked(f.key);
             onPick(f.key);
           }}

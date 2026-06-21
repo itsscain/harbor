@@ -224,7 +224,9 @@ export async function startGrounding(childId: string, formData: FormData) {
     pause_screen_time: formData.get("pause_screen_time") === "on",
     status: "active",
   });
-  if (error) throw new Error(error.message);
+  // 23505 = the one-active-per-child unique index fired on a concurrent double-fire;
+  // an active grounding already exists, so treat it as a successful no-op.
+  if (error && error.code !== "23505") throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
 }
 

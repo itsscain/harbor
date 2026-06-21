@@ -113,14 +113,10 @@ export function StepRow({
 
         <div className="flex shrink-0 flex-col gap-1">
           <form action={moveStep.bind(null, step.id, childId, "up")}>
-            <button type="submit" disabled={isFirst} aria-label={`Move ${step.label} up`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-harbor-100 text-harbor transition hover:bg-harbor-50 disabled:opacity-30">
-              <ArrowUp className="h-4 w-4" />
-            </button>
+            <MoveButton dir="up" disabled={isFirst} label={`Move ${step.label} up`} />
           </form>
           <form action={moveStep.bind(null, step.id, childId, "down")}>
-            <button type="submit" disabled={isLast} aria-label={`Move ${step.label} down`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-harbor-100 text-harbor transition hover:bg-harbor-50 disabled:opacity-30">
-              <ArrowDown className="h-4 w-4" />
-            </button>
+            <MoveButton dir="down" disabled={isLast} label={`Move ${step.label} down`} />
           </form>
         </div>
       </div>
@@ -136,6 +132,33 @@ export function StepRow({
         </div>
       )}
     </div>
+  );
+}
+
+/** Reorder control with a synchronous in-flight latch so a double-tap can't
+ *  jump a step two positions (moveStep is a relative swap, not idempotent). */
+function MoveButton({ dir, disabled, label }: { dir: "up" | "down"; disabled: boolean; label: string }) {
+  const { pending } = useFormStatus();
+  const submitting = useRef(false);
+  useEffect(() => {
+    if (!pending) submitting.current = false;
+  }, [pending]);
+  return (
+    <button
+      type="submit"
+      disabled={disabled || pending}
+      aria-label={label}
+      onClick={(e) => {
+        if (pending || submitting.current) {
+          e.preventDefault();
+          return;
+        }
+        submitting.current = true;
+      }}
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-harbor-100 text-harbor transition hover:bg-harbor-50 disabled:opacity-30"
+    >
+      {dir === "up" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+    </button>
   );
 }
 

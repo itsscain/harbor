@@ -233,6 +233,9 @@ function Celebration({ child, onAddAnother }: { child: Child; onAddAnother: () =
 function TemplateRow({ emoji, name, preview }: { emoji: string; name: string; preview: string }) {
   const { pending } = useFormStatus();
   const wasPending = useRef(false);
+  // Synchronous in-flight latch — blocks a second tap before `pending` flips,
+  // so a double-tap can't create a duplicate routine (with duplicate points).
+  const submitting = useRef(false);
   const [added, setAdded] = useState(false);
   useEffect(() => {
     if (pending) {
@@ -249,6 +252,13 @@ function TemplateRow({ emoji, name, preview }: { emoji: string; name: string; pr
     <button
       type="submit"
       disabled={pending || added}
+      onClick={(e) => {
+        if (pending || added || submitting.current) {
+          e.preventDefault();
+          return;
+        }
+        submitting.current = true;
+      }}
       className={cn(
         "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition disabled:cursor-default",
         added
