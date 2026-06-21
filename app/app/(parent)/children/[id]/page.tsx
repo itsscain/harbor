@@ -6,6 +6,7 @@ import { Card, Badge, Input, Field, Select, Switch } from "@/components/ui/primi
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { StepRow } from "@/components/app/StepRow";
+import { GroundingCard } from "@/components/app/GroundingCard";
 import { titleCase } from "@/lib/format";
 import {
   updateChild,
@@ -13,6 +14,7 @@ import {
   deleteChildPermanently,
   addRoutine,
   addRoutineFromTemplate,
+  addGradeRoutines,
   updateRoutine,
   deleteRoutine,
   addStep,
@@ -55,6 +57,16 @@ export default async function ChildDetail({
         .is("deleted_at", null)
         .order("order_index")
     : { data: [] };
+
+  const { data: grounding } = await supabase
+    .from("groundings")
+    .select("*")
+    .eq("child_id", id)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const color = childColor(child);
   const colorName = CHILD_PALETTE.find((p) => p.value === color)?.name;
@@ -152,6 +164,10 @@ export default async function ChildDetail({
         </form>
       </Card>
 
+      <div className="mb-4">
+        <GroundingCard childId={child.id} childName={child.name} grounding={grounding} />
+      </div>
+
       <div className="mb-2 flex items-center gap-2 text-sm text-muted">
         <RefreshCw className="h-4 w-4" />
         Changes save here and sync to your wall (with Harbor Plus).
@@ -246,7 +262,20 @@ export default async function ChildDetail({
       {/* add routine */}
       <Card className="mb-4">
         <h3 className="text-title text-harbor">Add a routine</h3>
-        <p className="mt-1 text-sm text-muted">Start from a template — fills in the steps for you:</p>
+        <p className="mt-1 text-sm text-muted">Quick start by grade — adds Morning, After school &amp; Bedtime, tuned for their age:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["kindergarten", "🎒 Kindergarten"],
+            ["grade2", "✏️ 2nd grade"],
+            ["grade4", "📚 4th grade"],
+          ].map(([key, label]) => (
+            <form key={key} action={addGradeRoutines.bind(null, child.id)}>
+              <input type="hidden" name="grade" value={key} />
+              <SubmitButton size="sm" variant="beacon" savedText="Added">{label}</SubmitButton>
+            </form>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted">Or add a single routine from a template:</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {[
             ["morning", "🌅 Morning"],

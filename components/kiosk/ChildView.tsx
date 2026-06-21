@@ -16,6 +16,7 @@ import type { KioskChild, KioskStep } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
 import { childColor } from "@/lib/kiosk/colors";
+import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
@@ -105,6 +106,7 @@ export function ChildView({
   const prog =
     state.progress[child.id]?.date === today ? state.progress[child.id].completed : [];
   const points = state.points[child.id] ?? 0;
+  const grounding = activeGroundingFor(state.snapshot.groundings, child.id);
 
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
@@ -189,6 +191,32 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
+        {grounding && (
+          <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => speak(grounding.lastDay ? "Last day of your reset. Finish strong!" : `You have ${grounding.daysLeft} days left on your reset. ${grounding.g.note ?? ""}`)}
+                className="flex min-w-0 items-center gap-3 text-left"
+              >
+                <span className="text-3xl">🌱</span>
+                <div className="min-w-0">
+                  <p className="font-display text-lg font-extrabold text-amber-200">
+                    On a reset · Day {grounding.dayNum} of {grounding.total}
+                  </p>
+                  <p className="truncate text-sm text-amber-100/80">
+                    {grounding.lastDay ? "Last day — finish strong! 💪" : `${grounding.daysLeft} days to go`}
+                    {grounding.g.note ? ` · ${grounding.g.note}` : ""}
+                  </p>
+                </div>
+              </button>
+              <div className="hidden shrink-0 gap-1.5 sm:flex">
+                {Array.from({ length: Math.min(grounding.total, 12) }).map((_, i) => (
+                  <span key={i} className={cn("h-3 w-3 rounded-full", i < grounding.dayNum ? "bg-amber-400" : "bg-amber-400/25")} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {activeRoutine ? (
           <>
             <NowNext steps={steps} sound={settings.sound} readAloud={settings.readAloud} />

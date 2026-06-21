@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Star, X, Check } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskStoreItem } from "@/lib/kiosk/types";
+import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { chime, haptic, speak } from "@/lib/kiosk/feedback";
 import { cn } from "@/lib/cn";
 
@@ -27,6 +28,8 @@ export function StoreView({
   if (!state) return null;
 
   const points = state.points[childId] ?? 0;
+  const reset = activeGroundingFor(state.snapshot.groundings, childId);
+  const storePaused = !!reset?.g.pause_rewards;
   const items = (state.snapshot.store_items ?? [])
     .filter((s) => s.enabled && (s.child_id === null || s.child_id === childId))
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -60,7 +63,17 @@ export function StoreView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-5">
-        {items.length === 0 ? (
+        {storePaused && reset ? (
+          <div className="mx-auto mt-10 max-w-md rounded-3xl border border-amber-400/30 bg-amber-400/10 p-8 text-center">
+            <span className="text-5xl">🌱</span>
+            <p className="mt-4 font-display text-2xl font-extrabold text-amber-200">The store is taking a short break</p>
+            <p className="mt-2 text-kmute">
+              {reset.lastDay
+                ? "Back tomorrow — you're almost done!"
+                : `Back in ${reset.daysLeft} days. Finish your routines — you've got this.`}
+            </p>
+          </div>
+        ) : items.length === 0 ? (
           <p className="mt-10 text-center text-kmute">
             No rewards yet. A grown-up can add some in the Harbor app.
           </p>

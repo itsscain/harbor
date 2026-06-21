@@ -76,6 +76,7 @@ function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
       wall_messages: mergeById(state.snapshot.wall_messages ?? [], snap.wall_messages ?? []),
       reminders: mergeById(state.snapshot.reminders ?? [], snap.reminders ?? []),
       meals: mergeById(state.snapshot.meals ?? [], snap.meals ?? []),
+      groundings: mergeById(state.snapshot.groundings ?? [], snap.groundings ?? []),
       server_time: snap.server_time,
     },
     lastSync: snap.server_time,

@@ -548,6 +548,54 @@ export type Database = {
           },
         ]
       }
+      groundings: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          ends_on: string
+          household_id: string
+          id: string
+          note: string | null
+          pause_rewards: boolean
+          pause_screen_time: boolean
+          reason: string | null
+          started_on: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          ends_on: string
+          household_id: string
+          id?: string
+          note?: string | null
+          pause_rewards?: boolean
+          pause_screen_time?: boolean
+          reason?: string | null
+          started_on?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          ends_on?: string
+          household_id?: string
+          id?: string
+          note?: string | null
+          pause_rewards?: boolean
+          pause_screen_time?: boolean
+          reason?: string | null
+          started_on?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meals: {
         Row: {
           created_at: string

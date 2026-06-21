@@ -6,6 +6,7 @@ import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
 import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
+import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { WeatherWidget } from "./WeatherWidget";
 import { cn } from "@/lib/cn";
 
@@ -177,6 +178,7 @@ export function HomeView({
             const p = childProgress(c.id);
             const color = childColor(c);
             const pct = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+            const reset = activeGroundingFor(snap.groundings, c.id);
             return (
               <button
                 key={c.id}
@@ -192,7 +194,14 @@ export function HomeView({
                     {c.avatar ?? "🙂"}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-2xl font-extrabold text-ktext">{c.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-display text-2xl font-extrabold text-ktext">{c.name}</p>
+                      {reset && (
+                        <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-bold text-amber-300">
+                          🌱 {reset.lastDay ? "last day" : `${reset.daysLeft}d`}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 flex items-center gap-2 text-sm text-kmute">
                       {p.total > 0 ? `${p.done}/${p.total} steps` : "No routine yet"}
                       <span className="inline-flex items-center gap-1 text-beacon">

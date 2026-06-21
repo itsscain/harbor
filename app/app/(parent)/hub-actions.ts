@@ -196,6 +196,80 @@ export async function deleteMeal(id: string) {
   revalidatePath("/app/meals");
 }
 
+// ── Grounding / Reset days ───────────────────────────────────────────────────
+/** Add days to a YYYY-MM-DD date string (UTC math → no timezone drift). */
+function addDaysStr(startStr: string, n: number): string {
+  const [y, m, d] = startStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+export async function startGrounding(childId: string, formData: FormData) {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  const days = Math.min(60, Math.max(1, int(formData.get("days"), 3)));
+  const started_on = str(formData.get("started_on")) ?? new Date().toISOString().slice(0, 10);
+  const ends_on = addDaysStr(started_on, days - 1);
+  // One active grounding per child — close any existing first.
+  await supabase.from("groundings").update({ status: "ended" }).eq("child_id", childId).eq("status", "active");
+  const { error } = await supabase.from("groundings").insert({
+    household_id,
+    child_id: childId,
+    reason: str(formData.get("reason")),
+    note: str(formData.get("note")),
+    started_on,
+    ends_on,
+    pause_rewards: formData.get("pause_rewards") === "on",
+    pause_screen_time: formData.get("pause_screen_time") === "on",
+    status: "active",
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
+/** Shorten ("earn a day back", delta -1) or extend (+1). Ends it if it would go past the start. */
+export async function adjustGrounding(id: string, childId: string, delta: number) {
+  await requireUser();
+  const supabase = await createClient();
+  const { data: g } = await supabase
+    .from("groundings")
+    .select("started_on, ends_on")
+    .eq("id", id)
+    .maybeSingle();
+  if (!g) return;
+  const newEnd = addDaysStr(g.ends_on, delta);
+  if (newEnd < g.started_on) {
+    await supabase.from("groundings").update({ status: "ended" }).eq("id", id);
+  } else {
+    await supabase.from("groundings").update({ ends_on: newEnd }).eq("id", id);
+  }
+  revalidatePath(`/app/children/${childId}`);
+}
+
+export async function updateGrounding(id: string, childId: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("groundings")
+    .update({
+      note: str(formData.get("note")),
+      pause_rewards: formData.get("pause_rewards") === "on",
+      pause_screen_time: formData.get("pause_screen_time") === "on",
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
+export async function endGrounding(id: string, childId: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("groundings").update({ status: "ended" }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
 // ── Wall messages (bonus points applied server-side, never by the kiosk) ─────
 export async function addMessage(formData: FormData) {
   await requireUser();

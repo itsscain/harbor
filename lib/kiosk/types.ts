@@ -104,6 +104,18 @@ export type KioskWallMessage = {
   created_at: string;
 };
 
+export type KioskGrounding = {
+  id: string;
+  child_id: string;
+  reason: string | null;
+  note: string | null;
+  started_on: string;
+  ends_on: string;
+  pause_rewards: boolean;
+  pause_screen_time: boolean;
+  status: string;
+};
+
 export type KioskReminder = {
   id: string;
   child_id: string | null;
@@ -135,6 +147,7 @@ export type KioskSnapshot = {
   wall_messages: KioskWallMessage[];
   reminders: KioskReminder[];
   meals: KioskMeal[];
+  groundings?: KioskGrounding[];
   /** Hard-deletion tombstones since the cursor — the wall removes these ids. */
   deletions?: { entity: string; entity_id: string }[];
   server_time: string;

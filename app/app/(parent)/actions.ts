@@ -266,6 +266,102 @@ export async function addRoutineFromTemplate(childId: string, formData: FormData
   revalidatePath(`/app/children/${childId}`);
 }
 
+// ── Grade bundles: a full age-tuned routine set in one tap ───────────────────
+type GradeRoutine = { name: string; type: "schedule" | "first_then"; steps: TemplateStep[] };
+const GRADE_BUNDLES: Record<string, { label: string; routines: GradeRoutine[] }> = {
+  kindergarten: {
+    label: "Kindergarten",
+    routines: [
+      { name: "Morning", type: "schedule", steps: [
+        { icon: "🌅", label: "Wake up" }, { icon: "🚽", label: "Potty" },
+        { icon: "👕", label: "Get dressed", points: 5 }, { icon: "🥣", label: "Breakfast", points: 5 },
+        { icon: "🪥", label: "Brush teeth", points: 5 }, { icon: "👟", label: "Shoes on", points: 5 },
+      ] },
+      { name: "After school", type: "schedule", steps: [
+        { icon: "🍎", label: "Snack" }, { icon: "🧸", label: "Free play" },
+        { icon: "🧹", label: "Help tidy up", points: 5 }, { icon: "📚", label: "Story time", points: 5 },
+      ] },
+      { name: "Bedtime", type: "schedule", steps: [
+        { icon: "🛁", label: "Bath" }, { icon: "🌙", label: "Pajamas", points: 5 },
+        { icon: "🪥", label: "Brush teeth", points: 5 }, { icon: "📖", label: "One story", points: 5 }, { icon: "💡", label: "Lights out" },
+      ] },
+    ],
+  },
+  grade2: {
+    label: "2nd grade",
+    routines: [
+      { name: "Morning", type: "schedule", steps: [
+        { icon: "🌅", label: "Wake up" }, { icon: "👕", label: "Get dressed", points: 5 },
+        { icon: "🥣", label: "Breakfast", points: 5 }, { icon: "🪥", label: "Brush teeth", points: 5 },
+        { icon: "💇", label: "Hair" }, { icon: "🎒", label: "Pack backpack", points: 5 },
+      ] },
+      { name: "After school", type: "schedule", steps: [
+        { icon: "🍎", label: "Snack" }, { icon: "📦", label: "Unpack bag", points: 5 },
+        { icon: "✏️", label: "Homework", points: 10 }, { icon: "📖", label: "Read 15 min", points: 10 },
+        { icon: "🧹", label: "Chore", points: 5 }, { icon: "🧸", label: "Free time" },
+      ] },
+      { name: "Bedtime", type: "schedule", steps: [
+        { icon: "🚿", label: "Shower" }, { icon: "🌙", label: "Pajamas", points: 5 },
+        { icon: "🪥", label: "Brush teeth", points: 5 }, { icon: "📖", label: "Read", points: 5 }, { icon: "💡", label: "Lights out" },
+      ] },
+    ],
+  },
+  grade4: {
+    label: "4th grade",
+    routines: [
+      { name: "Morning", type: "schedule", steps: [
+        { icon: "⏰", label: "Wake up" }, { icon: "🛏️", label: "Make bed", points: 5 },
+        { icon: "👕", label: "Get dressed", points: 5 }, { icon: "🥣", label: "Breakfast", points: 5 },
+        { icon: "🪥", label: "Brush teeth", points: 5 }, { icon: "🎒", label: "Pack & check homework", points: 5 },
+      ] },
+      { name: "After school", type: "schedule", steps: [
+        { icon: "🍎", label: "Snack" }, { icon: "✏️", label: "Homework", points: 15 },
+        { icon: "🧹", label: "Chores", points: 10 }, { icon: "📖", label: "Read 20 min", points: 10 },
+        { icon: "📱", label: "Screen time" },
+      ] },
+      { name: "Bedtime", type: "schedule", steps: [
+        { icon: "🚿", label: "Shower" }, { icon: "🪥", label: "Brush teeth", points: 5 },
+        { icon: "👕", label: "Lay out clothes", points: 5 }, { icon: "📖", label: "Read", points: 5 }, { icon: "💡", label: "Lights out" },
+      ] },
+    ],
+  },
+};
+
+/** One tap: create a full grade-tuned routine set (Morning + After school + Bedtime). */
+export async function addGradeRoutines(childId: string, formData: FormData) {
+  await requireUser();
+  const key = String(formData.get("grade") || "");
+  const bundle = GRADE_BUNDLES[key];
+  if (!bundle) return;
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("routines")
+    .select("sort_order")
+    .eq("child_id", childId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  let order = ((existing?.[0]?.sort_order as number) ?? -1) + 1;
+  for (const r of bundle.routines) {
+    const { data: routine, error } = await supabase
+      .from("routines")
+      .insert({ child_id: childId, name: r.name, type: r.type, sort_order: order++ })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    const rows = r.steps.map((s, i) => ({
+      routine_id: routine.id,
+      label: s.label,
+      icon: s.icon,
+      step_type: s.step_type ?? ("task" as const),
+      reward_points: s.points ?? 0,
+      order_index: i,
+    }));
+    const { error: stepErr } = await supabase.from("routine_steps").insert(rows);
+    if (stepErr) throw new Error(stepErr.message);
+  }
+  revalidatePath(`/app/children/${childId}`);
+}
+
 export async function deleteRoutine(id: string, childId: string) {
   await requireUser();
   const supabase = await createClient();
