@@ -6,9 +6,7 @@ import { useSelectedLayoutSegment } from "next/navigation";
  *  Disabled automatically under prefers-reduced-motion via the global rule. */
 export function RouteTransition({ children }: { children: React.ReactNode }) {
   const segment = useSelectedLayoutSegment();
-  return (
-    <div key={segment ?? "root"} className="animate-enter">
-      {children}
-    </div>
-  );
+  // Key by segment so per-section .animate-enter classes replay on tab change.
+  // No wrapper animation here — that would double-animate the whole tree.
+  return <div key={segment ?? "root"}>{children}</div>;
 }

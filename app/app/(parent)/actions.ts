@@ -105,12 +105,15 @@ export async function createChild(
 export async function updateChild(id: string, formData: FormData) {
   await requireUser();
   const supabase = await createClient();
+  const color = str(formData.get("color"));
   const { error } = await supabase
     .from("children")
     .update({
       name: String(formData.get("name") || ""),
       avatar: str(formData.get("avatar")),
-      color: str(formData.get("color")),
+      // Only touch color when a swatch was actually chosen — a child with a
+      // custom color (no matching radio) must not be wiped to null on save.
+      ...(color ? { color } : {}),
       sort_order: int(formData.get("sort_order"), 0),
     })
     .eq("id", id);

@@ -1,4 +1,7 @@
-/** Tiny className combiner (no deps). Filters falsy values and joins. */
+import { twMerge } from "tailwind-merge";
+
+/** className combiner that resolves conflicting Tailwind utilities (later wins),
+ *  so component overrides via `className` reliably beat base classes. */
 export function cn(...parts: Array<string | false | null | undefined>): string {
-  return parts.filter(Boolean).join(" ");
+  return twMerge(parts.filter(Boolean).join(" "));
 }

@@ -28,7 +28,7 @@ export function SetupChecklist({
         <form action={dismiss}>
           <button
             type="submit"
-            className="rounded-full p-1.5 text-muted transition hover:bg-harbor-50 hover:text-harbor"
+            className="-mr-1.5 -mt-1.5 flex h-11 w-11 items-center justify-center rounded-full text-muted transition hover:bg-harbor-50 hover:text-harbor"
             aria-label="Dismiss setup checklist"
           >
             <X className="h-5 w-5" />

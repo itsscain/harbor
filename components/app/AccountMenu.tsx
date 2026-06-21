@@ -30,7 +30,7 @@ export function AccountMenu({ householdName }: { householdName?: string | null }
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
+        aria-haspopup="true"
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition hover:bg-harbor-50 active:scale-95"
       >
@@ -41,10 +41,7 @@ export function AccountMenu({ householdName }: { householdName?: string | null }
       </button>
 
       {open && (
-        <div
-          role="menu"
-          className="animate-pop absolute right-0 top-12 z-40 w-56 overflow-hidden rounded-2xl border border-harbor-100 bg-white p-1.5 shadow-pop"
-        >
+        <div className="animate-pop absolute right-0 top-12 z-40 w-56 overflow-hidden rounded-2xl border border-harbor-100 bg-white p-1.5 shadow-pop">
           <p className="px-3 py-2">
             <span className="text-eyebrow block text-muted">Signed in</span>
             <span className="block truncate font-semibold text-harbor">{name}</span>
@@ -56,7 +53,6 @@ export function AccountMenu({ householdName }: { householdName?: string | null }
           <form action={signOut}>
             <button
               type="submit"
-              role="menuitem"
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
             >
               <LogOut className="h-4 w-4" /> Sign out
@@ -82,7 +78,6 @@ function MenuLink({
   return (
     <Link
       href={href}
-      role="menuitem"
       onClick={onClick}
       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-harbor transition hover:bg-harbor-50"
     >

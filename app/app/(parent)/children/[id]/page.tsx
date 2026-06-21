@@ -104,7 +104,7 @@ export default async function ChildDetail({
           <Field label="Color" hint="Shows on the wall calendar, tiles, and routine board.">
             <div className="flex flex-wrap gap-2">
               {CHILD_PALETTE.map((p) => (
-                <label key={p.value} className="cursor-pointer" title={p.name}>
+                <label key={p.value} className="flex h-11 w-11 cursor-pointer items-center justify-center" title={p.name}>
                   <input
                     type="radio"
                     name="color"
@@ -113,7 +113,7 @@ export default async function ChildDetail({
                     className="peer sr-only"
                   />
                   <span
-                    className="block h-9 w-9 rounded-full ring-2 ring-transparent ring-offset-2 peer-checked:ring-harbor"
+                    className="block h-7 w-7 rounded-full ring-2 ring-transparent ring-offset-2 transition-transform peer-checked:scale-110 peer-checked:ring-harbor"
                     style={{ backgroundColor: p.value }}
                   />
                 </label>
@@ -190,7 +190,7 @@ export default async function ChildDetail({
                     {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
                       <label key={i} className="cursor-pointer">
                         <input type="checkbox" name="days" value={i} defaultChecked={(r.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                        <span className="inline-block rounded-lg border border-harbor-100 px-2 py-1.5 text-xs font-semibold text-muted peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
                           {d}
                         </span>
                       </label>
