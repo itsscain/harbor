@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { KioskStep } from "@/lib/kiosk/types";
 import { tone, speak } from "@/lib/kiosk/feedback";
+import { KCard, KEyebrow } from "./ui";
 
 function toMinutes(t: string | null): number | null {
   if (!t) return null;
@@ -76,11 +77,11 @@ export function NowNext({
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-kwater/30 bg-kpanel p-4 shadow-k">
+    <KCard className="mb-4 p-4 ring-kwater/30">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-eyebrow text-kwater">Now</p>
-          <p className="mt-0.5 truncate font-display text-xl font-bold text-ktext">
+          <KEyebrow className="text-kwater">Now</KEyebrow>
+          <p className="mt-1 truncate font-display text-xl font-bold text-ktext">
             {current ? `${current.step.icon ?? ""} ${current.step.label}` : "Free time"}
           </p>
         </div>
@@ -88,8 +89,8 @@ export function NowNext({
           <>
             <ArrowRight className="h-6 w-6 shrink-0 text-kmute" />
             <div className="min-w-0 text-right">
-              <p className="text-eyebrow text-kmute">Next</p>
-              <p className="mt-0.5 truncate font-display text-xl font-bold text-kmute">
+              <KEyebrow>Next</KEyebrow>
+              <p className="mt-1 truncate font-display text-xl font-bold text-kmute">
                 {next.step.icon ?? ""} {next.step.label}
               </p>
             </div>
@@ -97,13 +98,13 @@ export function NowNext({
         )}
       </div>
       {current && next && (
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-kraise">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-kraise ring-1 ring-kline/40">
           <div
             className="h-full rounded-full bg-kwater transition-all"
             style={{ width: `${pct * 100}%` }}
           />
         </div>
       )}
-    </div>
+    </KCard>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Delete } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { KButton } from "./ui";
 
 /** Reusable numeric PIN pad. Calls onComplete when `length` digits are entered. */
 export function PinPad({
@@ -33,41 +34,44 @@ export function PinPad({
           <span
             key={i}
             className={cn(
-              "h-4 w-4 rounded-full border-2 transition",
+              "h-4 w-4 rounded-full ring-2 transition",
               i < pin.length
-                ? "border-kwater bg-kwater"
-                : "border-kline bg-transparent",
+                ? "bg-kwater ring-kwater"
+                : "bg-transparent ring-kline/55",
             )}
           />
         ))}
       </div>
       <div className="grid grid-cols-3 gap-3">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-          <button
+          <KButton
             key={n}
             type="button"
+            variant="tonal"
             onClick={() => press(String(n))}
-            className="kiosk-tap rounded-2xl bg-kraise py-5 text-2xl font-bold text-ktext ring-1 ring-kline active:bg-kwater active:text-harbor"
+            className="kiosk-tap h-auto py-5 text-2xl font-bold active:bg-kwater active:text-harbor"
           >
             {n}
-          </button>
+          </KButton>
         ))}
         <span />
-        <button
+        <KButton
           type="button"
+          variant="tonal"
           onClick={() => press("0")}
-          className="kiosk-tap rounded-2xl bg-harbor-50 py-5 text-2xl font-bold text-harbor active:bg-harbor active:text-white"
+          className="kiosk-tap h-auto py-5 text-2xl font-bold active:bg-kwater active:text-harbor"
         >
           0
-        </button>
-        <button
+        </KButton>
+        <KButton
           type="button"
+          variant="ghost"
           onClick={() => setPin((p) => p.slice(0, -1))}
-          className="kiosk-tap flex items-center justify-center rounded-2xl py-5 text-ktext active:bg-kraise"
+          className="kiosk-tap h-auto py-5"
           aria-label="Delete"
         >
           <Delete className="h-7 w-7" />
-        </button>
+        </KButton>
       </div>
     </div>
   );

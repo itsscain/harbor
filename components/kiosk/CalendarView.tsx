@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
-import { Home as HomeIcon, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { eventsForDay, occursOn, formatEventTime } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
@@ -74,7 +74,7 @@ function layoutDay(events: KioskEvent[]): Laid[] {
   return out;
 }
 
-export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => void }) {
+export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   const snap = kiosk.state?.snapshot;
   const events = useMemo(() => snap?.events ?? [], [snap]);
   const children = useMemo(() => [...(snap?.children ?? [])].sort((a, b) => a.sort_order - b.sort_order), [snap]);
@@ -118,21 +118,18 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
   }, [anchor]);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-kbg text-ktext">
-      <header className="flex items-center justify-between border-b border-kline bg-kpanel px-4 py-3">
-        <button onClick={onHome} className="kiosk-tap flex items-center gap-2 rounded-2xl bg-kraise px-3 py-2 font-semibold text-ktext">
-          <HomeIcon className="h-5 w-5" /> Home
-        </button>
-        <span className="font-display text-xl font-extrabold text-ktext">Family Calendar</span>
-        <div className="flex items-center gap-1 rounded-full bg-kraise p-1">
+    <div className="flex h-dvh flex-col overflow-hidden bg-kbg pb-[84px] text-ktext">
+      <header className="flex items-center justify-between gap-3 border-b border-kline/50 bg-kbg2/80 px-4 py-3 backdrop-blur-md sm:px-6">
+        <span className="font-display text-2xl font-extrabold text-ktext">Calendar</span>
+        <div className="flex items-center gap-1 rounded-full bg-kpanel p-1 ring-1 ring-kline/55">
           {(["day", "week", "month", "agenda"] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
               aria-current={view === v ? "page" : undefined}
               className={cn(
-                "kiosk-tap rounded-full px-3 py-1.5 text-sm font-semibold capitalize transition",
-                view === v ? "bg-kwater text-harbor shadow-k" : "text-ktext",
+                "rounded-full px-4 py-2 text-sm font-bold capitalize transition active:scale-[0.97]",
+                view === v ? "bg-kwater text-harbor shadow-k" : "text-kmute hover:text-ktext",
               )}
             >
               {v}
@@ -143,7 +140,7 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
 
       {/* Per-person filter chips */}
       {children.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-kline bg-kpanel px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 border-b border-kline/50 bg-kpanel px-4 py-2.5">
           <button
             onClick={() => setFilter(null)}
             className={cn(
@@ -181,13 +178,13 @@ export function CalendarView({ kiosk, onHome }: { kiosk: Kiosk; onHome: () => vo
       {/* Navigation */}
       {view !== "agenda" && (
         <div className="flex items-center justify-between px-4 py-2.5">
-          <button onClick={() => shift(-1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline" aria-label="Previous">
+          <button onClick={() => shift(-1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline/55 transition hover:brightness-125" aria-label="Previous">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button onClick={() => setAnchor(startOfDay(new Date()))} className="font-display text-lg font-extrabold text-ktext">
             {title}
           </button>
-          <button onClick={() => shift(1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline" aria-label="Next">
+          <button onClick={() => shift(1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline/55 transition hover:brightness-125" aria-label="Next">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -260,9 +257,9 @@ function TimeGrid({
   const hasAllDay = days.some((d) => allDayFor(d).length > 0);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-kline bg-kpanel shadow-k">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-kpanel shadow-k ring-1 ring-kline/55">
       {/* Day headers */}
-      <div className="flex border-b border-kline" style={{ paddingRight: 6 }}>
+      <div className="flex border-b border-kline/50" style={{ paddingRight: 6 }}>
         <div className="w-12 shrink-0 sm:w-14" />
         {days.map((d) => {
           const isToday = sameDate(d, today);
@@ -288,7 +285,7 @@ function TimeGrid({
 
       {/* All-day / multi-day row */}
       {hasAllDay && (
-        <div className="flex border-b border-kline bg-kraise" style={{ paddingRight: 6 }}>
+        <div className="flex border-b border-kline/50 bg-kraise" style={{ paddingRight: 6 }}>
           <div className="flex w-12 shrink-0 items-center justify-end pr-1.5 text-[10px] font-semibold uppercase text-kmute sm:w-14">All-day</div>
           {days.map((d) => (
             <div key={d.toISOString()} className="flex-1 space-y-1 px-1 py-1.5">
@@ -381,7 +378,7 @@ function EventRow({ event, color }: { event: KioskEvent; color: string }) {
   return (
     <button
       onClick={() => speak(`${event.title} at ${formatEventTime(event)}`)}
-      className="flex w-full items-center gap-3 rounded-2xl border border-kline bg-kpanel p-4 text-left shadow-k"
+      className="flex w-full items-center gap-3 rounded-2xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55"
       style={{ borderLeft: `6px solid ${color}` }}
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ backgroundColor: color + "33" }}>
@@ -419,7 +416,7 @@ function AgendaView({
     if (evs.length) days.push({ date: d, evs });
   }
   if (days.length === 0) {
-    return <div className="rounded-2xl border border-kline bg-kpanel p-6 text-center text-kmute shadow-k">Nothing scheduled. Enjoy the calm. 🌊</div>;
+    return <div className="rounded-2xl bg-kpanel p-6 text-center text-kmute shadow-k ring-1 ring-kline/55">Nothing scheduled. Enjoy the calm. 🌊</div>;
   }
   return (
     <div className="space-y-5 pb-4">
@@ -469,7 +466,7 @@ function MonthGrid({
               onClick={() => onPickDay(d)}
               className={cn(
                 "flex min-h-16 flex-col rounded-lg border p-1 text-left transition hover:border-kwater/50 sm:min-h-20",
-                isToday ? "border-kwater bg-kpanel" : inMonth ? "border-kline bg-kpanel" : "border-transparent bg-kpanel/30",
+                isToday ? "border-kwater bg-kpanel" : inMonth ? "border-kline/55 bg-kpanel" : "border-transparent bg-kpanel/30",
               )}
             >
               <span className={cn("text-xs font-bold", isToday ? "text-kwater" : inMonth ? "text-ktext" : "text-kmute/50")}>

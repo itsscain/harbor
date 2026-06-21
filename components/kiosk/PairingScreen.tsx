@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LighthouseMark } from "@/components/brand/Logo";
+import { KButton, KCard, KEyebrow } from "./ui";
 
 export function PairingScreen({
   onPair,
@@ -45,9 +46,10 @@ export function PairingScreen({
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-kbg px-6 text-center text-ktext">
       <div className="absolute inset-0 beacon-ring opacity-50" aria-hidden />
-      <div className="relative w-full max-w-md">
+      <KCard className="relative w-full max-w-md p-8 sm:p-10">
         <LighthouseMark className="mx-auto h-16 w-16 text-beacon" />
-        <h1 className="mt-6 font-display text-3xl font-extrabold">
+        <KEyebrow className="mt-6">First-time setup</KEyebrow>
+        <h1 className="mt-2 font-display text-3xl font-extrabold">
           Set up this Harbor
         </h1>
         <p className="mt-2 text-kmute">
@@ -65,26 +67,28 @@ export function PairingScreen({
             autoCorrect="off"
             spellCheck={false}
             inputMode="text"
-            className="w-full rounded-2xl border-2 border-kline bg-kpanel px-5 py-5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-ktext placeholder-kmute outline-none transition focus:border-beacon focus:ring-4 focus:ring-beacon/20"
+            className="w-full rounded-2xl bg-kraise px-5 py-5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-ktext placeholder-kmute ring-1 ring-kline/55 outline-none transition focus:ring-2 focus:ring-beacon/70"
           />
           {error && (
-            <p role="alert" className="rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-100">
+            <p role="alert" className="rounded-2xl bg-red-500/15 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/30">
               {error}
             </p>
           )}
-          <button
+          <KButton
             type="submit"
+            variant="beacon"
+            size="lg"
             disabled={busy || code.trim().length < 4}
-            className="kiosk-tap w-full rounded-2xl bg-beacon px-6 py-5 text-xl font-bold text-harbor transition active:scale-[0.98] disabled:opacity-50"
+            className="kiosk-tap w-full"
           >
             {busy ? "Connecting…" : "Connect"}
-          </button>
+          </KButton>
         </form>
 
         <p className="mt-6 text-xs text-kmute">
           Daily use works fully offline. Pairing needs the internet just once.
         </p>
-      </div>
+      </KCard>
     </div>
   );
 }

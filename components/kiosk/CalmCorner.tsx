@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Wind, Heart, Hand, BookOpen, X } from "lucide-react";
+import { Wind, Heart, Hand, BookOpen, X } from "lucide-react";
 import type { KioskCalmTool } from "@/lib/kiosk/types";
+import { KButton, KCard, KIconButton, KTopBar } from "./ui";
 
 const FEELINGS = [
   { key: "happy", emoji: "😊", label: "Happy" },
@@ -48,22 +49,20 @@ export function CalmCorner({
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
-      <div className="flex items-center justify-between p-5">
-        <button
-          onClick={open ? () => setOpen(null) : onClose}
-          className="kiosk-tap flex items-center gap-2 rounded-full bg-kraise px-4 py-3 font-semibold"
-        >
-          <ArrowLeft className="h-5 w-5" /> Back
-        </button>
-        <span className="font-display text-xl font-bold">Calm Corner</span>
-        <button
-          onClick={onClose}
-          className="kiosk-tap rounded-full bg-kraise p-3"
-          aria-label="Close calm corner"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+      <KTopBar
+        onBack={open ? () => setOpen(null) : onClose}
+        title="Calm Corner"
+        right={
+          <KIconButton
+            variant="ghost"
+            onClick={onClose}
+            className="kiosk-tap"
+            aria-label="Close calm corner"
+          >
+            <X className="h-5 w-5" />
+          </KIconButton>
+        }
+      />
 
       <div className="flex flex-1 items-center justify-center p-6">
         {!open ? (
@@ -75,13 +74,13 @@ export function CalmCorner({
                 <button
                   key={tool.id}
                   onClick={() => setOpen(tool)}
-                  className="kiosk-tap flex items-center gap-4 rounded-3xl bg-kpanel ring-1 ring-kline p-6 text-left transition active:scale-[0.98] hover:bg-kraise"
+                  className="kiosk-tap flex items-center gap-4 rounded-3xl bg-kpanel ring-1 ring-kline/55 shadow-k p-6 text-left transition active:scale-[0.98] hover:bg-kraise"
                 >
-                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-beacon/90 text-harbor">
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-beacon text-harbor shadow-k">
                     <Icon className="h-8 w-8" />
                   </span>
                   <span>
-                    <span className="block font-display text-xl font-bold">
+                    <span className="block font-display text-xl font-bold text-ktext">
                       {meta.label}
                     </span>
                     <span className="block text-kmute">{meta.blurb}</span>
@@ -148,7 +147,7 @@ function Breathing({ config }: { config: Record<string, unknown> }) {
     return (
       <div className="text-center">
         <div className="text-7xl animate-reward">🌬️</div>
-        <p className="mt-6 font-display text-2xl font-extrabold">Great breathing!</p>
+        <p className="mt-6 font-display text-2xl font-extrabold text-ktext">Great breathing!</p>
         <p className="mt-2 text-kmute">You took {rounds} slow breaths.</p>
       </div>
     );
@@ -159,20 +158,20 @@ function Breathing({ config }: { config: Record<string, unknown> }) {
     <div className="flex flex-col items-center">
       <div className="relative flex h-72 w-72 items-center justify-center">
         <div
-          className="absolute h-72 w-72 rounded-full bg-beacon/30"
+          className="absolute h-72 w-72 rounded-full bg-kwater/20 ring-1 ring-kwater/30"
           style={{
             transform: `scale(${phase.scale})`,
             transition: `transform ${phase.secs}s ease-in-out`,
           }}
         />
         <div
-          className="absolute h-52 w-52 rounded-full bg-beacon/50"
+          className="absolute h-52 w-52 rounded-full bg-kwater/40 ring-1 ring-kwater/40"
           style={{
             transform: `scale(${phase.scale})`,
             transition: `transform ${phase.secs}s ease-in-out`,
           }}
         />
-        <span className="relative font-display text-3xl font-extrabold">
+        <span className="relative font-display text-3xl font-extrabold text-ktext">
           {phase.label}
         </span>
       </div>
@@ -204,7 +203,7 @@ function Feelings({
     return (
       <div className="text-center">
         <div className="text-8xl animate-reward">{f.emoji}</div>
-        <p className="mt-6 font-display text-2xl font-extrabold">
+        <p className="mt-6 font-display text-2xl font-extrabold text-ktext">
           Thanks for sharing.
         </p>
         <p className="mt-2 text-kmute">
@@ -225,10 +224,10 @@ function Feelings({
             setPicked(f.key);
             onPick(f.key);
           }}
-          className="kiosk-tap flex flex-col items-center gap-2 rounded-3xl bg-kpanel ring-1 ring-kline p-5 active:scale-95"
+          className="kiosk-tap flex flex-col items-center gap-2 rounded-3xl bg-kpanel ring-1 ring-kline/55 shadow-k p-5 transition active:scale-95 hover:bg-kraise"
         >
           <span className="text-5xl">{f.emoji}</span>
-          <span className="font-semibold">{f.label}</span>
+          <span className="font-semibold text-ktext">{f.label}</span>
         </button>
       ))}
     </div>
@@ -248,8 +247,8 @@ function BreakTimer({ config }: { config: Record<string, unknown> }) {
   const s = left % 60;
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="h-44 w-44 animate-beacon rounded-full bg-beacon/40" />
-      <p className="mt-8 font-display text-2xl font-extrabold">
+      <div className="h-44 w-44 animate-beacon rounded-full bg-kwater/30 ring-1 ring-kwater/40" />
+      <p className="mt-8 font-display text-2xl font-extrabold text-ktext">
         {left > 0 ? "Take your time" : "Feeling better?"}
       </p>
       <p className="mt-2 text-5xl font-bold tabular-nums text-kmute">
@@ -275,29 +274,33 @@ function SocialStory({ config }: { config: Record<string, unknown> }) {
   return (
     <div className="w-full max-w-xl text-center">
       <p className="font-display text-lg font-bold text-kmute">{title}</p>
-      <div className="mt-4 flex min-h-48 items-center justify-center rounded-3xl bg-kpanel ring-1 ring-kline p-8">
-        <p className="font-display text-2xl font-bold leading-relaxed">
+      <KCard className="mt-4 flex min-h-48 items-center justify-center p-8">
+        <p className="font-display text-2xl font-bold leading-relaxed text-ktext">
           {pages[p]}
         </p>
-      </div>
+      </KCard>
       <div className="mt-6 flex items-center justify-center gap-4">
-        <button
+        <KButton
+          variant="tonal"
+          size="lg"
           onClick={() => setP((x) => Math.max(0, x - 1))}
           disabled={p === 0}
-          className="kiosk-tap rounded-2xl bg-kraise px-6 py-4 font-bold disabled:opacity-40"
+          className="kiosk-tap"
         >
           Back
-        </button>
+        </KButton>
         <span className="text-kmute">
           {p + 1} / {pages.length}
         </span>
-        <button
+        <KButton
+          variant="beacon"
+          size="lg"
           onClick={() => setP((x) => Math.min(pages.length - 1, x + 1))}
           disabled={p === pages.length - 1}
-          className="kiosk-tap rounded-2xl bg-beacon px-6 py-4 font-bold text-harbor disabled:opacity-40"
+          className="kiosk-tap"
         >
           Next
-        </button>
+        </KButton>
       </div>
     </div>
   );

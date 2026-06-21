@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Lock, X } from "lucide-react";
 import { PinPad } from "./PinPad";
+import { KCard, KIconButton, KEyebrow } from "./ui";
 
 /** Full-screen PIN challenge. Calls onSuccess() when the PIN verifies. */
 export function ParentGate({
@@ -26,27 +27,33 @@ export function ParentGate({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-kbg px-6 text-ktext">
-      <button
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-kbg2/95 px-6 text-ktext backdrop-blur-sm">
+      <KIconButton
+        variant="ghost"
         onClick={onCancel}
-        className="kiosk-tap absolute right-5 top-5 rounded-full bg-kpanel p-3 text-kmute ring-1 ring-kline"
+        className="kiosk-tap absolute right-5 top-5 rounded-full"
         aria-label="Close"
       >
         <X className="h-6 w-6" />
-      </button>
-      <Lock className="h-12 w-12 text-kwater" />
-      <h2 className="mt-4 font-display text-2xl font-extrabold text-ktext">
-        Parents only
-      </h2>
-      <p className="mt-1 text-kmute">Enter your PIN to continue.</p>
-      {error && (
-        <p className="mt-3 text-sm font-semibold text-red-400">
-          Wrong PIN — try again.
-        </p>
-      )}
-      <div className="mt-8">
-        <PinPad onComplete={handle} shake={error} />
-      </div>
+      </KIconButton>
+      <KCard className="flex w-full max-w-sm flex-col items-center px-8 py-10">
+        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-kwater/15 ring-1 ring-kwater/30">
+          <Lock className="h-8 w-8 text-kwater" />
+        </span>
+        <KEyebrow className="mt-5">Parents only</KEyebrow>
+        <h2 className="mt-2 font-display text-2xl font-extrabold text-ktext">
+          Enter your PIN
+        </h2>
+        <p className="mt-1 text-kmute">Enter your PIN to continue.</p>
+        {error && (
+          <p className="mt-3 text-sm font-semibold text-red-300">
+            Wrong PIN — try again.
+          </p>
+        )}
+        <div className="mt-8">
+          <PinPad onComplete={handle} shake={error} />
+        </div>
+      </KCard>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Home, CalendarDays, ListChecks, Heart } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { HomeView } from "./HomeView";
 import { ChildView } from "./ChildView";
@@ -10,6 +10,8 @@ import { ListsView } from "./ListsView";
 import { CalmCorner } from "./CalmCorner";
 import { ParentGate } from "./ParentGate";
 import { Screensaver, SleepMode } from "./Screensaver";
+import { KTabBar, KButton, KCard } from "./ui";
+import type { KTab } from "./ui";
 import { cn } from "@/lib/cn";
 
 function inQuietHours(start?: string, end?: string, d = new Date()): boolean {
@@ -103,6 +105,17 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   // Resolve a child for calm-corner check-ins (the active child, else the first).
   const activeChildId = view.k === "child" ? view.id : children[0]?.id ?? "";
 
+  const groceriesLeft = (state.snapshot.list_items ?? []).filter(
+    (i) => i.list_kind === "grocery" && !i.checked,
+  ).length;
+  const showTabs = view.k === "home" || view.k === "calendar" || view.k === "lists";
+  const TABS: KTab<"home" | "calendar" | "lists" | "calm">[] = [
+    { key: "home", label: "Home", icon: Home },
+    { key: "calendar", label: "Calendar", icon: CalendarDays },
+    { key: "lists", label: "Lists", icon: ListChecks, badge: groceriesLeft || null },
+    { key: "calm", label: "Calm", icon: Heart },
+  ];
+
   return (
     <div className="min-h-full">
       {view.k === "home" && (
@@ -110,8 +123,6 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
           kiosk={kiosk}
           onSelectChild={(id) => setView({ k: "child", id })}
           onOpenCalendar={() => setView({ k: "calendar" })}
-          onOpenLists={() => setView({ k: "lists" })}
-          onOpenCalm={() => setCalmOpen(true)}
           onParentMenu={() => setGate(true)}
         />
       )}
@@ -151,6 +162,20 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
 
       {menu && <ParentMenu kiosk={kiosk} onClose={() => setMenu(false)} />}
 
+      {showTabs && (
+        <KTabBar
+          items={TABS}
+          current={view.k as "home" | "calendar" | "lists"}
+          onSelect={(k) => {
+            if (k === "calm") {
+              setCalmOpen(true);
+              return;
+            }
+            setView({ k });
+          }}
+        />
+      )}
+
       {asleep && inQuietHours(quietStart, quietEnd) ? (
         <SleepMode onWake={() => setAsleep(false)} />
       ) : asleep && screensaverOn ? (
@@ -188,15 +213,15 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const syncText = SYNC_LABEL[kiosk.syncStatus] ?? "";
   const lastSync = relativeTime(kiosk.lastSync);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-md rounded-t-3xl bg-kpanel p-6 text-ktext ring-1 ring-kline shadow-k-pop sm:rounded-3xl">
-        <h2 className="font-display text-xl font-extrabold text-ktext">Parent menu</h2>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <KCard className="w-full max-w-md rounded-b-none rounded-t-3xl p-6 shadow-k-pop sm:rounded-3xl">
+        <h2 className="font-display text-2xl font-extrabold text-ktext">Parent menu</h2>
         <p className="mt-1 text-sm text-kmute">
           {syncText || (kiosk.online ? "Online" : "Offline — the wall keeps working")}
           {lastSync ? ` · last synced ${lastSync}` : ""}
         </p>
 
-        <div className="mt-5 space-y-2">
+        <div className="mt-5 space-y-2.5">
           {!confirmReset ? (
             <MenuRow
               icon={RotateCcw}
@@ -204,15 +229,16 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
               onClick={() => setConfirmReset(true)}
             />
           ) : (
-            <button
+            <KButton
+              variant="beacon"
+              className="h-16 w-full"
               onClick={() => {
                 children.forEach((c) => kiosk.resetDay(c.id));
                 setConfirmReset(false);
               }}
-              className="kiosk-tap w-full rounded-2xl bg-amber-500 py-4 font-bold text-white"
             >
               Tap again to reset today for everyone
-            </button>
+            </KButton>
           )}
           <MenuRow
             icon={RefreshCw}
@@ -222,19 +248,16 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
           {!confirmUnpair ? (
             <MenuRow icon={LogOut} label="Unpair this device" danger onClick={() => setConfirmUnpair(true)} />
           ) : (
-            <button
-              onClick={() => void kiosk.unpair()}
-              className="kiosk-tap w-full rounded-2xl bg-red-600 py-4 font-bold text-white"
-            >
+            <KButton variant="danger" className="h-16 w-full" onClick={() => void kiosk.unpair()}>
               Tap again to confirm unpair
-            </button>
+            </KButton>
           )}
         </div>
 
-        <button onClick={onClose} className="kiosk-tap mt-5 w-full rounded-2xl bg-kwater py-4 font-bold text-harbor shadow-k">
+        <KButton variant="primary" size="lg" className="mt-5 w-full" onClick={onClose}>
           Done
-        </button>
-      </div>
+        </KButton>
+      </KCard>
     </div>
   );
 }

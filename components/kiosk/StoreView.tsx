@@ -7,6 +7,7 @@ import type { KioskStoreItem } from "@/lib/kiosk/types";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { chime, haptic, speak } from "@/lib/kiosk/feedback";
 import { cn } from "@/lib/cn";
+import { KCard, KIconButton, KPill } from "./ui";
 
 type Kiosk = ReturnType<typeof useKiosk>;
 type Settings = { sound: boolean; haptics: boolean; readAloud: boolean };
@@ -53,22 +54,22 @@ export function StoreView({
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
-      <div className="flex items-center justify-between p-5">
-        <span className="font-display text-xl font-bold">Reward Store</span>
+      <div className="flex items-center justify-between border-b border-kline/50 bg-kbg2/90 p-5 backdrop-blur-md">
+        <span className="font-display text-xl font-extrabold text-ktext">Reward Store</span>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 rounded-full bg-kraise px-4 py-2">
+          <KPill tone="beacon" className="px-4 py-2 text-lg">
             <Star className="h-5 w-5 fill-beacon text-beacon" />
-            <span className="font-display text-lg font-extrabold tabular-nums">{points}</span>
-          </span>
-          <button onClick={onClose} className="kiosk-tap rounded-full bg-kraise p-3" aria-label="Close store">
+            <span className="font-display font-extrabold tabular-nums">{points}</span>
+          </KPill>
+          <KIconButton onClick={onClose} className="kiosk-tap rounded-full" aria-label="Close store">
             <X className="h-5 w-5" />
-          </button>
+          </KIconButton>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-5">
         {storePaused && reset ? (
-          <div className="mx-auto mt-10 max-w-md rounded-3xl border border-amber-400/30 bg-amber-400/10 p-8 text-center">
+          <KCard className="mx-auto mt-10 max-w-md bg-amber-400/10 p-8 text-center ring-amber-400/30">
             <span className="text-5xl">🌱</span>
             <p className="mt-4 font-display text-2xl font-extrabold text-amber-200">The store is taking a short break</p>
             <p className="mt-2 text-kmute">
@@ -76,7 +77,7 @@ export function StoreView({
                 ? "Back tomorrow — you're almost done!"
                 : `Back in ${reset.daysLeft} days. Finish your routines — you've got this.`}
             </p>
-          </div>
+          </KCard>
         ) : items.length === 0 ? (
           <p className="mt-10 text-center text-kmute">
             No rewards yet. A grown-up can add some in the Harbor app.
@@ -88,11 +89,11 @@ export function StoreView({
               const isGoal = item.kind === "goal";
               const pct = Math.min(100, item.cost_points ? (points / item.cost_points) * 100 : 100);
               return (
-                <div key={item.id} className="rounded-3xl bg-kpanel ring-1 ring-kline p-5">
+                <KCard key={item.id} className="p-5">
                   <div className="flex items-center gap-4">
                     <span className="text-5xl">{item.emoji ?? "🎁"}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-display text-xl font-bold">{item.label}</p>
+                      <p className="font-display text-xl font-bold text-ktext">{item.label}</p>
                       <p className="flex items-center gap-1 text-kmute">
                         <Star className="h-4 w-4 fill-beacon text-beacon" /> {item.cost_points}
                         {isGoal && <span className="ml-1">goal</span>}
@@ -109,10 +110,10 @@ export function StoreView({
                       className={cn(
                         "kiosk-tap mt-4 w-full rounded-2xl py-4 text-lg font-bold transition active:scale-[0.98]",
                         bought === item.id
-                          ? "bg-emerald-500 text-white"
+                          ? "bg-emerald-500 text-white shadow-k"
                           : affordable
-                            ? "bg-beacon text-harbor"
-                            : "bg-kpanel ring-1 ring-kline text-kmute",
+                            ? "bg-beacon text-harbor shadow-k hover:brightness-105 active:brightness-95"
+                            : "bg-kraise text-kmute ring-1 ring-kline/55",
                       )}
                     >
                       {bought === item.id ? (
@@ -131,7 +132,7 @@ export function StoreView({
                       {affordable ? "Goal reached! 🎉" : `${item.cost_points - points} stars to go`}
                     </p>
                   )}
-                </div>
+                </KCard>
               );
             })}
           </div>

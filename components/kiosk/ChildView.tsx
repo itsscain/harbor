@@ -181,7 +181,7 @@ export function ChildView({
               onClick={() => setRoutineId(r.id)}
               className={cn(
                 "kiosk-tap whitespace-nowrap rounded-full px-4 py-2 font-semibold transition",
-                r.id === activeRoutine?.id ? "bg-kwater text-harbor" : "bg-kpanel text-ktext ring-1 ring-kline",
+                r.id === activeRoutine?.id ? "bg-kwater text-harbor shadow-k" : "bg-kpanel text-ktext ring-1 ring-kline/55 hover:brightness-125",
               )}
             >
               {r.name}
@@ -250,7 +250,7 @@ export function ChildView({
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
                 <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
-                <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-muted sm:rotate-0" />
+                <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
                 <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : (
@@ -280,22 +280,22 @@ export function ChildView({
       </main>
 
       {/* Footer actions */}
-      <footer className="grid grid-cols-3 gap-3 border-t border-kline bg-kpanel/80 p-4 backdrop-blur">
+      <footer className="grid grid-cols-3 gap-3 border-t border-kline/50 bg-kbg2/80 p-4 backdrop-blur">
         <button
           onClick={() => setStoreOpen(true)}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline transition active:scale-[0.98]"
+          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
         >
           <Gift className="h-6 w-6 text-beacon" /> Store
         </button>
         <button
           onClick={() => setTimerOpen(true)}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline transition active:scale-[0.98]"
+          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
         >
           <TimerIcon className="h-6 w-6 text-kwater" /> Timer
         </button>
         <button
           onClick={onOpenCalm}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-beacon py-5 text-lg font-bold text-harbor shadow-k transition active:scale-[0.98]"
+          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-beacon py-5 text-lg font-bold text-harbor shadow-k transition hover:brightness-105 active:scale-[0.98]"
         >
           <Heart className="h-6 w-6" /> Calm
         </button>
@@ -362,13 +362,13 @@ function StepCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center justify-center gap-2 rounded-3xl border-2 p-4 text-center shadow-k transition",
+        "relative flex flex-col items-center justify-center gap-2 rounded-3xl p-4 text-center shadow-k ring-1 transition",
         big ? "min-h-52" : "min-h-36",
         done
-          ? "border-emerald-500/50 bg-emerald-500/15"
+          ? "bg-emerald-500/15 ring-emerald-500/40"
           : muted
-            ? "border-kline bg-kpanel/50 opacity-50 shadow-none"
-            : "border-kline bg-kpanel",
+            ? "bg-kpanel/40 opacity-50 shadow-none ring-kline/40"
+            : "bg-kpanel ring-kline/55",
       )}
     >
       <button
