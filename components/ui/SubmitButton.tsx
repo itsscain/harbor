@@ -24,10 +24,12 @@ export function SubmitButton({
 }) {
   const { pending } = useFormStatus();
   const wasPending = useRef(false);
+  // Synchronous in-flight latch — blocks a second (double-tap) submit in the
+  // window before `pending` flips, so forms never fire twice (no duplicate
+  // routines, children, points, etc.). Reset once the submit settles.
+  const submitting = useRef(false);
   const [saved, setSaved] = useState(false);
 
-  // When a submit completes in place (pending true → false without the tree
-  // being replaced by an error boundary), flash a brief confirmation.
   useEffect(() => {
     if (pending) {
       wasPending.current = true;
@@ -35,6 +37,7 @@ export function SubmitButton({
     }
     if (wasPending.current) {
       wasPending.current = false;
+      submitting.current = false;
       if (confirmSaved) {
         setSaved(true);
         const t = setTimeout(() => setSaved(false), 1800);
@@ -51,6 +54,13 @@ export function SubmitButton({
       size={size}
       className={className}
       aria-live="polite"
+      onClick={(e) => {
+        if (pending || submitting.current) {
+          e.preventDefault();
+          return;
+        }
+        submitting.current = true;
+      }}
     >
       {pending ? (
         (pendingText ?? "Working…")

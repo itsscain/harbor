@@ -254,6 +254,18 @@ export async function addRoutineFromTemplate(childId: string, formData: FormData
   if (!tpl) return;
   const supabase = await createClient();
 
+  // Guard against a double-tap creating the same routine twice.
+  const since = new Date(Date.now() - 10_000).toISOString();
+  const { data: dup } = await supabase
+    .from("routines")
+    .select("id")
+    .eq("child_id", childId)
+    .eq("name", tpl.name)
+    .is("deleted_at", null)
+    .gte("created_at", since)
+    .limit(1);
+  if (dup && dup.length) return;
+
   const { data: existing } = await supabase
     .from("routines")
     .select("sort_order")
@@ -350,6 +362,17 @@ export async function addGradeRoutines(childId: string, formData: FormData) {
   const bundle = GRADE_BUNDLES[key];
   if (!bundle) return;
   const supabase = await createClient();
+
+  // Guard against a double-tap adding the whole bundle twice (3+ routines in 10s).
+  const since = new Date(Date.now() - 10_000).toISOString();
+  const { count: recent } = await supabase
+    .from("routines")
+    .select("id", { count: "exact", head: true })
+    .eq("child_id", childId)
+    .is("deleted_at", null)
+    .gte("created_at", since);
+  if ((recent ?? 0) >= bundle.routines.length) return;
+
   const { data: existing } = await supabase
     .from("routines")
     .select("sort_order")

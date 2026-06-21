@@ -67,14 +67,14 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
       {/* Day-by-day controls */}
       <div className="mt-4 flex flex-wrap gap-2">
         <form action={adjustGrounding.bind(null, g.id, childId, -1)}>
-          <button className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-emerald-700 active:scale-[0.98]">
+          <SubmitButton size="sm" confirmSaved={false} className="bg-emerald-600 text-white hover:bg-emerald-700">
             <Sparkles className="h-4 w-4" /> Earn a day back
-          </button>
+          </SubmitButton>
         </form>
         <form action={adjustGrounding.bind(null, g.id, childId, 1)}>
-          <button className="inline-flex items-center gap-1.5 rounded-xl border border-harbor-100 px-3.5 py-2.5 text-sm font-semibold text-harbor transition hover:bg-harbor-50 active:scale-[0.98]">
+          <SubmitButton size="sm" variant="secondary" confirmSaved={false}>
             <Plus className="h-4 w-4" /> Add a day
-          </button>
+          </SubmitButton>
         </form>
         <form action={endGrounding.bind(null, g.id, childId)}>
           <ConfirmSubmit title="End the reset now?" confirmLabel="End now" message={`${childName}'s reset will end and the wall goes back to normal.`}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Star, X, Check } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskStoreItem } from "@/lib/kiosk/types";
@@ -25,6 +25,7 @@ export function StoreView({
   const { state } = kiosk;
   const [bought, setBought] = useState<string | null>(null);
   const [redeemed, setRedeemed] = useState<KioskStoreItem | null>(null);
+  const redeeming = useRef<Set<string>>(new Set());
   if (!state) return null;
 
   const points = state.points[childId] ?? 0;
@@ -37,6 +38,9 @@ export function StoreView({
   function buy(item: KioskStoreItem) {
     if (item.kind === "goal") return;
     if (item.cost_points > points) return;
+    if (redeeming.current.has(item.id)) return; // double-tap guard — never spend twice
+    redeeming.current.add(item.id);
+    setTimeout(() => redeeming.current.delete(item.id), 2200);
     kiosk.redeemStoreItem(childId, item);
     chime(settings.sound);
     haptic([20, 40, 20], settings.haptics);
@@ -101,7 +105,7 @@ export function StoreView({
                   {!isGoal && (
                     <button
                       onClick={() => buy(item)}
-                      disabled={!affordable}
+                      disabled={!affordable || bought === item.id}
                       className={cn(
                         "kiosk-tap mt-4 w-full rounded-2xl py-4 text-lg font-bold transition active:scale-[0.98]",
                         bought === item.id
