@@ -127,6 +127,15 @@ export type KioskWallMessage = {
   created_at: string;
 };
 
+export type KioskHouseRule = {
+  id: string;
+  kind: "rule" | "consequence";
+  title: string;
+  detail: string | null;
+  emoji: string | null;
+  sort_order: number;
+};
+
 export type KioskGrounding = {
   id: string;
   child_id: string;
@@ -166,6 +175,7 @@ export type KioskSnapshot = {
   chores?: KioskChore[];
   rewards: { child_id: string; points_total: number }[];
   calm_tools: KioskCalmTool[];
+  house_rules?: KioskHouseRule[];
   events: KioskEvent[];
   store_items: KioskStoreItem[];
   list_items: KioskListItem[];

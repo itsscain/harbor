@@ -620,6 +620,53 @@ export type Database = {
           },
         ]
       }
+      house_rules: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          detail: string | null
+          emoji: string | null
+          household_id: string
+          id: string
+          kind: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          detail?: string | null
+          emoji?: string | null
+          household_id: string
+          id?: string
+          kind?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          detail?: string | null
+          emoji?: string | null
+          household_id?: string
+          id?: string
+          kind?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_rules_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       households: {
         Row: {
           created_at: string

@@ -586,6 +586,119 @@ export async function deleteCalmTool(id: string) {
   revalidatePath("/app/calm");
 }
 
+// ── House rules + consequence ladder ──────────────────────────────────────────
+export async function addHouseRule(kind: string, formData: FormData) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const k = kind === "consequence" ? "consequence" : "rule";
+  const title = String(formData.get("title") || "").trim().slice(0, 80);
+  if (!title) return;
+  const detail = String(formData.get("detail") || "").trim().slice(0, 200) || null;
+  const emoji = String(formData.get("emoji") || "").trim().slice(0, 8) || null;
+  const supabase = await createClient();
+  const { data: last } = await supabase
+    .from("house_rules")
+    .select("sort_order")
+    .eq("household_id", household.id)
+    .eq("kind", k)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const sort_order = ((last?.[0]?.sort_order as number) ?? -1) + 1;
+  const { error } = await supabase.from("house_rules").insert({
+    household_id: household.id,
+    kind: k,
+    title,
+    detail,
+    emoji,
+    sort_order,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/rules");
+}
+
+export async function updateHouseRule(id: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const title = String(formData.get("title") || "").trim().slice(0, 80);
+  if (!title) return;
+  const detail = String(formData.get("detail") || "").trim().slice(0, 200) || null;
+  const emoji = String(formData.get("emoji") || "").trim().slice(0, 8) || null;
+  const { error } = await supabase.from("house_rules").update({ title, detail, emoji }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/rules");
+}
+
+export async function deleteHouseRule(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("house_rules")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/rules");
+}
+
+/** Move a rule/consequence up or down within its kind by swapping sort_order. */
+export async function moveHouseRule(id: string, dir: "up" | "down") {
+  await requireUser();
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("house_rules").select("id, household_id, kind").eq("id", id).maybeSingle();
+  if (!row) return;
+  const { data: siblings } = await supabase
+    .from("house_rules")
+    .select("id, sort_order")
+    .eq("household_id", row.household_id)
+    .eq("kind", row.kind)
+    .is("deleted_at", null)
+    .order("sort_order");
+  const list = siblings ?? [];
+  const idx = list.findIndex((s) => s.id === id);
+  const swap = dir === "up" ? idx - 1 : idx + 1;
+  if (idx < 0 || swap < 0 || swap >= list.length) return;
+  const a = list[idx];
+  const b = list[swap];
+  await supabase.from("house_rules").update({ sort_order: b.sort_order }).eq("id", a.id);
+  await supabase.from("house_rules").update({ sort_order: a.sort_order }).eq("id", b.id);
+  revalidatePath("/app/rules");
+}
+
+/** One-tap starter set: a few calm rules + a gentle consequence ladder. */
+export async function seedHouseRules() {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("house_rules")
+    .select("id", { count: "exact", head: true })
+    .eq("household_id", household.id)
+    .is("deleted_at", null);
+  if ((count ?? 0) > 0) return; // never double-seed
+  const rules = [
+    { emoji: "💛", title: "Be kind with words and hands" },
+    { emoji: "👂", title: "Listen the first time" },
+    { emoji: "🧹", title: "Clean up your own mess" },
+    { emoji: "✅", title: "Chores and routines before screens" },
+    { emoji: "🙏", title: "Tell the truth" },
+  ];
+  const ladder = [
+    { emoji: "💬", title: "Gentle reminder", detail: "A calm heads-up about the choice." },
+    { emoji: "⏸️", title: "Warning", detail: "Last chance to turn it around." },
+    { emoji: "📵", title: "Lose a privilege", detail: "Tablet or TV time for the day." },
+    { emoji: "🌱", title: "Reset", detail: "A short reset to start fresh." },
+  ];
+  const rows = [
+    ...rules.map((r, i) => ({ household_id: household.id, kind: "rule", title: r.title, emoji: r.emoji, detail: null, sort_order: i })),
+    ...ladder.map((r, i) => ({ household_id: household.id, kind: "consequence", title: r.title, emoji: r.emoji, detail: r.detail, sort_order: i })),
+  ];
+  const { error } = await supabase.from("house_rules").insert(rows);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/rules");
+}
+
 // ── Settings ─────────────────────────────────────────────────────────────────
 export async function updateHouseholdName(formData: FormData) {
   await requireUser();

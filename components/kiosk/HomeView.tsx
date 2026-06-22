@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Bell, Pin, ChevronRight, Lock } from "lucide-react";
+import { CalendarDays, Bell, Pin, ChevronRight, Lock, ScrollText } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
 import { eventsForDay, formatEventTime } from "@/lib/kiosk/calendar";
@@ -23,11 +23,13 @@ export function HomeView({
   kiosk,
   onSelectChild,
   onOpenCalendar,
+  onOpenHouseRules,
   onParentMenu,
 }: {
   kiosk: Kiosk;
   onSelectChild: (id: string) => void;
   onOpenCalendar: () => void;
+  onOpenHouseRules: () => void;
   onParentMenu: () => void;
 }) {
   const { state } = kiosk;
@@ -189,6 +191,24 @@ export function HomeView({
         </div>
         <ChevronRight className="h-5 w-5 shrink-0 text-kmute" />
       </button>
+
+      {(state.snapshot.house_rules ?? []).length > 0 && (
+        <button
+          onClick={onOpenHouseRules}
+          className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55 transition hover:brightness-110 active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300">
+              <ScrollText className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="font-display text-lg font-bold text-ktext">House Rules</p>
+              <p className="text-sm text-kmute">Our rules &amp; what happens</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-kmute" />
+        </button>
+      )}
     </div>
   );
 }

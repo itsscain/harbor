@@ -80,6 +80,7 @@ function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
       steps: mergeById(state.snapshot.steps, snap.steps ?? []),
       chores: mergeById(state.snapshot.chores ?? [], snap.chores ?? []),
       calm_tools: mergeById(state.snapshot.calm_tools, snap.calm_tools ?? []),
+      house_rules: mergeById(state.snapshot.house_rules ?? [], snap.house_rules ?? []),
       events: mergeById(state.snapshot.events ?? [], snap.events ?? []),
       store_items: mergeById(state.snapshot.store_items ?? [], snap.store_items ?? []),
       list_items: mergeById(state.snapshot.list_items ?? [], snap.list_items ?? []),

@@ -12,6 +12,7 @@ import { CalmCorner } from "./CalmCorner";
 import { ParentGate } from "./ParentGate";
 import { Screensaver, SleepMode } from "./Screensaver";
 import { VoiceButton } from "./VoiceButton";
+import { HouseRules } from "./HouseRules";
 import { KTabBar, KButton, KCard } from "./ui";
 import type { KTab } from "./ui";
 import { cn } from "@/lib/cn";
@@ -39,6 +40,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const { state } = kiosk;
   const [view, setView] = useState<View>({ k: "home" });
   const [calmOpen, setCalmOpen] = useState(false);
+  const [houseRulesOpen, setHouseRulesOpen] = useState(false);
   const [gate, setGate] = useState(false);
   const [menu, setMenu] = useState(false);
   const [asleep, setAsleep] = useState(false);
@@ -90,6 +92,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
         setAsleep(true);
         setView({ k: "home" });
         setCalmOpen(false);
+        setHouseRulesOpen(false);
         setMenu(false);
         setGate(false);
       }
@@ -128,6 +131,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
           kiosk={kiosk}
           onSelectChild={(id) => setView({ k: "child", id })}
           onOpenCalendar={() => setView({ k: "calendar" })}
+          onOpenHouseRules={() => setHouseRulesOpen(true)}
           onParentMenu={() => setGate(true)}
         />
       )}
@@ -155,6 +159,10 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
           onCheckIn={(f) => activeChildId && kiosk.checkIn(activeChildId, f)}
           onClose={() => setCalmOpen(false)}
         />
+      )}
+
+      {houseRulesOpen && (
+        <HouseRules rules={state.snapshot.house_rules ?? []} onClose={() => setHouseRulesOpen(false)} />
       )}
 
       {gate && (
