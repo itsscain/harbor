@@ -151,7 +151,7 @@ export function ChildView({
       >
         <button
           onClick={onHome}
-          className="kiosk-tap flex items-center gap-2 rounded-2xl bg-white/15 px-3 py-2 font-semibold"
+          className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 font-semibold"
         >
           <HomeIcon className="h-5 w-5" /> Home
         </button>
@@ -166,7 +166,7 @@ export function ChildView({
           <Star className="h-5 w-5 fill-beacon text-beacon" />
           <span
             key={points}
-            className={cn("font-display text-lg font-extrabold tabular-nums", !settings.reducedMotion && "animate-pop")}
+            className={cn("font-display text-lg font-bold tabular-nums", !settings.reducedMotion && "animate-pop")}
           >
             {points}
           </span>
@@ -193,7 +193,7 @@ export function ChildView({
 
       <main className="flex-1 p-4 sm:p-6">
         {grounding && (
-          <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+          <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4">
             <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => speak(grounding.lastDay ? "Last day of your reset. Finish strong!" : `You have ${grounding.daysLeft} days left on your reset. ${grounding.g.note ?? ""}`)}
@@ -201,7 +201,7 @@ export function ChildView({
               >
                 <span className="text-3xl">🌱</span>
                 <div className="min-w-0">
-                  <p className="font-display text-lg font-extrabold text-amber-200">
+                  <p className="font-display text-lg font-bold text-amber-200">
                     On a reset · Day {grounding.dayNum} of {grounding.total}
                   </p>
                   <p className="truncate text-sm text-amber-100/80">
@@ -223,7 +223,7 @@ export function ChildView({
             <NowNext steps={steps} sound={settings.sound} readAloud={settings.readAloud} />
 
             <div className="mb-3 flex items-center justify-between">
-              <h1 className="font-display text-2xl font-extrabold text-ktext">
+              <h1 className="font-display text-2xl font-bold text-ktext">
                 {activeRoutine.name}
               </h1>
               {scheduleSteps.length > 0 && (
@@ -243,7 +243,7 @@ export function ChildView({
             )}
 
             {allDone && (
-              <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
+              <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
                 🎉 All done! Great job, {child.name}!
               </div>
             )}
@@ -270,7 +270,7 @@ export function ChildView({
             )}
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center rounded-3xl border border-kline bg-kpanel p-10 text-center shadow-k">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-kline bg-kpanel p-10 text-center shadow-k">
             <span className="text-5xl">🗓️</span>
             <h3 className="mt-3 font-display text-xl font-bold text-ktext">No routines yet for {child.name}</h3>
             <p className="mt-1.5 max-w-sm text-kmute">
@@ -306,7 +306,7 @@ export function ChildView({
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
           <div className={cn("rounded-full bg-beacon px-10 py-8 text-center shadow-2xl", !settings.reducedMotion && "animate-reward")}>
             <Star className="mx-auto h-12 w-12 fill-harbor text-harbor" />
-            <p className="mt-1 font-display text-3xl font-extrabold text-harbor">
+            <p className="mt-1 font-display text-3xl font-bold text-harbor">
               +{celebrate.points}
             </p>
           </div>
@@ -321,11 +321,11 @@ export function ChildView({
         >
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className={cn("relative text-8xl", !settings.reducedMotion && "animate-pop")}>{child.avatar ?? "🎉"}</span>
-          <p className="relative mt-4 font-display text-4xl font-extrabold sm:text-5xl">You did it, {child.name}!</p>
+          <p className="relative mt-4 font-display text-4xl font-bold sm:text-5xl">You did it, {child.name}!</p>
           <p className="relative mt-2 text-xl text-seafoam">{activeRoutine?.name} complete</p>
           <div className={cn("relative mt-6 flex items-center gap-2 rounded-full bg-white/15 px-6 py-3", !settings.reducedMotion && "animate-reward")}>
             <Star className="h-7 w-7 fill-beacon text-beacon" />
-            <span className="font-display text-2xl font-extrabold">{points} stars</span>
+            <span className="font-display text-2xl font-bold">{points} stars</span>
           </div>
           <p className="relative mt-10 text-sm text-seafoam/70">Tap to keep going</p>
         </button>

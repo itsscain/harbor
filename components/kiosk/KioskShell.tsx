@@ -214,7 +214,7 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const lastSync = relativeTime(kiosk.lastSync);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <KCard className="w-full max-w-md rounded-b-none rounded-t-2xl p-5 shadow-k-pop sm:rounded-xl">
+      <KCard className="w-full max-w-md rounded-b-none rounded-t-xl p-5 shadow-k-pop sm:rounded-xl">
         <h2 className="font-display text-2xl font-bold text-ktext">Parent menu</h2>
         <p className="mt-1 text-sm text-kmute">
           {syncText || (kiosk.online ? "Online" : "Offline — the wall keeps working")}

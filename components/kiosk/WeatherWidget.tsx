@@ -52,9 +52,9 @@ export function WeatherWidget({ lat, lon, label }: { lat: number; lon: number; l
 
   if (!w) return null;
   return (
-    <div className="flex items-center gap-2 rounded-2xl bg-kpanel px-3 py-2 ring-1 ring-kline/55" title={`${weatherLabel(w.code)}${label ? ` · ${label}` : ""}`}>
+    <div className="flex items-center gap-2 rounded-xl bg-kpanel px-3 py-2 ring-1 ring-kline/55" title={`${weatherLabel(w.code)}${label ? ` · ${label}` : ""}`}>
       <span className="text-2xl leading-none">{weatherGlyph(w.code)}</span>
-      <span className="font-display text-xl font-extrabold text-ktext">{w.tempF}°</span>
+      <span className="font-display text-xl font-bold text-ktext">{w.tempF}°</span>
     </div>
   );
 }

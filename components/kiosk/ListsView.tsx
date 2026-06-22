@@ -37,7 +37,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
       <header className="mb-5 flex items-end justify-between gap-3">
         <div>
           <KEyebrow>Shared lists</KEyebrow>
-          <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">{meta.label}</h1>
+          <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">{meta.label}</h1>
         </div>
         <span className="pb-1 text-sm font-semibold text-kmute">{remaining} left</span>
       </header>

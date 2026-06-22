@@ -268,7 +268,7 @@ function TimeGrid({
               <span className={cn("text-xs font-semibold", isToday ? "text-kwater" : "text-kmute")}>{DOW[d.getDay()]}</span>
               <span
                 className={cn(
-                  "flex h-8 min-w-8 items-center justify-center rounded-full px-2 font-display text-lg font-extrabold",
+                  "flex h-8 min-w-8 items-center justify-center rounded-full px-2 font-display text-lg font-bold",
                   isToday ? "bg-kwater text-harbor" : "text-ktext",
                 )}
               >

@@ -59,7 +59,7 @@ export function StoreView({
         <div className="flex items-center gap-3">
           <KPill tone="beacon" className="px-4 py-2 text-lg">
             <Star className="h-5 w-5 fill-beacon text-beacon" />
-            <span className="font-display font-extrabold tabular-nums">{points}</span>
+            <span className="font-display font-bold tabular-nums">{points}</span>
           </KPill>
           <KIconButton onClick={onClose} className="kiosk-tap rounded-full" aria-label="Close store">
             <X className="h-5 w-5" />

@@ -61,7 +61,7 @@ export function TransitionTimer({
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <span
-            className={`font-display text-6xl font-extrabold tabular-nums ${done ? "text-beacon" : "text-ktext"}`}
+            className={`font-display text-6xl font-bold tabular-nums ${done ? "text-beacon" : "text-ktext"}`}
           >
             {done ? "✓" : `${mins}:${String(secs).padStart(2, "0")}`}
           </span>
