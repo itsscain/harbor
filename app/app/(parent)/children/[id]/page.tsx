@@ -9,6 +9,7 @@ import { StepRow } from "@/components/app/StepRow";
 import { GroundingCard } from "@/components/app/GroundingCard";
 import { ChildPhotoField } from "@/components/app/ChildPhotoField";
 import { SuggestChoresButton } from "@/components/app/SuggestChoresButton";
+import { AiProfileCard, type AiProfile } from "@/components/app/AiProfileCard";
 import { titleCase } from "@/lib/format";
 import {
   updateChild,
@@ -255,6 +256,14 @@ export default async function ChildDetail({
           <SubmitButton variant="secondary">Add chore</SubmitButton>
         </form>
       </Card>
+
+      <div className="mb-4">
+        <AiProfileCard
+          childId={child.id}
+          childName={child.name}
+          profile={(child.ai_profile as AiProfile) ?? null}
+        />
+      </div>
 
       <div className="mb-2 flex items-center gap-2 text-sm text-muted">
         <RefreshCw className="h-4 w-4" />

@@ -255,6 +255,7 @@ export type Database = {
       }
       children: {
         Row: {
+          ai_profile: Json | null
           avatar: string | null
           birthday: string | null
           color: string | null
@@ -269,6 +270,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_profile?: Json | null
           avatar?: string | null
           birthday?: string | null
           color?: string | null
@@ -283,6 +285,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_profile?: Json | null
           avatar?: string | null
           birthday?: string | null
           color?: string | null

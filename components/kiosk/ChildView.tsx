@@ -10,6 +10,7 @@ import {
   Gift,
   Home as HomeIcon,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
@@ -108,6 +109,9 @@ export function ChildView({
     state.progress[child.id]?.date === today ? state.progress[child.id].completed : [];
   const points = state.points[child.id] ?? 0;
   const grounding = activeGroundingFor(state.snapshot.groundings, child.id);
+  // Personalized encouragement from the child's AI profile (offline; rotates daily).
+  const encLines = child.ai_profile?.encouragement ?? [];
+  const encLine = encLines.length ? encLines[new Date().getDate() % encLines.length] : null;
 
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
@@ -209,6 +213,12 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
+        {encLine && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-kwater/10 p-3.5 ring-1 ring-kwater/25">
+            <Sparkles className="h-5 w-5 shrink-0 text-kwater" />
+            <p className="text-base font-medium text-ktext">{encLine}</p>
+          </div>
+        )}
         {grounding && (
           <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4">
             <div className="flex items-center justify-between gap-3">

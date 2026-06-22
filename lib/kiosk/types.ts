@@ -1,6 +1,15 @@
 // On-device kiosk types. The kiosk's source of truth is IndexedDB; these mirror
 // the snapshot returned by the rpc_kiosk_* functions plus local-only state.
 
+export type KioskChildProfile = {
+  summary?: string;
+  interests?: string[];
+  motivators?: string[];
+  encouragement?: string[];
+  note?: string | null;
+  updated_at?: string;
+};
+
 export type KioskChild = {
   id: string;
   name: string;
@@ -8,6 +17,7 @@ export type KioskChild = {
   photo_url: string | null;
   color: string | null;
   birthday: string | null;
+  ai_profile: KioskChildProfile | null;
   sort_order: number;
   settings: Record<string, unknown> | null;
 };

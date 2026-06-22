@@ -742,6 +742,88 @@ export async function generateInsight(): Promise<InsightResult> {
   }
 }
 
+export type ProfileResult = { ok: boolean; error?: string };
+
+/** Build/refresh a child's AI profile from their data (+ an optional parent note).
+ *  One Haiku call; the profile syncs to the wall and powers offline encouragement. */
+export async function buildChildProfile(childId: string, note: string | null): Promise<ProfileResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai || !ai.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+  const { data: child } = await supabase.from("children").select("name, birthday").eq("id", childId).maybeSingle();
+  if (!child) return { ok: false, error: "Child not found." };
+
+  let age: number | null = null;
+  if (child.birthday) {
+    const b = new Date(`${child.birthday}T00:00:00`);
+    const now = new Date();
+    age =
+      now.getFullYear() -
+      b.getFullYear() -
+      (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate()) ? 1 : 0);
+  }
+
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const [{ data: checkins }, { data: completions }, { data: routines }, { data: chores }] = await Promise.all([
+    supabase.from("check_ins").select("feeling").eq("child_id", childId).gte("created_at", since),
+    supabase.from("reward_log").select("delta").eq("child_id", childId).gt("delta", 0).gte("created_at", since),
+    supabase.from("routines").select("name").eq("child_id", childId).is("deleted_at", null),
+    supabase.from("chores").select("title").eq("child_id", childId).is("deleted_at", null),
+  ]);
+  const fc = new Map<string, number>();
+  (checkins ?? []).forEach((c) => fc.set(c.feeling, (fc.get(c.feeling) ?? 0) + 1));
+  const feelings =
+    [...fc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([f, n]) => `${f}×${n}`).join(", ") || "no check-ins";
+  const routineNames = (routines ?? []).map((r) => r.name).join(", ") || "none";
+  const choreNames = (chores ?? []).map((c) => c.title).join(", ") || "none";
+
+  try {
+    const res = await haikuJson<{
+      summary: string;
+      interests: string[];
+      motivators: string[];
+      encouragement: string[];
+    }>({
+      key: ai.key,
+      maxTokens: 800,
+      system:
+        "You build a brief, warm profile of a child to help a family wall app personalize encouragement. Be positive, specific, and age-appropriate. interests = things they likely enjoy. motivators = what helps them follow through (e.g. 'clear steps', 'a visual timer', 'specific praise'). encouragement = 5 short, warm, kid-facing cheer lines (max ~12 words each), second person, varied — the kind a caring grown-up would say.",
+      prompt: `Child: ${child.name}${age != null ? `, age ${age}` : ""}. Last 30 days — tasks finished: ${(completions ?? []).length}; feelings logged: ${feelings}. Their routines: ${routineNames}. Their chores: ${choreNames}.${note ? `\nParent note: ${note}` : ""}\nBuild the profile.`,
+      toolName: "save_profile",
+      schema: {
+        type: "object",
+        properties: {
+          summary: { type: "string" },
+          interests: { type: "array", items: { type: "string" } },
+          motivators: { type: "array", items: { type: "string" } },
+          encouragement: { type: "array", items: { type: "string" } },
+        },
+        required: ["summary", "interests", "motivators", "encouragement"],
+      },
+    });
+
+    const profile = {
+      summary: (res.summary || "").slice(0, 400),
+      interests: (res.interests || []).map((s) => s.slice(0, 40)).slice(0, 8),
+      motivators: (res.motivators || []).map((s) => s.slice(0, 60)).slice(0, 6),
+      encouragement: (res.encouragement || []).map((s) => s.slice(0, 120)).filter(Boolean).slice(0, 6),
+      note: note || null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("children").update({ ai_profile: profile }).eq("id", childId);
+    if (error) throw new Error(error.message);
+    revalidatePath(`/app/children/${childId}`);
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
+}
+
 /** Save the AI companion config (Anthropic key + enabled). The key is kept when
  *  the field is left blank, so toggling 'enabled' doesn't require re-entering it. */
 export async function saveAiConfig(formData: FormData) {
