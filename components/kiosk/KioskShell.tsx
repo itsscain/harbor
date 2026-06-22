@@ -11,6 +11,7 @@ import { ChoresView } from "./ChoresBoard";
 import { CalmCorner } from "./CalmCorner";
 import { ParentGate } from "./ParentGate";
 import { Screensaver, SleepMode } from "./Screensaver";
+import { VoiceButton } from "./VoiceButton";
 import { KTabBar, KButton, KCard } from "./ui";
 import type { KTab } from "./ui";
 import { cn } from "@/lib/cn";
@@ -181,6 +182,10 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
             setView({ k });
           }}
         />
+      )}
+
+      {!asleep && !gate && !menu && state.deviceSecret && (
+        <VoiceButton deviceSecret={state.deviceSecret} onActed={() => void kiosk.syncNow()} />
       )}
 
       {asleep && inQuietHours(quietStart, quietEnd) ? (
