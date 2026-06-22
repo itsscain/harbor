@@ -565,6 +565,7 @@ export type Database = {
           note: string | null
           pause_rewards: boolean
           pause_screen_time: boolean
+          privileges_lost: Json | null
           reason: string | null
           started_on: string
           status: string
@@ -580,6 +581,7 @@ export type Database = {
           note?: string | null
           pause_rewards?: boolean
           pause_screen_time?: boolean
+          privileges_lost?: Json | null
           reason?: string | null
           started_on?: string
           status?: string
@@ -595,6 +597,7 @@ export type Database = {
           note?: string | null
           pause_rewards?: boolean
           pause_screen_time?: boolean
+          privileges_lost?: Json | null
           reason?: string | null
           started_on?: string
           status?: string

@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from "react";
-import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
+import { MapPin, ChevronLeft, ChevronRight, X, Repeat, User, Flag, Volume2 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { eventsForDay, occursOn, formatEventTime } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
-import type { KioskEvent } from "@/lib/kiosk/types";
+import type { KioskEvent, KioskChild } from "@/lib/kiosk/types";
 import { speak } from "@/lib/kiosk/feedback";
 import { ChildAvatar } from "./ChildAvatar";
+import { KIconButton } from "./ui";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -84,6 +85,12 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
   const [filter, setFilter] = useState<string | null>(null);
+  const [selected, setSelected] = useState<KioskEvent | null>(null);
+  const selChild = selected?.child_id ? children.find((c) => c.id === selected.child_id) ?? null : null;
+  // If a sync removes the open event, close the detail overlay so it never shows stale data.
+  useEffect(() => {
+    if (selected && !events.some((e) => e.id === selected.id)) setSelected(null);
+  }, [events, selected]);
 
   const dayEvents = (d: Date): KioskEvent[] => {
     const evs = eventsForDay(events, d);
@@ -189,14 +196,14 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
         {view === "agenda" && (
           <div className="mx-auto h-full max-w-3xl overflow-y-auto">
-            <AgendaView events={events} filter={filter} childrenById={childrenById} />
+            <AgendaView events={events} filter={filter} childrenById={childrenById} onOpen={setSelected} />
           </div>
         )}
         {view === "day" && (
-          <TimeGrid days={[anchor]} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} />
+          <TimeGrid days={[anchor]} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} onOpen={setSelected} />
         )}
         {view === "week" && (
-          <TimeGrid days={weekDays} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} onPickDay={(d) => { setAnchor(d); setView("day"); }} />
+          <TimeGrid days={weekDays} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} onOpen={setSelected} onPickDay={(d) => { setAnchor(d); setView("day"); }} />
         )}
         {view === "month" && (
           <div className="mx-auto h-full max-w-5xl overflow-y-auto">
@@ -204,6 +211,15 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
           </div>
         )}
       </main>
+
+      {selected && (
+        <EventDetail
+          event={selected}
+          child={selChild}
+          color={eventColor(selected, childrenById)}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
@@ -213,12 +229,14 @@ function TimeGrid({
   dayEvents,
   allDayFor,
   childrenById,
+  onOpen,
   onPickDay,
 }: {
   days: Date[];
   dayEvents: (d: Date) => KioskEvent[];
   allDayFor: (d: Date) => KioskEvent[];
   childrenById: Map<string, { id: string; color?: string | null }>;
+  onOpen?: (e: KioskEvent) => void;
   onPickDay?: (d: Date) => void;
 }) {
   const now = new Date();
@@ -301,7 +319,7 @@ function TimeGrid({
                 return (
                   <button
                     key={e.id}
-                    onClick={() => speak(e.title)}
+                    onClick={() => onOpen?.(e)}
                     className="block w-full truncate rounded-md px-1.5 py-1 text-left text-xs font-semibold text-ktext"
                     style={{ background: color + "33", borderLeft: `3px solid ${color}` }}
                   >
@@ -346,7 +364,7 @@ function TimeGrid({
                   return (
                     <button
                       key={e.id}
-                      onClick={() => speak(`${e.title} at ${formatEventTime(e)}`)}
+                      onClick={() => onOpen?.(e)}
                       className="absolute overflow-hidden rounded-lg px-1.5 py-1 text-left transition active:scale-[0.98]"
                       style={{
                         top,
@@ -381,11 +399,11 @@ function TimeGrid({
   );
 }
 
-function EventRow({ event, color }: { event: KioskEvent; color: string }) {
+function EventRow({ event, color, onOpen }: { event: KioskEvent; color: string; onOpen: (e: KioskEvent) => void }) {
   return (
     <button
-      onClick={() => speak(`${event.title} at ${formatEventTime(event)}`)}
-      className="flex w-full items-center gap-3 rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55"
+      onClick={() => onOpen(event)}
+      className="flex w-full items-center gap-3 rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55 transition active:scale-[0.99]"
       style={{ borderLeft: `6px solid ${color}` }}
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ backgroundColor: color + "33" }}>
@@ -409,10 +427,12 @@ function AgendaView({
   events,
   filter,
   childrenById,
+  onOpen,
 }: {
   events: KioskEvent[];
   filter: string | null;
   childrenById: Map<string, { id: string; color?: string | null }>;
+  onOpen: (e: KioskEvent) => void;
 }) {
   const base = startOfDay(new Date());
   const days: { date: Date; evs: KioskEvent[] }[] = [];
@@ -433,7 +453,7 @@ function AgendaView({
             {date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           </p>
           <div className="space-y-2">
-            {evs.map((e) => <EventRow key={e.id} event={e} color={eventColor(e, childrenById)} />)}
+            {evs.map((e) => <EventRow key={e.id} event={e} color={eventColor(e, childrenById)} onOpen={onOpen} />)}
           </div>
         </div>
       ))}
@@ -487,6 +507,113 @@ function MonthGrid({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function recurrenceLabel(rule: string): string | null {
+  if (!rule) return null;
+  if (rule === "daily") return "Repeats every day";
+  if (rule === "weekdays") return "Every weekday";
+  if (rule === "weekly" || rule.startsWith("weekly:")) return "Repeats weekly";
+  if (rule === "monthly") return "Repeats monthly";
+  return "Repeats";
+}
+
+/** Skylight-style event detail — tap any event to see the full picture.
+ *  Bottom-sheet on the wall, centered on wider screens. Reads itself aloud on
+ *  open; closes on Done, the X, the backdrop, or Esc. */
+function EventDetail({
+  event,
+  child,
+  color,
+  onClose,
+}: {
+  event: KioskEvent;
+  child: KioskChild | null;
+  color: string;
+  onClose: () => void;
+}) {
+  const dateStr = new Date(event.starts_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const allDay = isAllDayish(event);
+  const timeStr = allDay ? "All day" : formatEventTime(event);
+  const recurrence = recurrenceLabel(event.recurrence_rule ?? "");
+  const spoken =
+    `${event.title}. ${dateStr}. ${timeStr}.` +
+    (event.person_label ? ` ${event.person_label}.` : "") +
+    (event.location ? ` At ${event.location}.` : "") +
+    (event.responsible_label ? ` ${event.responsible_label}.` : "");
+
+  useEffect(() => {
+    speak(spoken);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const rows: { key: string; node: ReactNode }[] = [];
+  if (child) rows.push({ key: "child", node: (<><ChildAvatar child={child} size={22} rounded="rounded-full" /><span>{child.name}</span></>) });
+  if (event.person_label && event.person_label !== child?.name)
+    rows.push({ key: "person", node: (<><User className="h-4 w-4 text-kmute" /><span>{event.person_label}</span></>) });
+  if (event.location) rows.push({ key: "loc", node: (<><MapPin className="h-4 w-4 text-kmute" /><span>{event.location}</span></>) });
+  if (event.responsible_label) rows.push({ key: "resp", node: (<><Flag className="h-4 w-4 text-kmute" /><span>{event.responsible_label}</span></>) });
+  if (recurrence) rows.push({ key: "rec", node: (<><Repeat className="h-4 w-4 text-kmute" /><span>{recurrence}</span></>) });
+
+  return (
+    <div
+      onClick={onClose}
+      className="animate-enter fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={event.title}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-2xl bg-kpanel shadow-k-pop ring-1 ring-kline/55 sm:rounded-2xl"
+        style={{ borderTop: `4px solid ${color}` }}
+      >
+        <div className="flex items-start gap-3 p-5">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ backgroundColor: color + "33" }}>
+            {event.emoji ?? "📅"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="break-words font-display text-2xl font-bold leading-tight text-ktext">{event.title}</h2>
+            <p className="mt-1 text-sm font-semibold text-kwater">{dateStr} · {timeStr}</p>
+          </div>
+          <KIconButton onClick={onClose} aria-label="Close">
+            <X className="h-5 w-5" />
+          </KIconButton>
+        </div>
+
+        {rows.length > 0 && (
+          <div className="space-y-2.5 border-t border-kline/50 px-5 py-4">
+            {rows.map((r) => (
+              <div key={r.key} className="flex items-center gap-2.5 text-sm text-ktext">
+                {r.node}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 border-t border-kline/50 p-4">
+          <button
+            onClick={() => speak(spoken)}
+            aria-label="Read aloud"
+            className="kiosk-tap flex items-center justify-center gap-2 rounded-xl bg-kraise px-4 text-sm font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
+          >
+            <Volume2 className="h-5 w-5 text-kwater" /> Read aloud
+          </button>
+          <button
+            onClick={onClose}
+            className="kiosk-tap flex-1 rounded-xl bg-kwater py-3 text-sm font-semibold text-harbor transition hover:brightness-105 active:scale-[0.98]"
+          >
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );

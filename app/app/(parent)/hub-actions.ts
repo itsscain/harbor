@@ -202,6 +202,23 @@ export async function deleteMeal(id: string) {
 }
 
 // ── Grounding / Reset days ───────────────────────────────────────────────────
+/** Parse a JSON string[] from a form field into a clean, capped list (or null). */
+function strList(v: FormDataEntryValue | null): string[] | null {
+  if (typeof v !== "string" || !v) return null;
+  try {
+    const parsed: unknown = JSON.parse(v);
+    if (!Array.isArray(parsed)) return null;
+    const out = parsed
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim().slice(0, 30))
+      .filter(Boolean)
+      .slice(0, 12);
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Add days to a YYYY-MM-DD date string (UTC math → no timezone drift). */
 function addDaysStr(startStr: string, n: number): string {
   const [y, m, d] = startStr.split("-").map(Number);
@@ -227,6 +244,7 @@ export async function startGrounding(childId: string, formData: FormData) {
     ends_on,
     pause_rewards: formData.get("pause_rewards") === "on",
     pause_screen_time: formData.get("pause_screen_time") === "on",
+    privileges_lost: strList(formData.get("privileges")),
     status: "active",
   });
   // 23505 = the one-active-per-child unique index fired on a concurrent double-fire;
@@ -263,6 +281,7 @@ export async function updateGrounding(id: string, childId: string, formData: For
       note: str(formData.get("note")),
       pause_rewards: formData.get("pause_rewards") === "on",
       pause_screen_time: formData.get("pause_screen_time") === "on",
+      privileges_lost: strList(formData.get("privileges")),
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

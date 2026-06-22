@@ -188,7 +188,21 @@ export default async function ChildDetail({
       </Card>
 
       <div className="mb-4">
-        <GroundingCard childId={child.id} childName={child.name} grounding={grounding} />
+        <GroundingCard
+          childId={child.id}
+          childName={child.name}
+          grounding={
+            grounding
+              ? {
+                  ...grounding,
+                  privileges_lost:
+                    Array.isArray(grounding.privileges_lost) && grounding.privileges_lost.every((x) => typeof x === "string")
+                      ? (grounding.privileges_lost as string[])
+                      : null,
+                }
+              : null
+          }
+        />
       </div>
 
       {/* Chores */}

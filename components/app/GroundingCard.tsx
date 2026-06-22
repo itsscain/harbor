@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, ShieldAlert, Sparkles, Gift, MonitorSmartphone } from "lucide-react";
+import { useState } from "react";
+import { Plus, ShieldAlert, Sparkles, Gift, MonitorSmartphone, Ban, X } from "lucide-react";
 import { startGrounding, adjustGrounding, updateGrounding, endGrounding } from "@/app/app/(parent)/hub-actions";
 import { Card, Field, Input, Switch, Badge } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -15,8 +16,83 @@ type G = {
   ends_on: string;
   pause_rewards: boolean;
   pause_screen_time: boolean;
+  privileges_lost: string[] | null;
   status: string;
 };
+
+const PRIV_PRESETS = ["No TV", "No tablet time", "No video games", "No phone", "No friends over", "No dessert", "No outings"];
+
+/** Pick the privileges paused during a reset — preset bubbles + your own.
+ *  Serializes to a hidden "privileges" field (JSON) read by the server action. */
+function PrivilegesPicker({ defaultValue }: { defaultValue?: string[] | null }) {
+  const [list, setList] = useState<string[]>(defaultValue ?? []);
+  const [draft, setDraft] = useState("");
+  const add = (v: string) => {
+    const t = v.trim().slice(0, 30);
+    if (!t || list.some((x) => x.toLowerCase() === t.toLowerCase()) || list.length >= 12) return;
+    setList((l) => [...l, t]);
+  };
+  const remove = (v: string) => setList((l) => l.filter((x) => x !== v));
+  const available = PRIV_PRESETS.filter((p) => !list.some((x) => x.toLowerCase() === p.toLowerCase()));
+
+  return (
+    <Field label="Privileges paused (optional)" hint="Shown as bubbles on the wall and read aloud.">
+      <input type="hidden" name="privileges" value={JSON.stringify(list)} />
+      {list.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {list.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => remove(p)}
+              className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 transition hover:bg-amber-200"
+            >
+              {p} <X className="h-3.5 w-3.5" />
+            </button>
+          ))}
+        </div>
+      )}
+      {available.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {available.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => add(p)}
+              className="rounded-full border border-harbor-100 px-3 py-1 text-sm text-muted transition hover:border-amber-300 hover:text-amber-700"
+            >
+              + {p}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 flex gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Add your own…"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add(draft);
+              setDraft("");
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            add(draft);
+            setDraft("");
+          }}
+          className="shrink-0 rounded-xl bg-harbor px-4 text-sm font-semibold text-white transition hover:bg-harbor-700 active:scale-[0.98]"
+        >
+          Add
+        </button>
+      </div>
+    </Field>
+  );
+}
 
 function localToday() {
   const d = new Date();
@@ -62,6 +138,9 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
       <div className="mt-2 flex flex-wrap gap-2">
         {g.pause_rewards && <Badge tone="gray"><Gift className="mr-1 h-3 w-3" />Store paused</Badge>}
         {g.pause_screen_time && <Badge tone="gray"><MonitorSmartphone className="mr-1 h-3 w-3" />Screen time paused</Badge>}
+        {(g.privileges_lost ?? []).map((p) => (
+          <Badge key={p} tone="amber"><Ban className="mr-1 h-3 w-3" />{p}</Badge>
+        ))}
       </div>
 
       {/* Day-by-day controls */}
@@ -96,6 +175,7 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
             <Switch name="pause_screen_time" label="Pause screen-time rewards" defaultChecked={g.pause_screen_time} />
           </div>
         </div>
+        <PrivilegesPicker defaultValue={g.privileges_lost} />
         <SubmitButton size="sm" variant="secondary">Save the plan</SubmitButton>
       </form>
     </Card>
@@ -133,6 +213,7 @@ function Start({ childId, childName }: { childId: string; childName: string }) {
             <Switch name="pause_screen_time" label="Pause screen-time rewards" />
           </div>
         </div>
+        <PrivilegesPicker />
         <SubmitButton variant="secondary" className={cn("border-amber-300 text-amber-800")} confirmSaved={false}>
           Start the reset
         </SubmitButton>

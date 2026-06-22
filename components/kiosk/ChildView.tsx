@@ -11,6 +11,7 @@ import {
   Home as HomeIcon,
   ArrowRight,
   Sparkles,
+  Ban,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
@@ -235,7 +236,13 @@ export function ChildView({
           <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4">
             <div className="flex items-center justify-between gap-3">
               <button
-                onClick={() => speak(grounding.lastDay ? "Last day of your reset. Finish strong!" : `You have ${grounding.daysLeft} days left on your reset. ${grounding.g.note ?? ""}`)}
+                onClick={() =>
+                  speak(
+                    (grounding.lastDay ? "Last day of your reset. Finish strong!" : `You have ${grounding.daysLeft} days left on your reset.`) +
+                      (grounding.g.note ? ` ${grounding.g.note}` : "") +
+                      ((grounding.g.privileges_lost ?? []).length ? ` Paused for now: ${(grounding.g.privileges_lost ?? []).join(", ")}.` : ""),
+                  )
+                }
                 className="flex min-w-0 items-center gap-3 text-left"
               >
                 <span className="text-3xl">🌱</span>
@@ -255,6 +262,18 @@ export function ChildView({
                 ))}
               </div>
             </div>
+            {(grounding.g.privileges_lost ?? []).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {(grounding.g.privileges_lost ?? []).map((p) => (
+                  <span
+                    key={p}
+                    className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-200 ring-1 ring-amber-400/30"
+                  >
+                    <Ban className="h-3 w-3" /> {p}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {activeRoutine ? (

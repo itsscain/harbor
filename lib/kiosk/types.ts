@@ -136,6 +136,7 @@ export type KioskGrounding = {
   ends_on: string;
   pause_rewards: boolean;
   pause_screen_time: boolean;
+  privileges_lost: string[] | null;
   status: string;
 };
 

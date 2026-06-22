@@ -110,12 +110,18 @@ export function ChoresBoard({
                 {reset.g.pause_rewards && (
                   <span className="rounded-full bg-kraise px-2.5 py-1 text-xs font-medium text-kmute ring-1 ring-kline/55">No rewards store</span>
                 )}
-                {(reset.g.reason || reset.g.note) && (
+                {(reset.g.privileges_lost ?? []).map((p) => (
+                  <span key={p} className="rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-200 ring-1 ring-amber-400/30">
+                    {p}
+                  </span>
+                ))}
+                {(reset.g.reason || reset.g.note || (reset.g.privileges_lost ?? []).length > 0) && (
                   <button
                     onClick={() =>
                       speak(
-                        `${reset.g.reason ? `This reset is about ${reset.g.reason}. ` : ""}${reset.g.note ?? ""}`.trim() ||
-                          "Hang in there — you've got this.",
+                        `${reset.g.reason ? `This reset is about ${reset.g.reason}. ` : ""}${reset.g.note ?? ""}${
+                          (reset.g.privileges_lost ?? []).length ? ` Paused for now: ${(reset.g.privileges_lost ?? []).join(", ")}.` : ""
+                        }`.trim() || "Hang in there — you've got this.",
                       )
                     }
                     aria-label={`Why is ${child.name} on a reset?`}
