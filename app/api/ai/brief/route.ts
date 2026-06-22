@@ -9,7 +9,7 @@ type Meal = { title: string; emoji: string | null; meal_type: string };
  *  AI on) a short cached daily brief. Generated at most once per household/day.
  *  The Anthropic key is read + used here server-side only — never sent to the wall. */
 export async function POST(req: Request) {
-  let body: { device_secret?: string; date?: string };
+  let body: { device_secret?: string; date?: string; tzOffsetMinutes?: number };
   try {
     body = await req.json();
   } catch {
@@ -45,14 +45,14 @@ export async function POST(req: Request) {
     .order("sort_order");
   const meals: Meal[] = (mealsRows ?? []).map((m) => ({ title: m.title, emoji: m.emoji, meal_type: m.meal_type }));
 
-  // Already generated today? Serve the cache (no AI spend).
-  const { data: cached } = await admin
+  // Already have today's brief (or a claim placeholder)? Serve it — never re-call.
+  const { data: existing } = await admin
     .from("ai_briefs")
     .select("brief")
     .eq("household_id", household_id)
     .eq("date", date)
     .maybeSingle();
-  if (cached) return NextResponse.json({ brief: cached.brief, meals });
+  if (existing) return NextResponse.json({ brief: existing.brief || null, meals });
 
   const { data: cfg } = await admin
     .from("ai_config")
@@ -63,10 +63,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ brief: null, meals });
   }
 
-  // Gather a small same-day context (kept minimal for cost).
-  const next = new Date(`${date}T00:00:00Z`);
-  next.setUTCDate(next.getUTCDate() + 1);
-  const nextDate = next.toISOString().slice(0, 10);
+  // Claim today's slot atomically so only ONE request generates (caps spend to
+  // once/household/day even across devices, retries, or a failing key).
+  const { data: claim } = await admin
+    .from("ai_briefs")
+    .upsert({ household_id, date, brief: "" }, { onConflict: "household_id,date", ignoreDuplicates: true })
+    .select("household_id");
+  if (!claim || claim.length === 0) {
+    const { data: row } = await admin
+      .from("ai_briefs")
+      .select("brief")
+      .eq("household_id", household_id)
+      .eq("date", date)
+      .maybeSingle();
+    return NextResponse.json({ brief: row?.brief || null, meals });
+  }
+
+  // Same-day event window in the household's local timezone (kiosk sends offset).
+  const offsetMin = Number.isFinite(body.tzOffsetMinutes) ? (body.tzOffsetMinutes as number) : 0;
+  const startMs = new Date(`${date}T00:00:00Z`).getTime() + offsetMin * 60_000;
+  const startIso = new Date(startMs).toISOString();
+  const endIso = new Date(startMs + 86_400_000).toISOString();
   const [{ data: kids }, { data: events }] = await Promise.all([
     admin.from("children").select("name").eq("household_id", household_id).is("deleted_at", null),
     admin
@@ -74,8 +91,8 @@ export async function POST(req: Request) {
       .select("title, starts_at")
       .eq("household_id", household_id)
       .is("deleted_at", null)
-      .gte("starts_at", `${date}T00:00:00Z`)
-      .lt("starts_at", `${nextDate}T00:00:00Z`)
+      .gte("starts_at", startIso)
+      .lt("starts_at", endIso)
       .order("starts_at"),
   ]);
 
@@ -91,14 +108,13 @@ export async function POST(req: Request) {
         "You are Harbor, a warm, upbeat family wall assistant. Write a short daily brief (max 40 words, 1–2 sentences) for a family's wall display. Be encouraging and concrete. Do NOT start with a greeting like 'Good morning' (the screen already shows one).",
       prompt: `Family kids: ${kidNames}. Today's plans: ${eventList}. Tonight's dinner: ${dinner}. Write today's brief.`,
     });
+    // Fill the claimed row (leave it empty on a blank result — we won't re-call today).
     if (brief) {
-      await admin
-        .from("ai_briefs")
-        .upsert({ household_id, date, brief }, { onConflict: "household_id,date" });
+      await admin.from("ai_briefs").update({ brief }).eq("household_id", household_id).eq("date", date);
     }
     return NextResponse.json({ brief: brief || null, meals });
   } catch (e) {
-    // Don't fail the screensaver over AI — just return meals.
+    // Leave the empty claim so we don't hammer the API today; just return meals.
     return NextResponse.json({ brief: null, meals, note: aiErrorMessage(e) });
   }
 }

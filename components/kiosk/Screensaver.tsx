@@ -36,7 +36,7 @@ export function Screensaver({
     fetch("/api/ai/brief", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ device_secret: deviceSecret, date }),
+      body: JSON.stringify({ device_secret: deviceSecret, date, tzOffsetMinutes: d.getTimezoneOffset() }),
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {

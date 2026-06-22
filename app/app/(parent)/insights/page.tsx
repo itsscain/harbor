@@ -5,6 +5,7 @@ import { getMyHousehold, plusActive } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Button, Badge, Stat } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AiInsightCard } from "@/components/app/AiInsightCard";
 
 export const metadata = { title: "Insights" };
 export const dynamic = "force-dynamic";
@@ -104,6 +105,10 @@ export default async function InsightsPage() {
   return (
     <>
       <PageHeader eyebrow="Connect" icon={<TrendingUp className="h-6 w-6" />} title="Gentle insights" actions={<Badge tone="green">Plus</Badge>} />
+
+      <div className="mb-4">
+        <AiInsightCard />
+      </div>
 
       <div className="mb-4 grid grid-cols-3 gap-3">
         <Stat label="Steps this week" value={totalSteps} accent />

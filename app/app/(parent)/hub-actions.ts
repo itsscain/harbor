@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
-import { getHouseholdAi, haikuJson, aiErrorMessage } from "@/lib/ai/anthropic";
+import { getHouseholdAi, haikuJson, haikuText, aiErrorMessage } from "@/lib/ai/anthropic";
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -529,7 +529,11 @@ export async function generateMealPlan(): Promise<MealPlanResult> {
       },
     });
 
-    const valid = (result.meals ?? []).filter((m) => openDates.includes(m.date) && m.title?.trim());
+    const filtered = (result.meals ?? []).filter((m) => openDates.includes(m.date) && m.title?.trim());
+    // Collapse to one dinner per date (the model can occasionally repeat a date).
+    const byDate = new Map<string, (typeof filtered)[number]>();
+    for (const m of filtered) if (!byDate.has(m.date)) byDate.set(m.date, m);
+    const valid = [...byDate.values()];
     if (valid.length === 0) return { ok: false, error: "The AI didn't return usable meals — try again." };
 
     const noteFor = (m: { uses?: string[]; needs?: string[] }): string | null => {
@@ -586,6 +590,153 @@ export async function generateMealPlan(): Promise<MealPlanResult> {
     revalidatePath("/app/meals");
     revalidatePath("/app/lists");
     return { ok: true, added: valid.length, groceryAdded, usedPantry };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
+}
+
+export type SuggestChoresResult = { ok: boolean; error?: string; added?: number };
+
+/** AI chore suggestions — age-aware (from the child's birthday). Inserts a handful
+ *  of fresh, age-appropriate chores the parent can keep or remove. */
+export async function suggestChores(childId: string): Promise<SuggestChoresResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai || !ai.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+  const { data: child } = await supabase
+    .from("children")
+    .select("name, birthday")
+    .eq("id", childId)
+    .maybeSingle();
+  if (!child) return { ok: false, error: "Child not found." };
+
+  let age: number | null = null;
+  if (child.birthday) {
+    const b = new Date(`${child.birthday}T00:00:00`);
+    const now = new Date();
+    age =
+      now.getFullYear() -
+      b.getFullYear() -
+      (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate()) ? 1 : 0);
+  }
+
+  const { data: existing } = await supabase
+    .from("chores")
+    .select("title")
+    .eq("child_id", childId)
+    .is("deleted_at", null);
+  const have = (existing ?? []).map((c) => c.title);
+  const haveLower = new Set(have.map((h) => h.toLowerCase().trim()));
+
+  try {
+    const res = await haikuJson<{ chores: { title: string; icon: string; points: number }[] }>({
+      key: ai.key,
+      maxTokens: 600,
+      system:
+        "You suggest age-appropriate household chores for kids. Each chore: a short title, one fitting emoji icon, and a fair star value 2–15 based on effort. Keep them realistic, varied, and safe for the child's age.",
+      prompt: `Suggest 5 chores for ${child.name}${age != null ? `, age ${age}` : ""}. Do NOT repeat any of these they already have: ${have.join(", ") || "none"}.`,
+      toolName: "suggest_chores",
+      schema: {
+        type: "object",
+        properties: {
+          chores: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                icon: { type: "string" },
+                points: { type: "number" },
+              },
+              required: ["title", "icon", "points"],
+            },
+          },
+        },
+        required: ["chores"],
+      },
+    });
+
+    const fresh = (res.chores ?? [])
+      .filter((c) => c.title?.trim() && !haveLower.has(c.title.toLowerCase().trim()))
+      .slice(0, 6);
+    if (!fresh.length) return { ok: false, error: "No fresh suggestions — try again." };
+
+    const { data: ord } = await supabase
+      .from("chores")
+      .select("sort_order")
+      .eq("child_id", childId)
+      .order("sort_order", { ascending: false })
+      .limit(1);
+    let so = ((ord?.[0]?.sort_order as number) ?? -1) + 1;
+    const { error } = await supabase.from("chores").insert(
+      fresh.map((c) => ({
+        household_id,
+        child_id: childId,
+        title: c.title.trim().slice(0, 60),
+        icon: (c.icon || "✅").slice(0, 8),
+        points: Math.max(0, Math.min(50, Math.round(c.points || 5))),
+        sort_order: so++,
+      })),
+    );
+    if (error) throw new Error(error.message);
+    revalidatePath(`/app/children/${childId}`);
+    return { ok: true, added: fresh.length };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
+}
+
+export type InsightResult = { ok: boolean; error?: string; text?: string };
+
+/** AI family insight — a warm narrative over the last 2 weeks of completions +
+ *  feelings, with gentle suggestions. On-demand (only spends when clicked). */
+export async function generateInsight(): Promise<InsightResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai || !ai.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+  const { data: children } = await supabase
+    .from("children")
+    .select("id, name")
+    .eq("household_id", household_id)
+    .is("deleted_at", null);
+  const ids = (children ?? []).map((c) => c.id);
+  if (!ids.length) return { ok: false, error: "Add a child first." };
+
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const [{ data: completions }, { data: checkins }] = await Promise.all([
+    supabase.from("reward_log").select("created_at, delta, child_id").in("child_id", ids).gt("delta", 0).gte("created_at", since),
+    supabase.from("check_ins").select("feeling, created_at, child_id").in("child_id", ids).gte("created_at", since),
+  ]);
+
+  const lines = (children ?? []).map((c) => {
+    const comp = (completions ?? []).filter((x) => x.child_id === c.id).length;
+    const feels = (checkins ?? []).filter((x) => x.child_id === c.id);
+    const fc = new Map<string, number>();
+    feels.forEach((f) => fc.set(f.feeling, (fc.get(f.feeling) ?? 0) + 1));
+    const top =
+      [...fc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([f, n]) => `${f}×${n}`).join(", ") ||
+      "no check-ins";
+    return `${c.name}: ${comp} tasks done in 2 weeks; feelings: ${top}`;
+  });
+
+  try {
+    const text = await haikuText({
+      key: ai.key,
+      maxTokens: 320,
+      system:
+        "You are Harbor, a warm, supportive family insights assistant. From two weeks of data, write 3–4 short sentences: what's going well, any gentle rhythm/pattern, and 1–2 concrete kind suggestions. Frame everything as structure and encouragement — never labels or diagnosis.",
+      prompt: `Family over the last 2 weeks:\n${lines.join("\n")}\n\nWrite the insight.`,
+    });
+    if (!text) return { ok: false, error: "The AI didn't return a summary — try again." };
+    return { ok: true, text };
   } catch (e) {
     return { ok: false, error: aiErrorMessage(e) };
   }

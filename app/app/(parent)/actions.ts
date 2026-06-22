@@ -152,12 +152,19 @@ export async function createChore(childId: string, formData: FormData) {
     .order("sort_order", { ascending: false })
     .limit(1);
   const sort_order = ((existing?.[0]?.sort_order as number) ?? -1) + 1;
+  // Day-of-week selection: empty or all 7 == every day (stored as null).
+  const days = formData
+    .getAll("days")
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+  const days_of_week = days.length === 0 || days.length === 7 ? null : Array.from(new Set(days)).sort();
   const { error } = await supabase.from("chores").insert({
     household_id: household.id,
     child_id: childId,
     title,
     icon: str(formData.get("icon")) ?? "✅",
     points: Math.max(0, int(formData.get("points"), 0)),
+    days_of_week,
     sort_order,
   });
   if (error) throw new Error(error.message);
