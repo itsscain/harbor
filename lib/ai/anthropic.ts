@@ -58,6 +58,33 @@ export async function haikuJson<T>({
   return block.input as T;
 }
 
+/** Ask Haiku for a short free-text response (e.g. a daily brief). Cost-careful:
+ *  small max_tokens + cacheable system prompt. */
+export async function haikuText({
+  key,
+  system,
+  prompt,
+  maxTokens = 200,
+}: {
+  key: string;
+  system: string;
+  prompt: string;
+  maxTokens?: number;
+}): Promise<string> {
+  const client = new Anthropic({ apiKey: key });
+  const msg = await client.messages.create({
+    model: HAIKU,
+    max_tokens: maxTokens,
+    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: prompt }],
+  });
+  return msg.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .trim();
+}
+
 /** Map common Anthropic errors to friendly, parent-facing copy. */
 export function aiErrorMessage(e: unknown): string {
   const status = (e as { status?: number })?.status;

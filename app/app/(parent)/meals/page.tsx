@@ -81,11 +81,12 @@ export default async function MealsPage() {
             </p>
             <div className="space-y-2">
               {(list ?? []).map((m) => (
-                <Card key={m.id} className="flex items-center gap-3 py-3">
+                <Card key={m.id} className="flex items-start gap-3 py-3">
                   <span className="text-2xl">{m.emoji ?? "🍽️"}</span>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-ink">{m.title}</p>
                     <p className="text-xs text-muted">{titleCase(m.meal_type)}</p>
+                    {m.notes && <p className="mt-1 text-xs text-water">{m.notes}</p>}
                   </div>
                   <form action={deleteMeal.bind(null, m.id)}>
                     <ConfirmSubmit message={`Delete "${m.title}"?`} aria-label={`Delete ${m.title}`} className="h-9 w-9 px-0 py-0">

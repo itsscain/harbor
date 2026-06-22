@@ -6,7 +6,7 @@ import { Home, Users, CalendarDays, ListChecks, LayoutGrid } from "lucide-react"
 import { cn } from "@/lib/cn";
 
 // "More" is a hub linking out to these — treat any of them as the More tab.
-const MORE_ROUTES = ["/app/more", "/app/store", "/app/meals", "/app/calm", "/app/messages", "/app/insights", "/app/billing", "/app/settings"];
+const MORE_ROUTES = ["/app/more", "/app/store", "/app/meals", "/app/pantry", "/app/calm", "/app/messages", "/app/insights", "/app/billing", "/app/settings"];
 
 const items = [
   { href: "/app", label: "Home", icon: Home, exact: true },

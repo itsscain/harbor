@@ -13,8 +13,11 @@ export function GenerateMealsButton() {
     setMsg(null);
     start(async () => {
       const r = await generateMealPlan();
-      if (r.ok) setMsg({ ok: true, text: `Added ${r.added} dinner${r.added === 1 ? "" : "s"}. 🎉` });
-      else setMsg({ ok: false, text: r.error || "Something went wrong — try again." });
+      if (r.ok) {
+        const pantry = r.usedPantry ? " from your pantry" : "";
+        const groc = r.groceryAdded ? ` · added ${r.groceryAdded} to the grocery list` : "";
+        setMsg({ ok: true, text: `Added ${r.added} dinner${r.added === 1 ? "" : "s"}${pantry}${groc}. 🎉` });
+      } else setMsg({ ok: false, text: r.error || "Something went wrong — try again." });
     });
   }
 

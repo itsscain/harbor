@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift } from "lucide-react";
+import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/primitives";
 
@@ -11,6 +11,7 @@ const groups = [
     links: [
       { href: "/app/store", label: "Reward store", desc: "Points kids work toward", icon: Gift },
       { href: "/app/meals", label: "Meal plan", desc: "Plan the week's dinners", icon: UtensilsCrossed },
+      { href: "/app/pantry", label: "Pantry", desc: "On-hand ingredients for AI meals", icon: Carrot },
       { href: "/app/calm", label: "Calm Corner", desc: "Breathing, feelings, stories", icon: Heart },
     ],
   },
