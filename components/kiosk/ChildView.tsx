@@ -18,6 +18,7 @@ import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee } from "@/lib/kiosk/chores";
+import { BedtimeCountdown } from "./BedtimeCountdown";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
@@ -38,6 +39,7 @@ export function readChildSettings(child: KioskChild) {
     haptics: s.haptics !== false,
     reducedMotion: s.reducedMotion === true,
     theme: typeof s.theme === "string" ? (s.theme as string) : "harbor",
+    bedtime: typeof s.bedtime === "string" ? (s.bedtime as string) : null,
   };
 }
 
@@ -227,6 +229,15 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
+        {settings.bedtime && (
+          <BedtimeCountdown
+            bedtime={settings.bedtime}
+            variant="full"
+            color={color}
+            onSpeak={(t) => speak(t, settings.readAloud)}
+            className="mb-4"
+          />
+        )}
         {encLine && (
           <div className="mb-4 flex items-center gap-3 rounded-xl bg-kwater/10 p-3.5 ring-1 ring-kwater/25">
             <Sparkles className="h-5 w-5 shrink-0 text-kwater" />

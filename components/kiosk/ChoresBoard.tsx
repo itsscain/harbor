@@ -12,6 +12,7 @@ import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { chime, haptic, speak } from "@/lib/kiosk/feedback";
 import { readChildSettings } from "./ChildView";
 import { ChildAvatar } from "./ChildAvatar";
+import { BedtimeCountdown } from "./BedtimeCountdown";
 import { KEyebrow } from "./ui";
 import { cn } from "@/lib/cn";
 
@@ -77,6 +78,7 @@ export function ChoresBoard({
         const color = childColor(child);
         const allDone = chores.length > 0 && doneCount === chores.length;
         const reset = activeGroundingFor(snap.groundings, child.id);
+        const bedtime = readChildSettings(child).bedtime;
         return (
           <div key={child.id} className="rounded-xl bg-kpanel p-4 ring-1 ring-kline/55">
             <div className="flex items-center gap-3">
@@ -100,6 +102,8 @@ export function ChoresBoard({
                 <span className="font-display text-base font-bold tabular-nums">{state.points[child.id] ?? 0}</span>
               </span>
             </div>
+
+            {bedtime && <BedtimeCountdown bedtime={bedtime} color={color} className="mt-2.5" />}
 
             {reset && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-amber-400/10 p-2.5">

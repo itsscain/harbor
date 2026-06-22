@@ -176,14 +176,19 @@ export default async function ChildDetail({
               </div>
             ))}
           </div>
-          <Field label="Wall theme">
-            <Select name="theme" defaultValue={typeof cs.theme === "string" ? (cs.theme as string) : "harbor"}>
-              <option value="harbor">Deep Harbor</option>
-              <option value="water">Mid Water</option>
-              <option value="beacon">Beacon</option>
-              <option value="seafoam">Seafoam</option>
-            </Select>
-          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Wall theme">
+              <Select name="theme" defaultValue={typeof cs.theme === "string" ? (cs.theme as string) : "harbor"}>
+                <option value="harbor">Deep Harbor</option>
+                <option value="water">Mid Water</option>
+                <option value="beacon">Beacon</option>
+                <option value="seafoam">Seafoam</option>
+              </Select>
+            </Field>
+            <Field label="Bedtime" hint="Shows a visual countdown to bed on the wall.">
+              <Input name="bedtime" type="time" defaultValue={typeof cs.bedtime === "string" ? (cs.bedtime as string) : ""} />
+            </Field>
+          </div>
           <SubmitButton variant="secondary">Save accessibility</SubmitButton>
         </form>
       </Card>
@@ -222,7 +227,9 @@ export default async function ChildDetail({
               const rotating = Array.isArray(ch.rotation_member_ids) && ch.rotation_member_ids.length >= 2;
               return (
                 <div key={ch.id} className="rounded-xl border border-harbor-100 p-3">
-                  <form action={updateChore.bind(null, ch.id, child.id)} className="space-y-2.5">
+                  {/* key on updated_at: after a save the row remounts so the day
+                      checkboxes (uncontrolled) re-sync to the saved selection. */}
+                  <form key={ch.updated_at} action={updateChore.bind(null, ch.id, child.id)} className="space-y-2.5">
                     <div className="flex items-end gap-2">
                       <Input name="icon" defaultValue={ch.icon ?? "✅"} aria-label="Icon" className="w-14 shrink-0 text-center text-xl" />
                       <Input name="title" defaultValue={ch.title} aria-label="Chore name" className="min-w-0 flex-1" />

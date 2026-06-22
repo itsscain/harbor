@@ -414,6 +414,10 @@ export async function updateChildSettings(childId: string, formData: FormData) {
     haptics: formData.get("haptics") === "on",
     reducedMotion: formData.get("reducedMotion") === "on",
     theme: str(formData.get("theme")) ?? "harbor",
+    bedtime: (() => {
+      const b = str(formData.get("bedtime"));
+      return b && /^\d{2}:\d{2}$/.test(b) ? b : null;
+    })(),
   };
   const { error } = await supabase
     .from("children")
