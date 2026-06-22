@@ -148,12 +148,16 @@ export function KTabBar<T extends string>({
               onClick={() => onSelect(it.key)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2 transition active:scale-[0.97]",
-                active ? "bg-kraise text-kwater" : "text-kmute hover:bg-kraise/60 hover:text-ktext",
+                "relative flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2 transition-all duration-200 active:scale-[0.94]",
+                active ? "bg-kraise text-kwater shadow-k" : "text-kmute hover:bg-kraise/60 hover:text-ktext",
               )}
             >
-              <Icon className="h-[22px] w-[22px]" strokeWidth={2} />
-              <span className="text-[11px] font-medium">{it.label}</span>
+              {active && <span aria-hidden className="absolute top-1 h-1 w-7 rounded-full bg-kwater/80" />}
+              <Icon
+                className={cn("transition-all duration-200", active ? "h-[23px] w-[23px]" : "h-[22px] w-[22px]")}
+                strokeWidth={active ? 2.4 : 2}
+              />
+              <span className={cn("text-[11px]", active ? "font-semibold" : "font-medium")}>{it.label}</span>
               {it.badge ? (
                 <span className="absolute right-[26%] top-0.5 min-w-[17px] rounded-full bg-beacon px-1 text-center text-[10px] font-semibold leading-[17px] text-harbor">
                   {it.badge > 99 ? "99+" : it.badge}

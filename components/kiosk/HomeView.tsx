@@ -80,9 +80,11 @@ export function HomeView({
   );
 
   return (
-    <div className="animate-enter mx-auto w-full max-w-6xl px-5 pb-28 pt-6 sm:px-8 sm:pt-8">
+    <div className="relative mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-6">
+      <div className="kiosk-ambient" aria-hidden />
+      <div className="relative z-10 k-stagger">
       {/* Header */}
-      <header className="mb-7 flex items-start justify-between gap-4">
+      <header className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{greeting}</h1>
           <p className="mt-1 text-sm text-kmute">
@@ -104,7 +106,7 @@ export function HomeView({
 
       {/* Highlight row */}
       {(nextCountdown || tonight) && (
-        <div className="mb-5 grid gap-4 sm:grid-cols-2">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2">
           {nextCountdown && (
             <KCard className="flex items-center gap-4 bg-beacon/10 p-4 ring-beacon/25">
               <span className="text-3xl">{nextCountdown.emoji}</span>
@@ -130,7 +132,7 @@ export function HomeView({
 
       {/* Reminders */}
       {dueReminders.length > 0 && (
-        <KCard className="mb-5 flex items-start gap-3 bg-amber-400/10 p-5 ring-amber-400/25">
+        <KCard className="mb-4 flex items-start gap-3 bg-amber-400/10 p-4 ring-amber-400/25">
           <Bell className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
           <div>
             <p className="font-bold text-amber-200">Don&apos;t forget</p>
@@ -143,7 +145,7 @@ export function HomeView({
 
       {/* Messages */}
       {messages.length > 0 && (
-        <div className="mb-5 space-y-2.5">
+        <div className="mb-4 space-y-2">
           {messages.map((m) => (
             <KCard key={m.id} className="flex items-start gap-3 p-4">
               <span className="text-2xl">{m.emoji ?? (m.pinned ? "📌" : "💬")}</span>
@@ -158,11 +160,11 @@ export function HomeView({
       )}
 
       {/* Chores / task tracking — tap a chip to check off, tap a kid to open their screen */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2.5 flex items-center justify-between">
         <KEyebrow>Chores today</KEyebrow>
         <span className="text-xs text-kmute">Tap to check off</span>
       </div>
-      <div className="mb-6">
+      <div className="mb-4">
         <ChoresBoard kiosk={kiosk} onSelectChild={onSelectChild} variant="home" />
       </div>
 
@@ -209,6 +211,7 @@ export function HomeView({
           <ChevronRight className="h-5 w-5 shrink-0 text-kmute" />
         </button>
       )}
+      </div>
     </div>
   );
 }

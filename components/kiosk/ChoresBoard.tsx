@@ -80,7 +80,8 @@ export function ChoresBoard({
         const reset = activeGroundingFor(snap.groundings, child.id);
         const bedtime = readChildSettings(child).bedtime;
         return (
-          <div key={child.id} className="rounded-xl bg-kpanel p-4 ring-1 ring-kline/55">
+          <div key={child.id} className="rounded-xl bg-kpanel p-4 shadow-k ring-1 ring-kline/55 transition hover:ring-kline">
+
             <div className="flex items-center gap-3">
               <button onClick={() => onSelectChild(child.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                 <ChildAvatar child={child} size={variant === "full" ? 44 : 38} />
