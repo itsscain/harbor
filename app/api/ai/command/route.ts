@@ -46,29 +46,65 @@ export async function POST(req: Request) {
   }
 
   const date = body.date && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : new Date().toISOString().slice(0, 10);
-  const [{ data: kids }, { data: meals }] = await Promise.all([
-    admin.from("children").select("id, name").eq("household_id", household_id).is("deleted_at", null),
+  const [yy, mm, dd] = date.split("-").map(Number);
+  const dow = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
+  const wk = Math.floor((Date.UTC(yy, mm - 1, dd) - Date.UTC(1970, 0, 5)) / (7 * 86_400_000));
+
+  const [{ data: kids }, { data: meals }, { data: chores }, { data: log }] = await Promise.all([
+    admin.from("children").select("id, name").eq("household_id", household_id).is("deleted_at", null).order("sort_order"),
     admin.from("meals").select("title, meal_type").eq("household_id", household_id).eq("date", date).is("deleted_at", null),
+    admin
+      .from("chores")
+      .select("id, child_id, title, days_of_week, rotation_member_ids, active")
+      .eq("household_id", household_id)
+      .is("deleted_at", null),
+    admin.from("reward_log").select("child_id, chore_id").eq("reason", "chore").gte("created_at", `${date}T00:00:00Z`),
   ]);
   const kidList = kids ?? [];
   const kidNames = kidList.map((k) => k.name).join(", ") || "no kids yet";
   const mealStr = (meals ?? []).map((m) => `${m.meal_type}: ${m.title}`).join("; ") || "nothing planned";
 
+  // Per-kid chores for today (respecting day-of-week + weekly rotation) + done status,
+  // so Harbor can answer "what chores does Mia still have?".
+  const done = new Set((log ?? []).map((r) => `${r.child_id}:${r.chore_id}`));
+  const runsToday = (dw: number[] | null) => !dw || dw.length === 0 || dw.includes(dow);
+  const liveIds = new Set(kidList.map((k) => k.id));
+  const assigneeOf = (ch: { child_id: string; rotation_member_ids: unknown }): string => {
+    const m = Array.isArray(ch.rotation_member_ids) ? (ch.rotation_member_ids as string[]) : null;
+    if (m && m.length >= 2) {
+      const live = m.filter((id) => liveIds.has(id));
+      if (live.length >= 2) return live[((wk % live.length) + live.length) % live.length];
+      if (live.length === 1) return live[0];
+    }
+    return ch.child_id;
+  };
+  const choreStr =
+    kidList
+      .map((k) => {
+        const list = (chores ?? [])
+          .filter((c) => c.active && runsToday(c.days_of_week as number[] | null) && assigneeOf(c) === k.id)
+          .map((c) => `${c.title}${done.has(`${k.id}:${c.id}`) ? " (done)" : ""}`);
+        return `${k.name}: ${list.length ? list.join(", ") : "no chores today"}`;
+      })
+      .join(" | ") || "no chores";
+
   const client = new Anthropic({ apiKey: cfg.anthropic_api_key });
   const tools: Anthropic.Tool[] = [
     {
       name: "reply",
-      description: "Answer the family or make small talk. Use for questions you can answer from the context, or anything that isn't one of the other actions.",
+      description:
+        "Answer the family from the Context, or make small talk. This is the DEFAULT — use it for every question (what's for dinner, what chores does someone have, how many stars, etc.) and anything that is not an explicit command to change something.",
       input_schema: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
     },
     {
       name: "add_to_grocery",
-      description: "Add one or more items to the shared grocery list.",
+      description:
+        "Add specific item(s) to the grocery/shopping list. ONLY use when the person explicitly says to add named items to the list (e.g. 'add milk and eggs to the grocery list'). Never invent items; never put meals or chores here.",
       input_schema: { type: "object", properties: { items: { type: "array", items: { type: "string" } } }, required: ["items"] },
     },
     {
       name: "add_chore",
-      description: "Add a chore for a specific child.",
+      description: "Add a chore for a specific child. ONLY use when explicitly asked to add/create a chore for a named kid.",
       input_schema: {
         type: "object",
         properties: {
@@ -79,7 +115,11 @@ export async function POST(req: Request) {
         required: ["child_name", "title"],
       },
     },
-    { name: "plan_dinners", description: "Plan this week's dinners from the pantry.", input_schema: { type: "object", properties: {} } },
+    {
+      name: "plan_dinners",
+      description: "Plan this week's dinners from the pantry. ONLY use when explicitly asked to plan or make dinners for the week.",
+      input_schema: { type: "object", properties: {} },
+    },
   ];
 
   try {
@@ -87,13 +127,19 @@ export async function POST(req: Request) {
       model: HAIKU,
       max_tokens: 400,
       system:
-        "You are Harbor, a warm family wall assistant responding to a spoken command. Pick exactly one tool. Use reply() to answer questions (from the context) or chit-chat; use add_to_grocery/add_chore/plan_dinners to take an action. Keep any spoken text short, friendly, and natural.",
+        "You are Harbor, a warm family wall assistant answering a SPOKEN request. You MUST pick exactly one tool.\n\n" +
+        "DEFAULT to reply() — use it for ANY question or anything you're unsure about (e.g. 'what's for dinner', 'what chores does Mia still have', 'how many stars does Leo have'). Answer naturally and briefly from the Context.\n\n" +
+        "Use an ACTION tool ONLY when the request is a clear command to change something:\n" +
+        "- add_to_grocery: only when they explicitly say to add specific item(s) to the grocery/shopping list.\n" +
+        "- add_chore: only when they explicitly say to add a chore for a named kid.\n" +
+        "- plan_dinners: only when they explicitly ask to plan/make this week's dinners.\n\n" +
+        "When in doubt, reply(). Never invent grocery items. Keep spoken text short, warm, and natural.",
       tools,
       tool_choice: { type: "auto" },
       messages: [
         {
           role: "user",
-          content: `Context — kids: ${kidNames}. Today's meals: ${mealStr}.\n\nThey said: "${text}"`,
+          content: `Context\nKids: ${kidNames}.\nToday's meals: ${mealStr}.\nChores today — ${choreStr}.\n\nThey said: "${text}"`,
         },
       ],
     });

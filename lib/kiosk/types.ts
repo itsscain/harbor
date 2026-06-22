@@ -54,6 +54,8 @@ export type KioskChore = {
   icon: string | null;
   points: number;
   days_of_week: number[] | null;
+  /** When set (≥2 ids), the chore rotates weekly through these kids. */
+  rotation_member_ids: string[] | null;
   active: boolean;
   sort_order: number;
 };

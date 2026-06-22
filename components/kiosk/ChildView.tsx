@@ -17,6 +17,7 @@ import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
+import { choreAssignee } from "@/lib/kiosk/chores";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
@@ -143,7 +144,7 @@ export function ChildView({
   }
 
   const childChores = (state.snapshot.chores ?? [])
-    .filter((c) => c.child_id === child.id && c.active && runsToday(c.days_of_week))
+    .filter((c) => c.active && runsToday(c.days_of_week) && choreAssignee(c, new Set(state.snapshot.children.map((k) => k.id))) === child.id)
     .sort((a, b) => a.sort_order - b.sort_order);
   const choresDone = childChores.filter((c) => prog.includes(c.id)).length;
 

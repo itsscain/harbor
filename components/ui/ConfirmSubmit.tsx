@@ -93,9 +93,17 @@ export function ConfirmSubmit({
                 Cancel
               </button>
               <button
-                type="submit"
+                type="button"
                 ref={confirmRef}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  // Submit the form explicitly BEFORE closing. Using a real submit
+                  // button + setOpen(false) unmounts the submitter before the browser
+                  // processes submission, which silently cancels the server action in
+                  // production builds. requestSubmit() fires it deterministically first.
+                  const form = confirmRef.current?.closest("form");
+                  form?.requestSubmit();
+                  setOpen(false);
+                }}
                 className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-red-700 active:scale-[0.98]"
               >
                 {confirmLabel}

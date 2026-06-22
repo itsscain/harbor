@@ -22,6 +22,7 @@ import {
   deleteRoutine,
   addStep,
   createChore,
+  updateChore,
   deleteChore,
 } from "../../actions";
 import { updateChildSettings } from "../../hub-actions";
@@ -215,31 +216,48 @@ export default async function ChildDetail({
           <SuggestChoresButton childId={child.id} />
         </div>
         {(chores ?? []).length > 0 ? (
-          <ul className="mt-3 divide-y divide-harbor-100">
+          <div className="mt-3 space-y-2">
             {(chores ?? []).map((ch) => {
-              const days = ch.days_of_week ?? [];
-              const someDays = days.length > 0 && days.length < 7;
+              const days = (ch.days_of_week ?? []) as number[];
+              const rotating = Array.isArray(ch.rotation_member_ids) && ch.rotation_member_ids.length >= 2;
               return (
-                <li key={ch.id} className="flex items-center gap-3 py-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-harbor-50 text-xl">
-                    {ch.icon ?? "✅"}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-semibold text-ink">{ch.title}</span>
-                  {someDays && (
-                    <span className="shrink-0 text-xs text-muted">
-                      {days.map((d) => ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][d]).join(" ")}
-                    </span>
-                  )}
-                  <span className="shrink-0 text-sm font-semibold text-water">⭐ {ch.points}</span>
-                  <form action={deleteChore.bind(null, ch.id, child.id)}>
-                    <ConfirmSubmit message={`Delete "${ch.title}"?`} aria-label={`Delete ${ch.title}`} className="px-2.5 py-1.5 text-xs">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </ConfirmSubmit>
+                <div key={ch.id} className="rounded-xl border border-harbor-100 p-3">
+                  <form action={updateChore.bind(null, ch.id, child.id)} className="space-y-2.5">
+                    <div className="flex items-end gap-2">
+                      <Input name="icon" defaultValue={ch.icon ?? "✅"} aria-label="Icon" className="w-14 shrink-0 text-center text-xl" />
+                      <Input name="title" defaultValue={ch.title} aria-label="Chore name" className="min-w-0 flex-1" />
+                      <Input name="points" type="number" min={0} defaultValue={ch.points} aria-label="Stars" className="w-16 shrink-0" />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                        <label key={i} className="cursor-pointer">
+                          <input type="checkbox" name="days" value={i} defaultChecked={days.includes(i)} className="peer sr-only" />
+                          <span className="flex h-8 w-10 items-center justify-center rounded-lg border border-harbor-100 text-xs font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water/10 peer-checked:text-water">
+                            {d.slice(0, 2)}
+                          </span>
+                        </label>
+                      ))}
+                      <div className="ml-auto">
+                        <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
+                      </div>
+                    </div>
+                    {rotating && (
+                      <p className="flex items-center gap-1 text-xs font-medium text-water">
+                        <RefreshCw className="h-3 w-3" aria-hidden="true" /> Rotates between the kids each week
+                      </p>
+                    )}
                   </form>
-                </li>
+                  <div className="mt-2 border-t border-harbor-50 pt-2 text-right">
+                    <form action={deleteChore.bind(null, ch.id, child.id)} className="inline">
+                      <ConfirmSubmit message={`Delete "${ch.title}"?`} aria-label={`Delete ${ch.title}`} className="px-2.5 py-1.5 text-xs">
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      </ConfirmSubmit>
+                    </form>
+                  </div>
+                </div>
               );
             })}
-          </ul>
+          </div>
         ) : (
           <p className="mt-3 text-sm text-muted">No chores yet — add the first one below.</p>
         )}
@@ -267,6 +285,12 @@ export default async function ChildDetail({
               ))}
             </div>
           </Field>
+          <label className="flex items-center gap-2.5 rounded-xl border border-harbor-100 px-3.5 py-3 text-sm font-medium text-ink">
+            <input type="checkbox" name="rotate" className="h-4 w-4 rounded border-harbor-200 text-water focus:ring-water" />
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="h-4 w-4 text-water" /> Rotate between all the kids each week
+            </span>
+          </label>
           <SubmitButton variant="secondary">Add chore</SubmitButton>
         </form>
       </Card>

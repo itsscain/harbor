@@ -320,6 +320,7 @@ export type Database = {
           icon: string | null
           id: string
           points: number
+          rotation_member_ids: Json | null
           sort_order: number
           title: string
           updated_at: string
@@ -334,6 +335,7 @@ export type Database = {
           icon?: string | null
           id?: string
           points?: number
+          rotation_member_ids?: Json | null
           sort_order?: number
           title: string
           updated_at?: string
@@ -348,6 +350,7 @@ export type Database = {
           icon?: string | null
           id?: string
           points?: number
+          rotation_member_ids?: Json | null
           sort_order?: number
           title?: string
           updated_at?: string

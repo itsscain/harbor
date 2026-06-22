@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Check, Info } from "lucide-react";
+import { Star, Check, Info, RotateCw } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskChore } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
+import { choreAssignee, isRotating } from "@/lib/kiosk/chores";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { chime, haptic, speak } from "@/lib/kiosk/feedback";
@@ -35,10 +36,11 @@ export function ChoresBoard({
   const today = todayKey();
   const children = [...snap.children].sort((a, b) => a.sort_order - b.sort_order);
   const allChores = snap.chores ?? [];
+  const validIds = new Set(children.map((c) => c.id));
 
   const choresFor = (childId: string) =>
     allChores
-      .filter((c) => c.child_id === childId && c.active && runsToday(c.days_of_week))
+      .filter((c) => c.active && runsToday(c.days_of_week) && choreAssignee(c, validIds) === childId)
       .sort((a, b) => a.sort_order - b.sort_order);
 
   const completedToday = (childId: string) =>
@@ -153,6 +155,7 @@ export function ChoresBoard({
                     >
                       <span className="text-lg leading-none">{chore.icon ?? "✅"}</span>
                       <span className="whitespace-nowrap">{chore.title}</span>
+                      {isRotating(chore) && !isDone && <RotateCw className="h-3.5 w-3.5 shrink-0 text-kmute" aria-label="rotates between kids" />}
                       {isDone && (
                         <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
                           <Check className="h-2.5 w-2.5" strokeWidth={3} />

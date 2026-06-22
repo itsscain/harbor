@@ -158,6 +158,21 @@ export async function createChore(childId: string, formData: FormData) {
     .map((v) => Number(v))
     .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   const days_of_week = days.length === 0 || days.length === 7 ? null : Array.from(new Set(days)).sort();
+
+  // Rotation: when on, the chore cycles weekly through all the kids (this child
+  // is the anchor used for storage; the wall picks the current week's kid).
+  let rotation_member_ids: string[] | null = null;
+  if (formData.get("rotate") === "on") {
+    const { data: kids } = await supabase
+      .from("children")
+      .select("id")
+      .eq("household_id", household.id)
+      .is("deleted_at", null)
+      .order("sort_order");
+    const ids = (kids ?? []).map((k) => k.id);
+    if (ids.length >= 2) rotation_member_ids = ids;
+  }
+
   const { error } = await supabase.from("chores").insert({
     household_id: household.id,
     child_id: childId,
@@ -165,6 +180,7 @@ export async function createChore(childId: string, formData: FormData) {
     icon: str(formData.get("icon")) ?? "✅",
     points: Math.max(0, int(formData.get("points"), 0)),
     days_of_week,
+    rotation_member_ids,
     sort_order,
   });
   if (error) throw new Error(error.message);
@@ -172,6 +188,30 @@ export async function createChore(childId: string, formData: FormData) {
 }
 
 /** Remove a chore (soft-delete → the wall drops it on next sync). */
+/** Edit an existing chore's icon, title, stars, and days. */
+export async function updateChore(id: string, childId: string, formData: FormData) {
+  await requireUser();
+  const title = String(formData.get("title") || "").trim();
+  if (!title) return;
+  const days = formData
+    .getAll("days")
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+  const days_of_week = days.length === 0 || days.length === 7 ? null : Array.from(new Set(days)).sort();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("chores")
+    .update({
+      title,
+      icon: str(formData.get("icon")) ?? "✅",
+      points: Math.max(0, int(formData.get("points"), 0)),
+      days_of_week,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
 export async function deleteChore(id: string, childId: string) {
   await requireUser();
   const supabase = await createClient();
