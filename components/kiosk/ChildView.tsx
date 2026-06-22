@@ -39,13 +39,6 @@ export function readChildSettings(child: KioskChild) {
   };
 }
 
-const THEME_BG: Record<string, string> = {
-  harbor: "bg-harbor",
-  water: "bg-water",
-  beacon: "bg-[#b9852a]",
-  seafoam: "bg-[#2f8f86]",
-};
-
 export function ChildView({
   kiosk,
   childId,
@@ -161,37 +154,56 @@ export function ChildView({
   const allDone = isFirstThen
     ? !!thenStep && prog.includes(thenStep.id)
     : scheduleSteps.length > 0 && doneCount === scheduleSteps.length;
-  const headerBg = THEME_BG[settings.theme] ?? THEME_BG.harbor;
+  const color = childColor(child);
+  const progressTotal = isFirstThen ? [firstStep, thenStep].filter(Boolean).length : scheduleSteps.length;
+  const progressDone = isFirstThen
+    ? [firstStep, thenStep].filter((s) => s && prog.includes(s.id)).length
+    : doneCount;
+  const pct = progressTotal > 0 ? Math.round((progressDone / progressTotal) * 100) : 0;
+  const progressMsg = allDone
+    ? "All done — amazing! 🎉"
+    : progressDone === 0
+      ? "Let's get started!"
+      : `${progressDone} of ${progressTotal} done${pct >= 60 ? " — almost there!" : ""}`;
 
   return (
     <div className="animate-enter flex min-h-dvh flex-col bg-kbg text-ktext">
-      {/* Header */}
-      <header
-        className={cn("flex items-center justify-between gap-3 border-b-4 px-4 py-3 text-white", headerBg)}
-        style={{ borderBottomColor: childColor(child) }}
-      >
-        <button
-          onClick={onHome}
-          className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 font-semibold"
-        >
-          <HomeIcon className="h-5 w-5" /> Home
-        </button>
-        <button
-          onClick={() => speak(`${child.name}'s ${activeRoutine?.name ?? "day"}`, settings.readAloud)}
-          className="flex items-center gap-2.5"
-        >
-          <ChildAvatar child={child} size={36} />
-          <span className="font-display text-xl font-bold">{child.name}</span>
-        </button>
-        <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-2">
-          <Star className="h-5 w-5 fill-beacon text-beacon" />
-          <span
-            key={points}
-            className={cn("font-display text-lg font-bold tabular-nums", !settings.reducedMotion && "animate-pop")}
+      {/* Header — per-child color tint, photo, and the day's progress */}
+      <header className="px-4 pb-4 pt-3" style={{ background: `linear-gradient(180deg, ${color}38, ${color}0d)` }}>
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={onHome}
+            className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 font-semibold text-ktext transition active:scale-[0.98]"
           >
-            {points}
+            <HomeIcon className="h-5 w-5" /> Home
+          </button>
+          <span className="flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-2">
+            <Star className="h-5 w-5 fill-beacon text-beacon" />
+            <span
+              key={points}
+              className={cn("font-display text-lg font-bold tabular-nums text-ktext", !settings.reducedMotion && "animate-pop")}
+            >
+              {points}
+            </span>
           </span>
         </div>
+        <button
+          onClick={() => speak(`${child.name}'s ${activeRoutine?.name ?? "day"}. ${activeRoutine ? progressMsg : ""}`, settings.readAloud)}
+          className="mt-3.5 flex w-full items-center gap-4 text-left"
+        >
+          <ChildAvatar child={child} size={64} rounded="rounded-2xl" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-2xl font-bold text-ktext">
+              {activeRoutine ? `${child.name}'s ${activeRoutine.name}` : child.name}
+            </h1>
+            <p className="mt-0.5 text-sm text-ktext/70">{activeRoutine ? progressMsg : `Hi, ${child.name}!`}</p>
+            {activeRoutine && progressTotal > 0 && (
+              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/25">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+              </div>
+            )}
+          </div>
+        </button>
       </header>
 
       {/* Routine tabs */}
@@ -249,26 +261,6 @@ export function ChildView({
           <>
             <NowNext steps={steps} sound={settings.sound} readAloud={settings.readAloud} />
 
-            <div className="mb-3 flex items-center justify-between">
-              <h1 className="font-display text-2xl font-bold text-ktext">
-                {activeRoutine.name}
-              </h1>
-              {scheduleSteps.length > 0 && (
-                <span className="text-sm font-semibold text-kmute">
-                  {doneCount} / {scheduleSteps.length} done
-                </span>
-              )}
-            </div>
-
-            {scheduleSteps.length > 0 && (
-              <div className="mb-4 h-3 overflow-hidden rounded-full bg-kraise">
-                <div
-                  className="h-full rounded-full bg-beacon transition-all"
-                  style={{ width: `${(doneCount / scheduleSteps.length) * 100}%` }}
-                />
-              </div>
-            )}
-
             {allDone && (
               <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
                 🎉 All done! Great job, {child.name}!
@@ -282,7 +274,7 @@ export function ChildView({
                 <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                 {scheduleSteps.map((s) => (
                   <StepCard
                     key={s.id}
@@ -427,43 +419,38 @@ function StepCard({
   muted?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "relative flex flex-col items-center justify-center gap-2 rounded-xl p-4 text-center shadow-k ring-1 transition",
-        big ? "min-h-44" : "min-h-32",
-        done
-          ? "bg-emerald-500/15 ring-emerald-500/40"
-          : muted
-            ? "bg-kpanel/40 opacity-50 shadow-none ring-kline/40"
-            : "bg-kpanel ring-kline/55",
-      )}
-    >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onSpeak();
-        }}
-        className="kiosk-tap absolute left-2 top-2 rounded-full p-2 text-kmute hover:bg-kraise"
-        aria-label={`Read ${step.label} aloud`}
-      >
-        <Volume2 className="h-5 w-5" />
-      </button>
-
+    <div className="relative">
+      {/* The whole card is one big tap target — effortless to check off. */}
       <button
         onClick={onTap}
         disabled={done || muted}
+        aria-label={`${step.label}${done ? " — done" : ""}`}
         className={cn(
-          "kiosk-tap flex flex-1 flex-col items-center justify-center gap-2 active:scale-95",
-          !reducedMotion && "transition",
+          "flex w-full flex-col items-center justify-center gap-2 rounded-2xl p-4 text-center ring-1 transition",
+          !reducedMotion && "active:scale-[0.97]",
+          big ? "min-h-52" : "min-h-40",
+          done
+            ? "bg-emerald-500/15 ring-emerald-500/45"
+            : muted
+              ? "bg-kpanel/40 opacity-50 shadow-none ring-kline/40"
+              : "bg-kpanel shadow-k ring-kline/55 hover:brightness-110",
         )}
       >
         {label && (
-          <span className="absolute right-3 top-3 rounded-full bg-kraise px-2 py-0.5 text-xs font-bold uppercase text-kmute">
+          <span className="absolute left-3 top-3 rounded-full bg-black/25 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-ktext/70">
             {label}
           </span>
         )}
-        <span className={cn(big ? "text-6xl" : "text-5xl")}>{step.icon ?? "✅"}</span>
-        <span className={cn("font-display font-bold text-ktext", big ? "text-xl" : "text-lg")}>
+        <span className={cn("leading-none", big ? "text-7xl" : "text-6xl", done && "opacity-50")}>
+          {step.icon ?? "✅"}
+        </span>
+        <span
+          className={cn(
+            "font-display font-bold",
+            big ? "text-2xl" : "text-lg",
+            done ? "text-emerald-300/80 line-through" : "text-ktext",
+          )}
+        >
           {step.label}
         </span>
         {step.reward_points > 0 && !done && (
@@ -471,12 +458,21 @@ function StepCard({
             <Star className="h-4 w-4 fill-beacon" /> {step.reward_points}
           </span>
         )}
+        {done && (
+          <span className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
+            <Check className="h-5 w-5" strokeWidth={3} />
+          </span>
+        )}
       </button>
-
-      {done && (
-        <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-sm font-bold text-white">
-          <Check className="h-4 w-4" /> Done
-        </span>
+      {/* Read-aloud — a sibling button (not nested), tucked in a corner. */}
+      {!done && !muted && (
+        <button
+          onClick={onSpeak}
+          aria-label={`Read ${step.label} aloud`}
+          className="absolute bottom-2 right-2 rounded-full bg-black/20 p-2 text-ktext/60 transition hover:bg-black/40 hover:text-ktext"
+        >
+          <Volume2 className="h-4 w-4" />
+        </button>
       )}
     </div>
   );
