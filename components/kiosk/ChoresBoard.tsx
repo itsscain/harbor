@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Check } from "lucide-react";
+import { Star, Check, Info } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskChore } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
@@ -81,14 +81,7 @@ export function ChoresBoard({
               <button onClick={() => onSelectChild(child.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                 <ChildAvatar child={child} size={variant === "full" ? 44 : 38} />
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-display text-lg font-bold text-ktext">{child.name}</p>
-                    {reset && (
-                      <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-semibold text-amber-300">
-                        {reset.lastDay ? "last day" : `reset · ${reset.daysLeft}d`}
-                      </span>
-                    )}
-                  </div>
+                  <p className="truncate font-display text-lg font-bold text-ktext">{child.name}</p>
                   <p className="text-sm text-kmute">
                     {chores.length === 0 ? (
                       "No chores today"
@@ -105,6 +98,34 @@ export function ChoresBoard({
                 <span className="font-display text-base font-bold tabular-nums">{state.points[child.id] ?? 0}</span>
               </span>
             </div>
+
+            {reset && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-amber-400/10 p-2.5">
+                <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-sm font-semibold text-amber-200">
+                  🌱 {reset.lastDay ? "Last day of reset" : `Reset · ${reset.daysLeft} ${reset.daysLeft === 1 ? "day" : "days"} left`}
+                </span>
+                {reset.g.pause_screen_time && (
+                  <span className="rounded-full bg-kraise px-2.5 py-1 text-xs font-medium text-kmute ring-1 ring-kline/55">No screen time</span>
+                )}
+                {reset.g.pause_rewards && (
+                  <span className="rounded-full bg-kraise px-2.5 py-1 text-xs font-medium text-kmute ring-1 ring-kline/55">No rewards store</span>
+                )}
+                {(reset.g.reason || reset.g.note) && (
+                  <button
+                    onClick={() =>
+                      speak(
+                        `${reset.g.reason ? `This reset is about ${reset.g.reason}. ` : ""}${reset.g.note ?? ""}`.trim() ||
+                          "Hang in there — you've got this.",
+                      )
+                    }
+                    aria-label={`Why is ${child.name} on a reset?`}
+                    className="kiosk-tap ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-kraise text-kmute ring-1 ring-kline/55"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {chores.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -125,7 +146,7 @@ export function ChoresBoard({
                       style={isDone ? { background: color, color: "#0c1014" } : undefined}
                     >
                       <span className="text-lg leading-none">{chore.icon ?? "✅"}</span>
-                      <span className={cn("truncate", variant === "full" ? "max-w-32" : "max-w-24")}>{chore.title}</span>
+                      <span className="whitespace-nowrap">{chore.title}</span>
                       {isDone && (
                         <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
                           <Check className="h-2.5 w-2.5" strokeWidth={3} />

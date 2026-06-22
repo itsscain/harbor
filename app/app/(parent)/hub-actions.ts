@@ -29,8 +29,11 @@ export async function addEvent(formData: FormData) {
   const household_id = await myHouseholdId();
   const supabase = await createClient();
   const allDay = formData.get("all_day") === "on";
+  // Prefer the browser-computed absolute instant (correct timezone); fall back to
+  // the raw datetime-local only if JS is off (parsed in the server's UTC zone).
+  const dtIso = str(formData.get("starts_at_iso"));
   const dt = str(formData.get("starts_at"));
-  const starts_at = dt ? new Date(dt).toISOString() : nowIso();
+  const starts_at = dtIso || (dt ? new Date(dt).toISOString() : nowIso());
   const { error } = await supabase.from("events").insert({
     household_id,
     title: String(formData.get("title") || "Event"),

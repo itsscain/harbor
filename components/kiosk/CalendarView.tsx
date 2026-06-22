@@ -245,7 +245,18 @@ function TimeGrid({
     const el = scrollRef.current;
     if (!el) return;
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    const y = ((nowMin - from * 60) / 60) * HOUR_H - 80;
+    // Reveal events even when they're earlier than "now": anchor the scroll to the
+    // earliest event of the shown days (or now, whichever is earlier) so a morning
+    // event is never hidden above the fold.
+    let earliest = Infinity;
+    for (const d of days) {
+      for (const e of dayEvents(d)) {
+        if (isAllDayish(e)) continue;
+        earliest = Math.min(earliest, eventMinutes(e).start);
+      }
+    }
+    const target = Number.isFinite(earliest) ? Math.min(nowMin, earliest) : nowMin;
+    const y = ((target - from * 60) / 60) * HOUR_H - 40;
     el.scrollTop = Math.max(0, y);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to]);

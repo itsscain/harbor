@@ -130,14 +130,24 @@ export function useKiosk() {
       setOnline(navigator.onLine);
       if (navigator.onLine) void runSync();
     };
+    // Sync the moment the wall is looked at again (tab visible / window focused),
+    // so a parent's edit on their phone shows up promptly instead of waiting a tick.
+    const onWake = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      void runSync();
+    };
     setOnline(navigator.onLine);
     window.addEventListener("online", setOn);
     window.addEventListener("offline", setOn);
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("focus", onWake);
     void runSync();
-    const id = window.setInterval(runSync, 60_000);
+    const id = window.setInterval(runSync, 30_000);
     return () => {
       window.removeEventListener("online", setOn);
       window.removeEventListener("offline", setOn);
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("focus", onWake);
       window.clearInterval(id);
     };
   }, [runSync]);

@@ -6,6 +6,7 @@ import { Card, Input, Field, Select, Switch, SectionHeader } from "@/components/
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DateTimeField } from "@/components/app/DateTimeField";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
 import { addEvent, deleteEvent, addReminder, deleteReminder } from "../hub-actions";
 
@@ -41,7 +42,7 @@ export default async function CalendarPage() {
             <Input name="title" required placeholder="Soccer practice" />
           </Field>
           <Field label="Emoji"><Input name="emoji" placeholder="⚽" className="text-center text-xl" /></Field>
-          <Field label="When"><Input name="starts_at" type="datetime-local" /></Field>
+          <Field label="When"><DateTimeField name="starts_at" /></Field>
           <Field label="Who (label)"><Input name="person_label" placeholder="Mia, Mom…" /></Field>
           <Field label="Location"><Input name="location" placeholder="Field 3" /></Field>
           <Field label="Color">
