@@ -12,6 +12,7 @@ import { pairDevice, syncNow } from "@/lib/kiosk/sync";
 import type {
   KioskState,
   KioskStep,
+  KioskChore,
   KioskStoreItem,
   KioskListItem,
 } from "@/lib/kiosk/types";
@@ -97,7 +98,7 @@ export function useKiosk() {
       const points = { ...synced.points };
       const listItems = [...(synced.snapshot.list_items ?? [])];
       for (const m of newEntries) {
-        if (m.kind === "completion")
+        if (m.kind === "completion" || m.kind === "chore_done")
           points[m.child_id] = (points[m.child_id] ?? 0) + m.points;
         else if (m.kind === "redemption")
           points[m.child_id] = Math.max(0, (points[m.child_id] ?? 0) - m.points);
@@ -210,6 +211,43 @@ export function useKiosk() {
               child_id: childId,
               step_id: step.id,
               points: step.reward_points,
+              created_at: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    },
+    [update],
+  );
+
+  // Mark a chore done for the day — same one-way, idempotent, points-awarding
+  // mechanism as routine steps (done-state lives in the daily progress list).
+  const completeChore = useCallback(
+    (childId: string, chore: KioskChore) => {
+      update((s) => {
+        const today = todayKey();
+        const prog =
+          s.progress[childId]?.date === today
+            ? s.progress[childId]
+            : { date: today, completed: [] };
+        if (prog.completed.includes(chore.id)) return s;
+        const completed = [...prog.completed, chore.id];
+        const points = {
+          ...s.points,
+          [childId]: (s.points[childId] ?? 0) + chore.points,
+        };
+        return {
+          ...s,
+          progress: { ...s.progress, [childId]: { date: today, completed } },
+          points,
+          outbox: [
+            ...s.outbox,
+            {
+              kind: "chore_done",
+              op_id: crypto.randomUUID(),
+              child_id: childId,
+              chore_id: chore.id,
+              points: chore.points,
               created_at: new Date().toISOString(),
             },
           ],
@@ -373,6 +411,7 @@ export function useKiosk() {
     verifyPin,
     unpair,
     completeStep,
+    completeChore,
     checkIn,
     resetDay,
     redeem,

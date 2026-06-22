@@ -136,6 +136,46 @@ export async function saveChildPhoto(id: string, url: string | null) {
   revalidatePath(`/app/children/${id}`);
 }
 
+// ── Chores ───────────────────────────────────────────────────────────────────
+/** Create a chore assigned to a child (recurs daily by default; worth stars). */
+export async function createChore(childId: string, formData: FormData) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const title = String(formData.get("title") || "").trim();
+  if (!title) return;
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("chores")
+    .select("sort_order")
+    .eq("child_id", childId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const sort_order = ((existing?.[0]?.sort_order as number) ?? -1) + 1;
+  const { error } = await supabase.from("chores").insert({
+    household_id: household.id,
+    child_id: childId,
+    title,
+    icon: str(formData.get("icon")) ?? "✅",
+    points: Math.max(0, int(formData.get("points"), 0)),
+    sort_order,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
+/** Remove a chore (soft-delete → the wall drops it on next sync). */
+export async function deleteChore(id: string, childId: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("chores")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
 /** Hide a child from the wall (reversible). Soft-delete → syncs as a tombstone. */
 export async function deleteChild(id: string) {
   await requireUser();

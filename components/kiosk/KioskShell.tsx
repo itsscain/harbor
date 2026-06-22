@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut, Home, CalendarDays, ListChecks, Heart } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Home, CalendarDays, ListChecks, ClipboardCheck, Heart } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { HomeView } from "./HomeView";
 import { ChildView } from "./ChildView";
 import { CalendarView } from "./CalendarView";
 import { ListsView } from "./ListsView";
+import { ChoresView } from "./ChoresBoard";
 import { CalmCorner } from "./CalmCorner";
 import { ParentGate } from "./ParentGate";
 import { Screensaver, SleepMode } from "./Screensaver";
@@ -30,6 +31,7 @@ type View =
   | { k: "home" }
   | { k: "calendar" }
   | { k: "lists" }
+  | { k: "chores" }
   | { k: "child"; id: string };
 
 export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
@@ -108,10 +110,12 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const groceriesLeft = (state.snapshot.list_items ?? []).filter(
     (i) => i.list_kind === "grocery" && !i.checked,
   ).length;
-  const showTabs = view.k === "home" || view.k === "calendar" || view.k === "lists";
-  const TABS: KTab<"home" | "calendar" | "lists" | "calm">[] = [
+  const showTabs =
+    view.k === "home" || view.k === "calendar" || view.k === "lists" || view.k === "chores";
+  const TABS: KTab<"home" | "calendar" | "chores" | "lists" | "calm">[] = [
     { key: "home", label: "Home", icon: Home },
     { key: "calendar", label: "Calendar", icon: CalendarDays },
+    { key: "chores", label: "Chores", icon: ClipboardCheck },
     { key: "lists", label: "Lists", icon: ListChecks, badge: groceriesLeft || null },
     { key: "calm", label: "Calm", icon: Heart },
   ];
@@ -140,6 +144,9 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       {view.k === "lists" && (
         <ListsView kiosk={kiosk} onHome={() => setView({ k: "home" })} />
       )}
+      {view.k === "chores" && (
+        <ChoresView kiosk={kiosk} onSelectChild={(id) => setView({ k: "child", id })} />
+      )}
 
       {calmOpen && (
         <CalmCorner
@@ -165,7 +172,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       {showTabs && (
         <KTabBar
           items={TABS}
-          current={view.k as "home" | "calendar" | "lists"}
+          current={view.k as "home" | "calendar" | "chores" | "lists"}
           onSelect={(k) => {
             if (k === "calm") {
               setCalmOpen(true);

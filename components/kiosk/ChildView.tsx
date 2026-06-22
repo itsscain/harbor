@@ -12,7 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
-import type { KioskChild, KioskStep } from "@/lib/kiosk/types";
+import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
 import { childColor } from "@/lib/kiosk/colors";
@@ -131,6 +131,23 @@ export function ChildView({
       setTimeout(() => setBigCelebrate(false), 4200);
     }
   }
+
+  function tapChore(chore: KioskChore) {
+    if (prog.includes(chore.id)) return;
+    kiosk.completeChore(child!.id, chore);
+    chime(settings!.sound);
+    haptic(20, settings!.haptics);
+    speak(`${chore.title}. Done!`, settings!.readAloud);
+    if (chore.points > 0) {
+      setCelebrate({ points: chore.points });
+      setTimeout(() => setCelebrate(null), 1300);
+    }
+  }
+
+  const childChores = (state.snapshot.chores ?? [])
+    .filter((c) => c.child_id === child.id && c.active && runsToday(c.days_of_week))
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const choresDone = childChores.filter((c) => prog.includes(c.id)).length;
 
   const scheduleSteps = steps.filter((s) => s.step_type === "task");
   const firstStep = steps.find((s) => s.step_type === "first");
@@ -269,13 +286,52 @@ export function ChildView({
               </div>
             )}
           </>
-        ) : (
+        ) : childChores.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-kline bg-kpanel p-10 text-center shadow-k">
             <span className="text-5xl">🗓️</span>
-            <h3 className="mt-3 font-display text-xl font-bold text-ktext">No routines yet for {child.name}</h3>
+            <h3 className="mt-3 font-display text-xl font-bold text-ktext">Nothing set up yet for {child.name}</h3>
             <p className="mt-1.5 max-w-sm text-kmute">
-              A grown-up can add a Morning, Bedtime, or First-Then routine from the Harbor app — templates make it one tap.
+              A grown-up can add routines or chores from the Harbor app — templates make it one tap.
             </p>
+          </div>
+        ) : null}
+
+        {childChores.length > 0 && (
+          <div className="mt-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-2xl font-bold text-ktext">Chores</h2>
+              <span className="text-sm font-semibold text-kmute">{choresDone} / {childChores.length} done</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {childChores.map((chore) => {
+                const done = prog.includes(chore.id);
+                return (
+                  <button
+                    key={chore.id}
+                    onClick={() => tapChore(chore)}
+                    disabled={done}
+                    aria-label={`${chore.title}${done ? " (done)" : ""}`}
+                    className={cn(
+                      "kiosk-tap relative flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl p-4 text-center shadow-k ring-1 transition active:scale-95",
+                      done ? "bg-emerald-500/15 ring-emerald-500/40" : "bg-kpanel ring-kline/55",
+                    )}
+                  >
+                    <span className="text-5xl">{chore.icon ?? "✅"}</span>
+                    <span className="font-display text-lg font-bold text-ktext">{chore.title}</span>
+                    {chore.points > 0 && !done && (
+                      <span className="flex items-center gap-1 text-sm font-semibold text-beacon">
+                        <Star className="h-4 w-4 fill-beacon" /> {chore.points}
+                      </span>
+                    )}
+                    {done && (
+                      <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-sm font-bold text-white">
+                        <Check className="h-4 w-4" /> Done
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </main>

@@ -37,6 +37,17 @@ export type KioskStep = {
   duration_min: number | null;
 };
 
+export type KioskChore = {
+  id: string;
+  child_id: string;
+  title: string;
+  icon: string | null;
+  points: number;
+  days_of_week: number[] | null;
+  active: boolean;
+  sort_order: number;
+};
+
 export type KioskCalmTool = {
   id: string;
   child_id: string | null;
@@ -141,6 +152,7 @@ export type KioskSnapshot = {
   children: KioskChild[];
   routines: KioskRoutine[];
   steps: KioskStep[];
+  chores?: KioskChore[];
   rewards: { child_id: string; points_total: number }[];
   calm_tools: KioskCalmTool[];
   events: KioskEvent[];
@@ -157,6 +169,7 @@ export type KioskSnapshot = {
 
 export type Mutation =
   | { kind: "completion"; op_id: string; child_id: string; step_id: string; points: number; created_at: string }
+  | { kind: "chore_done"; op_id: string; child_id: string; chore_id: string; points: number; created_at: string }
   | { kind: "check_in"; child_id: string; feeling: string; note: string | null; created_at: string }
   | {
       kind: "redemption";

@@ -19,6 +19,8 @@ import {
   updateRoutine,
   deleteRoutine,
   addStep,
+  createChore,
+  deleteChore,
 } from "../../actions";
 import { updateChildSettings } from "../../hub-actions";
 import { CHILD_PALETTE, childColor } from "@/lib/kiosk/colors";
@@ -68,6 +70,13 @@ export default async function ChildDetail({
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  const { data: chores } = await supabase
+    .from("chores")
+    .select("*")
+    .eq("child_id", id)
+    .is("deleted_at", null)
+    .order("sort_order");
 
   const color = childColor(child);
   const colorName = CHILD_PALETTE.find((p) => p.value === color)?.name;
@@ -179,6 +188,48 @@ export default async function ChildDetail({
       <div className="mb-4">
         <GroundingCard childId={child.id} childName={child.name} grounding={grounding} />
       </div>
+
+      {/* Chores */}
+      <Card className="mb-4">
+        <h3 className="text-title text-harbor">Chores</h3>
+        <p className="mt-1 text-sm text-muted">
+          Tasks {child.name} checks off on the wall to earn stars. They show on the family chore board.
+        </p>
+        {(chores ?? []).length > 0 ? (
+          <ul className="mt-3 divide-y divide-harbor-100">
+            {(chores ?? []).map((ch) => (
+              <li key={ch.id} className="flex items-center gap-3 py-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-harbor-50 text-xl">
+                  {ch.icon ?? "✅"}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-semibold text-ink">{ch.title}</span>
+                <span className="shrink-0 text-sm font-semibold text-water">⭐ {ch.points}</span>
+                <form action={deleteChore.bind(null, ch.id, child.id)}>
+                  <ConfirmSubmit message={`Delete "${ch.title}"?`} aria-label={`Delete ${ch.title}`} className="px-2.5 py-1.5 text-xs">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </ConfirmSubmit>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">No chores yet — add the first one below.</p>
+        )}
+        <form action={createChore.bind(null, child.id)} className="mt-3 grid gap-3 sm:grid-cols-[auto_1fr_auto_auto]">
+          <Field label="Icon">
+            <Input name="icon" defaultValue="✅" className="w-16 text-center text-xl" />
+          </Field>
+          <Field label="Chore">
+            <Input name="title" required placeholder="Feed the dog, dishes…" />
+          </Field>
+          <Field label="Stars">
+            <Input name="points" type="number" min={0} defaultValue={5} className="w-20" />
+          </Field>
+          <div className="flex items-end">
+            <SubmitButton variant="secondary">Add</SubmitButton>
+          </div>
+        </form>
+      </Card>
 
       <div className="mb-2 flex items-center gap-2 text-sm text-muted">
         <RefreshCw className="h-4 w-4" />

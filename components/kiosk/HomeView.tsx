@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Bell, Pin, ChevronRight, Star, Lock } from "lucide-react";
+import { CalendarDays, Bell, Pin, ChevronRight, Lock } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
-import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
-import { childColor, eventColor } from "@/lib/kiosk/colors";
-import { activeGroundingFor } from "@/lib/kiosk/grounding";
+import { eventsForDay, formatEventTime } from "@/lib/kiosk/calendar";
+import { eventColor } from "@/lib/kiosk/colors";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { WeatherWidget } from "./WeatherWidget";
-import { ChildAvatar } from "./ChildAvatar";
+import { ChoresBoard } from "./ChoresBoard";
 import { KCard, KEyebrow, KButton } from "./ui";
 
 function daysUntil(iso: string): number {
@@ -40,7 +39,6 @@ export function HomeView({
 
   if (!state) return null;
   const snap = state.snapshot;
-  const today = todayKey();
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -78,16 +76,6 @@ export function HomeView({
   const dueReminders = (snap.reminders ?? []).filter(
     (r) => !r.done && r.due_date <= todayStr && (!r.snoozed_until || r.snoozed_until <= todayStr),
   );
-
-  function childProgress(childId: string) {
-    const routineIds = snap.routines
-      .filter((r) => r.child_id === childId && r.active && runsToday(r.days_of_week))
-      .map((r) => r.id);
-    const steps = snap.steps.filter((s) => routineIds.includes(s.routine_id) && s.step_type === "task");
-    const completed = state!.progress[childId]?.date === today ? state!.progress[childId].completed : [];
-    const done = steps.filter((s) => completed.includes(s.id)).length;
-    return { done, total: steps.length, points: state!.points[childId] ?? 0 };
-  }
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 pb-28 pt-6 sm:px-8 sm:pt-8">
@@ -167,51 +155,13 @@ export function HomeView({
         </div>
       )}
 
-      {/* Children */}
-      <KEyebrow className="mb-3">Tap to start the day</KEyebrow>
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {children.map((c) => {
-          const p = childProgress(c.id);
-          const color = childColor(c);
-          const pct = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
-          const reset = activeGroundingFor(snap.groundings, c.id);
-          const allDone = p.total > 0 && p.done === p.total;
-          return (
-            <button
-              key={c.id}
-              onClick={() => onSelectChild(c.id)}
-              className="kiosk-tap group rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55 transition hover:brightness-110 active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-3.5">
-                <ChildAvatar child={c} size={48} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-display text-xl font-bold text-ktext">{c.name}</p>
-                    {reset && (
-                      <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-semibold text-amber-300">
-                        {reset.lastDay ? "last day" : `reset · ${reset.daysLeft}d`}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 flex items-center gap-2.5 text-sm text-kmute">
-                    <span className={allDone ? "font-medium text-emerald-300" : undefined}>
-                      {p.total > 0 ? (allDone ? "All done" : `${p.done} of ${p.total} done`) : "No routine yet"}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-beacon">
-                      <Star className="h-4 w-4 fill-beacon" /> {p.points}
-                    </span>
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-kmute transition group-hover:text-ktext" />
-              </div>
-              {p.total > 0 && (
-                <div className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-kraise">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
-                </div>
-              )}
-            </button>
-          );
-        })}
+      {/* Chores / task tracking — tap a chip to check off, tap a kid to open their screen */}
+      <div className="mb-3 flex items-center justify-between">
+        <KEyebrow>Chores today</KEyebrow>
+        <span className="text-xs text-kmute">Tap to check off</span>
+      </div>
+      <div className="mb-6">
+        <ChoresBoard kiosk={kiosk} onSelectChild={onSelectChild} variant="home" />
       </div>
 
       {/* Today agenda */}

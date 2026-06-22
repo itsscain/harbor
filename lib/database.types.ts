@@ -248,6 +248,66 @@ export type Database = {
           },
         ]
       }
+      chores: {
+        Row: {
+          active: boolean
+          child_id: string
+          created_at: string
+          days_of_week: number[] | null
+          deleted_at: string | null
+          household_id: string
+          icon: string | null
+          id: string
+          points: number
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          child_id: string
+          created_at?: string
+          days_of_week?: number[] | null
+          deleted_at?: string | null
+          household_id: string
+          icon?: string | null
+          id?: string
+          points?: number
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          child_id?: string
+          created_at?: string
+          days_of_week?: number[] | null
+          deleted_at?: string | null
+          household_id?: string
+          icon?: string | null
+          id?: string
+          points?: number
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chores_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chores_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           build_id: string | null
@@ -433,6 +493,69 @@ export type Database = {
           },
         ]
       }
+      groundings: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          ends_on: string
+          household_id: string
+          id: string
+          note: string | null
+          pause_rewards: boolean
+          pause_screen_time: boolean
+          reason: string | null
+          started_on: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          ends_on: string
+          household_id: string
+          id?: string
+          note?: string | null
+          pause_rewards?: boolean
+          pause_screen_time?: boolean
+          reason?: string | null
+          started_on?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          ends_on?: string
+          household_id?: string
+          id?: string
+          note?: string | null
+          pause_rewards?: boolean
+          pause_screen_time?: boolean
+          reason?: string | null
+          started_on?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groundings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groundings_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       households: {
         Row: {
           created_at: string
@@ -501,6 +624,38 @@ export type Database = {
         }
         Relationships: []
       }
+      kiosk_deletions: {
+        Row: {
+          deleted_at: string
+          entity: string
+          entity_id: string
+          household_id: string
+          id: string
+        }
+        Insert: {
+          deleted_at?: string
+          entity: string
+          entity_id: string
+          household_id: string
+          id?: string
+        }
+        Update: {
+          deleted_at?: string
+          entity?: string
+          entity_id?: string
+          household_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kiosk_deletions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           added_by_label: string | null
@@ -553,54 +708,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      groundings: {
-        Row: {
-          child_id: string
-          created_at: string
-          deleted_at: string | null
-          ends_on: string
-          household_id: string
-          id: string
-          note: string | null
-          pause_rewards: boolean
-          pause_screen_time: boolean
-          reason: string | null
-          started_on: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          child_id: string
-          created_at?: string
-          deleted_at?: string | null
-          ends_on: string
-          household_id: string
-          id?: string
-          note?: string | null
-          pause_rewards?: boolean
-          pause_screen_time?: boolean
-          reason?: string | null
-          started_on?: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          child_id?: string
-          created_at?: string
-          deleted_at?: string | null
-          ends_on?: string
-          household_id?: string
-          id?: string
-          note?: string | null
-          pause_rewards?: boolean
-          pause_screen_time?: boolean
-          reason?: string | null
-          started_on?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       meals: {
         Row: {
@@ -818,6 +925,7 @@ export type Database = {
       reward_log: {
         Row: {
           child_id: string
+          chore_id: string | null
           client_op_id: string | null
           created_at: string
           deleted_at: string | null
@@ -829,6 +937,7 @@ export type Database = {
         }
         Insert: {
           child_id: string
+          chore_id?: string | null
           client_op_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -840,6 +949,7 @@ export type Database = {
         }
         Update: {
           child_id?: string
+          chore_id?: string | null
           client_op_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -855,6 +965,13 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_log_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
             referencedColumns: ["id"]
           },
           {
@@ -1173,11 +1290,11 @@ export type Database = {
       hard_delete_child: { Args: { p_child: string }; Returns: undefined }
       household_is_mine: { Args: { hh: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
-      reset_household: { Args: { p_household: string }; Returns: undefined }
       kiosk_snapshot: {
         Args: { p_household: string; p_since: string }
         Returns: Json
       }
+      reset_household: { Args: { p_household: string }; Returns: undefined }
       routine_is_mine: { Args: { r: string }; Returns: boolean }
       rpc_kiosk_pair: { Args: { p_code: string }; Returns: Json }
       rpc_kiosk_pull: {
