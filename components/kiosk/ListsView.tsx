@@ -89,7 +89,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
             <span
               className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition",
-                item.checked ? "border-emerald-500 bg-emerald-500 text-white" : "border-kline",
+                item.checked ? "border-emerald-500 bg-emerald-500 text-white" : "border-kline/55",
               )}
             >
               {item.checked && <Check className="h-5 w-5" />}

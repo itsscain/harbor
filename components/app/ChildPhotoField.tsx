@@ -72,7 +72,7 @@ export function ChildPhotoField({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={name} className="h-full w-full object-cover" />
         ) : (
-          <span className="font-display text-2xl font-extrabold" style={{ color }}>
+          <span className="font-display text-2xl font-bold" style={{ color }}>
             {name.charAt(0).toUpperCase() || "?"}
           </span>
         )}

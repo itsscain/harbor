@@ -287,7 +287,7 @@ export function ChildView({
             )}
           </>
         ) : childChores.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-kline bg-kpanel p-10 text-center shadow-k">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-xl bg-kpanel p-10 text-center shadow-k ring-1 ring-kline/55">
             <span className="text-5xl">🗓️</span>
             <h3 className="mt-3 font-display text-xl font-bold text-ktext">Nothing set up yet for {child.name}</h3>
             <p className="mt-1.5 max-w-sm text-kmute">
@@ -337,7 +337,7 @@ export function ChildView({
       </main>
 
       {/* Footer actions */}
-      <footer className="grid grid-cols-3 gap-3 border-t border-kline/50 bg-kbg2/80 p-4 backdrop-blur">
+      <footer className="grid grid-cols-3 gap-3 border-t border-kline/55 bg-kbg2/80 p-4 backdrop-blur">
         <button
           onClick={() => setStoreOpen(true)}
           className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"

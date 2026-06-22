@@ -118,20 +118,14 @@ export function ChoresBoard({
                       disabled={isDone}
                       aria-label={`${chore.title}${isDone ? " (done)" : ""}`}
                       className={cn(
-                        "kiosk-tap relative flex h-12 min-w-12 items-center justify-center gap-1.5 rounded-xl px-2.5 text-sm font-medium transition active:scale-95",
+                        "kiosk-tap relative flex h-12 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition active:scale-95",
+                        isDone ? "" : "bg-kraise text-ktext ring-1 ring-kline/55",
                         celebrating && "animate-pop",
                       )}
-                      style={
-                        isDone
-                          ? { background: color, color: "#0c1014" }
-                          : { background: "var(--color-kraise)", boxShadow: "inset 0 0 0 1px var(--color-kline)" }
-                      }
-                      title={chore.title}
+                      style={isDone ? { background: color, color: "#0c1014" } : undefined}
                     >
                       <span className="text-lg leading-none">{chore.icon ?? "✅"}</span>
-                      {variant === "full" && (
-                        <span className={cn("max-w-28 truncate", isDone ? "" : "text-ktext")}>{chore.title}</span>
-                      )}
+                      <span className={cn("truncate", variant === "full" ? "max-w-32" : "max-w-24")}>{chore.title}</span>
                       {isDone && (
                         <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
                           <Check className="h-2.5 w-2.5" strokeWidth={3} />

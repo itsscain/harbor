@@ -177,7 +177,7 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
           <button onClick={() => shift(-1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline/55 transition hover:brightness-125" aria-label="Previous">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button onClick={() => setAnchor(startOfDay(new Date()))} className="font-display text-lg font-bold text-ktext">
+          <button onClick={() => setAnchor(startOfDay(new Date()))} aria-label="Jump to today" className="font-display text-lg font-bold text-ktext transition hover:text-kwater">
             {title}
           </button>
           <button onClick={() => shift(1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline/55 transition hover:brightness-125" aria-label="Next">
