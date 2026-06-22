@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KeyRound, Tablet, Settings as SettingsIcon } from "lucide-react";
+import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -8,7 +8,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { updateHouseholdName, setParentPin, clearParentPin } from "../actions";
-import { updateKioskSettings } from "../hub-actions";
+import { updateKioskSettings, saveAiConfig } from "../hub-actions";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -23,6 +23,15 @@ export default async function SettingsPage() {
     .select("code, status, last_synced_at")
     .eq("household_id", household.id)
     .order("created_at");
+
+  // AI config — read the raw key server-side but only surface a "set" boolean.
+  const { data: aiRow } = await supabase
+    .from("ai_config")
+    .select("enabled, anthropic_api_key")
+    .eq("household_id", household.id)
+    .maybeSingle();
+  const aiKeySet = !!aiRow?.anthropic_api_key;
+  const aiEnabled = !!aiRow?.enabled;
 
   return (
     <>
@@ -86,6 +95,48 @@ export default async function SettingsPage() {
             </form>
           );
         })()}
+      </Card>
+
+      <Card className="mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-water" />
+          <h2 className="text-title text-harbor">AI Companion</h2>
+          {aiEnabled && aiKeySet ? <Badge tone="green">On</Badge> : <Badge tone="gray">Off</Badge>}
+        </div>
+        <p className="mt-2 text-sm text-muted">
+          Bring your own Anthropic API key to power AI features — meal-plan generation now, with daily
+          briefs, chore ideas and more coming. It runs on Claude Haiku to keep costs low. Your key is
+          stored securely server-side and is <strong>never</strong> sent to the wall tablet.
+        </p>
+        <form action={saveAiConfig} className="mt-3 space-y-3">
+          <Field
+            label={aiKeySet ? "Anthropic API key (leave blank to keep current)" : "Anthropic API key"}
+            hint="Starts with sk-ant-. Create one at console.anthropic.com → API keys."
+          >
+            <Input
+              name="anthropic_api_key"
+              type="password"
+              autoComplete="off"
+              placeholder={aiKeySet ? "•••••••••••• (saved)" : "sk-ant-…"}
+            />
+          </Field>
+          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+            <Switch
+              name="ai_enabled"
+              label="Enable the AI companion"
+              hint="Turn AI features on across Harbor."
+              defaultChecked={aiEnabled}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <SubmitButton variant="secondary">Save AI settings</SubmitButton>
+            {aiKeySet && (
+              <label className="flex items-center gap-1.5 text-xs text-muted">
+                <input type="checkbox" name="clear_key" className="h-3.5 w-3.5" /> Remove saved key
+              </label>
+            )}
+          </div>
+        </form>
       </Card>
 
       <Card className="mb-4">

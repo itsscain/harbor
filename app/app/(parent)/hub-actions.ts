@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
+import { getHouseholdAi, haikuJson, aiErrorMessage } from "@/lib/ai/anthropic";
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -403,6 +404,114 @@ export async function updateChildSettings(childId: string, formData: FormData) {
 }
 
 // ── Kiosk / home settings (merge into households.settings jsonb) ──────────────
+export type MealPlanResult = { ok: boolean; error?: string; added?: number };
+
+/** AI meal-plan generation: fills the next 7 days' open dinner slots with
+ *  kid-friendly suggestions from Haiku. Cost-careful (one small structured call). */
+export async function generateMealPlan(): Promise<MealPlanResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai || !ai.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+
+  const base = new Date();
+  const dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+
+  const { data: existing } = await supabase
+    .from("meals")
+    .select("date")
+    .eq("household_id", household_id)
+    .eq("meal_type", "dinner")
+    .is("deleted_at", null)
+    .in("date", dates);
+  const taken = new Set((existing ?? []).map((m) => m.date));
+  const openDates = dates.filter((d) => !taken.has(d));
+  if (openDates.length === 0) {
+    return { ok: false, error: "You already have dinners planned for the next week." };
+  }
+
+  const { data: kids } = await supabase
+    .from("children")
+    .select("name")
+    .eq("household_id", household_id)
+    .is("deleted_at", null);
+  const kidNames = (kids ?? []).map((k) => k.name).join(", ") || "the family";
+
+  try {
+    const result = await haikuJson<{ meals: { date: string; title: string; emoji: string }[] }>({
+      key: ai.key,
+      maxTokens: 700,
+      system:
+        "You are a warm, practical family meal planner. Suggest simple, varied, kid-friendly dinners that are realistic for busy weeknights. Each dinner has a short title (e.g. 'Spaghetti & meatballs') and one fitting food emoji. Do not repeat dishes within the plan.",
+      prompt: `Plan one dinner for each of these dates for a family with kids named ${kidNames}: ${openDates.join(", ")}. Return exactly one dinner per date, using the date strings exactly as given.`,
+      toolName: "save_meal_plan",
+      schema: {
+        type: "object",
+        properties: {
+          meals: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                date: { type: "string", description: "YYYY-MM-DD, one of the requested dates" },
+                title: { type: "string" },
+                emoji: { type: "string" },
+              },
+              required: ["date", "title", "emoji"],
+            },
+          },
+        },
+        required: ["meals"],
+      },
+    });
+
+    const valid = (result.meals ?? []).filter((m) => openDates.includes(m.date) && m.title?.trim());
+    if (valid.length === 0) return { ok: false, error: "The AI didn't return usable meals — try again." };
+    const { error } = await supabase.from("meals").insert(
+      valid.map((m) => ({
+        household_id,
+        date: m.date,
+        meal_type: "dinner",
+        title: m.title.trim().slice(0, 80),
+        emoji: (m.emoji || "🍽️").slice(0, 8),
+      })),
+    );
+    if (error) throw new Error(error.message);
+    revalidatePath("/app/meals");
+    return { ok: true, added: valid.length };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
+}
+
+/** Save the AI companion config (Anthropic key + enabled). The key is kept when
+ *  the field is left blank, so toggling 'enabled' doesn't require re-entering it. */
+export async function saveAiConfig(formData: FormData) {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  const enabled = formData.get("ai_enabled") === "on";
+  const rawKey = str(formData.get("anthropic_api_key"));
+  const row: {
+    household_id: string;
+    enabled: boolean;
+    updated_at: string;
+    anthropic_api_key?: string | null;
+  } = { household_id, enabled, updated_at: new Date().toISOString() };
+  if (formData.get("clear_key") === "on") row.anthropic_api_key = null;
+  else if (rawKey) row.anthropic_api_key = rawKey;
+  const { error } = await supabase.from("ai_config").upsert(row, { onConflict: "household_id" });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/settings");
+}
+
 export async function updateKioskSettings(formData: FormData) {
   await requireUser();
   const household = await getMyHousehold();

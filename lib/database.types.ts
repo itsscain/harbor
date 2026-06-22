@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_config: {
+        Row: {
+          anthropic_api_key: string | null
+          enabled: boolean
+          household_id: string
+          updated_at: string
+        }
+        Insert: {
+          anthropic_api_key?: string | null
+          enabled?: boolean
+          household_id: string
+          updated_at?: string
+        }
+        Update: {
+          anthropic_api_key?: string | null
+          enabled?: boolean
+          household_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_config_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       build_supplies: {
         Row: {
           build_id: string
