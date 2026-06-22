@@ -33,7 +33,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   const remaining = items.filter((i) => !i.checked).length;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-28 pt-6 sm:px-6 sm:pt-8">
+    <div className="animate-enter mx-auto w-full max-w-2xl px-5 pb-28 pt-6 sm:px-6 sm:pt-8">
       <header className="mb-5 flex items-end justify-between gap-3">
         <div>
           <KEyebrow>Shared lists</KEyebrow>

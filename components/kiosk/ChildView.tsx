@@ -160,7 +160,7 @@ export function ChildView({
   const headerBg = THEME_BG[settings.theme] ?? THEME_BG.harbor;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-kbg text-ktext">
+    <div className="animate-enter flex min-h-dvh flex-col bg-kbg text-ktext">
       {/* Header */}
       <header
         className={cn("flex items-center justify-between gap-3 border-b-4 px-4 py-3 text-white", headerBg)}

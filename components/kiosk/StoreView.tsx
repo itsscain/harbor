@@ -53,7 +53,7 @@ export function StoreView({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
+    <div className="animate-enter fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
       <div className="flex items-center justify-between border-b border-kline/50 bg-kbg2/90 p-5 backdrop-blur-md">
         <span className="font-display text-xl font-bold text-ktext">Reward Store</span>
         <div className="flex items-center gap-3">

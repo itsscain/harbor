@@ -78,7 +78,7 @@ export function HomeView({
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 pb-28 pt-6 sm:px-8 sm:pt-8">
+    <div className="animate-enter mx-auto w-full max-w-6xl px-5 pb-28 pt-6 sm:px-8 sm:pt-8">
       {/* Header */}
       <header className="mb-7 flex items-start justify-between gap-4">
         <div>

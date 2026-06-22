@@ -119,7 +119,7 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   }, [anchor]);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-kbg pb-[84px] text-ktext">
+    <div className="animate-enter flex h-dvh flex-col overflow-hidden bg-kbg pb-[84px] text-ktext">
       <header className="flex items-center justify-between gap-3 border-b border-kline/50 bg-kbg2/80 px-4 py-3 backdrop-blur-md sm:px-6">
         <span className="font-display text-2xl font-bold text-ktext">Calendar</span>
         <div className="flex items-center gap-1 rounded-full bg-kpanel p-1 ring-1 ring-kline/55">

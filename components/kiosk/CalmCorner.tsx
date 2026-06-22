@@ -48,7 +48,7 @@ export function CalmCorner({
   const enabled = tools.filter((t) => t.enabled);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
+    <div className="animate-enter fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
       <KTopBar
         onBack={open ? () => setOpen(null) : onClose}
         title="Calm Corner"

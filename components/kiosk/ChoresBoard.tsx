@@ -146,7 +146,7 @@ export function ChoresBoard({
 /** Full-screen Chores tab wrapper (header + the board). */
 export function ChoresView({ kiosk, onSelectChild }: { kiosk: Kiosk; onSelectChild: (id: string) => void }) {
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-28 pt-6 sm:px-6 sm:pt-8">
+    <div className="animate-enter mx-auto w-full max-w-2xl px-5 pb-28 pt-6 sm:px-6 sm:pt-8">
       <header className="mb-5">
         <KEyebrow>Tap to check off</KEyebrow>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">Chores</h1>
