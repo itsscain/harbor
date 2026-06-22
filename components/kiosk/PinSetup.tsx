@@ -26,11 +26,11 @@ export function PinSetup({ onDone }: { onDone: (pin: string) => Promise<void> })
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-kbg px-6 text-center text-ktext">
       <KCard className="flex w-full max-w-md flex-col items-center px-8 py-10">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-kwater/15 ring-1 ring-kwater/30">
+        <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-kwater/15 ring-1 ring-kwater/30">
           <ShieldCheck className="h-11 w-11 text-kwater" />
         </div>
         <KEyebrow className="mt-6">Parent PIN</KEyebrow>
-        <h1 className="mt-2 font-display text-2xl font-extrabold text-ktext">
+        <h1 className="mt-2 font-display text-2xl font-bold text-ktext">
           {first ? "Confirm your parent PIN" : "Create a parent PIN"}
         </h1>
         <p className="mt-2 max-w-sm text-kmute">

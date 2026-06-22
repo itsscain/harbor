@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { StepRow } from "@/components/app/StepRow";
 import { GroundingCard } from "@/components/app/GroundingCard";
+import { ChildPhotoField } from "@/components/app/ChildPhotoField";
 import { titleCase } from "@/lib/format";
 import {
   updateChild,
@@ -103,12 +104,20 @@ export default async function ChildDetail({
 
       <Card className="mb-4">
         <h2 className="text-title text-harbor">Profile</h2>
-        <form action={updateChild.bind(null, child.id)} className="mt-3 space-y-3">
+        <div className="mt-3 border-b border-harbor-100 pb-4">
+          <ChildPhotoField
+            childId={child.id}
+            name={child.name}
+            photoUrl={child.photo_url}
+            color={child.color ?? "#18606f"}
+          />
+        </div>
+        <form action={updateChild.bind(null, child.id)} className="mt-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <Field label="Name">
               <Input name="name" defaultValue={child.name} required />
             </Field>
-            <Field label="Emoji">
+            <Field label="Emoji" hint="Used on the wall if no photo is set.">
               <Input name="avatar" defaultValue={child.avatar ?? ""} className="w-24 text-center text-xl" />
             </Field>
           </div>

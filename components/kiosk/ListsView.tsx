@@ -43,7 +43,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
       </header>
 
       {/* List switcher */}
-      <div className="mb-4 flex gap-2 rounded-2xl bg-kpanel p-1.5 ring-1 ring-kline/55">
+      <div className="mb-4 flex gap-2 rounded-xl bg-kpanel p-1.5 ring-1 ring-kline/55">
         {KINDS.map((k) => {
           const Icon = k.icon;
           const active = k.key === kind;
@@ -67,7 +67,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={meta.placeholder}
-          className="flex-1 rounded-2xl bg-kpanel px-4 py-4 text-lg text-ktext outline-none ring-1 ring-kline/55 transition placeholder:text-kmute focus:ring-2 focus:ring-kwater"
+          className="flex-1 rounded-xl bg-kpanel px-4 py-4 text-lg text-ktext outline-none ring-1 ring-kline/55 transition placeholder:text-kmute focus:ring-2 focus:ring-kwater"
         />
         <KButton type="submit" variant="beacon" className="aspect-square h-auto w-16 px-0" aria-label="Add item">
           <Plus className="h-7 w-7" />
@@ -80,7 +80,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
             key={item.id}
             onClick={() => kiosk.checkListItem(item.id, !item.checked)}
             className={cn(
-              "flex w-full items-center gap-3 rounded-2xl p-4 text-left ring-1 transition active:scale-[0.99]",
+              "flex w-full items-center gap-3 rounded-xl p-4 text-left ring-1 transition active:scale-[0.99]",
               item.checked
                 ? "bg-emerald-500/10 ring-emerald-500/30"
                 : "bg-kpanel shadow-k ring-kline/55 hover:brightness-110",

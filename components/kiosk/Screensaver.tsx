@@ -52,7 +52,7 @@ export function Screensaver({
       )}
       <div className="relative flex flex-col items-center">
         <LighthouseMark className="h-12 w-12 animate-beacon text-white/90" />
-        <p className="mt-6 font-display text-7xl font-extrabold tabular-nums sm:text-8xl">
+        <p className="mt-6 font-display text-6xl font-bold tabular-nums sm:text-8xl">
           {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
         </p>
         <p className="mt-2 text-xl text-kmute">{greeting}</p>
@@ -76,7 +76,7 @@ export function SleepMode({ onWake }: { onWake: () => void }) {
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black"
       aria-label="Tap to wake"
     >
-      <span className="font-display text-5xl font-bold tabular-nums text-white/25">
+      <span className="font-display text-3xl font-bold tabular-nums text-white/25">
         {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
       </span>
     </button>

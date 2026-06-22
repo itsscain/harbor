@@ -124,6 +124,18 @@ export async function updateChild(id: string, formData: FormData) {
   revalidatePath(`/app/children/${id}`);
 }
 
+/** Save (or clear) a child's photo avatar. The file is uploaded to Storage from
+ *  the browser; this persists the resulting public URL. RLS scopes it to the
+ *  parent's own household. */
+export async function saveChildPhoto(id: string, url: string | null) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("children").update({ photo_url: url }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app");
+  revalidatePath(`/app/children/${id}`);
+}
+
 /** Hide a child from the wall (reversible). Soft-delete → syncs as a tombstone. */
 export async function deleteChild(id: string) {
   await requireUser();

@@ -19,7 +19,7 @@ export function KCard({
 }: { className?: string; children: ReactNode } & HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-3xl bg-kpanel ring-1 ring-kline/55 shadow-k", className)}
+      className={cn("rounded-xl bg-kpanel ring-1 ring-kline/55 shadow-k", className)}
       {...rest}
     >
       {children}
@@ -69,17 +69,17 @@ export function KPill({
 }
 
 const BTN_BASE =
-  "inline-flex items-center justify-center select-none whitespace-nowrap font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kwater/70 focus-visible:ring-offset-2 focus-visible:ring-offset-kbg disabled:pointer-events-none disabled:opacity-40";
+  "inline-flex items-center justify-center select-none whitespace-nowrap font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kwater/70 focus-visible:ring-offset-2 focus-visible:ring-offset-kbg disabled:pointer-events-none disabled:opacity-40";
 
 const BTN_SIZES = {
-  sm: "h-11 rounded-xl px-4 text-sm gap-1.5",
-  md: "h-14 rounded-2xl px-5 text-base gap-2",
-  lg: "h-16 rounded-2xl px-7 text-lg gap-2.5",
+  sm: "h-10 rounded-lg px-3.5 text-sm gap-1.5",
+  md: "h-12 rounded-xl px-5 text-[15px] gap-2",
+  lg: "h-14 rounded-xl px-6 text-base gap-2.5",
 } as const;
 
 const BTN_VARIANTS = {
-  primary: "bg-kwater text-harbor font-bold shadow-k hover:brightness-110 active:brightness-95",
-  beacon: "bg-beacon text-harbor font-bold shadow-k hover:brightness-105 active:brightness-95",
+  primary: "bg-kwater text-harbor font-semibold hover:brightness-110 active:brightness-95",
+  beacon: "bg-beacon text-harbor font-semibold hover:brightness-105 active:brightness-95",
   tonal: "bg-kraise text-ktext ring-1 ring-kline/55 hover:brightness-125",
   ghost: "bg-transparent text-kmute hover:bg-kraise hover:text-ktext",
   danger: "bg-red-500/15 text-red-300 ring-1 ring-red-500/30 hover:bg-red-500/25",
@@ -100,9 +100,9 @@ export function KButton({ variant = "tonal", size = "md", className, children, .
 }
 
 const ICON_SIZES = {
-  sm: "h-11 w-11 rounded-xl",
-  md: "h-14 w-14 rounded-2xl",
-  lg: "h-16 w-16 rounded-2xl",
+  sm: "h-10 w-10 rounded-lg",
+  md: "h-12 w-12 rounded-xl",
+  lg: "h-14 w-14 rounded-xl",
 } as const;
 
 type KIconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -138,7 +138,7 @@ export function KTabBar<T extends string>({
 }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-kline/50 bg-kbg2/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-3xl items-stretch gap-1 px-3 py-2">
+      <div className="mx-auto flex w-full max-w-2xl items-stretch gap-1 px-3 py-1.5">
         {items.map((it) => {
           const active = it.key === current;
           const Icon = it.icon;
@@ -148,14 +148,14 @@ export function KTabBar<T extends string>({
               onClick={() => onSelect(it.key)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-2.5 transition active:scale-[0.97]",
+                "relative flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2 transition active:scale-[0.97]",
                 active ? "bg-kraise text-kwater" : "text-kmute hover:bg-kraise/60 hover:text-ktext",
               )}
             >
-              <Icon className="h-6 w-6" />
-              <span className="text-xs font-bold">{it.label}</span>
+              <Icon className="h-[22px] w-[22px]" strokeWidth={2} />
+              <span className="text-[11px] font-medium">{it.label}</span>
               {it.badge ? (
-                <span className="absolute right-[24%] top-1 min-w-[18px] rounded-full bg-beacon px-1 text-center text-[11px] font-bold leading-[18px] text-harbor">
+                <span className="absolute right-[26%] top-0.5 min-w-[17px] rounded-full bg-beacon px-1 text-center text-[10px] font-semibold leading-[17px] text-harbor">
                   {it.badge > 99 ? "99+" : it.badge}
                 </span>
               ) : null}
@@ -184,10 +184,10 @@ export function KTopBar({
       <div className="flex min-w-0 items-center gap-3">
         {onBack && (
           <KButton variant="tonal" size="sm" onClick={onBack} className="px-3">
-            <ChevronLeft className="h-5 w-5" /> {backLabel}
+            <ChevronLeft className="h-4 w-4" /> {backLabel}
           </KButton>
         )}
-        {title && <span className="truncate font-display text-xl font-extrabold text-ktext">{title}</span>}
+        {title && <span className="truncate font-display text-lg font-bold text-ktext">{title}</span>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </header>

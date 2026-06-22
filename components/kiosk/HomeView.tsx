@@ -9,6 +9,7 @@ import { childColor, eventColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { WeatherWidget } from "./WeatherWidget";
+import { ChildAvatar } from "./ChildAvatar";
 import { KCard, KEyebrow, KButton } from "./ui";
 
 function daysUntil(iso: string): number {
@@ -93,23 +94,21 @@ export function HomeView({
       {/* Header */}
       <header className="mb-7 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{greeting}</h1>
-          <p className="mt-1 text-kmute">
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{greeting}</h1>
+          <p className="mt-1 text-sm text-kmute">
             {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {weather?.lat != null && weather?.lon != null && (
             <WeatherWidget lat={weather.lat} lon={weather.lon} label={weather.label} />
           )}
-          <div className="flex flex-col items-end gap-2">
-            <p className="font-display text-4xl font-extrabold tabular-nums leading-none sm:text-5xl">
-              {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-            </p>
-            <KButton variant="tonal" size="sm" onClick={onParentMenu} className="rounded-full px-4">
-              <Lock className="h-4 w-4" /> Parents
-            </KButton>
-          </div>
+          <p className="font-display text-3xl font-bold tabular-nums leading-none sm:text-4xl">
+            {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+          </p>
+          <KButton variant="tonal" size="sm" onClick={onParentMenu} aria-label="Parents" className="w-10 px-0">
+            <Lock className="h-4 w-4" />
+          </KButton>
         </div>
       </header>
 
@@ -117,10 +116,10 @@ export function HomeView({
       {(nextCountdown || tonight) && (
         <div className="mb-5 grid gap-4 sm:grid-cols-2">
           {nextCountdown && (
-            <KCard className="flex items-center gap-4 bg-beacon/10 p-5 ring-beacon/25">
-              <span className="text-4xl">{nextCountdown.emoji}</span>
+            <KCard className="flex items-center gap-4 bg-beacon/10 p-4 ring-beacon/25">
+              <span className="text-3xl">{nextCountdown.emoji}</span>
               <div className="min-w-0">
-                <p className="font-display text-xl font-extrabold text-beacon">
+                <p className="font-display text-lg font-bold text-beacon">
                   {nextCountdown.days === 0 ? "Today!" : `${nextCountdown.days} ${nextCountdown.days === 1 ? "sleep" : "sleeps"} to go`}
                 </p>
                 <p className="truncate text-sm text-kmute">{nextCountdown.title}</p>
@@ -128,11 +127,11 @@ export function HomeView({
             </KCard>
           )}
           {tonight && (
-            <KCard className="flex items-center gap-4 p-5">
-              <span className="text-4xl">{tonight.emoji ?? "🍽️"}</span>
+            <KCard className="flex items-center gap-4 p-4">
+              <span className="text-3xl">{tonight.emoji ?? "🍽️"}</span>
               <div className="min-w-0">
                 <KEyebrow>Tonight&apos;s dinner</KEyebrow>
-                <p className="mt-1 truncate font-display text-xl font-bold text-ktext">{tonight.title}</p>
+                <p className="mt-1 truncate font-display text-lg font-bold text-ktext">{tonight.title}</p>
               </div>
             </KCard>
           )}
@@ -181,38 +180,32 @@ export function HomeView({
             <button
               key={c.id}
               onClick={() => onSelectChild(c.id)}
-              className="kiosk-tap group rounded-3xl bg-kpanel p-5 text-left shadow-k ring-1 ring-kline/55 transition hover:brightness-110 active:scale-[0.99]"
-              style={{ borderTop: `4px solid ${color}` }}
+              className="kiosk-tap group rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55 transition hover:brightness-110 active:scale-[0.99]"
             >
-              <div className="flex items-center gap-4">
-                <span
-                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-4xl"
-                  style={{ background: color + "26", boxShadow: `inset 0 0 0 2px ${color}` }}
-                >
-                  {c.avatar ?? "🙂"}
-                </span>
+              <div className="flex items-center gap-3.5">
+                <ChildAvatar child={c} size={48} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate font-display text-2xl font-extrabold text-ktext">{c.name}</p>
+                    <p className="truncate font-display text-xl font-bold text-ktext">{c.name}</p>
                     {reset && (
-                      <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-bold text-amber-300">
-                        🌱 {reset.lastDay ? "last day" : `${reset.daysLeft}d`}
+                      <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-semibold text-amber-300">
+                        {reset.lastDay ? "last day" : `reset · ${reset.daysLeft}d`}
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-kmute">
-                    <span className={allDone ? "font-semibold text-emerald-300" : undefined}>
-                      {p.total > 0 ? (allDone ? "All done! 🎉" : `${p.done}/${p.total} steps`) : "No routine yet"}
+                  <p className="mt-0.5 flex items-center gap-2.5 text-sm text-kmute">
+                    <span className={allDone ? "font-medium text-emerald-300" : undefined}>
+                      {p.total > 0 ? (allDone ? "All done" : `${p.done} of ${p.total} done`) : "No routine yet"}
                     </span>
                     <span className="inline-flex items-center gap-1 text-beacon">
                       <Star className="h-4 w-4 fill-beacon" /> {p.points}
                     </span>
                   </p>
                 </div>
-                <ChevronRight className="h-6 w-6 shrink-0 text-kmute transition group-hover:text-ktext" />
+                <ChevronRight className="h-5 w-5 shrink-0 text-kmute transition group-hover:text-ktext" />
               </div>
               {p.total > 0 && (
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-kraise">
+                <div className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-kraise">
                   <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
                 </div>
               )}
@@ -224,7 +217,7 @@ export function HomeView({
       {/* Today agenda */}
       <button
         onClick={onOpenCalendar}
-        className="flex w-full items-center justify-between gap-3 rounded-3xl bg-kpanel p-5 text-left shadow-k ring-1 ring-kline/55 transition hover:brightness-110 active:scale-[0.99]"
+        className="flex w-full items-center justify-between gap-3 rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55 transition hover:brightness-110 active:scale-[0.99]"
       >
         <div className="min-w-0 flex-1">
           <p className="mb-2 flex items-center gap-2 font-display text-lg font-bold text-ktext">

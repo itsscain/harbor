@@ -37,11 +37,11 @@ export function ParentGate({
         <X className="h-6 w-6" />
       </KIconButton>
       <KCard className="flex w-full max-w-sm flex-col items-center px-8 py-10">
-        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-kwater/15 ring-1 ring-kwater/30">
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-kwater/15 ring-1 ring-kwater/30">
           <Lock className="h-8 w-8 text-kwater" />
         </span>
         <KEyebrow className="mt-5">Parents only</KEyebrow>
-        <h2 className="mt-2 font-display text-2xl font-extrabold text-ktext">
+        <h2 className="mt-2 font-display text-2xl font-bold text-ktext">
           Enter your PIN
         </h2>
         <p className="mt-1 text-kmute">Enter your PIN to continue.</p>

@@ -5,6 +5,7 @@ export type KioskChild = {
   id: string;
   name: string;
   avatar: string | null;
+  photo_url: string | null;
   color: string | null;
   birthday: string | null;
   sort_order: number;

@@ -49,7 +49,7 @@ export function PinPad({
             type="button"
             variant="tonal"
             onClick={() => press(String(n))}
-            className="kiosk-tap h-auto py-5 text-2xl font-bold active:bg-kwater active:text-harbor"
+            className="kiosk-tap h-auto py-3.5 text-2xl font-bold active:bg-kwater active:text-harbor"
           >
             {n}
           </KButton>
@@ -59,7 +59,7 @@ export function PinPad({
           type="button"
           variant="tonal"
           onClick={() => press("0")}
-          className="kiosk-tap h-auto py-5 text-2xl font-bold active:bg-kwater active:text-harbor"
+          className="kiosk-tap h-auto py-3.5 text-2xl font-bold active:bg-kwater active:text-harbor"
         >
           0
         </KButton>
@@ -67,7 +67,7 @@ export function PinPad({
           type="button"
           variant="ghost"
           onClick={() => setPin((p) => p.slice(0, -1))}
-          className="kiosk-tap h-auto py-5"
+          className="kiosk-tap h-auto py-3.5"
           aria-label="Delete"
         >
           <Delete className="h-7 w-7" />

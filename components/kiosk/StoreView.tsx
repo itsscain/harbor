@@ -55,7 +55,7 @@ export function StoreView({
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
       <div className="flex items-center justify-between border-b border-kline/50 bg-kbg2/90 p-5 backdrop-blur-md">
-        <span className="font-display text-xl font-extrabold text-ktext">Reward Store</span>
+        <span className="font-display text-xl font-bold text-ktext">Reward Store</span>
         <div className="flex items-center gap-3">
           <KPill tone="beacon" className="px-4 py-2 text-lg">
             <Star className="h-5 w-5 fill-beacon text-beacon" />
@@ -69,9 +69,9 @@ export function StoreView({
 
       <div className="flex-1 overflow-y-auto p-5">
         {storePaused && reset ? (
-          <KCard className="mx-auto mt-10 max-w-md bg-amber-400/10 p-8 text-center ring-amber-400/30">
+          <KCard className="mx-auto mt-10 max-w-md bg-amber-400/10 p-5 text-center ring-amber-400/30">
             <span className="text-5xl">🌱</span>
-            <p className="mt-4 font-display text-2xl font-extrabold text-amber-200">The store is taking a short break</p>
+            <p className="mt-4 font-display text-2xl font-bold text-amber-200">The store is taking a short break</p>
             <p className="mt-2 text-kmute">
               {reset.lastDay
                 ? "Back tomorrow — you're almost done!"
@@ -108,7 +108,7 @@ export function StoreView({
                       onClick={() => buy(item)}
                       disabled={!affordable || bought === item.id}
                       className={cn(
-                        "kiosk-tap mt-4 w-full rounded-2xl py-4 text-lg font-bold transition active:scale-[0.98]",
+                        "kiosk-tap mt-4 w-full rounded-xl py-3.5 text-lg font-bold transition active:scale-[0.98]",
                         bought === item.id
                           ? "bg-emerald-500 text-white shadow-k"
                           : affordable
@@ -147,7 +147,7 @@ export function StoreView({
         >
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className="animate-pop relative text-8xl">{redeemed.emoji ?? "🎁"}</span>
-          <p className="relative mt-4 font-display text-4xl font-extrabold sm:text-5xl">You got it!</p>
+          <p className="relative mt-4 font-display text-3xl font-bold">You got it!</p>
           <p className="relative mt-2 text-xl text-kmute">{redeemed.label}</p>
           <p className="relative mt-10 text-sm text-kmute/70">Tap to keep going</p>
         </button>

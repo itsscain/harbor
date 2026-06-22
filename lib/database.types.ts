@@ -205,6 +205,7 @@ export type Database = {
           household_id: string
           id: string
           name: string
+          photo_url: string | null
           settings: Json
           sort_order: number
           updated_at: string
@@ -218,6 +219,7 @@ export type Database = {
           household_id: string
           id?: string
           name: string
+          photo_url?: string | null
           settings?: Json
           sort_order?: number
           updated_at?: string
@@ -231,6 +233,7 @@ export type Database = {
           household_id?: string
           id?: string
           name?: string
+          photo_url?: string | null
           settings?: Json
           sort_order?: number
           updated_at?: string

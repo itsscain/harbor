@@ -74,9 +74,9 @@ export function CalmCorner({
                 <button
                   key={tool.id}
                   onClick={() => setOpen(tool)}
-                  className="kiosk-tap flex items-center gap-4 rounded-3xl bg-kpanel ring-1 ring-kline/55 shadow-k p-6 text-left transition active:scale-[0.98] hover:bg-kraise"
+                  className="kiosk-tap flex items-center gap-4 rounded-xl bg-kpanel ring-1 ring-kline/55 shadow-k p-5 text-left transition active:scale-[0.98] hover:bg-kraise"
                 >
-                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-beacon text-harbor shadow-k">
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-beacon text-harbor shadow-k">
                     <Icon className="h-8 w-8" />
                   </span>
                   <span>
@@ -146,8 +146,8 @@ function Breathing({ config }: { config: Record<string, unknown> }) {
   if (done) {
     return (
       <div className="text-center">
-        <div className="text-7xl animate-reward">🌬️</div>
-        <p className="mt-6 font-display text-2xl font-extrabold text-ktext">Great breathing!</p>
+        <div className="text-6xl animate-reward">🌬️</div>
+        <p className="mt-6 font-display text-2xl font-bold text-ktext">Great breathing!</p>
         <p className="mt-2 text-kmute">You took {rounds} slow breaths.</p>
       </div>
     );
@@ -171,7 +171,7 @@ function Breathing({ config }: { config: Record<string, unknown> }) {
             transition: `transform ${phase.secs}s ease-in-out`,
           }}
         />
-        <span className="relative font-display text-3xl font-extrabold text-ktext">
+        <span className="relative font-display text-3xl font-bold text-ktext">
           {phase.label}
         </span>
       </div>
@@ -203,7 +203,7 @@ function Feelings({
     return (
       <div className="text-center">
         <div className="text-8xl animate-reward">{f.emoji}</div>
-        <p className="mt-6 font-display text-2xl font-extrabold text-ktext">
+        <p className="mt-6 font-display text-2xl font-bold text-ktext">
           Thanks for sharing.
         </p>
         <p className="mt-2 text-kmute">
@@ -224,7 +224,7 @@ function Feelings({
             setPicked(f.key);
             onPick(f.key);
           }}
-          className="kiosk-tap flex flex-col items-center gap-2 rounded-3xl bg-kpanel ring-1 ring-kline/55 shadow-k p-5 transition active:scale-95 hover:bg-kraise"
+          className="kiosk-tap flex flex-col items-center gap-2 rounded-xl bg-kpanel ring-1 ring-kline/55 shadow-k p-5 transition active:scale-95 hover:bg-kraise"
         >
           <span className="text-5xl">{f.emoji}</span>
           <span className="font-semibold text-ktext">{f.label}</span>
@@ -248,7 +248,7 @@ function BreakTimer({ config }: { config: Record<string, unknown> }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="h-44 w-44 animate-beacon rounded-full bg-kwater/30 ring-1 ring-kwater/40" />
-      <p className="mt-8 font-display text-2xl font-extrabold text-ktext">
+      <p className="mt-8 font-display text-2xl font-bold text-ktext">
         {left > 0 ? "Take your time" : "Feeling better?"}
       </p>
       <p className="mt-2 text-5xl font-bold tabular-nums text-kmute">
@@ -274,7 +274,7 @@ function SocialStory({ config }: { config: Record<string, unknown> }) {
   return (
     <div className="w-full max-w-xl text-center">
       <p className="font-display text-lg font-bold text-kmute">{title}</p>
-      <KCard className="mt-4 flex min-h-48 items-center justify-center p-8">
+      <KCard className="mt-4 flex min-h-48 items-center justify-center p-5">
         <p className="font-display text-2xl font-bold leading-relaxed text-ktext">
           {pages[p]}
         </p>

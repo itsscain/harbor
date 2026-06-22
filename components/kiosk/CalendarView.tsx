@@ -7,6 +7,7 @@ import { eventsForDay, occursOn, formatEventTime } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
 import type { KioskEvent } from "@/lib/kiosk/types";
 import { speak } from "@/lib/kiosk/feedback";
+import { ChildAvatar } from "./ChildAvatar";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -120,7 +121,7 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-kbg pb-[84px] text-ktext">
       <header className="flex items-center justify-between gap-3 border-b border-kline/50 bg-kbg2/80 px-4 py-3 backdrop-blur-md sm:px-6">
-        <span className="font-display text-2xl font-extrabold text-ktext">Calendar</span>
+        <span className="font-display text-2xl font-bold text-ktext">Calendar</span>
         <div className="flex items-center gap-1 rounded-full bg-kpanel p-1 ring-1 ring-kline/55">
           {(["day", "week", "month", "agenda"] as View[]).map((v) => (
             <button
@@ -157,17 +158,12 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
                 key={c.id}
                 onClick={() => setFilter(active ? null : c.id)}
                 className={cn(
-                  "kiosk-tap flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-sm font-semibold transition",
-                  active ? "text-white" : "bg-kraise text-ktext",
+                  "flex items-center gap-2 rounded-full py-1 pl-1 pr-3.5 text-sm font-medium transition",
+                  active ? "text-white" : "bg-kraise text-ktext hover:brightness-125",
                 )}
                 style={active ? { backgroundColor: childColor(c) } : undefined}
               >
-                <span
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-sm"
-                  style={{ background: active ? "rgba(255,255,255,.25)" : childColor(c) + "33", boxShadow: active ? undefined : `inset 0 0 0 1.5px ${childColor(c)}` }}
-                >
-                  {c.avatar ?? "🙂"}
-                </span>
+                <ChildAvatar child={c} size={26} rounded="rounded-full" />
                 {c.name}
               </button>
             );
@@ -181,7 +177,7 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
           <button onClick={() => shift(-1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline/55 transition hover:brightness-125" aria-label="Previous">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button onClick={() => setAnchor(startOfDay(new Date()))} className="font-display text-lg font-extrabold text-ktext">
+          <button onClick={() => setAnchor(startOfDay(new Date()))} className="font-display text-lg font-bold text-ktext">
             {title}
           </button>
           <button onClick={() => shift(1)} className="kiosk-tap rounded-xl bg-kpanel p-2 text-ktext ring-1 ring-kline/55 transition hover:brightness-125" aria-label="Next">
@@ -257,7 +253,7 @@ function TimeGrid({
   const hasAllDay = days.some((d) => allDayFor(d).length > 0);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-kpanel shadow-k ring-1 ring-kline/55">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl bg-kpanel shadow-k ring-1 ring-kline/55">
       {/* Day headers */}
       <div className="flex border-b border-kline/50" style={{ paddingRight: 6 }}>
         <div className="w-12 shrink-0 sm:w-14" />
@@ -378,7 +374,7 @@ function EventRow({ event, color }: { event: KioskEvent; color: string }) {
   return (
     <button
       onClick={() => speak(`${event.title} at ${formatEventTime(event)}`)}
-      className="flex w-full items-center gap-3 rounded-2xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55"
+      className="flex w-full items-center gap-3 rounded-xl bg-kpanel p-4 text-left shadow-k ring-1 ring-kline/55"
       style={{ borderLeft: `6px solid ${color}` }}
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ backgroundColor: color + "33" }}>
@@ -416,7 +412,7 @@ function AgendaView({
     if (evs.length) days.push({ date: d, evs });
   }
   if (days.length === 0) {
-    return <div className="rounded-2xl bg-kpanel p-6 text-center text-kmute shadow-k ring-1 ring-kline/55">Nothing scheduled. Enjoy the calm. 🌊</div>;
+    return <div className="rounded-xl bg-kpanel p-5 text-center text-kmute shadow-k ring-1 ring-kline/55">Nothing scheduled. Enjoy the calm. 🌊</div>;
   }
   return (
     <div className="space-y-5 pb-4">

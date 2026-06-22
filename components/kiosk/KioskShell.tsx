@@ -214,8 +214,8 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const lastSync = relativeTime(kiosk.lastSync);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <KCard className="w-full max-w-md rounded-b-none rounded-t-3xl p-6 shadow-k-pop sm:rounded-3xl">
-        <h2 className="font-display text-2xl font-extrabold text-ktext">Parent menu</h2>
+      <KCard className="w-full max-w-md rounded-b-none rounded-t-2xl p-5 shadow-k-pop sm:rounded-xl">
+        <h2 className="font-display text-2xl font-bold text-ktext">Parent menu</h2>
         <p className="mt-1 text-sm text-kmute">
           {syncText || (kiosk.online ? "Online" : "Offline — the wall keeps working")}
           {lastSync ? ` · last synced ${lastSync}` : ""}
@@ -277,7 +277,7 @@ function MenuRow({
     <button
       onClick={onClick}
       className={cn(
-        "kiosk-tap flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left font-semibold",
+        "kiosk-tap flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left font-semibold",
         danger ? "bg-red-500/10 text-red-300" : "bg-kraise text-ktext",
       )}
     >

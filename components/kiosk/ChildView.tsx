@@ -21,6 +21,7 @@ import { speak, chime, haptic } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
+import { ChildAvatar } from "./ChildAvatar";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -156,10 +157,10 @@ export function ChildView({
         </button>
         <button
           onClick={() => speak(`${child.name}'s ${activeRoutine?.name ?? "day"}`, settings.readAloud)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2.5"
         >
-          <span className="text-3xl">{child.avatar ?? "🙂"}</span>
-          <span className="font-display text-2xl font-extrabold">{child.name}</span>
+          <ChildAvatar child={child} size={36} />
+          <span className="font-display text-xl font-bold">{child.name}</span>
         </button>
         <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-2">
           <Star className="h-5 w-5 fill-beacon text-beacon" />
@@ -283,21 +284,21 @@ export function ChildView({
       <footer className="grid grid-cols-3 gap-3 border-t border-kline/50 bg-kbg2/80 p-4 backdrop-blur">
         <button
           onClick={() => setStoreOpen(true)}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
         >
-          <Gift className="h-6 w-6 text-beacon" /> Store
+          <Gift className="h-5 w-5 text-beacon" /> Store
         </button>
         <button
           onClick={() => setTimerOpen(true)}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-kraise py-5 text-lg font-bold text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
         >
-          <TimerIcon className="h-6 w-6 text-kwater" /> Timer
+          <TimerIcon className="h-5 w-5 text-kwater" /> Timer
         </button>
         <button
           onClick={onOpenCalm}
-          className="kiosk-tap flex items-center justify-center gap-2 rounded-2xl bg-beacon py-5 text-lg font-bold text-harbor shadow-k transition hover:brightness-105 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-beacon py-3.5 text-base font-semibold text-harbor transition hover:brightness-105 active:scale-[0.98]"
         >
-          <Heart className="h-6 w-6" /> Calm
+          <Heart className="h-5 w-5" /> Calm
         </button>
       </footer>
 
@@ -362,8 +363,8 @@ function StepCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center justify-center gap-2 rounded-3xl p-4 text-center shadow-k ring-1 transition",
-        big ? "min-h-52" : "min-h-36",
+        "relative flex flex-col items-center justify-center gap-2 rounded-xl p-4 text-center shadow-k ring-1 transition",
+        big ? "min-h-44" : "min-h-32",
         done
           ? "bg-emerald-500/15 ring-emerald-500/40"
           : muted
@@ -395,8 +396,8 @@ function StepCard({
             {label}
           </span>
         )}
-        <span className={cn(big ? "text-7xl" : "text-5xl")}>{step.icon ?? "✅"}</span>
-        <span className={cn("font-display font-bold text-ktext", big ? "text-2xl" : "text-lg")}>
+        <span className={cn(big ? "text-6xl" : "text-5xl")}>{step.icon ?? "✅"}</span>
+        <span className={cn("font-display font-bold text-ktext", big ? "text-xl" : "text-lg")}>
           {step.label}
         </span>
         {step.reward_points > 0 && !done && (

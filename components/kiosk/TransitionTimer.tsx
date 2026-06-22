@@ -39,7 +39,7 @@ export function TransitionTimer({
         <X className="h-6 w-6" />
       </KIconButton>
 
-      <p className="mb-8 font-display text-3xl font-extrabold text-ktext">
+      <p className="mb-8 font-display text-3xl font-bold text-ktext">
         {done ? "All done!" : label}
       </p>
 
@@ -73,7 +73,7 @@ export function TransitionTimer({
           variant="beacon"
           size="lg"
           onClick={onClose}
-          className="kiosk-tap mt-10 px-10 py-5 text-xl"
+          className="kiosk-tap mt-10 px-10 py-3.5 text-xl"
         >
           Done
         </KButton>

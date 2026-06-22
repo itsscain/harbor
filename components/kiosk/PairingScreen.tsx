@@ -46,10 +46,10 @@ export function PairingScreen({
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-kbg px-6 text-center text-ktext">
       <div className="absolute inset-0 beacon-ring opacity-50" aria-hidden />
-      <KCard className="relative w-full max-w-md p-8 sm:p-10">
+      <KCard className="relative w-full max-w-md p-5 sm:p-10">
         <LighthouseMark className="mx-auto h-16 w-16 text-beacon" />
         <KEyebrow className="mt-6">First-time setup</KEyebrow>
-        <h1 className="mt-2 font-display text-3xl font-extrabold">
+        <h1 className="mt-2 font-display text-3xl font-bold">
           Set up this Harbor
         </h1>
         <p className="mt-2 text-kmute">
@@ -67,10 +67,10 @@ export function PairingScreen({
             autoCorrect="off"
             spellCheck={false}
             inputMode="text"
-            className="w-full rounded-2xl bg-kraise px-5 py-5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-ktext placeholder-kmute ring-1 ring-kline/55 outline-none transition focus:ring-2 focus:ring-beacon/70"
+            className="w-full rounded-xl bg-kraise px-5 py-3.5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-ktext placeholder-kmute ring-1 ring-kline/55 outline-none transition focus:ring-2 focus:ring-beacon/70"
           />
           {error && (
-            <p role="alert" className="rounded-2xl bg-red-500/15 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/30">
+            <p role="alert" className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/30">
               {error}
             </p>
           )}
