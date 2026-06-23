@@ -262,8 +262,8 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
           )}
           <MenuRow
             icon={RefreshCw}
-            label={kiosk.syncStatus === "syncing" ? "Syncing…" : "Sync now"}
-            onClick={() => void kiosk.syncNow()}
+            label={kiosk.syncStatus === "syncing" ? "Syncing…" : "Refresh from cloud"}
+            onClick={() => void kiosk.syncNow(true)}
           />
           {!confirmUnpair ? (
             <MenuRow icon={LogOut} label="Unpair this device" danger onClick={() => setConfirmUnpair(true)} />

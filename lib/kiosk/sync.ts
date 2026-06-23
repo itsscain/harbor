@@ -68,26 +68,32 @@ function buildPayload(outbox: Mutation[]): Json {
   return { check_ins, completions, chore_dones, redemptions, list_ops };
 }
 
-function applyPull(state: KioskState, snap: KioskSnapshot): KioskState {
+function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): KioskState {
   if (!snap || typeof snap !== "object") return state;
+  // Delta pulls MERGE (additive + tombstones). A full refresh (replace=true, from
+  // a since=null pull that returns the complete set) REPLACES server-authored
+  // arrays so anything no longer on the server — e.g. a stale cached message — is
+  // pruned locally. Kiosk-authored data (progress, outbox, points) is untouched.
+  const pull = <T extends Identified>(existing: T[], incoming: T[] | undefined): T[] =>
+    replace ? (Array.isArray(incoming) ? incoming : []) : mergeById(existing ?? [], incoming ?? []);
   const next: KioskState = {
     ...state,
     snapshot: {
       ...state.snapshot,
       household: snap.household ?? state.snapshot.household,
-      children: mergeById(state.snapshot.children, snap.children ?? []),
-      routines: mergeById(state.snapshot.routines, snap.routines ?? []),
-      steps: mergeById(state.snapshot.steps, snap.steps ?? []),
-      chores: mergeById(state.snapshot.chores ?? [], snap.chores ?? []),
-      calm_tools: mergeById(state.snapshot.calm_tools, snap.calm_tools ?? []),
-      house_rules: mergeById(state.snapshot.house_rules ?? [], snap.house_rules ?? []),
-      events: mergeById(state.snapshot.events ?? [], snap.events ?? []),
-      store_items: mergeById(state.snapshot.store_items ?? [], snap.store_items ?? []),
-      list_items: mergeById(state.snapshot.list_items ?? [], snap.list_items ?? []),
-      wall_messages: mergeById(state.snapshot.wall_messages ?? [], snap.wall_messages ?? []),
-      reminders: mergeById(state.snapshot.reminders ?? [], snap.reminders ?? []),
-      meals: mergeById(state.snapshot.meals ?? [], snap.meals ?? []),
-      groundings: mergeById(state.snapshot.groundings ?? [], snap.groundings ?? []),
+      children: pull(state.snapshot.children, snap.children),
+      routines: pull(state.snapshot.routines, snap.routines),
+      steps: pull(state.snapshot.steps, snap.steps),
+      chores: pull(state.snapshot.chores ?? [], snap.chores),
+      calm_tools: pull(state.snapshot.calm_tools, snap.calm_tools),
+      house_rules: pull(state.snapshot.house_rules ?? [], snap.house_rules),
+      events: pull(state.snapshot.events ?? [], snap.events),
+      store_items: pull(state.snapshot.store_items ?? [], snap.store_items),
+      list_items: pull(state.snapshot.list_items ?? [], snap.list_items),
+      wall_messages: pull(state.snapshot.wall_messages ?? [], snap.wall_messages),
+      reminders: pull(state.snapshot.reminders ?? [], snap.reminders),
+      meals: pull(state.snapshot.meals ?? [], snap.meals),
+      groundings: pull(state.snapshot.groundings ?? [], snap.groundings),
       server_time: snap.server_time,
     },
     lastSync: snap.server_time,
@@ -153,7 +159,7 @@ export async function pairDevice(code: string): Promise<{
  * active. Daily kiosk use never calls this; it is pure backup/remote-edit.
  * Returns the (possibly updated) state; on failure returns the input unchanged.
  */
-export async function syncNow(state: KioskState): Promise<KioskState> {
+export async function syncNow(state: KioskState, opts?: { full?: boolean }): Promise<KioskState> {
   if (typeof navigator !== "undefined" && !navigator.onLine) return state;
   if (!state.snapshot.household.plus_active) return state;
 
@@ -169,10 +175,12 @@ export async function syncNow(state: KioskState): Promise<KioskState> {
     next = { ...next, outbox: [] };
   }
 
+  // full=true → pull the complete set (since=null) and REPLACE local arrays,
+  // self-healing any stale/orphaned cached rows. Otherwise a cheap delta pull.
   const { data, error } = await supabase.rpc("rpc_kiosk_pull", {
     p_secret: next.deviceSecret,
-    p_since: next.lastSync ?? undefined,
+    p_since: opts?.full ? undefined : (next.lastSync ?? undefined),
   });
-  if (!error && data) next = applyPull(next, data as KioskSnapshot);
+  if (!error && data) next = applyPull(next, data as KioskSnapshot, opts?.full ?? false);
   return next;
 }

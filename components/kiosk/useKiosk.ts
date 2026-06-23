@@ -68,7 +68,7 @@ export function useKiosk() {
   // Reconciles against live state: mutations enqueued during the network await
   // are preserved (and their optimistic effects re-applied) so a tap mid-sync is
   // never lost.
-  const runSync = useCallback(async () => {
+  const runSync = useCallback(async (full = false) => {
     const before = stateRef.current;
     if (!before) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -82,7 +82,7 @@ export function useKiosk() {
     setSyncStatus("syncing");
     let synced: KioskState;
     try {
-      synced = await syncNow(before);
+      synced = await syncNow(before, { full });
     } catch {
       setSyncStatus("error");
       return;
@@ -141,7 +141,7 @@ export function useKiosk() {
     window.addEventListener("offline", setOn);
     document.addEventListener("visibilitychange", onWake);
     window.addEventListener("focus", onWake);
-    void runSync();
+    void runSync(true); // boot: full reconcile so stale/orphaned cached rows self-heal
     const id = window.setInterval(runSync, 30_000);
     return () => {
       window.removeEventListener("online", setOn);

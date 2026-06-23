@@ -84,7 +84,23 @@ export function ChoresBoard({
 
             <div className="flex items-center gap-3">
               <button onClick={() => onSelectChild(child.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                <ChildAvatar child={child} size={variant === "full" ? 44 : 38} />
+                <span
+                  className="relative inline-flex shrink-0 items-center justify-center rounded-full p-[3px] transition-all"
+                  style={
+                    chores.length > 0
+                      ? { background: `conic-gradient(${color} ${Math.round((doneCount / chores.length) * 360)}deg, rgba(255,255,255,0.09) 0deg)` }
+                      : undefined
+                  }
+                >
+                  <span className="rounded-full bg-kpanel p-[2px]">
+                    <ChildAvatar child={child} size={variant === "full" ? 44 : 38} rounded="rounded-full" />
+                  </span>
+                  {allDone && (
+                    <span className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                  )}
+                </span>
                 <div className="min-w-0">
                   <p className="truncate font-display text-lg font-bold text-ktext">{child.name}</p>
                   <p className="text-sm text-kmute">
