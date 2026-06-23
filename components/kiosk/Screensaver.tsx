@@ -5,9 +5,11 @@ import { Sparkles, CalendarDays, UtensilsCrossed, Pin, Gift, Star, ChevronRight,
 import { LighthouseMark } from "@/components/brand/Logo";
 import { WeatherWidget } from "./WeatherWidget";
 import { ChildAvatar } from "./ChildAvatar";
-import { eventsForDay, formatEventTime } from "@/lib/kiosk/calendar";
+import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
+import { choreAssignee } from "@/lib/kiosk/chores";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { childColor } from "@/lib/kiosk/colors";
+import { todayKey } from "@/lib/kiosk/db";
 import type { useKiosk } from "./useKiosk";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -202,35 +204,53 @@ export function Screensaver({
       });
     }
 
-    const leaders = children
-      .map((c) => ({ c, pts: kiosk.state?.points[c.id] ?? 0 }))
-      .filter((x) => x.pts > 0)
-      .sort((a, b) => b.pts - a.pts)
-      .slice(0, 3);
-    if (leaders.length) {
+    // Cooperative, NOT competitive: the family's shared progress today (no
+    // ranking) so the wall reads as "us together," not "who's ahead of who."
+    const validIds = new Set(children.map((c) => c.id));
+    const td = todayKey();
+    const doneToday = (cid: string) =>
+      kiosk.state?.progress[cid]?.date === td ? kiosk.state.progress[cid].completed : [];
+    let totalChores = 0;
+    let totalDone = 0;
+    for (const c of children) {
+      const list = (snap?.chores ?? []).filter(
+        (ch) => ch.active && runsToday(ch.days_of_week) && choreAssignee(ch, validIds) === c.id,
+      );
+      totalChores += list.length;
+      const done = doneToday(c.id);
+      totalDone += list.filter((ch) => done.includes(ch.id)).length;
+    }
+    if (totalChores > 0) {
+      const pct = Math.round((totalDone / totalChores) * 100);
+      const allDone = totalDone === totalChores;
       out.push({
-        key: "stars",
-        tint: "#f6b23d",
+        key: "team",
+        tint: "#4cc09a",
         icon: <Star className="h-5 w-5" />,
-        eyebrow: "Star leaders",
+        eyebrow: "Family teamwork",
         body: (
-          <div className="space-y-3">
-            {leaders.map(({ c, pts }) => (
-              <div key={c.id} className="flex items-center gap-3">
-                <ChildAvatar child={c} size={40} rounded="rounded-full" />
-                <span className="flex-1 truncate text-2xl font-semibold text-white/90">{c.name}</span>
-                <span className="flex items-center gap-1.5 text-2xl font-bold text-beacon">
-                  <Star className="h-5 w-5 fill-beacon" /> {pts}
-                </span>
-              </div>
-            ))}
+          <div>
+            <p className="font-display text-3xl font-bold text-white sm:text-4xl">
+              {allDone ? "The whole family did it! 🎉" : `${totalDone} of ${totalChores} done today`}
+            </p>
+            <p className="mt-1.5 text-lg text-white/70">
+              {allDone ? "Amazing teamwork, everyone." : "Every task helps the whole family."}
+            </p>
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/15">
+              <div className="h-full rounded-full bg-seafoam transition-all" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {children.map((c) => (
+                <ChildAvatar key={c.id} child={c} size={36} rounded="rounded-full" />
+              ))}
+            </div>
           </div>
         ),
       });
     }
 
     return out;
-  }, [snap, brief, meals, now, kiosk.state?.points]);
+  }, [snap, brief, meals, now, kiosk.state?.progress]);
 
   useEffect(() => {
     if (panels.length < 2) return;

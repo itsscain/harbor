@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Trash2, RefreshCw, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Badge, Input, Field, Select, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -248,6 +248,10 @@ export default async function ChildDetail({
                         <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
                       </div>
                     </div>
+                    <label className="flex items-center gap-2 text-xs font-medium text-ink">
+                      <input type="checkbox" name="approval" defaultChecked={ch.requires_approval ?? false} className="h-4 w-4 rounded border-harbor-200 text-water focus:ring-water" />
+                      Needs a grown-up&apos;s OK to check off
+                    </label>
                     {rotating && (
                       <p className="flex items-center gap-1 text-xs font-medium text-water">
                         <RefreshCw className="h-3 w-3" aria-hidden="true" /> Rotates between the kids each week
@@ -296,6 +300,12 @@ export default async function ChildDetail({
             <input type="checkbox" name="rotate" className="h-4 w-4 rounded border-harbor-200 text-water focus:ring-water" />
             <span className="flex items-center gap-1.5">
               <RefreshCw className="h-4 w-4 text-water" /> Rotate between all the kids each week
+            </span>
+          </label>
+          <label className="flex items-center gap-2.5 rounded-xl border border-harbor-100 px-3.5 py-3 text-sm font-medium text-ink">
+            <input type="checkbox" name="approval" className="h-4 w-4 rounded border-harbor-200 text-water focus:ring-water" />
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-water" /> Needs a grown-up&apos;s OK to check off
             </span>
           </label>
           <SubmitButton variant="secondary">Add chore</SubmitButton>

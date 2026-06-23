@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Sparkles,
   Ban,
+  ShieldCheck,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
@@ -20,6 +21,7 @@ import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
 import { Confetti } from "./Confetti";
+import { ParentGate } from "./ParentGate";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
@@ -85,6 +87,7 @@ export function ChildView({
   }, [state, activeRoutine]);
 
   const [celebrate, setCelebrate] = useState<{ points: number; n: number } | null>(null);
+  const [approvingChore, setApprovingChore] = useState<KioskChore | null>(null);
   const [bigCelebrate, setBigCelebrate] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
@@ -134,8 +137,7 @@ export function ChildView({
     }
   }
 
-  function tapChore(chore: KioskChore) {
-    if (prog.includes(chore.id)) return;
+  function doCompleteChore(chore: KioskChore) {
     kiosk.completeChore(child!.id, chore);
     chime(settings!.sound);
     haptic(20, settings!.haptics);
@@ -144,6 +146,16 @@ export function ChildView({
       setCelebrate({ points: chore.points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
     }
+  }
+
+  function tapChore(chore: KioskChore) {
+    if (prog.includes(chore.id)) return;
+    // Only gate when a PIN exists (otherwise verifyPin auto-passes = fake gate).
+    if (chore.requires_approval && kiosk.state?.pinHash) {
+      setApprovingChore(chore);
+      return;
+    }
+    doCompleteChore(chore);
   }
 
   const childChores = (state.snapshot.chores ?? [])
@@ -352,6 +364,11 @@ export function ChildView({
                   >
                     <span className="text-5xl">{chore.icon ?? "✅"}</span>
                     <span className="font-display text-lg font-bold text-ktext">{chore.title}</span>
+                    {chore.requires_approval && !done && (
+                      <span className="absolute left-2.5 top-2.5 text-kmute" aria-label="needs a grown-up's OK">
+                        <ShieldCheck className="h-4 w-4" />
+                      </span>
+                    )}
                     {chore.points > 0 && !done && (
                       <span className="flex items-center gap-1 text-sm font-semibold text-beacon">
                         <Star className="h-4 w-4 fill-beacon" /> {chore.points}
@@ -391,6 +408,20 @@ export function ChildView({
           <Heart className="h-5 w-5" /> Calm
         </button>
       </footer>
+
+      {approvingChore && (
+        <ParentGate
+          verify={kiosk.verifyPin}
+          title="A grown-up's OK?"
+          subtitle={`Enter your PIN to check off "${approvingChore.title}".`}
+          onSuccess={() => {
+            const c = approvingChore;
+            setApprovingChore(null);
+            doCompleteChore(c);
+          }}
+          onCancel={() => setApprovingChore(null)}
+        />
+      )}
 
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">

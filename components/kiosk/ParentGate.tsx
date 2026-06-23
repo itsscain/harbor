@@ -10,10 +10,14 @@ export function ParentGate({
   verify,
   onSuccess,
   onCancel,
+  title = "Enter your PIN",
+  subtitle = "Enter your PIN to continue.",
 }: {
   verify: (pin: string) => Promise<boolean>;
   onSuccess: () => void;
   onCancel: () => void;
+  title?: string;
+  subtitle?: string;
 }) {
   const [error, setError] = useState(false);
 
@@ -41,10 +45,8 @@ export function ParentGate({
           <Lock className="h-8 w-8 text-kwater" />
         </span>
         <KEyebrow className="mt-5">Parents only</KEyebrow>
-        <h2 className="mt-2 font-display text-2xl font-bold text-ktext">
-          Enter your PIN
-        </h2>
-        <p className="mt-1 text-kmute">Enter your PIN to continue.</p>
+        <h2 className="mt-2 text-center font-display text-2xl font-bold text-ktext">{title}</h2>
+        <p className="mt-1 text-center text-kmute">{subtitle}</p>
         {error && (
           <p className="mt-3 text-sm font-semibold text-red-300">
             Wrong PIN — try again.

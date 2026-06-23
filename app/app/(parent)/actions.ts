@@ -181,6 +181,7 @@ export async function createChore(childId: string, formData: FormData) {
     points: Math.max(0, int(formData.get("points"), 0)),
     days_of_week,
     rotation_member_ids,
+    requires_approval: formData.get("approval") === "on",
     sort_order,
   });
   if (error) throw new Error(error.message);
@@ -206,6 +207,7 @@ export async function updateChore(id: string, childId: string, formData: FormDat
       icon: str(formData.get("icon")) ?? "✅",
       points: Math.max(0, int(formData.get("points"), 0)),
       days_of_week,
+      requires_approval: formData.get("approval") === "on",
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

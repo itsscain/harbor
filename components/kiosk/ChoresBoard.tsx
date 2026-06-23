@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Check, Info, RotateCw } from "lucide-react";
+import { Star, Check, Info, RotateCw, ShieldCheck } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskChore } from "@/lib/kiosk/types";
 import { todayKey } from "@/lib/kiosk/db";
@@ -14,6 +14,7 @@ import { readChildSettings } from "./ChildView";
 import { ChildAvatar } from "./ChildAvatar";
 import { BedtimeCountdown } from "./BedtimeCountdown";
 import { Confetti } from "./Confetti";
+import { ParentGate } from "./ParentGate";
 import { KEyebrow } from "./ui";
 import { cn } from "@/lib/cn";
 
@@ -32,6 +33,7 @@ export function ChoresBoard({
 }) {
   const { state } = kiosk;
   const [celebrate, setCelebrate] = useState<{ id: string; points: number } | null>(null);
+  const [approving, setApproving] = useState<{ child: KioskChild; chore: KioskChore } | null>(null);
   if (!state) return null;
 
   const snap = state.snapshot;
@@ -48,9 +50,7 @@ export function ChoresBoard({
   const completedToday = (childId: string) =>
     state.progress[childId]?.date === today ? state.progress[childId].completed : [];
 
-  function tap(child: KioskChild, chore: KioskChore) {
-    const done = completedToday(child.id).includes(chore.id);
-    if (done) return;
+  function doComplete(child: KioskChild, chore: KioskChore) {
     kiosk.completeChore(child.id, chore);
     const s = readChildSettings(child);
     chime(s.sound);
@@ -60,6 +60,18 @@ export function ChoresBoard({
       setCelebrate({ id: chore.id, points: chore.points });
       setTimeout(() => setCelebrate(null), 1100);
     }
+  }
+
+  function tap(child: KioskChild, chore: KioskChore) {
+    if (completedToday(child.id).includes(chore.id)) return;
+    // Chores flagged "needs a grown-up's OK" require the parent PIN to check off,
+    // so kids can't claim credit for things they didn't do. Only gate when a PIN
+    // actually exists — otherwise verifyPin auto-passes, which would be a fake gate.
+    if (chore.requires_approval && state.pinHash) {
+      setApproving({ child, chore });
+      return;
+    }
+    doComplete(child, chore);
   }
 
   // Always show every child so each is tappable into their screen (routines +
@@ -178,6 +190,7 @@ export function ChoresBoard({
                       <span className="text-lg leading-none">{chore.icon ?? "✅"}</span>
                       <span className="whitespace-nowrap">{chore.title}</span>
                       {isRotating(chore) && !isDone && <RotateCw className="h-3.5 w-3.5 shrink-0 text-kmute" aria-label="rotates between kids" />}
+                      {chore.requires_approval && !isDone && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-kmute" aria-label="needs a grown-up's OK" />}
                       {isDone && (
                         <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
                           <Check className="h-2.5 w-2.5" strokeWidth={3} />
@@ -201,6 +214,20 @@ export function ChoresBoard({
             </span>
           )}
         </div>
+      )}
+
+      {approving && (
+        <ParentGate
+          verify={kiosk.verifyPin}
+          title="A grown-up's OK?"
+          subtitle={`Enter your PIN to check off "${approving.chore.title}".`}
+          onSuccess={() => {
+            const a = approving;
+            setApproving(null);
+            doComplete(a.child, a.chore);
+          }}
+          onCancel={() => setApproving(null)}
+        />
       )}
     </div>
   );

@@ -320,6 +320,7 @@ export type Database = {
           icon: string | null
           id: string
           points: number
+          requires_approval: boolean
           rotation_member_ids: Json | null
           sort_order: number
           title: string
@@ -335,6 +336,7 @@ export type Database = {
           icon?: string | null
           id?: string
           points?: number
+          requires_approval?: boolean
           rotation_member_ids?: Json | null
           sort_order?: number
           title: string
@@ -350,6 +352,7 @@ export type Database = {
           icon?: string | null
           id?: string
           points?: number
+          requires_approval?: boolean
           rotation_member_ids?: Json | null
           sort_order?: number
           title?: string
