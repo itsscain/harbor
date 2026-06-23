@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot, ScrollText } from "lucide-react";
+import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot, ScrollText, History } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/primitives";
 
@@ -20,6 +20,7 @@ const groups = [
     links: [
       { href: "/app/messages", label: "Message board", desc: "Notes & nudges for the wall", icon: MessageSquareHeart },
       { href: "/app/rules", label: "House Rules", desc: "Rules & consequence ladder on the wall", icon: ScrollText },
+      { href: "/app/history", label: "Activity log", desc: "Full ledger — chores, routines, rewards", icon: History },
       { href: "/app/insights", label: "Insights", desc: "Trends & gentle patterns", icon: BarChart3 },
     ],
   },

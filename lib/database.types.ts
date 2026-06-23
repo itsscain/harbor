@@ -1419,6 +1419,10 @@ export type Database = {
         Args: { p_payload: Json; p_secret: string }
         Returns: Json
       }
+      rpc_kiosk_reset_points: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
     }
     Enums: {
       calm_tool_type: "breathing" | "feelings" | "break" | "social_story"

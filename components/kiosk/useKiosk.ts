@@ -9,6 +9,7 @@ import {
   todayKey,
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
+import { createClient } from "@/lib/supabase/client";
 import type {
   KioskState,
   KioskStep,
@@ -297,6 +298,23 @@ export function useKiosk() {
     [update],
   );
 
+  // Reset every child's points to zero (parent-PIN gated). Persists server-side via
+  // a device-validated RPC (writes a balancing 'reset' row, keeps the ledger), then
+  // zeros locally. Needs a connection so it sticks through the next sync.
+  const resetPoints = useCallback(async (): Promise<boolean> => {
+    const st = stateRef.current;
+    if (!st) return false;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+    try {
+      const { error } = await createClient().rpc("rpc_kiosk_reset_points", { p_secret: st.deviceSecret });
+      if (error) return false;
+    } catch {
+      return false;
+    }
+    setState((prev) => (prev ? { ...prev, points: {} } : prev));
+    return true;
+  }, []);
+
   const redeem = useCallback(
     (childId: string, points: number, reason: string) => {
       update((s) => {
@@ -424,6 +442,7 @@ export function useKiosk() {
     completeChore,
     checkIn,
     resetDay,
+    resetPoints,
     redeem,
     redeemStoreItem,
     addListItem,

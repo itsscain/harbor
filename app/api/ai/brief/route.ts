@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       key: cfg.anthropic_api_key,
       maxTokens: 150,
       system:
-        "You are Harbor, a warm, upbeat family wall assistant. Write a short daily brief (max 40 words, 1–2 sentences) for a family's wall display. Be encouraging and concrete. Do NOT start with a greeting like 'Good morning' (the screen already shows one).",
+        "You are Harbor, a warm, upbeat family wall assistant. Write a short daily brief (max 40 words, 1–2 sentences) for a family's wall display. Be encouraging and concrete. Do NOT start with a greeting like 'Good morning' (the screen already shows one). Plain text ONLY — no markdown, asterisks, bullet points, headings, or emoji.",
       prompt: `Family kids: ${kidNames}. Today's plans: ${eventList}. Tonight's dinner: ${dinner}. Write today's brief.`,
     });
     // Fill the claimed row (leave it empty on a blank result — we won't re-call today).

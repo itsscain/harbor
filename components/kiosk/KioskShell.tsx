@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut, Home, CalendarDays, ListChecks, ClipboardCheck, Heart } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Home, CalendarDays, ListChecks, ClipboardCheck, Heart, Star } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { HomeView } from "./HomeView";
 import { ChildView } from "./ChildView";
@@ -199,7 +199,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       {asleep && inQuietHours(quietStart, quietEnd) ? (
         <SleepMode onWake={() => setAsleep(false)} />
       ) : asleep && screensaverOn ? (
-        <Screensaver photos={photos} onWake={() => setAsleep(false)} deviceSecret={state.deviceSecret} />
+        <Screensaver kiosk={kiosk} photos={photos} onWake={() => setAsleep(false)} deviceSecret={state.deviceSecret} />
       ) : null}
     </div>
   );
@@ -229,6 +229,9 @@ function relativeTime(iso: string | null): string {
 function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmPoints, setConfirmPoints] = useState(false);
+  const [pointsErr, setPointsErr] = useState(false);
+  const [resettingPoints, setResettingPoints] = useState(false);
   const children = kiosk.state?.snapshot.children ?? [];
   const syncText = SYNC_LABEL[kiosk.syncStatus] ?? "";
   const lastSync = relativeTime(kiosk.lastSync);
@@ -259,6 +262,36 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
             >
               Tap again to reset today for everyone
             </KButton>
+          )}
+          {!confirmPoints ? (
+            <MenuRow
+              icon={Star}
+              label="Reset all points to zero"
+              danger
+              onClick={() => {
+                setPointsErr(false);
+                setConfirmPoints(true);
+              }}
+            />
+          ) : (
+            <KButton
+              variant="danger"
+              className="h-16 w-full"
+              disabled={resettingPoints}
+              onClick={async () => {
+                if (resettingPoints) return;
+                setResettingPoints(true);
+                const ok = await kiosk.resetPoints();
+                setResettingPoints(false);
+                setConfirmPoints(false);
+                setPointsErr(!ok);
+              }}
+            >
+              {resettingPoints ? "Resetting…" : "Tap again to zero everyone's points"}
+            </KButton>
+          )}
+          {pointsErr && (
+            <p className="px-1 text-sm text-red-300">Couldn&apos;t reset — connect to Wi-Fi and try again.</p>
           )}
           <MenuRow
             icon={RefreshCw}
