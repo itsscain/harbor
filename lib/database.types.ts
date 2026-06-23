@@ -560,6 +560,72 @@ export type Database = {
           },
         ]
       }
+      corners: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          duration_minutes: number
+          ended_at: string | null
+          feeling: string | null
+          household_id: string
+          id: string
+          plan: Json | null
+          reason: string | null
+          report: string | null
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          duration_minutes?: number
+          ended_at?: string | null
+          feeling?: string | null
+          household_id: string
+          id?: string
+          plan?: Json | null
+          reason?: string | null
+          report?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          duration_minutes?: number
+          ended_at?: string | null
+          feeling?: string | null
+          household_id?: string
+          id?: string
+          plan?: Json | null
+          reason?: string | null
+          report?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corners_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corners_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groundings: {
         Row: {
           child_id: string

@@ -36,6 +36,24 @@ export function speak(text: string, enabled = true) {
   }
 }
 
+const CHEERS = [
+  "Awesome",
+  "Way to go",
+  "You did it",
+  "Nice work",
+  "So proud of you",
+  "Great job",
+  "You're amazing",
+  "Boom",
+  "High five",
+  "Superstar",
+];
+
+/** A short, varied encouraging exclamation for completions. */
+export function cheer() {
+  return CHEERS[Math.floor(Math.random() * CHEERS.length)];
+}
+
 export function stopSpeaking() {
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
     try {

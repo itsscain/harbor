@@ -6,7 +6,9 @@ import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { getHouseholdAi, haikuJson, haikuText, aiErrorMessage } from "@/lib/ai/anthropic";
 import { planDinners } from "@/lib/ai/mealPlan";
+import { buildCornerPlan, buildCornerReport, sanitizeCornerPlan, type CornerPlan } from "@/lib/ai/corner";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/database.types";
 
 /** Drop cached AI briefs for a household so the screensaver brief regenerates
  *  fresh — call after changing data the brief talks about (e.g. events), so a
@@ -310,6 +312,151 @@ export async function endGrounding(id: string, childId: string) {
   const { error } = await supabase.from("groundings").update({ status: "ended" }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
+}
+
+// ── Calm Corner (supportive timeout) ─────────────────────────────────────────
+function ageFromBirthday(birthday: string | null | undefined): number | null {
+  if (!birthday) return null;
+  const b = new Date(`${birthday}T00:00:00`);
+  const now = new Date();
+  return (
+    now.getFullYear() -
+    b.getFullYear() -
+    (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate()) ? 1 : 0)
+  );
+}
+
+/** A calm, supportive default when there's no AI key (still kind, never shaming). */
+const DEFAULT_CORNER_PLAN: CornerPlan = {
+  steps: [
+    "Take 5 slow belly breaths — in through your nose, out through your mouth.",
+    "Let your body get calm and still.",
+    "Think of one kinder thing you could try next time.",
+  ],
+  reminder: "When we have big feelings, we can take a break instead of yelling or hurting.",
+  encouragement: "Everyone has hard moments. I know you can reset — and I love you.",
+};
+
+/** Start a calm-corner reset: asks-a-reason flow, age-based timer, an AI plan +
+ *  encouragement shown (and read aloud) on the wall. Never shaming. */
+export async function startCorner(childId: string, formData: FormData) {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+
+  const { data: child } = await supabase
+    .from("children")
+    .select("name, birthday, ai_profile")
+    .eq("id", childId)
+    .maybeSingle();
+  if (!child) throw new Error("Child not found.");
+
+  const age = ageFromBirthday(child.birthday);
+  const reason = str(formData.get("reason"));
+  const feeling = str(formData.get("feeling"));
+  // Duration: a parent override wins, else ~1 minute per year of age, clamped 2–12.
+  const override = int(formData.get("minutes"), 0);
+  const minutes = override > 0 ? Math.min(30, override) : Math.min(12, Math.max(2, age ?? 5));
+
+  // Generate a gentle plan (best-effort; falls back to a kind default).
+  let plan: CornerPlan = DEFAULT_CORNER_PLAN;
+  const ai = await getHouseholdAi(household_id);
+  if (ai?.enabled) {
+    try {
+      const profile = (child.ai_profile ?? null) as { interests?: string[] } | null;
+      const recent = await supabase
+        .from("corners")
+        .select("id")
+        .eq("child_id", childId)
+        .gte("started_at", new Date(Date.now() - 30 * 86_400_000).toISOString());
+      const cleaned = sanitizeCornerPlan(
+        await buildCornerPlan({
+          key: ai.key,
+          childName: child.name,
+          age,
+          reason,
+          feeling,
+          interests: profile?.interests ?? [],
+          recentCount: recent.data?.length ?? 0,
+        }),
+      );
+      // If the model returned nothing usable, fall back to the kind default.
+      plan = cleaned.steps.length ? cleaned : DEFAULT_CORNER_PLAN;
+    } catch {
+      plan = DEFAULT_CORNER_PLAN;
+    }
+  }
+
+  // One active corner per child — close any existing first.
+  await supabase.from("corners").update({ status: "ended", ended_at: nowIso() }).eq("child_id", childId).eq("status", "active");
+  const { error } = await supabase.from("corners").insert({
+    household_id,
+    child_id: childId,
+    reason,
+    feeling,
+    duration_minutes: minutes,
+    plan: plan as unknown as Json,
+    status: "active",
+  });
+  if (error && error.code !== "23505") throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
+/** End a corner (the parent closes it after the timer / a reflection). */
+export async function endCorner(id: string, childId: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("corners")
+    .update({ status: "done", ended_at: nowIso() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
+export type CornerReportResult = { ok: boolean; error?: string; text?: string };
+
+/** Generate a private parent reflection for a corner, weaving in past corners. */
+export async function generateCornerReport(id: string, childId: string): Promise<CornerReportResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai?.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+  const { data: corner } = await supabase
+    .from("corners")
+    .select("reason, duration_minutes, child_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!corner) return { ok: false, error: "Corner not found." };
+  const { data: child } = await supabase.from("children").select("name, birthday").eq("id", childId).maybeSingle();
+  const { data: history } = await supabase
+    .from("corners")
+    .select("reason, started_at")
+    .eq("child_id", childId)
+    .neq("id", id)
+    .order("started_at", { ascending: false })
+    .limit(8);
+
+  try {
+    const raw = await buildCornerReport({
+      key: ai.key,
+      childName: child?.name ?? "your child",
+      age: ageFromBirthday(child?.birthday),
+      reason: corner.reason,
+      durationMinutes: corner.duration_minutes,
+      history: history ?? [],
+    });
+    const text = raw.trim().slice(0, 1000); // cap so a long reflection can't overflow the card
+    if (!text) return { ok: false, error: "The AI didn't return a reflection — try again." };
+    await supabase.from("corners").update({ report: text }).eq("id", id);
+    revalidatePath(`/app/children/${childId}`);
+    return { ok: true, text };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
 }
 
 // ── Wall messages (bonus points applied server-side, never by the kiosk) ─────

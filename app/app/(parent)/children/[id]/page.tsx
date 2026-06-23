@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { StepRow } from "@/components/app/StepRow";
 import { GroundingCard } from "@/components/app/GroundingCard";
+import { CornerCard, type CornerRow } from "@/components/app/CornerCard";
 import { ChildPhotoField } from "@/components/app/ChildPhotoField";
 import { SuggestChoresButton } from "@/components/app/SuggestChoresButton";
 import { AiProfileCard, type AiProfile } from "@/components/app/AiProfileCard";
@@ -80,6 +81,19 @@ export default async function ChildDetail({
     .eq("child_id", id)
     .is("deleted_at", null)
     .order("sort_order");
+
+  const { data: cornersRaw } = await supabase
+    .from("corners")
+    .select("id, reason, feeling, duration_minutes, started_at, status, plan, report")
+    .eq("child_id", id)
+    .is("deleted_at", null)
+    .order("started_at", { ascending: false })
+    .limit(8);
+  const corners: CornerRow[] = (cornersRaw ?? []).map((c) => ({
+    ...c,
+    plan: (c.plan ?? null) as CornerRow["plan"],
+  }));
+  const activeCorner = corners.find((c) => c.status === "active") ?? null;
 
   const color = childColor(child);
   const colorName = CHILD_PALETTE.find((p) => p.value === color)?.name;
@@ -209,6 +223,10 @@ export default async function ChildDetail({
               : null
           }
         />
+      </div>
+
+      <div className="mb-4">
+        <CornerCard childId={child.id} childName={child.name} active={activeCorner} recent={corners} />
       </div>
 
       {/* Chores */}

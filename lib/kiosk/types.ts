@@ -153,6 +153,25 @@ export type KioskGrounding = {
   status: string;
 };
 
+export type KioskCornerPlan = {
+  steps?: string[];
+  reminder?: string;
+  encouragement?: string;
+};
+
+export type KioskCorner = {
+  id: string;
+  child_id: string;
+  reason: string | null;
+  feeling: string | null;
+  duration_minutes: number;
+  started_at: string;
+  ended_at: string | null;
+  status: string;
+  plan: KioskCornerPlan | null;
+  report: string | null;
+};
+
 export type KioskReminder = {
   id: string;
   child_id: string | null;
@@ -187,6 +206,7 @@ export type KioskSnapshot = {
   reminders: KioskReminder[];
   meals: KioskMeal[];
   groundings?: KioskGrounding[];
+  corners?: KioskCorner[];
   /** Hard-deletion tombstones since the cursor — the wall removes these ids. */
   deletions?: { entity: string; entity_id: string }[];
   server_time: string;

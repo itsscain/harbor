@@ -94,6 +94,7 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
       reminders: pull(state.snapshot.reminders ?? [], snap.reminders),
       meals: pull(state.snapshot.meals ?? [], snap.meals),
       groundings: pull(state.snapshot.groundings ?? [], snap.groundings),
+      corners: pull(state.snapshot.corners ?? [], snap.corners),
       server_time: snap.server_time,
     },
     lastSync: snap.server_time,

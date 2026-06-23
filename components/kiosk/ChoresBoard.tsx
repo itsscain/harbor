@@ -9,7 +9,7 @@ import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee, isRotating } from "@/lib/kiosk/chores";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { chime, haptic, speak } from "@/lib/kiosk/feedback";
+import { chime, haptic, speak, cheer } from "@/lib/kiosk/feedback";
 import { readChildSettings } from "./ChildView";
 import { ChildAvatar } from "./ChildAvatar";
 import { BedtimeCountdown } from "./BedtimeCountdown";
@@ -55,7 +55,7 @@ export function ChoresBoard({
     const s = readChildSettings(child);
     chime(s.sound);
     haptic(20, s.haptics);
-    speak(`${chore.title}. Done!`, s.readAloud);
+    speak(`${cheer()}! ${chore.title} done!`, s.readAloud);
     if (chore.points > 0) {
       setCelebrate({ id: chore.id, points: chore.points });
       setTimeout(() => setCelebrate(null), 1100);
@@ -91,6 +91,7 @@ export function ChoresBoard({
         const color = childColor(child);
         const allDone = chores.length > 0 && doneCount === chores.length;
         const reset = activeGroundingFor(snap.groundings, child.id);
+        const corner = (snap.corners ?? []).find((c) => c.child_id === child.id && c.status === "active");
         const bedtime = readChildSettings(child).bedtime;
         return (
           <div key={child.id} className="rounded-xl bg-kpanel p-4 shadow-k ring-1 ring-kline/55 transition hover:ring-kline">
@@ -134,6 +135,12 @@ export function ChoresBoard({
             </div>
 
             {bedtime && <BedtimeCountdown bedtime={bedtime} color={color} className="mt-2.5" />}
+
+            {corner && (
+              <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-violet-400/15 px-3 py-1 text-sm font-medium text-violet-200">
+                💜 In the calm corner
+              </div>
+            )}
 
             {reset && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-amber-400/10 p-2.5">

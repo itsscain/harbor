@@ -23,9 +23,10 @@ import { BedtimeCountdown } from "./BedtimeCountdown";
 import { Confetti } from "./Confetti";
 import { ParentGate } from "./ParentGate";
 import { MiniGame } from "./MiniGame";
+import { CornerTimer } from "./CornerTimer";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { speak, chime, haptic } from "@/lib/kiosk/feedback";
+import { speak, chime, haptic, cheer } from "@/lib/kiosk/feedback";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
@@ -114,6 +115,19 @@ export function ChildView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRoutineId]);
 
+  // Harbor greets the child warmly when they open their screen (read-aloud only,
+  // and not while an active calm corner is speaking its own plan).
+  const openId = child?.id;
+  useEffect(() => {
+    if (!child || !settings?.readAloud) return;
+    const inCorner = (state?.snapshot.corners ?? []).some((c) => c.child_id === child.id && c.status === "active");
+    if (inCorner) return;
+    const lines = child.ai_profile?.encouragement ?? [];
+    const enc = lines.length ? lines[new Date().getDate() % lines.length] : "Let's have a great day!";
+    speak(`Hi ${child.name}! ${enc}`, settings.readAloud);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
+
   if (!state || !child || !settings) return null;
 
   const today = todayKey();
@@ -121,6 +135,7 @@ export function ChildView({
     state.progress[child.id]?.date === today ? state.progress[child.id].completed : [];
   const points = state.points[child.id] ?? 0;
   const grounding = activeGroundingFor(state.snapshot.groundings, child.id);
+  const corner = (state.snapshot.corners ?? []).find((c) => c.child_id === child.id && c.status === "active") ?? null;
   // Personalized encouragement from the child's AI profile (offline; rotates daily).
   const encLines = child.ai_profile?.encouragement ?? [];
   const encLine = encLines.length ? encLines[new Date().getDate() % encLines.length] : null;
@@ -130,7 +145,7 @@ export function ChildView({
     kiosk.completeStep(child!.id, step);
     chime(settings!.sound);
     haptic(20, settings!.haptics);
-    speak(`${step.label}. Done!`, settings!.readAloud);
+    speak(`${cheer()}! ${step.label} done!`, settings!.readAloud);
     if (step.reward_points > 0) {
       setCelebrate({ points: step.reward_points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
@@ -152,7 +167,7 @@ export function ChildView({
     kiosk.completeChore(child!.id, chore);
     chime(settings!.sound);
     haptic(20, settings!.haptics);
-    speak(`${chore.title}. Done!`, settings!.readAloud);
+    speak(`${cheer()}! ${chore.title} done!`, settings!.readAloud);
     if (chore.points > 0) {
       setCelebrate({ points: chore.points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
@@ -257,6 +272,16 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
+        {corner && (
+          <div className="mb-4">
+            <CornerTimer
+              corner={corner}
+              childName={child.name}
+              readAloud={settings.readAloud}
+              reducedMotion={settings.reducedMotion}
+            />
+          </div>
+        )}
         {dayComplete && !gamePlayed && (
           <button
             onClick={() => {
