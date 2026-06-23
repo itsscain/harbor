@@ -22,6 +22,7 @@ import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
 import { Confetti } from "./Confetti";
 import { ParentGate } from "./ParentGate";
+import { MiniGame } from "./MiniGame";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
@@ -89,6 +90,16 @@ export function ChildView({
   const [celebrate, setCelebrate] = useState<{ points: number; n: number } | null>(null);
   const [approvingChore, setApprovingChore] = useState<KioskChore | null>(null);
   const [bigCelebrate, setBigCelebrate] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
+  // Reward minigame can be played once per day, only after everything's done.
+  const [gamePlayed, setGamePlayed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      return localStorage.getItem(`harbor-game-${childId}`) === todayKey();
+    } catch {
+      return false;
+    }
+  });
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
 
@@ -171,6 +182,10 @@ export function ChildView({
   const allDone = isFirstThen
     ? !!thenStep && prog.includes(thenStep.id)
     : scheduleSteps.length > 0 && doneCount === scheduleSteps.length;
+  // Everything for the day finished (routine + chores) → unlocks the reward game.
+  const choresAllDone = childChores.length === 0 || choresDone === childChores.length;
+  const hasTasks = !!activeRoutine || childChores.length > 0;
+  const dayComplete = hasTasks && choresAllDone && (activeRoutine ? allDone : true);
   const color = childColor(child);
   const progressTotal = isFirstThen ? [firstStep, thenStep].filter(Boolean).length : scheduleSteps.length;
   const progressDone = isFirstThen
@@ -242,6 +257,23 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
+        {dayComplete && !gamePlayed && (
+          <button
+            onClick={() => {
+              // Mark played on OPEN (not close) so it can't be replayed by bailing.
+              setGamePlayed(true);
+              try {
+                localStorage.setItem(`harbor-game-${child.id}`, todayKey());
+              } catch {
+                /* ignore */
+              }
+              setGameOpen(true);
+            }}
+            className="k-glow mb-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-beacon/30 to-kwater/20 p-4 text-center font-display text-xl font-bold text-ktext shadow-k ring-1 ring-beacon/40 transition active:scale-[0.98]"
+          >
+            <span className="text-3xl">🎮</span> You finished everything — tap for Play Time!
+          </button>
+        )}
         {settings.bedtime && (
           <BedtimeCountdown
             bedtime={settings.bedtime}
@@ -408,6 +440,21 @@ export function ChildView({
           <Heart className="h-5 w-5" /> Calm
         </button>
       </footer>
+
+      {gameOpen && (
+        <MiniGame
+          childName={child.name}
+          onClose={() => {
+            setGameOpen(false);
+            setGamePlayed(true);
+            try {
+              localStorage.setItem(`harbor-game-${child.id}`, todayKey());
+            } catch {
+              /* ignore */
+            }
+          }}
+        />
+      )}
 
       {approvingChore && (
         <ParentGate

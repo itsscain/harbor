@@ -6,6 +6,18 @@ import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { getHouseholdAi, haikuJson, haikuText, aiErrorMessage } from "@/lib/ai/anthropic";
 import { planDinners } from "@/lib/ai/mealPlan";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+/** Drop cached AI briefs for a household so the screensaver brief regenerates
+ *  fresh — call after changing data the brief talks about (e.g. events), so a
+ *  deleted event can't linger in today's summary. Best-effort (keyless-safe). */
+async function invalidateBriefs(household_id: string) {
+  try {
+    await createAdminClient().from("ai_briefs").delete().eq("household_id", household_id);
+  } catch {
+    /* no service key / offline — the brief still refreshes next day */
+  }
+}
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -50,17 +62,21 @@ export async function addEvent(formData: FormData) {
     child_id: str(formData.get("child_id")),
   });
   if (error) throw new Error(error.message);
+  await invalidateBriefs(household_id);
   revalidatePath("/app/calendar");
 }
 
 export async function deleteEvent(id: string) {
   await requireUser();
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: ev, error } = await supabase
     .from("events")
     .update({ deleted_at: nowIso() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("household_id")
+    .maybeSingle();
   if (error) throw new Error(error.message);
+  if (ev?.household_id) await invalidateBriefs(ev.household_id);
   revalidatePath("/app/calendar");
 }
 

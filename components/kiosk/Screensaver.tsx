@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Sparkles, CalendarDays, UtensilsCrossed, Pin, Gift, Star, ChevronRight, Lock } from "lucide-react";
+import { Sparkles, CalendarDays, UtensilsCrossed, Pin, Gift, Star, ChevronRight, Lock, Heart } from "lucide-react";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { WeatherWidget } from "./WeatherWidget";
 import { ChildAvatar } from "./ChildAvatar";
@@ -14,6 +14,21 @@ import type { useKiosk } from "./useKiosk";
 
 type Kiosk = ReturnType<typeof useKiosk>;
 type BriefMeal = { title: string; emoji: string | null; meal_type: string };
+
+const AFFIRMATIONS = [
+  "You are kind, capable, and loved.",
+  "Mistakes help us learn — keep going!",
+  "Look for one way to help someone today.",
+  "Tell a family member something you love about them.",
+  "Take a deep breath. You've got this.",
+  "Being patient is a superpower.",
+  "A kind word can make someone's whole day.",
+  "You make this family better just by being you.",
+  "Trying your best is always enough.",
+  "Share a smile — it's contagious!",
+  "Big feelings are okay — they always pass.",
+  "Helping each other makes us a team.",
+];
 
 /** Render a plain-text brief, turning any **bold** spans into real bold (so a
  *  stray markdown asterisk never shows raw on the wall). */
@@ -248,6 +263,20 @@ export function Screensaver({
         ),
       });
     }
+
+    // A rotating affirmation / kindness nudge — gentle, repeated positive
+    // messaging the kids absorb over time (overt, parent-visible — not hidden).
+    out.push({
+      key: "kindness",
+      tint: "#9b8cff",
+      icon: <Heart className="h-5 w-5" />,
+      eyebrow: "A little reminder",
+      body: (
+        <p className="text-pretty font-display text-3xl font-bold leading-snug text-white sm:text-4xl">
+          {AFFIRMATIONS[Math.floor(now.getTime() / 60000) % AFFIRMATIONS.length]}
+        </p>
+      ),
+    });
 
     return out;
   }, [snap, brief, meals, now, kiosk.state?.progress]);
