@@ -13,6 +13,7 @@ import { chime, haptic, speak } from "@/lib/kiosk/feedback";
 import { readChildSettings } from "./ChildView";
 import { ChildAvatar } from "./ChildAvatar";
 import { BedtimeCountdown } from "./BedtimeCountdown";
+import { Confetti } from "./Confetti";
 import { KEyebrow } from "./ui";
 import { cn } from "@/lib/cn";
 
@@ -190,6 +191,17 @@ export function ChoresBoard({
           </div>
         );
       })}
+
+      {celebrate && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
+          <Confetti key={celebrate.id} count={20} spread={200} />
+          {celebrate.points > 0 && (
+            <span className="animate-floatup font-display text-5xl font-bold text-beacon drop-shadow-[0_2px_12px_rgba(246,178,61,0.5)]">
+              +{celebrate.points}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

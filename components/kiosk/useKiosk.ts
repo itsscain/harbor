@@ -144,12 +144,16 @@ export function useKiosk() {
     window.addEventListener("focus", onWake);
     void runSync(true); // boot: full reconcile so stale/orphaned cached rows self-heal
     const id = window.setInterval(runSync, 30_000);
+    // Periodic full reconcile (cheap-enough, every ~13 min) so a long-running wall
+    // prunes any stale cached rows without needing a reload.
+    const fullId = window.setInterval(() => runSync(true), 13 * 60_000);
     return () => {
       window.removeEventListener("online", setOn);
       window.removeEventListener("offline", setOn);
       document.removeEventListener("visibilitychange", onWake);
       window.removeEventListener("focus", onWake);
       window.clearInterval(id);
+      window.clearInterval(fullId);
     };
   }, [runSync]);
 

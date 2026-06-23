@@ -19,6 +19,7 @@ import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
+import { Confetti } from "./Confetti";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic } from "@/lib/kiosk/feedback";
@@ -83,7 +84,7 @@ export function ChildView({
       .sort((a, b) => a.order_index - b.order_index);
   }, [state, activeRoutine]);
 
-  const [celebrate, setCelebrate] = useState<{ points: number } | null>(null);
+  const [celebrate, setCelebrate] = useState<{ points: number; n: number } | null>(null);
   const [bigCelebrate, setBigCelebrate] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
@@ -117,7 +118,7 @@ export function ChildView({
     haptic(20, settings!.haptics);
     speak(`${step.label}. Done!`, settings!.readAloud);
     if (step.reward_points > 0) {
-      setCelebrate({ points: step.reward_points });
+      setCelebrate({ points: step.reward_points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
     }
     // Does this tap finish the whole routine? → the big celebration moment.
@@ -140,7 +141,7 @@ export function ChildView({
     haptic(20, settings!.haptics);
     speak(`${chore.title}. Done!`, settings!.readAloud);
     if (chore.points > 0) {
-      setCelebrate({ points: chore.points });
+      setCelebrate({ points: chore.points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
     }
   }
@@ -393,6 +394,7 @@ export function ChildView({
 
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
+          {!settings.reducedMotion && <Confetti key={celebrate.n} count={24} />}
           <div className={cn("rounded-full bg-beacon px-10 py-8 text-center shadow-2xl", !settings.reducedMotion && "animate-reward")}>
             <Star className="mx-auto h-12 w-12 fill-harbor text-harbor" />
             <p className="mt-1 font-display text-3xl font-bold text-harbor">
@@ -408,6 +410,7 @@ export function ChildView({
           className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-kbg2/97 px-6 text-center text-white backdrop-blur-sm"
           aria-label="Continue"
         >
+          {!settings.reducedMotion && <Confetti count={64} spread={560} />}
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className={cn("relative text-8xl", !settings.reducedMotion && "animate-pop")}>{child.avatar ?? "🎉"}</span>
           <p className="relative mt-4 font-display text-4xl font-bold sm:text-5xl">You did it, {child.name}!</p>
