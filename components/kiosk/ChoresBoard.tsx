@@ -67,7 +67,7 @@ export function ChoresBoard({
     // Chores flagged "needs a grown-up's OK" require the parent PIN to check off,
     // so kids can't claim credit for things they didn't do. Only gate when a PIN
     // actually exists — otherwise verifyPin auto-passes, which would be a fake gate.
-    if (chore.requires_approval && state.pinHash) {
+    if (chore.requires_approval && state?.pinHash) {
       setApproving({ child, chore });
       return;
     }
