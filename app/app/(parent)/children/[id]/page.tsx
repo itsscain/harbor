@@ -191,6 +191,16 @@ export default async function ChildDetail({
             ))}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Sensory intensity"
+              hint="Scales animation, celebration, and sound to the child. Calm for sensory-sensitive kids; Vivid for big, bright feedback."
+            >
+              <Select name="sensory" defaultValue={typeof cs.sensory === "string" ? (cs.sensory as string) : "standard"}>
+                <option value="calm">Calm — gentle &amp; minimal</option>
+                <option value="standard">Standard</option>
+                <option value="vivid">Vivid — big &amp; bright</option>
+              </Select>
+            </Field>
             <Field label="Wall theme">
               <Select name="theme" defaultValue={typeof cs.theme === "string" ? (cs.theme as string) : "harbor"}>
                 <option value="harbor">Deep Harbor</option>

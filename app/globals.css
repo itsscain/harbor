@@ -47,6 +47,23 @@
   --color-kwater: #3cbcd9; /* refined water accent for dark */
   --shadow-k: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -16px rgba(0, 0, 0, 0.6);
   --shadow-k-pop: 0 16px 48px -16px rgba(0, 0, 0, 0.7);
+
+  /* ── Harbor Depth v2 — elevation extensions (more rungs of depth) ─────────── */
+  --color-kobsidian: #070a0d; /* OLED-true base for night */
+  --color-ksunken: #0a0d11; /* below-surface wells */
+  --color-kfloat: #20272f; /* floating / dragged elements */
+
+  /* ── Motion v2 — easing tokens (CSS-driven, non-physical motion) ──────────── */
+  --ease-harbor-out: cubic-bezier(0.22, 1, 0.36, 1); /* entrances (workhorse) */
+  --ease-harbor-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* moves, repositions */
+  --ease-harbor-emphasis: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot — rewards, release */
+  --ease-harbor-anticip: cubic-bezier(0.36, 0, 0.66, -0.4); /* wind-up before a big moment */
+  --ease-harbor-calm: cubic-bezier(0.4, 0, 0.2, 1); /* slow, soothing — ambient, Anchor */
+
+  /* ── Bloom — light-source halos (set --bloom-color to the accent in use) ──── */
+  --shadow-bloom-sm: 0 0 12px -2px var(--bloom-color, rgba(60, 188, 217, 0.35));
+  --shadow-bloom-md: 0 0 24px -2px var(--bloom-color, rgba(60, 188, 217, 0.4));
+  --shadow-bloom-lg: 0 0 52px -4px var(--bloom-color, rgba(60, 188, 217, 0.45));
 }
 
 :root {
@@ -142,6 +159,99 @@ h4,
 }
 .kiosk-root ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ── Harbor Depth Layer 1 — The Living Ambient ─────────────────────────────────
+   The wall breathes with the time of day. A tiny client clock sets
+   data-daypart on .kiosk-root every minute; these vars crossfade over 90s. */
+.kiosk-root {
+  --amb-base: #0c1014;
+  --amb-accent: rgba(60, 188, 217, 0.12);
+  --amb-accent2: rgba(246, 178, 61, 0.05);
+  transition: background-color 90s linear;
+}
+.kiosk-root[data-daypart="dawn"]      { --amb-base: #0a1620; --amb-accent: rgba(29, 107, 126, 0.10); --amb-accent2: rgba(60, 188, 217, 0.05); }
+.kiosk-root[data-daypart="morning"]   { --amb-base: #0c1014; --amb-accent: rgba(60, 188, 217, 0.12); --amb-accent2: rgba(76, 192, 154, 0.05); }
+.kiosk-root[data-daypart="midday"]    { --amb-base: #0c1014; --amb-accent: rgba(79, 208, 232, 0.10); --amb-accent2: rgba(60, 188, 217, 0.05); }
+.kiosk-root[data-daypart="afternoon"] { --amb-base: #0d1014; --amb-accent: rgba(60, 188, 217, 0.08); --amb-accent2: rgba(246, 178, 61, 0.06); }
+.kiosk-root[data-daypart="golden"]    { --amb-base: #0e1116; --amb-accent: rgba(246, 178, 61, 0.14); --amb-accent2: rgba(60, 188, 217, 0.05); }
+.kiosk-root[data-daypart="dusk"]      { --amb-base: #0a0e14; --amb-accent: rgba(107, 92, 255, 0.10); --amb-accent2: rgba(246, 178, 61, 0.05); }
+.kiosk-root[data-daypart="night"]     { --amb-base: #070a0d; --amb-accent: rgba(246, 178, 61, 0.05); --amb-accent2: rgba(107, 92, 255, 0.04); }
+
+.living-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--amb-base);
+  transition: background-color 90s linear;
+}
+.living-ambient__field {
+  position: absolute;
+  inset: -14%;
+  transition: background 90s linear;
+  background:
+    radial-gradient(46% 42% at 78% 6%, var(--amb-accent), transparent 70%),
+    radial-gradient(42% 40% at 12% 94%, var(--amb-accent2), transparent 72%);
+}
+
+/* ── Harbor Depth Layer 2 — The Beacon as a living light ───────────────────────
+   A slow volumetric sweep across the top of the wall; behavior is state-bound
+   via inline CSS vars on the element (opacity / tint / speed). */
+@keyframes beacon-sweep {
+  from { transform: translate(-50%, 0) rotate(0deg); }
+  to   { transform: translate(-50%, 0) rotate(360deg); }
+}
+.beacon-light {
+  position: fixed;
+  left: 50%;
+  top: -55vmax;
+  width: 140vmax;
+  height: 140vmax;
+  z-index: 0;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  opacity: var(--beacon-opacity, 0.06);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--beacon-tint, rgba(246, 178, 61, 1)) 14deg,
+    transparent 38deg
+  );
+  -webkit-mask-image: radial-gradient(closest-side, #000 60%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 60%, transparent 100%);
+  animation: beacon-sweep var(--beacon-speed, 8s) linear infinite;
+  transition: opacity 700ms var(--ease-harbor-calm);
+}
+
+/* ── Harbor Depth Layer 3 — Film grain (kills banding on big dark gradients) ─── */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ── Harbor Depth Layer 4 — Physical touch (the "feel" upgrade) ────────────────
+   Anything tappable presses in under the finger and releases with a slight
+   spring overshoot. Press-in is quick; release uses the emphasis curve. */
+.pressable {
+  transition: transform 240ms var(--ease-harbor-emphasis);
+  will-change: transform;
+}
+.pressable[data-pressed="true"] {
+  transform: scale(0.97);
+  transition: transform 90ms var(--ease-harbor-out);
+}
+/* Sensory-vulnerable users: no scale snap at all — these are meltdown-prone kids. */
+@media (prefers-reduced-motion: reduce) {
+  .pressable[data-pressed="true"] {
+    transform: none !important;
+  }
 }
 
 /* Kiosk tap targets. The base only guarantees an accessible 44px touch target +

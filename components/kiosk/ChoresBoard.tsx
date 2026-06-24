@@ -9,7 +9,9 @@ import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee, isRotating } from "@/lib/kiosk/chores";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { chime, haptic, speak, cheer } from "@/lib/kiosk/feedback";
+import { chime, haptic, speak, cheer, HAPTIC } from "@/lib/kiosk/feedback";
+import { scaleCount } from "@/lib/kiosk/motion";
+import { Pressable } from "./Pressable";
 import { readChildSettings } from "./ChildView";
 import { ChildAvatar } from "./ChildAvatar";
 import { BedtimeCountdown } from "./BedtimeCountdown";
@@ -32,7 +34,7 @@ export function ChoresBoard({
   variant?: "home" | "full";
 }) {
   const { state } = kiosk;
-  const [celebrate, setCelebrate] = useState<{ id: string; points: number } | null>(null);
+  const [celebrate, setCelebrate] = useState<{ id: string; points: number; intensity: number; reducedMotion: boolean } | null>(null);
   const [approving, setApproving] = useState<{ child: KioskChild; chore: KioskChore } | null>(null);
   if (!state) return null;
 
@@ -54,10 +56,10 @@ export function ChoresBoard({
     kiosk.completeChore(child.id, chore);
     const s = readChildSettings(child);
     chime(s.sound);
-    haptic(20, s.haptics);
+    haptic(HAPTIC.choreDone, s.haptics);
     speak(`${cheer()}! ${chore.title} done!`, s.readAloud);
     if (chore.points > 0) {
-      setCelebrate({ id: chore.id, points: chore.points });
+      setCelebrate({ id: chore.id, points: chore.points, intensity: s.intensity, reducedMotion: s.reducedMotion });
       setTimeout(() => setCelebrate(null), 1100);
     }
   }
@@ -92,7 +94,8 @@ export function ChoresBoard({
         const allDone = chores.length > 0 && doneCount === chores.length;
         const reset = activeGroundingFor(snap.groundings, child.id);
         const corner = (snap.corners ?? []).find((c) => c.child_id === child.id && c.status === "active");
-        const bedtime = readChildSettings(child).bedtime;
+        const cs = readChildSettings(child);
+        const bedtime = cs.bedtime;
         return (
           <div key={child.id} className="rounded-xl bg-kpanel p-4 shadow-k ring-1 ring-kline/55 transition hover:ring-kline">
 
@@ -182,13 +185,14 @@ export function ChoresBoard({
                   const isDone = done.includes(chore.id);
                   const celebrating = celebrate?.id === chore.id;
                   return (
-                    <button
+                    <Pressable
                       key={chore.id}
+                      haptics={cs.haptics}
                       onClick={() => tap(child, chore)}
                       disabled={isDone}
                       aria-label={`${chore.title}${isDone ? " (done)" : ""}`}
                       className={cn(
-                        "kiosk-tap relative flex h-12 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition active:scale-95",
+                        "kiosk-tap relative flex h-12 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium",
                         isDone ? "" : "bg-kraise text-ktext ring-1 ring-kline/55",
                         celebrating && "animate-pop",
                       )}
@@ -203,7 +207,7 @@ export function ChoresBoard({
                           <Check className="h-2.5 w-2.5" strokeWidth={3} />
                         </span>
                       )}
-                    </button>
+                    </Pressable>
                   );
                 })}
               </div>
@@ -214,7 +218,7 @@ export function ChoresBoard({
 
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
-          <Confetti key={celebrate.id} count={20} spread={200} />
+          {!celebrate.reducedMotion && <Confetti key={celebrate.id} count={scaleCount(20, celebrate.intensity)} spread={200} />}
           {celebrate.points > 0 && (
             <span className="animate-floatup font-display text-5xl font-bold text-beacon drop-shadow-[0_2px_12px_rgba(246,178,61,0.5)]">
               +{celebrate.points}

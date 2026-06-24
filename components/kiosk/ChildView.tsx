@@ -24,9 +24,11 @@ import { Confetti } from "./Confetti";
 import { ParentGate } from "./ParentGate";
 import { MiniGame } from "./MiniGame";
 import { CornerTimer } from "./CornerTimer";
+import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { speak, chime, haptic, cheer } from "@/lib/kiosk/feedback";
+import { speak, chime, haptic, cheer, HAPTIC } from "@/lib/kiosk/feedback";
+import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
@@ -45,6 +47,8 @@ export function readChildSettings(child: KioskChild) {
     reducedMotion: s.reducedMotion === true,
     theme: typeof s.theme === "string" ? (s.theme as string) : "harbor",
     bedtime: typeof s.bedtime === "string" ? (s.bedtime as string) : null,
+    sensory: sensoryOf(s.sensory),
+    intensity: intensityOf(s.sensory),
   };
 }
 
@@ -144,7 +148,7 @@ export function ChildView({
     if (prog.includes(step.id)) return;
     kiosk.completeStep(child!.id, step);
     chime(settings!.sound);
-    haptic(20, settings!.haptics);
+    haptic(HAPTIC.stepDone, settings!.haptics);
     speak(`${cheer()}! ${step.label} done!`, settings!.readAloud);
     if (step.reward_points > 0) {
       setCelebrate({ points: step.reward_points, n: Date.now() });
@@ -157,7 +161,7 @@ export function ChildView({
     if (finishes) {
       setBigCelebrate(true);
       chime(settings!.sound);
-      haptic(60, settings!.haptics);
+      haptic(HAPTIC.routineDone, settings!.haptics);
       speak(`Amazing! You finished ${activeRoutine?.name ?? "your routine"}, ${child!.name}!`, settings!.readAloud);
       setTimeout(() => setBigCelebrate(false), 4200);
     }
@@ -166,7 +170,7 @@ export function ChildView({
   function doCompleteChore(chore: KioskChore) {
     kiosk.completeChore(child!.id, chore);
     chime(settings!.sound);
-    haptic(20, settings!.haptics);
+    haptic(HAPTIC.choreDone, settings!.haptics);
     speak(`${cheer()}! ${chore.title} done!`, settings!.readAloud);
     if (chore.points > 0) {
       setCelebrate({ points: chore.points, n: Date.now() });
@@ -218,12 +222,13 @@ export function ChildView({
       {/* Header — per-child color tint, photo, and the day's progress */}
       <header className="px-4 pb-4 pt-3" style={{ background: `linear-gradient(180deg, ${color}38, ${color}0d)` }}>
         <div className="flex items-center justify-between gap-3">
-          <button
+          <Pressable
+            haptics={settings.haptics}
             onClick={onHome}
-            className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 font-semibold text-ktext transition active:scale-[0.98]"
+            className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 font-semibold text-ktext"
           >
             <HomeIcon className="h-5 w-5" /> Home
-          </button>
+          </Pressable>
           <span className="flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-2">
             <Star className="h-5 w-5 fill-beacon text-beacon" />
             <span
@@ -283,7 +288,8 @@ export function ChildView({
           </div>
         )}
         {dayComplete && !gamePlayed && (
-          <button
+          <Pressable
+            haptics={settings.haptics}
             onClick={() => {
               // Mark played on OPEN (not close) so it can't be replayed by bailing.
               setGamePlayed(true);
@@ -294,10 +300,10 @@ export function ChildView({
               }
               setGameOpen(true);
             }}
-            className="k-glow mb-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-beacon/30 to-kwater/20 p-4 text-center font-display text-xl font-bold text-ktext shadow-k ring-1 ring-beacon/40 transition active:scale-[0.98]"
+            className="k-glow mb-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-beacon/30 to-kwater/20 p-4 text-center font-display text-xl font-bold text-ktext shadow-k ring-1 ring-beacon/40"
           >
             <span className="text-3xl">🎮</span> You finished everything — tap for Play Time!
-          </button>
+          </Pressable>
         )}
         {settings.bedtime && (
           <BedtimeCountdown
@@ -370,9 +376,9 @@ export function ChildView({
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-                <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
+                <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
-                <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
+                <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -382,6 +388,7 @@ export function ChildView({
                     step={s}
                     done={prog.includes(s.id)}
                     reducedMotion={settings.reducedMotion}
+                    haptics={settings.haptics}
                     onTap={() => complete(s)}
                     onSpeak={() => speak(s.label, settings.readAloud)}
                   />
@@ -409,13 +416,14 @@ export function ChildView({
               {childChores.map((chore) => {
                 const done = prog.includes(chore.id);
                 return (
-                  <button
+                  <Pressable
                     key={chore.id}
+                    haptics={settings.haptics}
                     onClick={() => tapChore(chore)}
                     disabled={done}
                     aria-label={`${chore.title}${done ? " (done)" : ""}`}
                     className={cn(
-                      "kiosk-tap relative flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl p-4 text-center shadow-k ring-1 transition active:scale-95",
+                      "kiosk-tap relative flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl p-4 text-center shadow-k ring-1",
                       done ? "bg-emerald-500/15 ring-emerald-500/40" : "bg-kpanel ring-kline/55",
                     )}
                   >
@@ -436,7 +444,7 @@ export function ChildView({
                         <Check className="h-4 w-4" /> Done
                       </span>
                     )}
-                  </button>
+                  </Pressable>
                 );
               })}
             </div>
@@ -446,24 +454,27 @@ export function ChildView({
 
       {/* Footer actions */}
       <footer className="grid grid-cols-3 gap-3 border-t border-kline/55 bg-kbg2/80 p-4 backdrop-blur">
-        <button
+        <Pressable
+          haptics={settings.haptics}
           onClick={() => setStoreOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125"
         >
           <Gift className="h-5 w-5 text-beacon" /> Store
-        </button>
-        <button
+        </Pressable>
+        <Pressable
+          haptics={settings.haptics}
           onClick={() => setTimerOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-kraise py-3.5 text-base font-medium text-ktext ring-1 ring-kline/55 transition hover:brightness-125"
         >
           <TimerIcon className="h-5 w-5 text-kwater" /> Timer
-        </button>
-        <button
+        </Pressable>
+        <Pressable
+          haptics={settings.haptics}
           onClick={onOpenCalm}
-          className="flex items-center justify-center gap-2 rounded-xl bg-beacon py-3.5 text-base font-semibold text-harbor transition hover:brightness-105 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-beacon py-3.5 text-base font-semibold text-harbor transition hover:brightness-105"
         >
           <Heart className="h-5 w-5" /> Calm
-        </button>
+        </Pressable>
       </footer>
 
       {gameOpen && (
@@ -497,7 +508,7 @@ export function ChildView({
 
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
-          {!settings.reducedMotion && <Confetti key={celebrate.n} count={24} />}
+          {!settings.reducedMotion && <Confetti key={celebrate.n} count={scaleCount(24, settings.intensity)} />}
           <div className={cn("rounded-full bg-beacon px-10 py-8 text-center shadow-2xl", !settings.reducedMotion && "animate-reward")}>
             <Star className="mx-auto h-12 w-12 fill-harbor text-harbor" />
             <p className="mt-1 font-display text-3xl font-bold text-harbor">
@@ -513,7 +524,7 @@ export function ChildView({
           className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-kbg2/97 px-6 text-center text-white backdrop-blur-sm"
           aria-label="Continue"
         >
-          {!settings.reducedMotion && <Confetti count={64} spread={560} />}
+          {!settings.reducedMotion && <Confetti count={scaleCount(64, settings.intensity)} spread={560} />}
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className={cn("relative text-8xl", !settings.reducedMotion && "animate-pop")}>{child.avatar ?? "🎉"}</span>
           <p className="relative mt-4 font-display text-4xl font-bold sm:text-5xl">You did it, {child.name}!</p>
@@ -542,6 +553,7 @@ function StepCard({
   onTap,
   onSpeak,
   reducedMotion,
+  haptics = true,
   label,
   big = false,
   muted = false,
@@ -551,10 +563,12 @@ function StepCard({
   onTap: () => void;
   onSpeak: () => void;
   reducedMotion: boolean;
+  haptics?: boolean;
   label?: string;
   big?: boolean;
   muted?: boolean;
 }) {
+  const press = usePress({ haptics });
   return (
     <div className="relative">
       {/* The whole card is one big tap target — effortless to check off. */}
@@ -562,9 +576,9 @@ function StepCard({
         onClick={onTap}
         disabled={done || muted}
         aria-label={`${step.label}${done ? " — done" : ""}`}
+        {...press}
         className={cn(
-          "flex w-full flex-col items-center justify-center gap-2 rounded-2xl p-4 text-center ring-1 transition",
-          !reducedMotion && "active:scale-[0.97]",
+          "pressable flex w-full flex-col items-center justify-center gap-2 rounded-2xl p-4 text-center ring-1",
           big ? "min-h-52" : "min-h-40",
           done
             ? "bg-emerald-500/15 ring-emerald-500/45"

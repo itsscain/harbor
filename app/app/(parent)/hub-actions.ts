@@ -576,6 +576,9 @@ export async function updateChildSettings(childId: string, formData: FormData) {
     sound: formData.get("sound") === "on",
     haptics: formData.get("haptics") === "on",
     reducedMotion: formData.get("reducedMotion") === "on",
+    sensory: ["calm", "standard", "vivid"].includes(str(formData.get("sensory")) ?? "")
+      ? str(formData.get("sensory"))
+      : "standard",
     theme: str(formData.get("theme")) ?? "harbor",
     bedtime: (() => {
       const b = str(formData.get("bedtime"));

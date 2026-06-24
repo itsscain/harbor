@@ -13,8 +13,11 @@ import { ParentGate } from "./ParentGate";
 import { Screensaver, SleepMode } from "./Screensaver";
 import { VoiceButton } from "./VoiceButton";
 import { HouseRules } from "./HouseRules";
+import { LivingAmbient } from "./LivingAmbient";
+import { BeaconLight } from "./BeaconLight";
 import { KTabBar, KButton, KCard } from "./ui";
 import type { KTab } from "./ui";
+import { childColor } from "@/lib/kiosk/colors";
 import { cn } from "@/lib/cn";
 
 function inQuietHours(start?: string, end?: string, d = new Date()): boolean {
@@ -110,6 +113,9 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const children = state.snapshot.children;
   // Resolve a child for calm-corner check-ins (the active child, else the first).
   const activeChildId = view.k === "child" ? view.id : children[0]?.id ?? "";
+  // The Beacon tints to the active child's accent while their screen is open.
+  const activeChild = view.k === "child" ? children.find((c) => c.id === view.id) : null;
+  const activeAccent = activeChild ? childColor(activeChild) : null;
 
   const groceriesLeft = (state.snapshot.list_items ?? []).filter(
     (i) => i.list_kind === "grocery" && !i.checked,
@@ -126,6 +132,12 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
 
   return (
     <div className="min-h-full">
+      {/* Harbor Depth — fixed material layers behind all content (§3) */}
+      <LivingAmbient />
+      <BeaconLight accent={activeAccent} active={view.k === "child"} />
+      <div className="grain-overlay" aria-hidden />
+
+      <div className="relative z-10">
       {view.k === "home" && (
         <HomeView
           kiosk={kiosk}
@@ -201,6 +213,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       ) : asleep && screensaverOn ? (
         <Screensaver kiosk={kiosk} photos={photos} onWake={() => setAsleep(false)} deviceSecret={state.deviceSecret} />
       ) : null}
+      </div>
     </div>
   );
 }

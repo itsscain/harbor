@@ -81,7 +81,6 @@ export function HomeView({
 
   return (
     <div className="relative mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-6">
-      <div className="kiosk-ambient" aria-hidden />
       <div className="relative z-10 k-stagger">
       {/* Header */}
       <header className="mb-5 flex items-start justify-between gap-4">

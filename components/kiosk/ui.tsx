@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { ChevronLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { usePress } from "./Pressable";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Harbor kiosk UI kit — the single source of truth for the wall's dark theme.
@@ -69,7 +70,7 @@ export function KPill({
 }
 
 const BTN_BASE =
-  "inline-flex items-center justify-center select-none whitespace-nowrap font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kwater/70 focus-visible:ring-offset-2 focus-visible:ring-offset-kbg disabled:pointer-events-none disabled:opacity-40";
+  "pressable inline-flex items-center justify-center select-none whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kwater/70 focus-visible:ring-offset-2 focus-visible:ring-offset-kbg disabled:pointer-events-none disabled:opacity-40";
 
 const BTN_SIZES = {
   sm: "h-10 rounded-lg px-3.5 text-sm gap-1.5",
@@ -88,12 +89,15 @@ const BTN_VARIANTS = {
 type KButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: keyof typeof BTN_VARIANTS;
   size?: keyof typeof BTN_SIZES;
+  /** Press haptic — pass a child's `settings.haptics` to honor their preference. Default on. */
+  haptics?: boolean;
 };
 
 /** The one button. Variants: primary (accent), beacon (rewards), tonal (default), ghost, danger. */
-export function KButton({ variant = "tonal", size = "md", className, children, ...rest }: KButtonProps) {
+export function KButton({ variant = "tonal", size = "md", haptics, className, children, ...rest }: KButtonProps) {
+  const press = usePress({ haptics });
   return (
-    <button className={cn(BTN_BASE, BTN_SIZES[size], BTN_VARIANTS[variant], className)} {...rest}>
+    <button className={cn(BTN_BASE, BTN_SIZES[size], BTN_VARIANTS[variant], className)} {...press} {...rest}>
       {children}
     </button>
   );
@@ -108,12 +112,14 @@ const ICON_SIZES = {
 type KIconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: keyof typeof BTN_VARIANTS;
   size?: keyof typeof ICON_SIZES;
+  haptics?: boolean;
 };
 
 /** Square icon-only button, same variants as KButton. Always pass aria-label. */
-export function KIconButton({ variant = "tonal", size = "md", className, children, ...rest }: KIconButtonProps) {
+export function KIconButton({ variant = "tonal", size = "md", haptics, className, children, ...rest }: KIconButtonProps) {
+  const press = usePress({ haptics });
   return (
-    <button className={cn(BTN_BASE, ICON_SIZES[size], BTN_VARIANTS[variant], className)} {...rest}>
+    <button className={cn(BTN_BASE, ICON_SIZES[size], BTN_VARIANTS[variant], className)} {...press} {...rest}>
       {children}
     </button>
   );

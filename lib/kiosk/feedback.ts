@@ -115,11 +115,33 @@ export function tone(enabled = true) {
   }
 }
 
-export function haptic(pattern: number | number[] = 30, enabled = true) {
+export function haptic(pattern: number | readonly number[] = 30, enabled = true) {
   if (!enabled || typeof navigator === "undefined" || !("vibrate" in navigator)) return;
   try {
-    navigator.vibrate(pattern);
+    navigator.vibrate(pattern as number | number[]);
   } catch {
     /* ignore */
   }
 }
+
+/** Haptic vocabulary (HARBOR_V2 §5) — distinct patterns the body learns to read.
+ *  `navigator.vibrate` arrays in ms. Android-only (iOS no-ops cleanly). Pass each
+ *  to haptic() with the child's `settings.haptics`, e.g. haptic(HAPTIC.stepDone, on). */
+export const HAPTIC = {
+  tapLight: 8, // every button/card press — the ambient "felt" layer
+  tapMedium: 14, // primary buttons
+  toggle: [0, 10, 20, 10], // switches, filter chips (tick-tick)
+  select: 12, // picking an option (PIN digit, swatch, tab)
+  stepDone: [0, 16, 24, 16], // routine step complete
+  choreDone: [0, 18, 28, 18], // chore complete (heavier than a step)
+  routineDone: [0, 30, 40, 30, 50], // whole routine — the "you did it" thud
+  rewardRedeem: [0, 20, 40, 20], // store redemption
+  milestone: [0, 24, 30, 24, 30, 60], // streak / voyage milestone
+  errorSoft: [0, 40, 40, 40], // wrong PIN, can't afford — gentle, never harsh
+  transitionWarn: 22, // 2-minute "time to switch" nudge
+  unlock: [0, 12, 18, 30], // entering Harbor from the screensaver (rising)
+  arrive: [0, 20, 30, 40, 60], // boat reaches harbor (day complete) — rising warmth
+  breathIn: 18, // Anchor — start of inhale
+  breathHold: 10, // Anchor — start of hold
+  breathOut: 18, // Anchor — start of exhale
+} as const;
