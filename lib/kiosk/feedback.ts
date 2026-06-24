@@ -147,6 +147,47 @@ export function play(name: SoundName, enabled = true) {
   }
 }
 
+/** Sleep sound machine (HARBOR_V2 §9.2.17) — a gentle looping brown-noise "waves"
+ *  bed for bedtime, matching Buddy's nightlight/sound-machine for free. Started on
+ *  an explicit tap (autoplay-safe). Returns a stop() fn, or null if unavailable. */
+export function startSoundMachine(): (() => void) | null {
+  const ctx = getAudioCtx();
+  if (!ctx) return null;
+  try {
+    if (ctx.state === "suspended") void ctx.resume();
+    const size = 2 * ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < size; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02; // integrate → brown noise (soft, low)
+      data[i] = last * 3.2;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 550; // muffle into a calm "waves" wash
+    const gain = ctx.createGain();
+    gain.gain.value = 0.0001;
+    gain.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 1.2); // fade in
+    src.connect(filter).connect(gain).connect(ctx.destination);
+    src.start();
+    return () => {
+      try {
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+        src.stop(ctx.currentTime + 0.7);
+      } catch {
+        /* ignore */
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** A soft single tone — used for transition warnings. */
 export function tone(enabled = true) {
   if (!enabled) return;

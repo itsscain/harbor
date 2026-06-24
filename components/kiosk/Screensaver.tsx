@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Sparkles, CalendarDays, UtensilsCrossed, Pin, Gift, Star, ChevronRight, Lock, Heart } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Sparkles, CalendarDays, UtensilsCrossed, Pin, Gift, Star, ChevronRight, Lock, Heart, Moon, Waves } from "lucide-react";
+import { startSoundMachine } from "@/lib/kiosk/feedback";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { WeatherWidget } from "./WeatherWidget";
 import { ChildAvatar } from "./ChildAvatar";
@@ -390,19 +391,52 @@ function daysUntil(iso: string): number {
  *  screen at night. Any tap wakes it. */
 export function SleepMode({ onWake }: { onWake: () => void }) {
   const [now, setNow] = useState(() => new Date());
+  const [soundOn, setSoundOn] = useState(false);
+  const stopRef = useRef<null | (() => void)>(null);
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
   }, []);
+  useEffect(() => () => stopRef.current?.(), []); // stop sound on unmount/wake
+
+  function toggleSound(e: React.MouseEvent) {
+    e.stopPropagation(); // don't wake the wall when toggling sound
+    if (soundOn) {
+      stopRef.current?.();
+      stopRef.current = null;
+      setSoundOn(false);
+    } else {
+      stopRef.current = startSoundMachine();
+      setSoundOn(!!stopRef.current);
+    }
+  }
+
   return (
-    <button
+    <div
       onClick={onWake}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black"
+      role="button"
+      tabIndex={0}
       aria-label="Tap to wake"
+      className="fixed inset-0 z-[60] flex cursor-pointer flex-col items-center justify-center bg-[#080a07]"
     >
-      <span className="font-display text-3xl font-bold tabular-nums text-white/25">
+      {/* warm nightlight — a soft amber glow for a child's room */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "radial-gradient(60% 50% at 50% 42%, rgba(246, 178, 61, 0.10), transparent 70%)" }}
+      />
+      <span className="relative font-display text-6xl font-bold tabular-nums text-amber-100/30">
         {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
       </span>
-    </button>
+      <span className="relative mt-2 text-sm font-medium tracking-wide text-amber-100/20">Good night</span>
+      <button
+        onClick={toggleSound}
+        aria-label={soundOn ? "Stop sleep sounds" : "Play sleep sounds"}
+        className="kiosk-tap relative mt-10 flex items-center gap-2 rounded-full bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-amber-100/40 ring-1 ring-white/10 active:scale-95"
+      >
+        {soundOn ? <Waves className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        {soundOn ? "Sounds on" : "Sleep sounds"}
+      </button>
+    </div>
   );
 }
