@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { haptic, HAPTIC, speak, stopSpeaking } from "@/lib/kiosk/feedback";
+import { haptic, HAPTIC, speak, stopSpeaking, play } from "@/lib/kiosk/feedback";
 import { Confetti } from "./Confetti";
 
 /** Anchor — the guided co-regulation engine (HARBOR_V2 §9.1.1). The wall recedes,
@@ -34,6 +34,7 @@ export function Anchor({
   haptics,
   readAloud,
   reducedMotion,
+  sound = true,
   onClose,
   onFeeling,
 }: {
@@ -42,6 +43,7 @@ export function Anchor({
   haptics: boolean;
   readAloud: boolean;
   reducedMotion: boolean;
+  sound?: boolean;
   onClose: () => void;
   onFeeling?: (feeling: string) => void;
 }) {
@@ -79,6 +81,7 @@ export function Anchor({
   function finish() {
     setStage("done");
     haptic(HAPTIC.arrive, haptics);
+    play("arrive", sound);
     if (readAloud) speak(`Welcome back, ${childName}. Fresh start.`, true);
   }
 

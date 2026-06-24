@@ -92,6 +92,61 @@ export function chime(enabled = true) {
   }
 }
 
+/** One soft synth note with a gentle bell-like envelope (no asset). */
+function blip(ctx: AudioContext, freq: number, at: number, dur: number, vol = 0.16, type: OscillatorType = "sine") {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  const t0 = ctx.currentTime + at;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+
+/** The Harbor sonic identity (HARBOR_V2 §6.1) — short, watery/bell timbres, each
+ *  semantic. All gated by the child's `settings.sound`; no-op without Web Audio. */
+export type SoundName = "step" | "routine" | "reward" | "arrive" | "transition" | "error" | "milestone";
+export function play(name: SoundName, enabled = true) {
+  if (!enabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") void ctx.resume();
+    switch (name) {
+      case "step": // warm two-note (the everyday completion)
+        blip(ctx, 523.25, 0, 0.35, 0.16);
+        blip(ctx, 783.99, 0.1, 0.4, 0.14);
+        break;
+      case "routine": // rising 3-note motif — the "Harbor theme" seed
+        [523.25, 659.25, 783.99].forEach((f, i) => blip(ctx, f, i * 0.13, 0.5, 0.15));
+        break;
+      case "reward": // bright sparkle
+        [880, 1108.73, 1318.51].forEach((f, i) => blip(ctx, f, i * 0.07, 0.28, 0.12));
+        break;
+      case "arrive": // gentle harbor bell + soft low wave (day complete)
+        blip(ctx, 392, 0, 0.9, 0.16);
+        blip(ctx, 587.33, 0.16, 0.95, 0.13);
+        blip(ctx, 261.63, 0.28, 1.1, 0.1, "triangle");
+        break;
+      case "milestone": // celebratory rising cadence
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => blip(ctx, f, i * 0.1, 0.5, 0.14));
+        break;
+      case "transition": // soft single chime
+        blip(ctx, 440, 0, 0.5, 0.13, "triangle");
+        break;
+      case "error": // soft, non-judgmental low tone
+        blip(ctx, 196, 0, 0.45, 0.11);
+        break;
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 /** A soft single tone — used for transition warnings. */
 export function tone(enabled = true) {
   if (!enabled) return;

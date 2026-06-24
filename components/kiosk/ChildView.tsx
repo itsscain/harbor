@@ -29,7 +29,7 @@ import { Voyage } from "./Voyage";
 import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { speak, chime, haptic, cheer, HAPTIC } from "@/lib/kiosk/feedback";
+import { speak, chime, haptic, cheer, play, HAPTIC } from "@/lib/kiosk/feedback";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
@@ -163,7 +163,7 @@ export function ChildView({
       : scheduleSteps.length > 0 && scheduleSteps.every((s) => s.id === step.id || prog.includes(s.id));
     if (finishes) {
       setBigCelebrate(true);
-      chime(settings!.sound);
+      play("routine", settings!.sound);
       haptic(HAPTIC.routineDone, settings!.haptics);
       speak(`Amazing! You finished ${activeRoutine?.name ?? "your routine"}, ${child!.name}!`, settings!.readAloud);
       setTimeout(() => setBigCelebrate(false), 4200);
@@ -508,6 +508,7 @@ export function ChildView({
           haptics={settings.haptics}
           readAloud={settings.readAloud}
           reducedMotion={settings.reducedMotion}
+          sound={settings.sound}
           onFeeling={(f) => kiosk.checkIn(child.id, f)}
           onClose={() => setAnchorOpen(false)}
         />

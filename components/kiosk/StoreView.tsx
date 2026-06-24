@@ -5,7 +5,7 @@ import { Star, X, Check } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskStoreItem } from "@/lib/kiosk/types";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { chime, haptic, speak } from "@/lib/kiosk/feedback";
+import { haptic, speak, play, HAPTIC } from "@/lib/kiosk/feedback";
 import { cn } from "@/lib/cn";
 import { KCard, KIconButton, KPill } from "./ui";
 
@@ -43,8 +43,8 @@ export function StoreView({
     redeeming.current.add(item.id);
     setTimeout(() => redeeming.current.delete(item.id), 2200);
     kiosk.redeemStoreItem(childId, item);
-    chime(settings.sound);
-    haptic([20, 40, 20], settings.haptics);
+    play("reward", settings.sound);
+    haptic(HAPTIC.rewardRedeem, settings.haptics);
     speak(`You got ${item.label}!`, settings.readAloud);
     setBought(item.id);
     setTimeout(() => setBought(null), 1600);
