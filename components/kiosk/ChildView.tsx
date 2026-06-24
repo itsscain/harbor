@@ -25,6 +25,7 @@ import { ParentGate } from "./ParentGate";
 import { MiniGame } from "./MiniGame";
 import { CornerTimer } from "./CornerTimer";
 import { Anchor } from "./Anchor";
+import { Voyage } from "./Voyage";
 import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
@@ -383,6 +384,10 @@ export function ChildView({
               <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
                 🎉 All done! Great job, {child.name}!
               </div>
+            )}
+
+            {activeRoutine.type !== "first_then" && (
+              <Voyage steps={scheduleSteps} doneIds={new Set(prog)} accent={color} reducedMotion={settings.reducedMotion} />
             )}
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
