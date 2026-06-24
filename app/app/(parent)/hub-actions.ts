@@ -8,6 +8,7 @@ import { getHouseholdAi, haikuJson, haikuText, aiErrorMessage } from "@/lib/ai/a
 import { planDinners } from "@/lib/ai/mealPlan";
 import { buildCornerPlan, buildCornerReport, sanitizeCornerPlan, type CornerPlan } from "@/lib/ai/corner";
 import { extractFromCapture, isCaptureImageType, type CaptureResult } from "@/lib/ai/capture";
+import { buildTidesInsight, type TidesInsight } from "@/lib/ai/tides";
 import { pushToGoogle, deleteGoogleEvent } from "@/lib/google/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
@@ -448,6 +449,68 @@ export async function endCorner(id: string, childId: string) {
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
+}
+
+export type TidesResult = { ok: boolean; error?: string; result?: TidesInsight };
+
+/** Tides — generate a fresh pattern insight for a child from their corner/Anchor +
+ *  check-in history. Works on demand even before the tides_insights cache table
+ *  exists (the cache write is best-effort). */
+export async function generateTides(childId: string): Promise<TidesResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai?.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+  const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
+  const [{ data: child }, { data: sessions }, { data: checkIns }] = await Promise.all([
+    supabase.from("children").select("name, birthday").eq("id", childId).maybeSingle(),
+    supabase.from("corners").select("started_at, reason, feeling").eq("child_id", childId).gte("started_at", since).order("started_at", { ascending: false }).limit(30),
+    supabase.from("check_ins").select("feeling, created_at").eq("child_id", childId).gte("created_at", since).order("created_at", { ascending: false }).limit(60),
+  ]);
+  if (!child) return { ok: false, error: "Child not found." };
+
+  const sCount = (sessions ?? []).length + (checkIns ?? []).length;
+  if (sCount < 3) {
+    return {
+      ok: true,
+      result: {
+        enough_data: false,
+        summary: `Harbor needs a little more history for ${child.name} before patterns become clear.`,
+        patterns: [],
+        suggestion: "As calm-corner sessions and feelings check-ins build up, gentle patterns will appear here.",
+      },
+    };
+  }
+
+  try {
+    const result = await buildTidesInsight({
+      key: ai.key,
+      childName: child.name,
+      age: ageFromBirthday(child.birthday),
+      sessions: sessions ?? [],
+      checkIns: checkIns ?? [],
+    });
+    // Cache best-effort (table may not exist before migration 0032 is applied).
+    try {
+      await supabase.from("tides_insights").insert({
+        household_id,
+        child_id: childId,
+        period_start: since.slice(0, 10),
+        period_end: new Date().toISOString().slice(0, 10),
+        summary: result.summary,
+        pattern: result.patterns as unknown as Json,
+        suggestion: result.suggestion,
+      });
+    } catch {
+      /* cache table not migrated yet — insight still returned */
+    }
+    return { ok: true, result };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
 }
 
 export type CornerReportResult = { ok: boolean; error?: string; text?: string };

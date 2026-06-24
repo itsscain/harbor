@@ -8,6 +8,7 @@ import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { StepRow } from "@/components/app/StepRow";
 import { GroundingCard } from "@/components/app/GroundingCard";
 import { CornerCard, type CornerRow } from "@/components/app/CornerCard";
+import { TidesCard } from "@/components/app/TidesCard";
 import { ChildPhotoField } from "@/components/app/ChildPhotoField";
 import { SuggestChoresButton } from "@/components/app/SuggestChoresButton";
 import { AiProfileCard, type AiProfile } from "@/components/app/AiProfileCard";
@@ -239,6 +240,10 @@ export default async function ChildDetail({
         <CornerCard childId={child.id} childName={child.name} active={activeCorner} recent={corners} />
       </div>
 
+      <div className="mb-4">
+        <TidesCard childId={child.id} childName={child.name} />
+      </div>
+
       {/* Chores */}
       <Card className="mb-4">
         <h3 className="text-title text-harbor">Chores</h3>
@@ -463,6 +468,22 @@ export default async function ChildDetail({
             ["bedtime", "🌙 Bedtime"],
             ["afterschool", "🍎 After school"],
             ["firstthen", "🔁 First / Then"],
+          ].map(([key, label]) => (
+            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
+              <input type="hidden" name="template" value={key} />
+              <SubmitButton size="sm" variant="secondary" savedText="Added">
+                {label}
+              </SubmitButton>
+            </form>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted">Designed around needs — a calm, expert starting point:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["adhd_morning", "⚡ ADHD morning"],
+            ["autism_bedtime", "🧩 Autism bedtime"],
+            ["anxiety_winddown", "🫧 Anxiety wind-down"],
+            ["low_demand", "💛 Low-demand day"],
           ].map(([key, label]) => (
             <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
               <input type="hidden" name="template" value={key} />

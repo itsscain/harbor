@@ -676,6 +676,60 @@ export type Database = {
           },
         ]
       }
+      tides_insights: {
+        Row: {
+          child_id: string
+          created_at: string
+          household_id: string
+          id: string
+          pattern: Json | null
+          period_end: string | null
+          period_start: string | null
+          status: string
+          suggestion: string | null
+          summary: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          pattern?: Json | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          suggestion?: string | null
+          summary?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          pattern?: Json | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          suggestion?: string | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tides_insights_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tides_insights_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groundings: {
         Row: {
           child_id: string

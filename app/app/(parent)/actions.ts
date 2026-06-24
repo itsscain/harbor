@@ -345,6 +345,54 @@ const ROUTINE_TEMPLATES: Record<string, { name: string; type: "schedule" | "firs
       { icon: "🎨", label: "Free / creative time" },
     ],
   },
+  // ── Need-based templates (HARBOR_V2 §9.2.10) — designed around how kids work,
+  //    not just grade level. Short, concrete, low-overwhelm. ─────────────────
+  adhd_morning: {
+    name: "ADHD-friendly morning",
+    type: "schedule",
+    steps: [
+      { icon: "🌅", label: "Wake up + big stretch" },
+      { icon: "💧", label: "Drink some water" },
+      { icon: "👕", label: "Clothes (laid out)", points: 5 },
+      { icon: "🥣", label: "Breakfast", points: 5 },
+      { icon: "🪥", label: "Brush teeth", points: 5 },
+      { icon: "🎒", label: "Bag by the door", points: 5 },
+    ],
+  },
+  autism_bedtime: {
+    name: "Autism-friendly bedtime",
+    type: "schedule",
+    steps: [
+      { icon: "🔔", label: "5-minute warning" },
+      { icon: "🛁", label: "Bath / wash up" },
+      { icon: "🌙", label: "Pajamas", points: 5 },
+      { icon: "🪥", label: "Brush teeth", points: 5 },
+      { icon: "📖", label: "Same story", points: 5 },
+      { icon: "💡", label: "Dim the lights" },
+      { icon: "🧸", label: "Cozy in bed" },
+    ],
+  },
+  anxiety_winddown: {
+    name: "Anxiety wind-down",
+    type: "schedule",
+    steps: [
+      { icon: "🫧", label: "Slow belly breaths" },
+      { icon: "🍵", label: "Warm drink" },
+      { icon: "🧩", label: "Quiet, easy activity" },
+      { icon: "🗒️", label: "Look at tomorrow together" },
+      { icon: "🛏️", label: "Cozy up" },
+    ],
+  },
+  low_demand: {
+    name: "Low-demand day",
+    type: "schedule",
+    steps: [
+      { icon: "🍎", label: "Eat something" },
+      { icon: "💧", label: "Drink water" },
+      { icon: "👕", label: "Comfy clothes" },
+      { icon: "💛", label: "One kind thing" },
+    ],
+  },
 };
 
 /** One-tap: create a routine pre-filled from a template (vs adding each step). */
