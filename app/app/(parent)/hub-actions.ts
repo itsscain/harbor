@@ -8,6 +8,7 @@ import { getHouseholdAi, haikuJson, haikuText, aiErrorMessage } from "@/lib/ai/a
 import { planDinners } from "@/lib/ai/mealPlan";
 import { buildCornerPlan, buildCornerReport, sanitizeCornerPlan, type CornerPlan } from "@/lib/ai/corner";
 import { extractFromCapture, isCaptureImageType, type CaptureResult } from "@/lib/ai/capture";
+import { pushToGoogle, deleteGoogleEvent } from "@/lib/google/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
 
@@ -66,12 +67,21 @@ export async function addEvent(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   await invalidateBriefs(household_id);
+  // Two-way sync: push the new event up to Google (best-effort; no-op if not connected).
+  try {
+    await pushToGoogle(supabase, household_id);
+  } catch (e) {
+    // Sync is additive — never block adding an event; log for visibility.
+    console.error("Google push failed after addEvent:", e);
+  }
   revalidatePath("/app/calendar");
 }
 
 export async function deleteEvent(id: string) {
   await requireUser();
   const supabase = await createClient();
+  // Keep the core delete independent of the google_event_id column so it works
+  // even before migration 0031 is applied.
   const { data: ev, error } = await supabase
     .from("events")
     .update({ deleted_at: nowIso() })
@@ -80,7 +90,32 @@ export async function deleteEvent(id: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (ev?.household_id) await invalidateBriefs(ev.household_id);
+  // Mirror the deletion to Google if this event was synced (tolerant of the
+  // column/table not existing yet — never blocks the delete).
+  if (ev?.household_id) {
+    try {
+      const { data: g } = await supabase.from("events").select("google_event_id").eq("id", id).maybeSingle();
+      if (g?.google_event_id) await deleteGoogleEvent(supabase, ev.household_id, g.google_event_id);
+    } catch {
+      /* best-effort */
+    }
+  }
   revalidatePath("/app/calendar");
+}
+
+/** Disconnect Google Calendar — removes the stored tokens for this household. */
+export async function disconnectGoogle() {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  // Clear the Google links so a future reconnect re-syncs cleanly (no orphan ids).
+  try {
+    await supabase.from("events").update({ google_event_id: null }).eq("household_id", household_id).not("google_event_id", "is", null);
+  } catch {
+    /* column may not exist pre-migration */
+  }
+  await supabase.from("google_calendar").delete().eq("household_id", household_id);
+  revalidatePath("/app/settings");
 }
 
 // ── Reminders ────────────────────────────────────────────────────────────────

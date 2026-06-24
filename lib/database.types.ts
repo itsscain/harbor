@@ -494,6 +494,7 @@ export type Database = {
           deleted_at: string | null
           emoji: string | null
           ends_at: string | null
+          google_event_id: string | null
           household_id: string
           id: string
           is_countdown: boolean
@@ -513,6 +514,7 @@ export type Database = {
           deleted_at?: string | null
           emoji?: string | null
           ends_at?: string | null
+          google_event_id?: string | null
           household_id: string
           id?: string
           is_countdown?: boolean
@@ -532,6 +534,7 @@ export type Database = {
           deleted_at?: string | null
           emoji?: string | null
           ends_at?: string | null
+          google_event_id?: string | null
           household_id?: string
           id?: string
           is_countdown?: boolean
@@ -555,6 +558,53 @@ export type Database = {
             foreignKeyName: "events_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_calendar: {
+        Row: {
+          access_token: string | null
+          calendar_id: string
+          connected_email: string | null
+          created_at: string
+          household_id: string
+          last_synced_at: string | null
+          refresh_token: string | null
+          sync_token: string | null
+          token_expiry: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          calendar_id?: string
+          connected_email?: string | null
+          created_at?: string
+          household_id: string
+          last_synced_at?: string | null
+          refresh_token?: string | null
+          sync_token?: string | null
+          token_expiry?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          calendar_id?: string
+          connected_email?: string | null
+          created_at?: string
+          household_id?: string
+          last_synced_at?: string | null
+          refresh_token?: string | null
+          sync_token?: string | null
+          token_expiry?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
             referencedRelation: "households"
             referencedColumns: ["id"]
           },

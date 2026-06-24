@@ -1,28 +1,45 @@
 import Link from "next/link";
-import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Input, Field, Button, Textarea, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { GoogleSyncButton } from "@/components/app/GoogleSyncButton";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { updateHouseholdName, setParentPin, clearParentPin } from "../actions";
-import { updateKioskSettings, saveAiConfig } from "../hub-actions";
+import { updateKioskSettings, saveAiConfig, disconnectGoogle } from "../hub-actions";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
   const household = await getMyHousehold();
   if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
 
+  const googleStatus = (await searchParams).google;
   const supabase = await createClient();
   const { data: pairings } = await supabase
     .from("device_pairings")
     .select("code, status, last_synced_at")
     .eq("household_id", household.id)
     .order("created_at");
+
+  // Tolerate the table not existing yet (before migration 0031 is applied) so the
+  // Settings page — the only place to connect Google — always renders.
+  let gcal: { connected_email: string | null; last_synced_at: string | null } | null = null;
+  try {
+    const { data } = await supabase
+      .from("google_calendar")
+      .select("connected_email, last_synced_at")
+      .eq("household_id", household.id)
+      .maybeSingle();
+    gcal = data;
+  } catch {
+    /* migration not applied yet */
+  }
+  const googleConnected = !!gcal?.connected_email;
 
   // AI config — read the raw key server-side but only surface a "set" boolean.
   const { data: aiRow } = await supabase
@@ -137,6 +154,51 @@ export default async function SettingsPage() {
             )}
           </div>
         </form>
+      </Card>
+
+      <Card className="mb-4">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5 text-water" />
+          <h2 className="text-title text-harbor">Google Calendar</h2>
+          {googleConnected ? <Badge tone="green">Connected</Badge> : <Badge tone="gray">Not connected</Badge>}
+        </div>
+        <p className="mt-2 text-sm text-muted">
+          Two-way sync with your Google Calendar — events you add in Harbor appear in Google, and Google
+          events show on the wall. Tokens are stored securely server-side and <strong>never</strong> reach the wall tablet.
+        </p>
+        {googleStatus === "connected" && (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Google Calendar connected and synced.</p>
+        )}
+        {googleStatus === "error" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Couldn&apos;t connect — please try again.</p>
+        )}
+        {googleStatus === "unconfigured" && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Google sync isn&apos;t configured on the server yet.</p>
+        )}
+        {googleStatus === "denied" && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">You didn&apos;t grant access — you can reconnect anytime.</p>
+        )}
+        {googleConnected ? (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-ink">
+              Connected as <strong>{gcal?.connected_email}</strong>
+              {gcal?.last_synced_at ? <span className="text-muted"> · last synced {new Date(gcal.last_synced_at).toLocaleString()}</span> : null}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <GoogleSyncButton />
+              <form action={disconnectGoogle}>
+                <Button type="submit" variant="ghost" size="sm">Disconnect</Button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <a
+            href="/api/google/connect"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-harbor px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-harbor-700"
+          >
+            <CalendarDays className="h-4 w-4" /> Connect Google Calendar
+          </a>
+        )}
       </Card>
 
       <Card className="mb-4">
