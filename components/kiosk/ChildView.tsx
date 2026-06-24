@@ -146,6 +146,9 @@ export function ChildView({
   const points = state.points[child.id] ?? 0;
   const grounding = activeGroundingFor(state.snapshot.groundings, child.id);
   const corner = (state.snapshot.corners ?? []).find((c) => c.child_id === child.id && c.status === "active") ?? null;
+  // Auto-soften (§9.1.3): after a rough Anchor today, run gentler celebration.
+  const softenedToday = state.autoSoften?.[child.id] === today;
+  const fxIntensity = softenedToday ? 0.6 : settings.intensity;
   // Personalized encouragement from the child's AI profile (offline; rotates daily).
   const encLines = child.ai_profile?.encouragement ?? [];
   const encLine = encLines.length ? encLines[new Date().getDate() % encLines.length] : null;
@@ -295,6 +298,11 @@ export function ChildView({
         >
           <span className="text-xl">🫧</span> I need a break
         </Pressable>
+        {softenedToday && (
+          <p className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-violet-400/10 py-2.5 text-sm font-medium text-violet-200 ring-1 ring-violet-400/20">
+            🌙 Taking it easy today
+          </p>
+        )}
         {corner && (
           <div className="mb-4">
             <CornerTimer
@@ -517,6 +525,7 @@ export function ChildView({
           reducedMotion={settings.reducedMotion}
           sound={settings.sound}
           onFeeling={(f) => kiosk.checkIn(child.id, f)}
+          onSoften={() => kiosk.softenChild(child.id)}
           onClose={() => setAnchorOpen(false)}
         />
       )}
@@ -552,7 +561,7 @@ export function ChildView({
 
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
-          {!settings.reducedMotion && <Confetti key={celebrate.n} count={scaleCount(24, settings.intensity)} />}
+          {!settings.reducedMotion && <Confetti key={celebrate.n} count={scaleCount(24, fxIntensity)} />}
           <div className={cn("rounded-full bg-beacon px-10 py-8 text-center shadow-2xl", !settings.reducedMotion && "animate-reward")}>
             <Star className="mx-auto h-12 w-12 fill-harbor text-harbor" />
             <p className="mt-1 font-display text-3xl font-bold text-harbor">
@@ -568,7 +577,7 @@ export function ChildView({
           className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-kbg2/97 px-6 text-center text-white backdrop-blur-sm"
           aria-label="Continue"
         >
-          {!settings.reducedMotion && <Confetti count={scaleCount(64, settings.intensity)} spread={560} />}
+          {!settings.reducedMotion && <Confetti count={scaleCount(64, fxIntensity)} spread={560} />}
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className={cn("relative text-8xl", !settings.reducedMotion && "animate-pop")}>{child.avatar ?? "🎉"}</span>
           <p className="relative mt-4 font-display text-4xl font-bold sm:text-5xl">You did it, {child.name}!</p>

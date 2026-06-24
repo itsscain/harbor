@@ -293,6 +293,15 @@ export function useKiosk() {
     [update],
   );
 
+  // Auto-soften (§9.1.3): after a rough Anchor, run this child at calm intensity
+  // for the rest of today (date-stamped; auto-restores tomorrow). Local + offline.
+  const softenChild = useCallback(
+    (childId: string) => {
+      update((s) => ({ ...s, autoSoften: { ...(s.autoSoften ?? {}), [childId]: todayKey() } }));
+    },
+    [update],
+  );
+
   // ── Parent actions ──────────────────────────────────────────────────────────
   const resetDay = useCallback(
     (childId: string) => {
@@ -447,6 +456,7 @@ export function useKiosk() {
     completeStep,
     completeChore,
     checkIn,
+    softenChild,
     resetDay,
     resetPoints,
     redeem,

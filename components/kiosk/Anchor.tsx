@@ -20,12 +20,12 @@ const PHASES: Phase[] = [
 const BREATHS = 5;
 
 const FEELINGS = [
-  { emoji: "😡", label: "Mad" },
-  { emoji: "😢", label: "Sad" },
-  { emoji: "😟", label: "Scared" },
-  { emoji: "🫨", label: "Too much" },
-  { emoji: "😴", label: "Tired" },
-  { emoji: "🙂", label: "Okay" },
+  { emoji: "😡", label: "Mad", big: true },
+  { emoji: "😢", label: "Sad", big: false },
+  { emoji: "😟", label: "Scared", big: true },
+  { emoji: "🫨", label: "Too much", big: true },
+  { emoji: "😴", label: "Tired", big: false },
+  { emoji: "🙂", label: "Okay", big: false },
 ];
 
 export function Anchor({
@@ -37,6 +37,7 @@ export function Anchor({
   sound = true,
   onClose,
   onFeeling,
+  onSoften,
 }: {
   childName: string;
   accent: string;
@@ -46,6 +47,8 @@ export function Anchor({
   sound?: boolean;
   onClose: () => void;
   onFeeling?: (feeling: string) => void;
+  /** Called when the child is still dysregulated at re-entry → auto-soften the day. */
+  onSoften?: () => void;
 }) {
   const [stage, setStage] = useState<"breathe" | "feelings" | "done">("breathe");
   const [pi, setPi] = useState(0);
@@ -141,6 +144,7 @@ export function Anchor({
                 key={f.label}
                 onClick={() => {
                   onFeeling?.(f.label);
+                  if (f.big) onSoften?.();
                   finish();
                 }}
                 className="kiosk-tap flex flex-col items-center gap-2 rounded-2xl bg-white/8 p-5 text-white ring-1 ring-white/10 active:scale-95"
