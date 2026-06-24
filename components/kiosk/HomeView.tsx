@@ -9,6 +9,7 @@ import { eventColor } from "@/lib/kiosk/colors";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { WeatherWidget } from "./WeatherWidget";
 import { ChoresBoard } from "./ChoresBoard";
+import { FamilyGoal } from "./FamilyGoal";
 import { KCard, KEyebrow, KButton } from "./ui";
 
 function daysUntil(iso: string): number {
@@ -50,6 +51,10 @@ export function HomeView({
 
   const hsettings = (snap.household.settings ?? {}) as Record<string, unknown>;
   const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
+  const familyGoal = hsettings.family_goal as
+    | { label?: string; emoji?: string; target?: number; reward?: string | null; active?: boolean }
+    | undefined;
+  const goalCurrent = children.reduce((sum, c) => sum + (state.points[c.id] ?? 0), 0);
 
   const todayStr = todayKey();
   const tonight =
@@ -126,6 +131,16 @@ export function HomeView({
               </div>
             </KCard>
           )}
+        </div>
+      )}
+
+      {/* Family goal — cooperative jar the whole family fills */}
+      {familyGoal?.active && familyGoal.label && (familyGoal.target ?? 0) > 0 && (
+        <div className="mb-4">
+          <FamilyGoal
+            goal={{ label: familyGoal.label, emoji: familyGoal.emoji, target: familyGoal.target!, reward: familyGoal.reward }}
+            current={goalCurrent}
+          />
         </div>
       )}
 

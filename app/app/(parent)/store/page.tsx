@@ -6,6 +6,7 @@ import { Card, Input, Field, Select, Badge, Switch } from "@/components/ui/primi
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FamilyGoalCard } from "@/components/app/FamilyGoalCard";
 import { titleCase } from "@/lib/format";
 import { addStoreItem, updateStoreItem, deleteStoreItem } from "../hub-actions";
 
@@ -33,6 +34,16 @@ export default async function StorePage() {
         title="Reward Store"
         subtitle="What kids can spend their stars on. Shows on each child's wall."
       />
+
+      <div className="mb-6">
+        <FamilyGoalCard
+          goal={
+            ((household.settings ?? {}) as Record<string, unknown>).family_goal as
+              | { label?: string; emoji?: string; target?: number; reward?: string | null; active?: boolean }
+              | null
+          }
+        />
+      </div>
 
       <Card className="mb-6">
         <h2 className="text-title text-harbor">Add a reward</h2>

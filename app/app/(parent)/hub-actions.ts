@@ -1107,6 +1107,36 @@ export async function saveAiConfig(formData: FormData) {
   revalidatePath("/app/settings");
 }
 
+/** Family Goal (§9.2.9) — a cooperative reward jar the whole family's stars fill.
+ *  Stored in households.settings (rides the snapshot to the wall); progress is
+ *  computed live from the kids' combined points. */
+export async function setFamilyGoal(formData: FormData) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const supabase = await createClient();
+  const current = (household.settings ?? {}) as Record<string, unknown>;
+  const active = formData.get("active") === "on";
+  const label = str(formData.get("label"));
+  const target = int(formData.get("target"), 0);
+  const family_goal =
+    active && label && target > 0
+      ? {
+          label: label.slice(0, 60),
+          emoji: (str(formData.get("emoji")) ?? "🎉").slice(0, 8),
+          target: Math.min(100000, target),
+          reward: str(formData.get("reward"))?.slice(0, 80) ?? null,
+          active: true,
+        }
+      : null;
+  const { error } = await supabase
+    .from("households")
+    .update({ settings: { ...current, family_goal } as never })
+    .eq("id", household.id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/store");
+}
+
 export async function updateKioskSettings(formData: FormData) {
   await requireUser();
   const household = await getMyHousehold();
