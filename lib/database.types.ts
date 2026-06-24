@@ -440,36 +440,42 @@ export type Database = {
       }
       device_pairings: {
         Row: {
+          child_id: string | null
           code: string
           created_at: string
           device_label: string | null
           device_secret: string | null
           household_id: string
           id: string
+          kind: string
           last_synced_at: string | null
           paired_at: string | null
           status: Database["public"]["Enums"]["pairing_status"]
           updated_at: string
         }
         Insert: {
+          child_id?: string | null
           code: string
           created_at?: string
           device_label?: string | null
           device_secret?: string | null
           household_id: string
           id?: string
+          kind?: string
           last_synced_at?: string | null
           paired_at?: string | null
           status?: Database["public"]["Enums"]["pairing_status"]
           updated_at?: string
         }
         Update: {
+          child_id?: string | null
           code?: string
           created_at?: string
           device_label?: string | null
           device_secret?: string | null
           household_id?: string
           id?: string
+          kind?: string
           last_synced_at?: string | null
           paired_at?: string | null
           status?: Database["public"]["Enums"]["pairing_status"]

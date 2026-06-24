@@ -59,11 +59,14 @@ export function ChildView({
   childId,
   onHome,
   onOpenCalm,
+  hideHome = false,
 }: {
   kiosk: Kiosk;
   childId: string;
   onHome: () => void;
   onOpenCalm: () => void;
+  /** Outpost (room-device) mode hides the family Home button. */
+  hideHome?: boolean;
 }) {
   const { state } = kiosk;
   const child = state?.snapshot.children.find((c) => c.id === childId);
@@ -225,13 +228,17 @@ export function ChildView({
       {/* Header — per-child color tint, photo, and the day's progress */}
       <header className="px-4 pb-4 pt-3" style={{ background: `linear-gradient(180deg, ${color}38, ${color}0d)` }}>
         <div className="flex items-center justify-between gap-3">
-          <Pressable
-            haptics={settings.haptics}
-            onClick={onHome}
-            className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 font-semibold text-ktext"
-          >
-            <HomeIcon className="h-5 w-5" /> Home
-          </Pressable>
+          {hideHome ? (
+            <span className="w-10" aria-hidden />
+          ) : (
+            <Pressable
+              haptics={settings.haptics}
+              onClick={onHome}
+              className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 font-semibold text-ktext"
+            >
+              <HomeIcon className="h-5 w-5" /> Home
+            </Pressable>
+          )}
           <span className="flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-2">
             <Star className="h-5 w-5 fill-beacon text-beacon" />
             <span

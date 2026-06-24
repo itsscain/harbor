@@ -4,6 +4,7 @@ import { useKiosk } from "./useKiosk";
 import { PairingScreen } from "./PairingScreen";
 import { PinSetup } from "./PinSetup";
 import { KioskShell } from "./KioskShell";
+import { OutpostShell } from "./OutpostShell";
 import { LighthouseMark } from "@/components/brand/Logo";
 
 export function KioskApp() {
@@ -41,6 +42,11 @@ export function KioskApp() {
 
   if (!kiosk.state?.pinHash) {
     return <PinSetup onDone={kiosk.setPin} />;
+  }
+
+  // A device paired as an outpost shows a single child's room-device mode.
+  if (kiosk.state.kind === "outpost" && kiosk.state.outpostChildId) {
+    return <OutpostShell kiosk={kiosk} childId={kiosk.state.outpostChildId} />;
   }
 
   return <KioskShell kiosk={kiosk} />;

@@ -165,6 +165,8 @@ export function useKiosk() {
     const fresh: KioskState = {
       deviceSecret: res.device_secret,
       householdId: res.household_id,
+      kind: res.kind ?? "wall",
+      outpostChildId: res.child_id ?? null,
       snapshot: res.snapshot,
       // Adopt an account PIN set in the companion app, if any; otherwise the
       // installer sets a local PIN on the next screen.

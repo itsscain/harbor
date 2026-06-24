@@ -242,6 +242,10 @@ export type DayProgress = { date: string; completed: string[] };
 export type KioskState = {
   deviceSecret: string;
   householdId: string;
+  /** 'wall' (full hub, default) or 'outpost' (single-child room device). */
+  kind?: string;
+  /** For outposts, the bound child this device shows. */
+  outpostChildId?: string | null;
   snapshot: KioskSnapshot;
   /** Local SHA-256 of the parent PIN — gates parent-only actions, offline. */
   pinHash: string | null;

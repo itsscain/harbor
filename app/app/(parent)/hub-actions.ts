@@ -11,6 +11,7 @@ import { extractFromCapture, isCaptureImageType, type CaptureResult } from "@/li
 import { buildTidesInsight, type TidesInsight } from "@/lib/ai/tides";
 import { pushToGoogle, deleteGoogleEvent } from "@/lib/google/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { generatePairingCode } from "@/lib/codes";
 import type { Json } from "@/lib/database.types";
 
 /** Drop cached AI briefs for a household so the screensaver brief regenerates
@@ -1135,6 +1136,31 @@ export async function setFamilyGoal(formData: FormData) {
     .eq("id", household.id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/store");
+}
+
+/** Mint a one-time pairing code — for a wall (full hub) or an outpost (a per-child
+ *  room device, §9.1.4). The kiosk reads the kind/child at pair time. */
+export async function createPairingCode(formData: FormData) {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  const kind = formData.get("kind") === "outpost" ? "outpost" : "wall";
+  const child_id = kind === "outpost" ? str(formData.get("child_id")) : null;
+  if (kind === "outpost") {
+    if (!child_id) throw new Error("Pick a child for the room device.");
+    // Verify the child belongs to this household (RLS-scoped read).
+    const { data: ok } = await supabase.from("children").select("id").eq("id", child_id).eq("household_id", household_id).maybeSingle();
+    if (!ok) throw new Error("That child isn't in your household.");
+  }
+  const { error } = await supabase.from("device_pairings").insert({
+    household_id,
+    code: generatePairingCode(),
+    status: "pending",
+    kind,
+    child_id,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/settings");
 }
 
 export async function updateKioskSettings(formData: FormData) {

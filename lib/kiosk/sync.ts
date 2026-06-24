@@ -136,6 +136,8 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
 export async function pairDevice(code: string): Promise<{
   device_secret: string;
   household_id: string;
+  kind?: string;
+  child_id?: string | null;
   snapshot: KioskSnapshot;
 }> {
   const supabase = createClient();
@@ -152,7 +154,7 @@ export async function pairDevice(code: string): Promise<{
     }
     throw new Error("Couldn't reach Harbor just now. Check the connection and retry.");
   }
-  return data as { device_secret: string; household_id: string; snapshot: KioskSnapshot };
+  return data as { device_secret: string; household_id: string; kind?: string; child_id?: string | null; snapshot: KioskSnapshot };
 }
 
 /**
