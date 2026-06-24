@@ -257,6 +257,8 @@ export type KioskState = {
   /** Auto-soften (§9.1.3): childId → date the wall dialed them to calm intensity
    *  after a rough Anchor. Honored only for today; auto-restores next morning. */
   autoSoften?: Record<string, string>;
+  /** Per-child completion streaks (local-first). childId → { count, lastDate }. */
+  streaks?: Record<string, { count: number; lastDate: string }>;
   /** Pending mutations to push when online + Plus active. */
   outbox: Mutation[];
 };

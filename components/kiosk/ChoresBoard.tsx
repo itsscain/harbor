@@ -9,6 +9,8 @@ import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee, isRotating } from "@/lib/kiosk/chores";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
+import { activeStreak } from "@/lib/kiosk/streak";
+import { StreakBadge } from "./StreakBadge";
 import { chime, haptic, speak, cheer, HAPTIC } from "@/lib/kiosk/feedback";
 import { scaleCount } from "@/lib/kiosk/motion";
 import { Pressable } from "./Pressable";
@@ -131,10 +133,13 @@ export function ChoresBoard({
                   </p>
                 </div>
               </button>
-              <span className="flex shrink-0 items-center gap-1.5 text-beacon">
-                <Star className="h-4 w-4 fill-beacon" />
-                <span className="font-display text-base font-bold tabular-nums">{state.points[child.id] ?? 0}</span>
-              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <StreakBadge count={activeStreak(state.streaks, child.id)} compact />
+                <span className="flex items-center gap-1.5 text-beacon">
+                  <Star className="h-4 w-4 fill-beacon" />
+                  <span className="font-display text-base font-bold tabular-nums">{state.points[child.id] ?? 0}</span>
+                </span>
+              </div>
             </div>
 
             {bedtime && <BedtimeCountdown bedtime={bedtime} color={color} className="mt-2.5" />}

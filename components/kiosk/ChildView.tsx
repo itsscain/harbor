@@ -30,6 +30,8 @@ import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic, cheer, play, HAPTIC } from "@/lib/kiosk/feedback";
+import { activeStreak } from "@/lib/kiosk/streak";
+import { StreakBadge } from "./StreakBadge";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
@@ -149,6 +151,7 @@ export function ChildView({
   // Auto-soften (§9.1.3): after a rough Anchor today, run gentler celebration.
   const softenedToday = state.autoSoften?.[child.id] === today;
   const fxIntensity = softenedToday ? 0.6 : settings.intensity;
+  const streak = activeStreak(state.streaks, child.id);
   // Personalized encouragement from the child's AI profile (offline; rotates daily).
   const encLines = child.ai_profile?.encouragement ?? [];
   const encLine = encLines.length ? encLines[new Date().getDate() % encLines.length] : null;
@@ -172,6 +175,7 @@ export function ChildView({
       play("routine", settings!.sound);
       haptic(HAPTIC.routineDone, settings!.haptics);
       speak(`Amazing! You finished ${activeRoutine?.name ?? "your routine"}, ${child!.name}!`, settings!.readAloud);
+      kiosk.bumpStreak(child!.id); // finishing the routine keeps the streak alive
       setTimeout(() => setBigCelebrate(false), 4200);
     }
   }
@@ -184,6 +188,11 @@ export function ChildView({
     if (chore.points > 0) {
       setCelebrate({ points: chore.points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
+    }
+    // Chore-only kids (no routine) earn the day's streak by clearing all chores.
+    if (!activeRoutine && childChores.length > 0) {
+      const remaining = childChores.filter((c) => c.id !== chore.id && !prog.includes(c.id)).length;
+      if (remaining === 0) kiosk.bumpStreak(child!.id);
     }
   }
 
@@ -242,15 +251,18 @@ export function ChildView({
               <HomeIcon className="h-5 w-5" /> Home
             </Pressable>
           )}
-          <span className="flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-2">
-            <Star className="h-5 w-5 fill-beacon text-beacon" />
-            <span
-              key={points}
-              className={cn("font-display text-lg font-bold tabular-nums text-ktext", !settings.reducedMotion && "animate-pop")}
-            >
-              {points}
+          <div className="flex items-center gap-2">
+            <StreakBadge count={streak} />
+            <span className="flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-2">
+              <Star className="h-5 w-5 fill-beacon text-beacon" />
+              <span
+                key={points}
+                className={cn("font-display text-lg font-bold tabular-nums text-ktext", !settings.reducedMotion && "animate-pop")}
+              >
+                {points}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
         <button
           onClick={() => speak(`${child.name}'s ${activeRoutine?.name ?? "day"}. ${activeRoutine ? progressMsg : ""}`, settings.readAloud)}

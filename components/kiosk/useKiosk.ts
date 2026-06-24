@@ -9,6 +9,7 @@ import {
   todayKey,
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
+import { nextStreak } from "@/lib/kiosk/streak";
 import { createClient } from "@/lib/supabase/client";
 import type {
   KioskState,
@@ -302,6 +303,20 @@ export function useKiosk() {
     [update],
   );
 
+  // Completion streak: count today once when a child finishes their day. Idempotent
+  // per day; the gap/reset logic lives in nextStreak. Local + offline.
+  const bumpStreak = useCallback(
+    (childId: string) => {
+      update((s) => {
+        const cur = s.streaks?.[childId];
+        const next = nextStreak(cur);
+        if (cur && cur.lastDate === next.lastDate && cur.count === next.count) return s;
+        return { ...s, streaks: { ...(s.streaks ?? {}), [childId]: next } };
+      });
+    },
+    [update],
+  );
+
   // ── Parent actions ──────────────────────────────────────────────────────────
   const resetDay = useCallback(
     (childId: string) => {
@@ -457,6 +472,7 @@ export function useKiosk() {
     completeChore,
     checkIn,
     softenChild,
+    bumpStreak,
     resetDay,
     resetPoints,
     redeem,
