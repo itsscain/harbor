@@ -7,6 +7,7 @@ import { Card, Badge, SectionHeader } from "@/components/ui/primitives";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { ChildCard } from "@/components/app/ChildCard";
+import { WallMirror, type MirrorChild } from "@/components/app/WallMirror";
 import { FirstRunWelcome } from "@/components/app/FirstRunWelcome";
 import { SetupChecklist } from "@/components/app/SetupChecklist";
 import { CHILD_PALETTE } from "@/lib/kiosk/colors";
@@ -70,6 +71,56 @@ export default async function ParentHome() {
     .eq("household_id", household.id)
     .is("deleted_at", null);
 
+  // ── "On the wall now" mirror — the family's current state, server-derived ────
+  const nowISO = new Date().toISOString();
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayKey = `${todayStart.getFullYear()}-${String(todayStart.getMonth() + 1).padStart(2, "0")}-${String(todayStart.getDate()).padStart(2, "0")}`;
+  const [{ data: cornersNow }, { data: groundingsNow }, { data: logsToday }, { data: nextEv }, { data: dinnerRow }] = await Promise.all([
+    supabase.from("corners").select("child_id, started_at, duration_minutes").in("child_id", childIds).eq("status", "active").is("deleted_at", null),
+    supabase.from("groundings").select("child_id").in("child_id", childIds).eq("status", "active").is("deleted_at", null),
+    supabase.from("reward_log").select("child_id, delta, chore_id, step_id").in("child_id", childIds).gte("created_at", todayStart.toISOString()),
+    supabase.from("events").select("title, emoji, starts_at, all_day").eq("household_id", household.id).is("deleted_at", null).gte("starts_at", nowISO).order("starts_at").limit(1).maybeSingle(),
+    supabase.from("meals").select("title, emoji").eq("household_id", household.id).eq("date", todayKey).eq("meal_type", "dinner").is("deleted_at", null).limit(1).maybeSingle(),
+  ]);
+  const anchorSet = new Set(
+    (cornersNow ?? [])
+      .filter((c) => new Date(c.started_at).getTime() + (c.duration_minutes ?? 5) * 60_000 > Date.now())
+      .map((c) => c.child_id),
+  );
+  const resetSet = new Set((groundingsNow ?? []).map((g) => g.child_id));
+  const doneByChild = new Map<string, number>();
+  (logsToday ?? []).forEach((l) => {
+    if ((l.chore_id || l.step_id) && (l.delta ?? 0) > 0) doneByChild.set(l.child_id, (doneByChild.get(l.child_id) ?? 0) + 1);
+  });
+  const mirrorChildren: MirrorChild[] = list.map((c) => ({
+    id: c.id,
+    name: c.name,
+    avatar: c.avatar,
+    photo_url: c.photo_url,
+    color: c.color,
+    status: anchorSet.has(c.id) ? "anchor" : resetSet.has(c.id) ? "reset" : "ok",
+    doneToday: doneByChild.get(c.id) ?? 0,
+  }));
+  const anchorChild = list.find((c) => anchorSet.has(c.id));
+  const totalDone = [...doneByChild.values()].reduce((a, b) => a + b, 0);
+  const pulse = anchorChild
+    ? `${anchorChild.name} is taking a break in Anchor`
+    : resetSet.size > 0
+      ? `${resetSet.size} on a Reset Day — finishing strong`
+      : totalDone > 0
+        ? `${totalDone} ${totalDone === 1 ? "task" : "tasks"} done today`
+        : "All calm on the wall";
+  const nextEvent = nextEv
+    ? {
+        title: nextEv.title,
+        emoji: nextEv.emoji,
+        time: nextEv.all_day
+          ? new Date(nextEv.starts_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+          : new Date(nextEv.starts_at).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" }),
+      }
+    : null;
+
   const settings = (household.settings ?? {}) as Record<string, unknown>;
   const steps = [
     { label: "Add a child", hint: "Name, avatar, and color", done: childIds.length > 0, href: "/app/children#add" },
@@ -87,6 +138,10 @@ export default async function ParentHome() {
         subtitle="Your command center — manage routines and push them to the wall."
         actions={isPlus ? <Badge tone="green">Plus</Badge> : undefined}
       />
+
+      <div className="mb-6">
+        <WallMirror children={mirrorChildren} pulse={pulse} nextEvent={nextEvent} dinner={dinnerRow} />
+      </div>
 
       {showChecklist && <SetupChecklist steps={steps} dismiss={dismissOnboarding} />}
 

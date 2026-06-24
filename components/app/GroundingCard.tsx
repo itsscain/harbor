@@ -122,7 +122,7 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 text-amber-700">
           <ShieldAlert className="h-5 w-5" />
-          <h2 className="text-title">{childName} is on a reset</h2>
+          <h2 className="text-title">{childName} is on a Reset Day</h2>
         </div>
         <Badge tone="amber">Day {dayNum} of {total}</Badge>
       </div>
@@ -187,10 +187,10 @@ function Start({ childId, childName }: { childId: string; childName: string }) {
     <Card>
       <div className="flex items-center gap-2 text-harbor">
         <ShieldAlert className="h-5 w-5 text-amber-600" />
-        <h2 className="text-title">Start a reset (grounding)</h2>
+        <h2 className="text-title">Start a Reset Day</h2>
       </div>
       <p className="mt-1 text-sm text-muted">
-        Give {childName} a clear, calm path through it — a countdown on the wall, what&apos;s paused, and a plan to finish.
+        A structured, restorative reset — not a punishment. Give {childName} a calm countdown on the wall and a clear path to finish strong.
       </p>
       <form action={startGrounding.bind(null, childId)} className="mt-4 space-y-3">
         <input type="hidden" name="started_on" value={localToday()} />
@@ -215,7 +215,7 @@ function Start({ childId, childName }: { childId: string; childName: string }) {
         </div>
         <PrivilegesPicker />
         <SubmitButton variant="secondary" className={cn("border-amber-300 text-amber-800")} confirmSaved={false}>
-          Start the reset
+          Start the Reset Day
         </SubmitButton>
       </form>
     </Card>
