@@ -375,6 +375,78 @@ export type Database = {
           },
         ]
       }
+      corners: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          duration_minutes: number
+          ended_at: string | null
+          feeling: string | null
+          household_id: string
+          id: string
+          outcome: string | null
+          plan: Json | null
+          reason: string | null
+          regulation_seconds: number | null
+          report: string | null
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          duration_minutes?: number
+          ended_at?: string | null
+          feeling?: string | null
+          household_id: string
+          id?: string
+          outcome?: string | null
+          plan?: Json | null
+          reason?: string | null
+          regulation_seconds?: number | null
+          report?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          duration_minutes?: number
+          ended_at?: string | null
+          feeling?: string | null
+          household_id?: string
+          id?: string
+          outcome?: string | null
+          plan?: Json | null
+          reason?: string | null
+          regulation_seconds?: number | null
+          report?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corners_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corners_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           build_id: string | null
@@ -482,6 +554,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "device_pairings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "device_pairings_household_id_fkey"
             columns: ["household_id"]
@@ -616,126 +695,6 @@ export type Database = {
           },
         ]
       }
-      corners: {
-        Row: {
-          child_id: string
-          created_at: string
-          deleted_at: string | null
-          duration_minutes: number
-          ended_at: string | null
-          feeling: string | null
-          household_id: string
-          id: string
-          plan: Json | null
-          reason: string | null
-          report: string | null
-          started_at: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          child_id: string
-          created_at?: string
-          deleted_at?: string | null
-          duration_minutes?: number
-          ended_at?: string | null
-          feeling?: string | null
-          household_id: string
-          id?: string
-          plan?: Json | null
-          reason?: string | null
-          report?: string | null
-          started_at?: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          child_id?: string
-          created_at?: string
-          deleted_at?: string | null
-          duration_minutes?: number
-          ended_at?: string | null
-          feeling?: string | null
-          household_id?: string
-          id?: string
-          plan?: Json | null
-          reason?: string | null
-          report?: string | null
-          started_at?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "corners_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "corners_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: false
-            referencedRelation: "households"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tides_insights: {
-        Row: {
-          child_id: string
-          created_at: string
-          household_id: string
-          id: string
-          pattern: Json | null
-          period_end: string | null
-          period_start: string | null
-          status: string
-          suggestion: string | null
-          summary: string | null
-        }
-        Insert: {
-          child_id: string
-          created_at?: string
-          household_id: string
-          id?: string
-          pattern?: Json | null
-          period_end?: string | null
-          period_start?: string | null
-          status?: string
-          suggestion?: string | null
-          summary?: string | null
-        }
-        Update: {
-          child_id?: string
-          created_at?: string
-          household_id?: string
-          id?: string
-          pattern?: Json | null
-          period_end?: string | null
-          period_start?: string | null
-          status?: string
-          suggestion?: string | null
-          summary?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tides_insights_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tides_insights_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: false
-            referencedRelation: "households"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       groundings: {
         Row: {
           child_id: string
@@ -845,6 +804,42 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_members: {
+        Row: {
+          created_at: string
+          household_id: string
+          profile_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          profile_id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          profile_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1487,6 +1482,60 @@ export type Database = {
           },
         ]
       }
+      tides_insights: {
+        Row: {
+          child_id: string
+          created_at: string
+          household_id: string
+          id: string
+          pattern: Json | null
+          period_end: string | null
+          period_start: string | null
+          status: string
+          suggestion: string | null
+          summary: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          pattern?: Json | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          suggestion?: string | null
+          summary?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          pattern?: Json | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          suggestion?: string | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tides_insights_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tides_insights_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           created_at: string
@@ -1598,10 +1647,7 @@ export type Database = {
         Args: { p_payload: Json; p_secret: string }
         Returns: Json
       }
-      rpc_kiosk_reset_points: {
-        Args: { p_secret: string }
-        Returns: Json
-      }
+      rpc_kiosk_reset_points: { Args: { p_secret: string }; Returns: Json }
     }
     Enums: {
       calm_tool_type: "breathing" | "feelings" | "break" | "social_story"

@@ -12,6 +12,7 @@ import { buildTidesInsight, type TidesInsight } from "@/lib/ai/tides";
 import { pushToGoogle, deleteGoogleEvent } from "@/lib/google/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generatePairingCode } from "@/lib/codes";
+import { env, serverEnv } from "@/lib/env";
 import type { Json } from "@/lib/database.types";
 
 /** Drop cached AI briefs for a household so the screensaver brief regenerates
@@ -1159,6 +1160,102 @@ export async function createPairingCode(formData: FormData) {
     kind,
     child_id,
   });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/settings");
+}
+
+/** Find an existing auth user by email (admin only) — for inviting a co-parent who
+ *  already has a Harbor account. Scans a few pages; fine for small households. */
+async function findAuthUserByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+): Promise<{ id: string } | null> {
+  const target = email.toLowerCase();
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw new Error(error.message); // distinct from "not found" so the caller can say so
+    if (!data?.users?.length) return null;
+    const hit = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (hit) return { id: hit.id };
+    if (data.users.length < 200) return null;
+  }
+  return null;
+}
+
+/** Invite a co-parent / second guardian (§9.2.11). Owner-only. Sends a Supabase
+ *  invite email (or links an existing account) and adds them to household_members.
+ *  Their access flows through the widened household_is_mine. */
+export async function inviteCoParent(
+  _prev: { error?: string; success?: string },
+  formData: FormData,
+): Promise<{ error?: string; success?: string }> {
+  const profile = await requireUser();
+  const household = await getMyHousehold();
+  if (!household) return { error: "No household found." };
+  if (household.owner_id !== profile.id) return { error: "Only the household owner can add guardians." };
+
+  const email = (str(formData.get("email")) ?? "").toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Enter a valid email address." };
+  if (!serverEnv.serviceRoleKey) {
+    return { error: "Invites need SUPABASE_SERVICE_ROLE_KEY set in the environment." };
+  }
+
+  const admin = createAdminClient();
+  // Invite (creates the auth user; a trigger makes their profile). If they already
+  // have an account the invite errors — fall back to linking the existing user.
+  let memberId: string | null = null;
+  let invitedNew = false;
+  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${env.siteUrl}/login`,
+  });
+  if (invited?.user) {
+    memberId = invited.user.id;
+    invitedNew = true;
+  } else {
+    let existing: { id: string } | null = null;
+    try {
+      existing = await findAuthUserByEmail(admin, email);
+    } catch {
+      return { error: "Couldn't reach the account service to check that email. Please try again in a moment." };
+    }
+    if (!existing) {
+      return {
+        error:
+          (inviteErr?.message ?? "Invite failed.") +
+          " (Email delivery requires SMTP configured in Supabase Auth settings.)",
+      };
+    }
+    memberId = existing.id;
+  }
+
+  if (memberId === profile.id) return { error: "That's already your account." };
+
+  const { error: memErr } = await admin
+    .from("household_members")
+    .upsert({ household_id: household.id, profile_id: memberId, role: "guardian" }, { onConflict: "household_id,profile_id" });
+  if (memErr) return { error: memErr.message };
+
+  revalidatePath("/app/settings");
+  return {
+    success: invitedNew
+      ? `Invited ${email}. They'll get an email to set a password, then they can sign in.`
+      : `${email} already had a Harbor account — added as a guardian. They can sign in now.`,
+  };
+}
+
+/** Remove a co-parent (owner-only; the owner can't remove themselves). */
+export async function removeCoParent(profileId: string) {
+  const user = await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  if (household.owner_id !== user.id) throw new Error("Only the household owner can remove guardians.");
+  if (profileId === household.owner_id) throw new Error("The owner can't be removed.");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("household_members")
+    .delete()
+    .eq("household_id", household.id)
+    .eq("profile_id", profileId);
   if (error) throw new Error(error.message);
   revalidatePath("/app/settings");
 }

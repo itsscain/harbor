@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Input, Field, Button, Textarea, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { GoogleSyncButton } from "@/components/app/GoogleSyncButton";
+import { GuardiansCard, type Guardian } from "@/components/app/GuardiansCard";
 import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { updateHouseholdName, setParentPin, clearParentPin } from "../actions";
@@ -49,6 +51,43 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     .maybeSingle();
   const aiKeySet = !!aiRow?.anthropic_api_key;
   const aiEnabled = !!aiRow?.enabled;
+
+  // Co-parent / guardians (§9.2.11). Only the owner manages; emails are resolved
+  // server-side via the admin client (tolerant of no service-role key).
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const isOwner = !!authUser && household.owner_id === authUser.id;
+  let guardians: Guardian[] = [];
+  let guardiansAvailable = false;
+  try {
+    const admin = createAdminClient();
+    const { data: members } = await admin
+      .from("household_members")
+      .select("profile_id, role, created_at")
+      .eq("household_id", household.id)
+      .order("created_at");
+    guardians = await Promise.all(
+      (members ?? []).map(async (m) => {
+        let email = "(account)";
+        try {
+          const { data } = await admin.auth.admin.getUserById(m.profile_id);
+          email = data?.user?.email ?? email;
+        } catch {
+          /* leave placeholder */
+        }
+        return {
+          profile_id: m.profile_id,
+          role: m.role,
+          email,
+          isOwner: m.profile_id === household.owner_id,
+        };
+      }),
+    );
+    guardiansAvailable = true;
+  } catch {
+    /* no service-role key — the card shows a setup note */
+  }
 
   return (
     <>
@@ -270,6 +309,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <p className="mt-2 text-xs text-muted">A new code appears above — open Harbor on the spare tablet and enter it.</p>
         </div>
       </Card>
+
+      <div className="mb-4">
+        <GuardiansCard guardians={guardians} isOwner={isOwner} available={guardiansAvailable} />
+      </div>
 
       <Card>
         <h2 className="text-title text-harbor">Account</h2>
