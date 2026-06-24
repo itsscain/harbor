@@ -7,6 +7,7 @@ import { getMyHousehold } from "@/lib/household";
 import { getHouseholdAi, haikuJson, haikuText, aiErrorMessage } from "@/lib/ai/anthropic";
 import { planDinners } from "@/lib/ai/mealPlan";
 import { buildCornerPlan, buildCornerReport, sanitizeCornerPlan, type CornerPlan } from "@/lib/ai/corner";
+import { extractFromCapture, isCaptureImageType, type CaptureResult } from "@/lib/ai/capture";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
 
@@ -457,6 +458,117 @@ export async function generateCornerReport(id: string, childId: string): Promise
   } catch (e) {
     return { ok: false, error: aiErrorMessage(e) };
   }
+}
+
+// ── Quick Capture (flyer/email/photo → events, groceries, to-dos) ────────────
+export type ScanResult = { ok: boolean; error?: string; result?: CaptureResult };
+
+/** Read a pasted text and/or an uploaded photo and extract proposed items. The
+ *  Anthropic key stays server-side; nothing is saved until the parent confirms. */
+export async function scanCapture(formData: FormData): Promise<ScanResult> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const ai = await getHouseholdAi(household_id);
+  if (!ai?.enabled) {
+    return { ok: false, error: "Turn on the AI companion and add your Anthropic key in Settings first." };
+  }
+  const supabase = await createClient();
+  const text = str(formData.get("text"));
+  const file = formData.get("photo");
+  let image: { data: string; mediaType: ReturnType<typeof imgType> } | null = null;
+  function imgType(t: string) {
+    return isCaptureImageType(t) ? t : "image/jpeg";
+  }
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 5 * 1024 * 1024) return { ok: false, error: "That image is too large — please use one under 5MB." };
+    if (!isCaptureImageType(file.type)) return { ok: false, error: "Please use a JPEG, PNG, GIF, or WebP image." };
+    const buf = Buffer.from(await file.arrayBuffer());
+    image = { data: buf.toString("base64"), mediaType: imgType(file.type) };
+  }
+  if (!text && !image) return { ok: false, error: "Add a photo or paste some text first." };
+
+  const { data: kids } = await supabase
+    .from("children")
+    .select("name")
+    .eq("household_id", household_id)
+    .is("deleted_at", null);
+  // The client passes its local date so "tomorrow"/"next Friday" resolve in the
+  // family's timezone, not the server's UTC day.
+  const clientToday = str(formData.get("today"));
+  const todayISO = clientToday && /^\d{4}-\d{2}-\d{2}$/.test(clientToday) ? clientToday : new Date().toISOString().slice(0, 10);
+  try {
+    const result = await extractFromCapture({
+      key: ai.key,
+      text,
+      image,
+      todayISO,
+      childNames: (kids ?? []).map((k) => k.name),
+    });
+    return { ok: true, result };
+  } catch (e) {
+    return { ok: false, error: aiErrorMessage(e) };
+  }
+}
+
+/** Insert the items the parent confirmed from a capture. Household-scoped.
+ *  tzOffsetMinutes is the browser's getTimezoneOffset() so a flyer's "3:00 PM"
+ *  is stored as the correct instant for the family's timezone, not the server's. */
+export async function applyCapture(
+  items: CaptureResult,
+  tzOffsetMinutes = 0,
+): Promise<{ ok: boolean; added: number; error?: string }> {
+  await requireUser();
+  const household_id = await myHouseholdId();
+  const supabase = await createClient();
+  const off = Number.isFinite(tzOffsetMinutes) ? Math.trunc(tzOffsetMinutes) : 0;
+  let added = 0;
+
+  try {
+    for (const e of (items.events ?? []).slice(0, 25)) {
+      // Validate the date FORMAT and VALIDITY before any toISOString() (an invalid
+      // date like "2024-13-45" would otherwise throw a RangeError and crash apply).
+      if (!e?.title || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? "")) continue;
+      const time = e.time && /^\d{2}:\d{2}$/.test(e.time) ? e.time : null;
+      const [hh, mm] = (time ?? "09:00").split(":").map(Number);
+      const base = new Date(`${e.date}T00:00:00Z`); // midnight UTC of that calendar day
+      if (Number.isNaN(base.getTime())) continue;
+      // Wall-clock minutes in the family's zone, shifted to UTC (offset = UTC − local).
+      base.setUTCMinutes(base.getUTCMinutes() + hh * 60 + mm + off);
+      const starts_at = base.toISOString();
+      await supabase.from("events").insert({
+        household_id,
+        title: String(e.title).slice(0, 120),
+        emoji: e.emoji ? String(e.emoji).slice(0, 8) : null,
+        location: e.location ? String(e.location).slice(0, 120) : null,
+        starts_at,
+        all_day: !time,
+      });
+      added++;
+    }
+    for (const g of (items.groceries ?? []).slice(0, 50)) {
+      if (!g?.name) continue;
+      await supabase.from("list_items").insert({
+        household_id,
+        list_kind: "grocery",
+        name: String(g.name).slice(0, 80),
+        category: g.category ? String(g.category).slice(0, 40) : null,
+      });
+      added++;
+    }
+    for (const t of (items.todos ?? []).slice(0, 25)) {
+      if (!t?.title) continue;
+      const due = t.due_date && /^\d{4}-\d{2}-\d{2}$/.test(t.due_date) ? t.due_date : new Date().toISOString().slice(0, 10);
+      await supabase.from("reminders").insert({ household_id, title: String(t.title).slice(0, 120), due_date: due });
+      added++;
+    }
+  } catch {
+    return { ok: false, added, error: "Something went wrong adding those — please try again." };
+  }
+
+  if (added > 0) await invalidateBriefs(household_id);
+  revalidatePath("/app/calendar");
+  revalidatePath("/app/lists");
+  return { ok: true, added };
 }
 
 // ── Wall messages (bonus points applied server-side, never by the kiosk) ─────

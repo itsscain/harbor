@@ -2,6 +2,7 @@ import { Trash2, Bell, CalendarDays, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { QuickCapture } from "@/components/app/QuickCapture";
 import { Card, Input, Field, Select, Switch, SectionHeader } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
@@ -34,6 +35,14 @@ export default async function CalendarPage() {
         title="Family Calendar"
         subtitle="Events show on the wall's Today view and agenda."
       />
+
+      <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-harbor-100 bg-harbor-50/40 p-4">
+        <div>
+          <p className="font-semibold text-ink">Got a flyer, email, or invite?</p>
+          <p className="text-sm text-muted">Snap or paste it — Harbor adds the events for you.</p>
+        </div>
+        <QuickCapture />
+      </div>
 
       <Card className="mb-6">
         <h2 className="text-title text-harbor">Add an event</h2>
