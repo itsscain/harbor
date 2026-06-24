@@ -392,9 +392,9 @@ export function ChildView({
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-                <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
+                <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
-                <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
+                <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -405,6 +405,7 @@ export function ChildView({
                     done={prog.includes(s.id)}
                     reducedMotion={settings.reducedMotion}
                     haptics={settings.haptics}
+                    accent={color}
                     onTap={() => complete(s)}
                     onSpeak={() => speak(s.label, settings.readAloud)}
                   />
@@ -439,10 +440,17 @@ export function ChildView({
                     disabled={done}
                     aria-label={`${chore.title}${done ? " (done)" : ""}`}
                     className={cn(
-                      "kiosk-tap relative flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl p-4 text-center shadow-k ring-1",
+                      "kiosk-tap relative flex min-h-32 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl p-4 text-center shadow-k ring-1",
                       done ? "bg-emerald-500/15 ring-emerald-500/40" : "bg-kpanel ring-kline/55",
                     )}
                   >
+                    {done && !settings.reducedMotion && (
+                      <span
+                        aria-hidden
+                        className="animate-radial-fill pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 rounded-full"
+                        style={{ background: `radial-gradient(circle, ${color}, transparent 70%)` }}
+                      />
+                    )}
                     <span className="text-5xl">{chore.icon ?? "✅"}</span>
                     <span className="font-display text-lg font-bold text-ktext">{chore.title}</span>
                     {chore.requires_approval && !done && (
@@ -582,6 +590,7 @@ function StepCard({
   onSpeak,
   reducedMotion,
   haptics = true,
+  accent,
   label,
   big = false,
   muted = false,
@@ -592,6 +601,7 @@ function StepCard({
   onSpeak: () => void;
   reducedMotion: boolean;
   haptics?: boolean;
+  accent?: string;
   label?: string;
   big?: boolean;
   muted?: boolean;
@@ -606,7 +616,7 @@ function StepCard({
         aria-label={`${step.label}${done ? " — done" : ""}`}
         {...press}
         className={cn(
-          "pressable flex w-full flex-col items-center justify-center gap-2 rounded-2xl p-4 text-center ring-1",
+          "pressable relative flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl p-4 text-center ring-1",
           big ? "min-h-52" : "min-h-40",
           done
             ? "bg-emerald-500/15 ring-emerald-500/45"
@@ -615,6 +625,13 @@ function StepCard({
               : "bg-kpanel shadow-k ring-kline/55 hover:brightness-110",
         )}
       >
+        {done && !reducedMotion && (
+          <span
+            aria-hidden
+            className="animate-radial-fill pointer-events-none absolute left-1/2 top-1/2 h-32 w-32 rounded-full"
+            style={{ background: `radial-gradient(circle, ${accent ?? "#34d399"}, transparent 70%)` }}
+          />
+        )}
         {label && (
           <span className="absolute left-3 top-3 rounded-full bg-black/25 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-ktext/70">
             {label}

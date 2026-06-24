@@ -444,6 +444,15 @@ h4,
 }
 .animate-bubble { animation: bubble-life 3.2s ease-in-out forwards; }
 
+/* ── Completion chain (§4.5): a radial accent wipe when a card is checked off ── */
+@keyframes radial-fill {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0.55; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+.animate-radial-fill {
+  animation: radial-fill 540ms var(--ease-harbor-out) forwards;
+}
+
 /* Calm shimmer for skeletons (beacon-tinted sweep, not a flat pulse) */
 @keyframes shimmer {
   100% {
