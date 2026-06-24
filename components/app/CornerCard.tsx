@@ -39,7 +39,7 @@ export function CornerCard({
     <Card className="border-violet-200 bg-violet-50/30">
       <div className="flex items-center gap-2 text-harbor">
         <Heart className="h-5 w-5 text-violet-500" />
-        <h2 className="text-title">Calm corner</h2>
+        <h2 className="text-title">Anchor</h2>
       </div>
       <p className="mt-1 text-sm text-muted">
         A short, supportive reset — not a punishment. Harbor shows a calm timer and gentle steps on the
@@ -72,7 +72,7 @@ function StartCorner({ childId, childName }: { childId: string; childName: strin
         </Field>
       </div>
       <SubmitButton variant="secondary" className="border-violet-300 text-violet-800" confirmSaved={false}>
-        <Heart className="h-4 w-4" /> Send {childName} to the calm corner
+        <Heart className="h-4 w-4" /> Start an Anchor for {childName}
       </SubmitButton>
     </form>
   );
@@ -99,7 +99,7 @@ function ActiveCorner({ childId, childName, c }: { childId: string; childName: s
     <div className="mt-4 rounded-xl border border-violet-200 bg-white/70 p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700">
-          {childName} is in the calm corner
+          {childName} is in Anchor
         </span>
         <span className="font-display text-2xl font-bold tabular-nums text-violet-700">
           {done ? "Time's up 💚" : `${mm}:${String(ss).padStart(2, "0")}`}
@@ -131,7 +131,7 @@ function ActiveCorner({ childId, childName, c }: { childId: string; childName: s
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <form action={endCorner.bind(null, c.id, childId)}>
           <ConfirmSubmit
-            title="End the calm corner?"
+            title="End the Anchor?"
             confirmLabel="End now"
             message="The timer ends and the wall goes back to normal."
           >
@@ -184,7 +184,7 @@ function ReportButton({ id, childId, existing }: { id: string; childId: string; 
 function RecentCorners({ childId, recent }: { childId: string; recent: CornerRow[] }) {
   return (
     <div className="mt-5 border-t border-violet-200/60 pt-4">
-      <h3 className="text-sm font-semibold text-harbor">Recent calm corners</h3>
+      <h3 className="text-sm font-semibold text-harbor">Recent Anchors</h3>
       <div className="mt-2 space-y-2">
         {recent.map((c) => (
           <details key={c.id} className="rounded-xl border border-harbor-100 p-3">

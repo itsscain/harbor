@@ -51,13 +51,13 @@ export function CalmCorner({
     <div className="animate-enter fixed inset-0 z-40 flex flex-col bg-kbg text-ktext">
       <KTopBar
         onBack={open ? () => setOpen(null) : onClose}
-        title="Calm Corner"
+        title="Calm Tools"
         right={
           <KIconButton
             variant="ghost"
             onClick={onClose}
             className="kiosk-tap"
-            aria-label="Close calm corner"
+            aria-label="Close calm tools"
           >
             <X className="h-5 w-5" />
           </KIconButton>

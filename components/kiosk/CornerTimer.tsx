@@ -14,11 +14,13 @@ export function CornerTimer({
   childName,
   readAloud,
   reducedMotion = false,
+  onBreathe,
 }: {
   corner: KioskCorner;
   childName: string;
   readAloud: boolean;
   reducedMotion?: boolean;
+  onBreathe?: () => void;
 }) {
   const startMs = useMemo(() => new Date(corner.started_at).getTime(), [corner.started_at]);
   const totalMs = Math.max(60_000, corner.duration_minutes * 60_000);
@@ -57,7 +59,7 @@ export function CornerTimer({
     >
       <div className="mb-1 flex items-center justify-center gap-2 text-violet-300">
         <Heart className="h-5 w-5" />
-        <span className="font-display text-sm font-semibold uppercase tracking-wide">Calm corner</span>
+        <span className="font-display text-sm font-semibold uppercase tracking-wide">Anchor</span>
       </div>
 
       {done ? (
@@ -98,6 +100,15 @@ export function CornerTimer({
             </p>
           )}
           {plan?.encouragement && <p className="mt-3 text-pretty text-base italic text-kmute">{plan.encouragement}</p>}
+
+          {onBreathe && (
+            <button
+              onClick={onBreathe}
+              className="kiosk-tap mx-auto mt-5 flex items-center gap-2 rounded-full bg-violet-400/20 px-6 py-2.5 font-semibold text-violet-100 ring-1 ring-violet-400/30 active:scale-95"
+            >
+              🫧 Breathe with me
+            </button>
+          )}
         </>
       )}
     </div>

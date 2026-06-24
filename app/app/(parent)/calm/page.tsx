@@ -11,13 +11,13 @@ import { titleCase } from "@/lib/format";
 import { addCalmTool, updateCalmTool, deleteCalmTool } from "../actions";
 import { seedCalmTools } from "../hub-actions";
 
-export const metadata = { title: "Calm Corner" };
+export const metadata = { title: "Calm Tools" };
 export const dynamic = "force-dynamic";
 
 export default async function CalmPage() {
   const household = await getMyHousehold();
   if (!household) {
-    return <EmptyState title="No household yet" body="Your Calm Corner tools will appear here once your household is set up." />;
+    return <EmptyState title="No household yet" body="Your Calm Tools will appear here once your household is set up." />;
   }
   const supabase = await createClient();
   const { data: tools } = await supabase
@@ -32,7 +32,7 @@ export default async function CalmPage() {
       <PageHeader
         eyebrow="Connect"
         icon={<Heart className="h-6 w-6" />}
-        title="Calm Corner"
+        title="Calm Tools"
         subtitle="The tools your kids can reach any time on the wall."
       />
 

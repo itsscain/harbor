@@ -141,7 +141,7 @@ export function ChoresBoard({
 
             {corner && (
               <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-violet-400/15 px-3 py-1 text-sm font-medium text-violet-200">
-                💜 In the calm corner
+                💜 In Anchor
               </div>
             )}
 

@@ -24,6 +24,7 @@ import { Confetti } from "./Confetti";
 import { ParentGate } from "./ParentGate";
 import { MiniGame } from "./MiniGame";
 import { CornerTimer } from "./CornerTimer";
+import { Anchor } from "./Anchor";
 import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
@@ -96,6 +97,7 @@ export function ChildView({
   const [approvingChore, setApprovingChore] = useState<KioskChore | null>(null);
   const [bigCelebrate, setBigCelebrate] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
+  const [anchorOpen, setAnchorOpen] = useState(false);
   // Reward minigame can be played once per day, only after everything's done.
   const [gamePlayed, setGamePlayed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -277,6 +279,14 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
+        {/* The regulation door — always one tap away on every child screen (§7.2). */}
+        <Pressable
+          haptics={settings.haptics}
+          onClick={() => setAnchorOpen(true)}
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-kpanel/70 py-3 text-base font-semibold text-kmute ring-1 ring-kline/55 transition hover:text-ktext"
+        >
+          <span className="text-xl">🫧</span> I need a break
+        </Pressable>
         {corner && (
           <div className="mb-4">
             <CornerTimer
@@ -284,6 +294,7 @@ export function ChildView({
               childName={child.name}
               readAloud={settings.readAloud}
               reducedMotion={settings.reducedMotion}
+              onBreathe={() => setAnchorOpen(true)}
             />
           </div>
         )}
@@ -476,6 +487,18 @@ export function ChildView({
           <Heart className="h-5 w-5" /> Calm
         </Pressable>
       </footer>
+
+      {anchorOpen && (
+        <Anchor
+          childName={child.name}
+          accent={color}
+          haptics={settings.haptics}
+          readAloud={settings.readAloud}
+          reducedMotion={settings.reducedMotion}
+          onFeeling={(f) => kiosk.checkIn(child.id, f)}
+          onClose={() => setAnchorOpen(false)}
+        />
+      )}
 
       {gameOpen && (
         <MiniGame

@@ -12,7 +12,7 @@ const groups = [
       { href: "/app/store", label: "Reward store", desc: "Points kids work toward", icon: Gift },
       { href: "/app/meals", label: "Meal plan", desc: "Plan the week's dinners", icon: UtensilsCrossed },
       { href: "/app/pantry", label: "Pantry", desc: "On-hand ingredients for AI meals", icon: Carrot },
-      { href: "/app/calm", label: "Calm Corner", desc: "Breathing, feelings, stories", icon: Heart },
+      { href: "/app/calm", label: "Calm Tools", desc: "Breathing, feelings, stories", icon: Heart },
     ],
   },
   {
