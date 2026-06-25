@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchWeather, weatherGlyph, weatherLabel, type WeatherNow } from "@/lib/kiosk/weather";
+import { fetchWeather, weatherLabel, type WeatherNow } from "@/lib/kiosk/weather";
+import { WeatherGlyph } from "@/components/brand/WeatherGlyph";
 
 const CACHE_KEY = "harbor-weather";
 
@@ -58,7 +59,7 @@ export function WeatherWidget({ lat, lon, label }: { lat: number; lon: number; l
       aria-label={`${weatherLabel(w.code)}, ${w.tempF}°${label ? ` in ${label}` : ""}`}
       title={`${weatherLabel(w.code)}${label ? ` · ${label}` : ""}`}
     >
-      <span className="text-2xl leading-none">{weatherGlyph(w.code)}</span>
+      <WeatherGlyph code={w.code} isDay={w.isDay} className="h-7 w-7 text-ktext/85" />
       <span className="font-display text-xl font-bold text-ktext">{w.tempF}°</span>
     </div>
   );
