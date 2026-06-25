@@ -53,7 +53,7 @@ export function AccountMenu({ householdName }: { householdName?: string | null }
           <form action={signOut}>
             <button
               type="submit"
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-error-ink transition hover:bg-error-soft"
             >
               <LogOut className="h-4 w-4" /> Sign out
             </button>

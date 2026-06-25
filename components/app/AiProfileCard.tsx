@@ -85,7 +85,7 @@ export function AiProfileCard({
         placeholder="Loves dinosaurs, struggles with transitions, motivated by soccer…"
         className="mt-1 w-full rounded-xl border border-harbor-100 px-3 py-2 text-sm text-ink outline-none transition focus:border-water focus:ring-4 focus:ring-water/15"
       />
-      {err && <p className="mt-1 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-1 text-sm text-error-ink">{err}</p>}
       <button
         onClick={run}
         disabled={pending}

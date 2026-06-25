@@ -32,7 +32,7 @@ export function GenerateMealsButton() {
         {pending ? "Planning the week…" : "Generate dinners with AI"}
       </button>
       {msg && (
-        <span className={msg.ok ? "text-sm font-medium text-emerald-700" : "text-sm text-red-600"}>{msg.text}</span>
+        <span className={msg.ok ? "text-sm font-medium text-emerald-700" : "text-sm text-error-ink"}>{msg.text}</span>
       )}
     </div>
   );

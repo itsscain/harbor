@@ -171,7 +171,7 @@ function ReportButton({ id, childId, existing }: { id: string; childId: string; 
       >
         <Sparkles className="h-4 w-4" /> {loading ? "Reflecting…" : text ? "Refresh reflection" : "AI reflection for you"}
       </button>
-      {err && <p className="mt-1 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-1 text-sm text-error-ink">{err}</p>}
       {text && (
         <p className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white p-3 text-sm text-ink ring-1 ring-violet-100">
           {text}

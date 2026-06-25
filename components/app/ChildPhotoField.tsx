@@ -100,14 +100,14 @@ export function ChildPhotoField({
               type="button"
               onClick={remove}
               disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted transition hover:text-red-600 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted transition hover:text-error-ink disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" /> Remove
             </button>
           )}
         </div>
         <p className="mt-1.5 text-xs text-muted">
-          {err ? <span className="text-red-600">{err}</span> : "Shows on the wall as their avatar. JPG or PNG, up to 5 MB."}
+          {err ? <span className="text-error-ink">{err}</span> : "Shows on the wall as their avatar. JPG or PNG, up to 5 MB."}
         </p>
       </div>
     </div>

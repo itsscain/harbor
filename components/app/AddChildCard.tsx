@@ -172,7 +172,7 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
           </div>
 
           {state.error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+            <p className="rounded-lg bg-error-soft px-3 py-2 text-sm text-error-ink">{state.error}</p>
           )}
 
           <SubmitButton size="lg" className="w-full" pendingText="Adding…" confirmSaved={false}>

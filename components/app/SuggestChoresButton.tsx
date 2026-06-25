@@ -29,7 +29,7 @@ export function SuggestChoresButton({ childId }: { childId: string }) {
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {pending ? "Thinking…" : "Suggest chores with AI"}
       </button>
-      {msg && <span className={msg.ok ? "text-sm font-medium text-emerald-700" : "text-sm text-red-600"}>{msg.text}</span>}
+      {msg && <span className={msg.ok ? "text-sm font-medium text-emerald-700" : "text-sm text-error-ink"}>{msg.text}</span>}
     </div>
   );
 }

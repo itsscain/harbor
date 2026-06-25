@@ -32,7 +32,7 @@ export function AiInsightCard() {
           Let Harbor read the last two weeks and share what&apos;s going well plus a gentle suggestion or two.
         </p>
       )}
-      {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-2 text-sm text-error-ink">{err}</p>}
       <button
         onClick={run}
         disabled={pending}

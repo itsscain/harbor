@@ -84,7 +84,7 @@ function Feelings({ config }: { config: Config }) {
               type="button"
               onClick={() => setOptions(options.filter((x) => x !== o))}
               aria-label={`Remove ${o}`}
-              className="rounded-full p-0.5 text-muted hover:text-red-600"
+              className="rounded-full p-0.5 text-muted hover:text-error-ink"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -132,7 +132,7 @@ function SocialStory({ config }: { config: Config }) {
                 type="button"
                 onClick={() => setPages(pages.filter((_, idx) => idx !== i))}
                 aria-label={`Remove page ${i + 1}`}
-                className="shrink-0 self-start rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"
+                className="shrink-0 self-start rounded-lg border border-error/30 p-2 text-error-ink hover:bg-error-soft"
               >
                 <X className="h-4 w-4" />
               </button>

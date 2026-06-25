@@ -65,7 +65,7 @@ export function ParentRail({ householdName }: { householdName?: string | null })
       <form action={signOut} className="border-t border-harbor-100 p-3">
         <button
           type="submit"
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-red-50 hover:text-red-700"
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-error-soft hover:text-error-ink"
         >
           <LogOut className="h-4 w-4" /> Sign out
         </button>

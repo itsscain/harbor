@@ -49,7 +49,7 @@ export function GuardiansCard({
                   <button
                     type="submit"
                     aria-label={`Remove ${g.email}`}
-                    className="rounded-full p-1.5 text-muted transition hover:bg-red-50 hover:text-red-600"
+                    className="rounded-full p-1.5 text-muted transition hover:bg-error-soft hover:text-error-ink"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -72,7 +72,7 @@ export function GuardiansCard({
           <Field label="Invite a co-parent by email">
             <Input name="email" type="email" required placeholder="partner@example.com" autoComplete="off" />
           </Field>
-          {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+          {state.error && <p className="text-sm text-error-ink">{state.error}</p>}
           {state.success && <p className="text-sm text-emerald-600">{state.success}</p>}
           <SubmitButton variant="primary" size="sm" pendingText="Sending…" savedText="Invited" confirmSaved={false}>
             <UserPlus className="h-4 w-4" /> Send invite

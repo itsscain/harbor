@@ -121,7 +121,7 @@ function Modal({ onClose }: { onClose: () => void }) {
                   className="w-full rounded-xl border border-harbor-100 px-3.5 py-2.5 text-sm focus:border-harbor focus:outline-none"
                 />
               </label>
-              {err && <p className="text-sm text-red-600">{err}</p>}
+              {err && <p className="text-sm text-error-ink">{err}</p>}
               <button
                 type="submit"
                 disabled={busy}
@@ -166,7 +166,7 @@ function Modal({ onClose }: { onClose: () => void }) {
                   </Row>
                 ))}
               </Section>
-              {err && <p className="text-sm text-red-600">{err}</p>}
+              {err && <p className="text-sm text-error-ink">{err}</p>}
             </div>
           )}
 

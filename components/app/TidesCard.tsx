@@ -42,7 +42,7 @@ export function TidesCard({ childId, childName }: { childId: string; childName: 
         <Sparkles className="h-4 w-4" /> {loading ? "Reading the tides…" : insight ? "Refresh patterns" : "See patterns"}
       </button>
 
-      {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-2 text-sm text-error-ink">{err}</p>}
 
       {insight && (
         <div className="mt-3 space-y-3">
