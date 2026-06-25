@@ -487,3 +487,28 @@ h4,
   );
   animation: shimmer 1.6s infinite;
 }
+
+/* ── Print collateral (install / referral leave-behinds, /print) ───────────── */
+.sheet {
+  width: 100%;
+  max-width: 51rem; /* ~letter width on screen */
+  margin-inline: auto;
+}
+.sheet, .sheet * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+@media print {
+  .print-hide { display: none !important; }
+  @page { size: letter portrait; margin: 0.5in; }
+  html, body { background: #ffffff; }
+  .sheet {
+    max-width: none;
+    width: 100%;
+    min-height: 9.3in;
+    break-after: page;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .sheet:last-of-type { break-after: auto; }
+}
