@@ -166,10 +166,14 @@ export default function PrintCollateral() {
             </div>
           </div>
 
-          <div className="mt-7 rounded-2xl bg-harbor p-5 text-center text-white">
-            <p className="font-display text-lg font-bold">Claim your spot</p>
-            <p className="mt-1 text-sm text-white/80">Join the Founding Family list at</p>
-            <p className="mt-0.5 font-display text-lg font-extrabold text-beacon">{SITE}</p>
+          <div className="mt-7 flex items-center gap-5 rounded-2xl bg-harbor p-5 text-white">
+            <div className="flex-1">
+              <p className="font-display text-lg font-bold">Claim your spot</p>
+              <p className="mt-1 text-sm text-white/80">Scan to join — or visit the Founding Family list at</p>
+              <p className="mt-0.5 font-display text-base font-extrabold text-beacon">{SITE}</p>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/qr-waitlist.svg" alt="Scan to join the Harbor waitlist" width={96} height={96} className="shrink-0 rounded-lg bg-white p-2" />
           </div>
 
           <div className="mt-auto pt-7"><Foot /></div>
@@ -214,12 +218,14 @@ export default function PrintCollateral() {
 
           {/* Co-brand space (Brand §4.3): partner clinics can add their stamp here. */}
           <div className="mt-6 flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/qr-waitlist.svg" alt="Scan to refer a family to Harbor" width={72} height={72} className="shrink-0" />
             <div className="flex-1">
-              <p className="text-sm text-muted">To refer a family, point them to</p>
+              <p className="text-sm text-muted">To refer a family, scan or point them to</p>
               <p className="font-display text-base font-extrabold text-harbor">{SITE}</p>
             </div>
             <div className="h-12 w-px bg-harbor-100" />
-            <div className="flex h-20 flex-1 items-center justify-center rounded-xl border border-dashed border-harbor-100 text-xs text-muted">
+            <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl border border-dashed border-harbor-100 text-center text-xs text-muted">
               Your practice&apos;s stamp
             </div>
           </div>
