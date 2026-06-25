@@ -1,15 +1,22 @@
 // Per-person color identity — the signature glanceability cue. Pure (no deps),
 // so both the kiosk (client) and parent app (server components) use it.
 
+// The 12 coastal child accents (Brand Identity §5.4) — distinctive at a glance,
+// AAA-legible on the dark wall, no red/green-only confusions. Each child's hex is
+// stored on `children.color`; the full ramp is derived at runtime (accent.ts).
 export const CHILD_PALETTE = [
-  { name: "Coral", value: "#EC6A5E" },
-  { name: "Sky", value: "#3F8EC8" },
-  { name: "Teal", value: "#2F8F86" },
-  { name: "Amber", value: "#F6B23D" },
-  { name: "Violet", value: "#8B5CF6" },
-  { name: "Pink", value: "#E8739E" },
-  { name: "Green", value: "#5B8C5A" },
-  { name: "Harbor", value: "#0C3B47" },
+  { name: "Coral", value: "#FF7A66" },
+  { name: "Tangerine", value: "#FF9E45" },
+  { name: "Sunflower", value: "#FBC23D" },
+  { name: "Seagrass", value: "#5FCB8E" },
+  { name: "Aqua", value: "#36C6D6" },
+  { name: "Lagoon", value: "#37A2C9" },
+  { name: "Sky", value: "#4AA8F0" },
+  { name: "Periwinkle", value: "#7C8CF8" },
+  { name: "Iris", value: "#A57BF0" },
+  { name: "Orchid", value: "#D67BE0" },
+  { name: "Rose", value: "#F472A8" },
+  { name: "Clay", value: "#E0926B" },
 ];
 
 function hashIndex(id: string, n: number): number {

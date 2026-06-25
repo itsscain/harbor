@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Anchor, Waves, Sliders, Tablet, ListChecks, Gift, CalendarDays, Check, X, WifiOff, Lock, MicOff } from "lucide-react";
 import { Wordmark } from "@/components/brand/Logo";
+import { HarborScene } from "@/components/brand/illustrations";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { KioskMockup } from "@/components/marketing/KioskMockup";
 import { Card } from "@/components/ui/primitives";
@@ -298,6 +299,7 @@ export default function Landing() {
       {/* ── Founder offer + waitlist ─────────────────────────────────────────── */}
       <section id="waitlist" className="mx-auto max-w-3xl scroll-mt-20 px-5 py-20">
         <div className="text-center">
+          <HarborScene className="mx-auto mb-6 h-28 w-auto text-harbor" />
           <span className="inline-flex items-center rounded-full bg-beacon-soft px-4 py-1.5 text-sm font-bold text-harbor">
             Founding Family offer · first 15 households
           </span>

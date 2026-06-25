@@ -18,6 +18,15 @@
   --color-harbor-900: #0c3b47;
   --color-beacon-soft: #fde9c6;
 
+  /* Semantic feedback — calm + on-palette (Brand §5.5). Good = gentle emerald,
+     warn = beacon gold, error = SOFT low-saturation rose (never alarm-red). Named
+     distinctly so they don't collide with Tailwind's red/emerald/rose scales. */
+  --color-good: #2f8f6b;
+  --color-good-soft: #e3f3ec;
+  --color-error: #c2526b;
+  --color-error-soft: #fbe9ee;
+  --color-error-ink: #8f3a4e; /* readable error text on light */
+
   /* Fonts (wired in app/layout.tsx via next/font) */
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;

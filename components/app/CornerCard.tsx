@@ -42,7 +42,7 @@ export function CornerCard({
         <h2 className="text-title">Anchor</h2>
       </div>
       <p className="mt-1 text-sm text-muted">
-        A short, supportive reset — not a punishment. Harbor shows a calm timer and gentle steps on the
+        A short, supportive reset — a calm moment to steady. Harbor shows a gentle timer and steps on the
         wall, talks {childName} through it, and helps you reflect afterward.
       </p>
 
@@ -102,7 +102,7 @@ function ActiveCorner({ childId, childName, c }: { childId: string; childName: s
           {childName} is in Anchor
         </span>
         <span className="font-display text-2xl font-bold tabular-nums text-violet-700">
-          {done ? "Time's up 💚" : `${mm}:${String(ss).padStart(2, "0")}`}
+          {done ? "All done 💚" : `${mm}:${String(ss).padStart(2, "0")}`}
         </span>
       </div>
 

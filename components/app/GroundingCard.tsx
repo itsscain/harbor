@@ -190,7 +190,7 @@ function Start({ childId, childName }: { childId: string; childName: string }) {
         <h2 className="text-title">Start a Reset Day</h2>
       </div>
       <p className="mt-1 text-sm text-muted">
-        A structured, restorative reset — not a punishment. Give {childName} a calm countdown on the wall and a clear path to finish strong.
+        A structured, restorative reset that keeps dignity intact. Give {childName} a calm countdown on the wall and a clear path to finish strong.
       </p>
       <form action={startGrounding.bind(null, childId)} className="mt-4 space-y-3">
         <input type="hidden" name="started_on" value={localToday()} />

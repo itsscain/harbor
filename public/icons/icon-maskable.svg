@@ -1,6 +1,15 @@
 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#0C3B47"/>
-  <circle cx="256" cy="200" r="96" fill="#F6B23D" opacity="0.22"/>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="85%">
+      <stop offset="0%" stop-color="#0C3B47"/>
+      <stop offset="100%" stop-color="#070A0D"/>
+    </radialGradient>
+    <filter id="bloom" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="200" r="40" fill="#F6B23D" opacity="0.6" filter="url(#bloom)"/>
   <path d="M256 200 L160 162 L160 186 Z" fill="#F6B23D" opacity="0.75"/>
   <path d="M256 200 L352 162 L352 186 Z" fill="#F6B23D" opacity="0.75"/>
   <circle cx="256" cy="200" r="32" fill="#F6B23D"/>
