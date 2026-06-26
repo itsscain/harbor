@@ -10,7 +10,6 @@ import {
   Gift,
   Home as HomeIcon,
   ArrowRight,
-  Sparkles,
   Ban,
   ShieldCheck,
 } from "lucide-react";
@@ -298,15 +297,23 @@ export function ChildView({
           onClick={() => speak(`${child.name}'s ${activeRoutine?.name ?? "day"}. ${activeRoutine ? progressMsg : ""}`, settings.readAloud)}
           className="mt-3.5 flex w-full items-center gap-4 text-left"
         >
-          <ChildAvatar child={child} size={64} rounded="rounded-2xl" />
+          <span
+            className="shrink-0 rounded-2xl"
+            style={{ boxShadow: "0 0 0 2px var(--accent), 0 0 22px -2px var(--accent-glow)" }}
+          >
+            <ChildAvatar child={child} size={64} rounded="rounded-2xl" />
+          </span>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-2xl font-bold text-ktext">
+            <h1 className="truncate font-display text-2xl font-bold tracking-tight text-ktext">
               {activeRoutine ? `${child.name}'s ${activeRoutine.name}` : child.name}
             </h1>
             <p className="mt-0.5 text-sm text-ktext/70">{activeRoutine ? progressMsg : `Hi, ${child.name}!`}</p>
             {activeRoutine && progressTotal > 0 && (
-              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/25">
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--accent-deep), var(--accent-bright))", boxShadow: "0 0 14px -1px var(--accent-glow)" }}
+                />
               </div>
             )}
           </div>
@@ -332,14 +339,33 @@ export function ChildView({
       )}
 
       <main className="flex-1 p-4 sm:p-6">
-        {/* The regulation door — always one tap away on every child screen (§7.2). */}
-        <Pressable
-          haptics={settings.haptics}
-          onClick={() => setAnchorOpen(true)}
-          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-kpanel/70 py-3 text-base font-semibold text-kmute ring-1 ring-kline/55 transition hover:text-ktext"
-        >
-          <span className="text-xl">🫧</span> I need a break
-        </Pressable>
+        {/* Encouragement + the always-present break door, one row (§6). */}
+        <div className="mb-4 flex items-center justify-end gap-4">
+          {encLine && (
+            <p
+              className="min-w-0 flex-1 font-display text-base font-semibold leading-snug sm:text-lg"
+              style={{ color: "var(--accent-text)", textShadow: "0 0 24px var(--accent-glow)" }}
+            >
+              {encLine}
+            </p>
+          )}
+          <Pressable
+            haptics={settings.haptics}
+            onClick={() => setAnchorOpen(true)}
+            className="flex shrink-0 items-center gap-2.5 rounded-full px-5 py-2.5 font-semibold text-[#d3daff] ring-1 backdrop-blur"
+            style={{
+              background: "linear-gradient(180deg, var(--accent-soft), rgba(255,255,255,0.04))",
+              borderColor: "var(--accent-glow)",
+              boxShadow: "0 0 26px -6px var(--accent-glow)",
+            }}
+          >
+            <span
+              className={cn("h-2.5 w-2.5 rounded-full", !settings.reducedMotion && "k-glow")}
+              style={{ background: "var(--accent)", boxShadow: "0 0 10px var(--accent-glow)" }}
+            />
+            I need a break
+          </Pressable>
+        </div>
         {softenedToday && (
           <p className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-violet-400/10 py-2.5 text-sm font-medium text-violet-200 ring-1 ring-violet-400/20">
             🌙 Taking it easy today
@@ -382,12 +408,6 @@ export function ChildView({
             onSpeak={(t) => speak(t, settings.readAloud)}
             className="mb-4"
           />
-        )}
-        {encLine && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-kwater/10 p-3.5 ring-1 ring-kwater/25">
-            <Sparkles className="h-5 w-5 shrink-0 text-kwater" />
-            <p className="text-base font-medium text-ktext">{encLine}</p>
-          </div>
         )}
         {grounding && (
           <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4">
@@ -568,7 +588,12 @@ export function ChildView({
         <Pressable
           haptics={settings.haptics}
           onClick={onOpenCalm}
-          className="flex items-center justify-center gap-2 rounded-xl bg-beacon py-3.5 text-base font-semibold text-harbor transition hover:brightness-105"
+          className="flex items-center justify-center gap-2 rounded-xl py-3.5 text-base font-semibold ring-1 transition hover:brightness-110"
+          style={{
+            background: "linear-gradient(180deg, var(--accent-soft), rgba(255,255,255,0.04))",
+            borderColor: "var(--accent-glow)",
+            color: "var(--accent-text)",
+          }}
         >
           <Heart className="h-5 w-5" /> Calm Tools
         </Pressable>
