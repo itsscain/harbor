@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut, Home, CalendarDays, ListChecks, ClipboardCheck, Heart, Star } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
-import { HomeView } from "./HomeView";
+import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
 import { CalendarView } from "./CalendarView";
 import { ListsView } from "./ListsView";
@@ -15,8 +15,8 @@ import { VoiceButton } from "./VoiceButton";
 import { HouseRules } from "./HouseRules";
 import { LivingAmbient } from "./LivingAmbient";
 import { BeaconLight } from "./BeaconLight";
-import { KTabBar, KButton, KCard } from "./ui";
-import type { KTab } from "./ui";
+import { Pressable } from "./Pressable";
+import { KButton, KCard } from "./ui";
 import { childColor } from "@/lib/kiosk/colors";
 import { cn } from "@/lib/cn";
 
@@ -117,18 +117,8 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const activeChild = view.k === "child" ? children.find((c) => c.id === view.id) : null;
   const activeAccent = activeChild ? childColor(activeChild) : null;
 
-  const groceriesLeft = (state.snapshot.list_items ?? []).filter(
-    (i) => i.list_kind === "grocery" && !i.checked,
-  ).length;
-  const showTabs =
-    view.k === "home" || view.k === "calendar" || view.k === "lists" || view.k === "chores";
-  const TABS: KTab<"home" | "calendar" | "chores" | "lists" | "calm">[] = [
-    { key: "home", label: "Home", icon: Home },
-    { key: "calendar", label: "Calendar", icon: CalendarDays },
-    { key: "chores", label: "Chores", icon: ClipboardCheck },
-    { key: "lists", label: "Lists", icon: ListChecks, badge: groceriesLeft || null },
-    { key: "calm", label: "Calm", icon: Heart },
-  ];
+  const SECONDARY_TITLE: Record<string, string> = { calendar: "Calendar", lists: "Lists", chores: "Chores" };
+  const isSecondary = view.k === "calendar" || view.k === "lists" || view.k === "chores";
 
   return (
     <div className="min-h-full">
@@ -138,11 +128,27 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       <div className="grain-overlay" aria-hidden />
 
       <div className="relative z-10">
+      {/* Adaptive top bar — secondary surfaces get a ← Harbor home (§4.2) */}
+      {isSecondary && (
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-kline/50 bg-kbg2/80 px-4 py-3 backdrop-blur-md">
+          <Pressable
+            haptics
+            onClick={() => setView({ k: "home" })}
+            aria-label="Back to Harbor"
+            className="kiosk-tap flex items-center gap-2 rounded-xl bg-kpanel px-3.5 py-2 font-semibold text-ktext ring-1 ring-kline/55"
+          >
+            <ArrowLeft className="h-5 w-5" /> Harbor
+          </Pressable>
+          <h1 className="font-display text-lg font-bold text-ktext">{SECONDARY_TITLE[view.k]}</h1>
+        </div>
+      )}
       {view.k === "home" && (
-        <HomeView
+        <FamilyView
           kiosk={kiosk}
           onSelectChild={(id) => setView({ k: "child", id })}
           onOpenCalendar={() => setView({ k: "calendar" })}
+          onOpenChores={() => setView({ k: "chores" })}
+          onOpenLists={() => setView({ k: "lists" })}
           onOpenHouseRules={() => setHouseRulesOpen(true)}
           onParentMenu={() => setGate(true)}
         />
@@ -189,20 +195,6 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       )}
 
       {menu && <ParentMenu kiosk={kiosk} onClose={() => setMenu(false)} />}
-
-      {showTabs && (
-        <KTabBar
-          items={TABS}
-          current={view.k as "home" | "calendar" | "chores" | "lists"}
-          onSelect={(k) => {
-            if (k === "calm") {
-              setCalmOpen(true);
-              return;
-            }
-            setView({ k });
-          }}
-        />
-      )}
 
       {!asleep && !gate && !menu && state.deviceSecret && (
         <VoiceButton deviceSecret={state.deviceSecret} onActed={() => void kiosk.syncNow()} />
