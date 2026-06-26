@@ -3,7 +3,7 @@
 // On-device multi-sensory feedback: text-to-speech, a soft success chime, and
 // haptics. All best-effort and gated by per-child settings; zero network.
 
-import { normalizeForSpeech, harborVoice } from "./voice";
+import { playHarborVoice, stopHarborVoice } from "./voice";
 
 let audioCtx: AudioContext | null = null;
 
@@ -24,23 +24,11 @@ function getAudioCtx(): AudioContext | null {
   }
 }
 
-/** Read text aloud in the Harbor Voice (Voice/TTS spec V1): normalized text + one
- *  consistent warm voice + a calm rate. No-op if unavailable or disabled. */
+/** Read text aloud in the Harbor Voice via the cache-first cascade (Tier 0 shared
+ *  library → device cache → OS voice). No-op if disabled. */
 export function speak(text: string, enabled = true) {
-  if (!enabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  try {
-    const spoken = normalizeForSpeech(text);
-    if (!spoken) return;
-    window.speechSynthesis.cancel(); // single stream — interrupt any in-flight read (§11)
-    const u = new SpeechSynthesisUtterance(spoken);
-    u.rate = 0.9; // slightly slow + calm, for processing time (§6.2)
-    u.pitch = 1.02;
-    const v = harborVoice();
-    if (v) u.voice = v;
-    window.speechSynthesis.speak(u);
-  } catch {
-    /* ignore */
-  }
+  if (!enabled) return;
+  playHarborVoice(text);
 }
 
 const CHEERS = [
@@ -62,13 +50,7 @@ export function cheer() {
 }
 
 export function stopSpeaking() {
-  if (typeof window !== "undefined" && "speechSynthesis" in window) {
-    try {
-      window.speechSynthesis.cancel();
-    } catch {
-      /* ignore */
-    }
-  }
+  stopHarborVoice();
 }
 
 /** A gentle two-note success chime (synth, no asset). */
