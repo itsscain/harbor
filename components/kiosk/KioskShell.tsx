@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart, Clock } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart, Clock, Wrench } from "lucide-react";
+import { VoiceDebug } from "./VoiceDebug";
 import type { useKiosk } from "./useKiosk";
 import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
@@ -281,6 +282,7 @@ function ParentMenu({
   const [pointsErr, setPointsErr] = useState(false);
   const [resettingPoints, setResettingPoints] = useState(false);
   const [anchorPick, setAnchorPick] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
   const children = kiosk.state?.snapshot.children ?? [];
   const syncText = SYNC_LABEL[kiosk.syncStatus] ?? "";
   const lastSync = relativeTime(kiosk.lastSync);
@@ -369,6 +371,7 @@ function ParentMenu({
             label={kiosk.syncStatus === "syncing" ? "Syncing…" : "Refresh from cloud"}
             onClick={() => void kiosk.syncNow(true)}
           />
+          <MenuRow icon={Wrench} label="Debug tools (voice & app)" onClick={() => setDebugOpen(true)} />
           {!confirmUnpair ? (
             <MenuRow icon={LogOut} label="Unpair this device" danger onClick={() => setConfirmUnpair(true)} />
           ) : (
@@ -382,6 +385,7 @@ function ParentMenu({
           Done
         </KButton>
       </KCard>
+      {debugOpen && <VoiceDebug onBack={() => setDebugOpen(false)} />}
     </div>
   );
 }

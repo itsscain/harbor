@@ -103,7 +103,9 @@ let worker: Worker | null = null;
 let modelReady = false;
 let workerDead = false;
 let reqId = 0;
+let lastProgress = 0; // 0..1 model download progress (for the debug panel)
 const pending = new Map<number, (blob: Blob | null) => void>();
+let readyResolvers: Array<() => void> = [];
 
 function getWorker(): Worker | null {
   if (workerDead || typeof window === "undefined" || typeof Worker === "undefined") return null;
@@ -111,9 +113,15 @@ function getWorker(): Worker | null {
     try {
       worker = new Worker(new URL("./tts.worker.ts", import.meta.url), { type: "module" });
       worker.onmessage = (e: MessageEvent) => {
-        const d = (e.data || {}) as { id?: number; type?: string; blob?: Blob };
-        if (d.type === "ready") modelReady = true;
-        else if (d.type === "audio" && typeof d.id === "number") {
+        const d = (e.data || {}) as { id?: number; type?: string; blob?: Blob; data?: { progress?: number } };
+        if (d.type === "ready") {
+          modelReady = true;
+          lastProgress = 1;
+          readyResolvers.forEach((r) => r());
+          readyResolvers = [];
+        } else if (d.type === "progress") {
+          if (typeof d.data?.progress === "number") lastProgress = Math.max(lastProgress, d.data.progress / 100);
+        } else if (d.type === "audio" && typeof d.id === "number") {
           const r = pending.get(d.id);
           if (r) {
             pending.delete(d.id);
@@ -269,7 +277,7 @@ export function stopHarborVoice() {
   }
 }
 
-async function playBlob(blob: Blob, seq: number) {
+async function playBlob(blob: Blob, seq: number): Promise<boolean> {
   // Prefer the shared AudioContext — the SAME path as the chime, which the tablet has
   // already unlocked. HTMLAudioElement.play() is gated separately and can be silently
   // blocked after a refresh, so Web Audio is the reliable path.
@@ -279,7 +287,7 @@ async function playBlob(blob: Blob, seq: number) {
       if (ctx.state === "suspended") await ctx.resume();
       const buf = await blob.arrayBuffer();
       const audioBuf = await ctx.decodeAudioData(buf);
-      if (seq !== playSeq) return; // superseded while decoding
+      if (seq !== playSeq) return false; // superseded while decoding
       if (currentSource) {
         try {
           currentSource.stop();
@@ -295,13 +303,13 @@ async function playBlob(blob: Blob, seq: number) {
       };
       currentSource = src;
       src.start();
-      return;
+      return true;
     } catch {
       /* fall through to HTMLAudioElement */
     }
   }
   // Fallback: HTMLAudioElement (older browsers / no Web Audio).
-  if (seq !== playSeq) return;
+  if (seq !== playSeq) return false;
   try {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
@@ -313,11 +321,10 @@ async function playBlob(blob: Blob, seq: number) {
         currentUrl = null;
       }
     };
-    audio.play().catch(() => {
-      /* autoplay/codec issue — give up quietly */
-    });
+    await audio.play();
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 
@@ -353,4 +360,145 @@ export function playHarborVoice(text: string, voice: string = HARBOR_VOICE) {
     if (seq !== playSeq) return;
     speakOS(spoken);
   })();
+}
+
+// ── debug / diagnostics (Parent menu → Debug tools) ──────────────────────────────
+function waitReady(ms: number): Promise<boolean> {
+  if (modelReady) return Promise.resolve(true);
+  if (workerDead || !getWorker()) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const fn = () => {
+      clearTimeout(to);
+      resolve(true);
+    };
+    const to = setTimeout(() => {
+      readyResolvers = readyResolvers.filter((r) => r !== fn);
+      resolve(false);
+    }, ms);
+    readyResolvers.push(fn);
+  });
+}
+
+export type VoiceStatus = {
+  supported: boolean;
+  secureContext: boolean;
+  webgpu: boolean;
+  hasWorker: boolean;
+  workerDead: boolean;
+  modelReady: boolean;
+  progress: number;
+  audioContext: string;
+  osVoice: string | null;
+};
+
+/** A synchronous snapshot for the debug panel. */
+export function getVoiceStatus(): VoiceStatus {
+  const ctx = getAudioCtx();
+  return {
+    supported: typeof Worker !== "undefined",
+    secureContext: typeof window !== "undefined" ? window.isSecureContext : false,
+    webgpu: typeof navigator !== "undefined" && "gpu" in navigator,
+    hasWorker: !!worker,
+    workerDead,
+    modelReady,
+    progress: lastProgress,
+    audioContext: ctx ? ctx.state : "none",
+    osVoice: harborVoice()?.name ?? null,
+  };
+}
+
+export async function voiceCacheCount(): Promise<number> {
+  try {
+    const db = await getAudioDb();
+    return (await db.getAllKeys(A_AUDIO)).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Run the full cascade and REPORT which tier played — for the debug "Test voice"
+ *  button. Being called from a tap also unlocks audio. Returns the outcome. */
+export async function speakDiag(
+  text = "Hi, this is the Harbor voice. Can you hear me?",
+  voice: string = HARBOR_VOICE,
+): Promise<{ tier: "cache" | "kokoro" | "os" | "none"; ok: boolean; ms: number; detail: string }> {
+  const t0 = Date.now();
+  const ms = () => Date.now() - t0;
+  if (typeof window === "undefined") return { tier: "none", ok: false, ms: 0, detail: "no window" };
+  const spoken = normalizeForSpeech(text);
+  if (!spoken) return { tier: "none", ok: false, ms: 0, detail: "empty text" };
+  stopHarborVoice();
+  const seq = ++playSeq;
+  const key = `${voice}|${spoken}`;
+  try {
+    const ctx = getAudioCtx();
+    if (ctx && ctx.state === "suspended") await ctx.resume();
+  } catch {
+    /* ignore */
+  }
+
+  const cached = await getCached(key);
+  if (cached) {
+    const ok = await playBlob(cached, seq);
+    return { tier: "cache", ok, ms: ms(), detail: ok ? "played from cache" : "decode/playback failed" };
+  }
+
+  if (getWorker() && !workerDead) {
+    if (!modelReady) {
+      prewarmHarborVoice();
+      await waitReady(25000);
+    }
+    if (modelReady) {
+      const blob = await generate(spoken, voice, 25000);
+      if (blob) {
+        void putCached(key, blob);
+        const ok = await playBlob(blob, seq);
+        return { tier: "kokoro", ok, ms: ms(), detail: ok ? "generated + played" : "generated but playback failed" };
+      }
+      return { tier: "kokoro", ok: false, ms: ms(), detail: "generation failed/timed out" };
+    }
+  }
+
+  speakOS(spoken);
+  const osOk = "speechSynthesis" in window;
+  return {
+    tier: "os",
+    ok: osOk,
+    ms: ms(),
+    detail: workerDead ? "Kokoro can't run here — used device voice" : "model still loading — used device voice",
+  };
+}
+
+/** Reset the worker (and optionally drop the cached model) so the next play reloads. */
+export async function reloadVoiceEngine(clearModel = false): Promise<void> {
+  try {
+    worker?.terminate();
+  } catch {
+    /* ignore */
+  }
+  worker = null;
+  modelReady = false;
+  workerDead = false;
+  lastProgress = 0;
+  readyResolvers = [];
+  pending.clear();
+  if (clearModel && typeof caches !== "undefined") {
+    try {
+      await caches.delete("transformers-cache");
+      await caches.delete("kokoro-voices");
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** Empty the on-device generated-audio cache. */
+export async function clearVoiceCache(): Promise<void> {
+  try {
+    const db = await getAudioDb();
+    await db.clear(A_AUDIO);
+    await db.clear(A_META);
+  } catch {
+    /* ignore */
+  }
 }
