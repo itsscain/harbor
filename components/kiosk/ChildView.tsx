@@ -61,12 +61,18 @@ export function ChildView({
   childId,
   onHome,
   onOpenCalm,
+  onAnchorActive,
+  autoAnchor = false,
   hideHome = false,
 }: {
   kiosk: Kiosk;
   childId: string;
   onHome: () => void;
   onOpenCalm: () => void;
+  /** Signals the shell when Anchor opens/closes (ducks ambient; blocks idle sleep). */
+  onAnchorActive?: (active: boolean) => void;
+  /** Open Anchor immediately on mount (parent's "Quick Anchor" from the wall). */
+  autoAnchor?: boolean;
   /** Outpost (room-device) mode hides the family Home button. */
   hideHome?: boolean;
 }) {
@@ -103,7 +109,14 @@ export function ChildView({
   const [approvingChore, setApprovingChore] = useState<KioskChore | null>(null);
   const [bigCelebrate, setBigCelebrate] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
-  const [anchorOpen, setAnchorOpen] = useState(false);
+  const [anchorOpen, setAnchorOpen] = useState(autoAnchor);
+  // Tell the shell when Anchor is active so it ducks the ambient + never sleeps
+  // mid-session (co-regulation completes first — §9.1). Clears on unmount too.
+  useEffect(() => {
+    onAnchorActive?.(anchorOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchorOpen]);
+  useEffect(() => () => onAnchorActive?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
   // Reward minigame can be played once per day, only after everything's done.
   const [gamePlayed, setGamePlayed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -236,7 +249,9 @@ export function ChildView({
       : `${progressDone} of ${progressTotal} done${pct >= 60 ? " — almost there!" : ""}`;
 
   return (
-    <div className="animate-enter flex min-h-dvh flex-col bg-kbg text-ktext">
+    <div className="relative min-h-dvh bg-kbg text-ktext">
+      {/* The "world" — recedes (blurs + desaturates) when Anchor opens (§9.1). */}
+      <div className={cn("anchor-world animate-enter flex min-h-dvh flex-col", anchorOpen && "is-receded")}>
       {/* Header — per-child color tint, photo, and the day's progress */}
       <header className="px-4 pb-4 pt-3" style={{ background: `linear-gradient(180deg, ${color}38, ${color}0d)` }}>
         <div className="flex items-center justify-between gap-3">
@@ -524,10 +539,11 @@ export function ChildView({
           onClick={onOpenCalm}
           className="flex items-center justify-center gap-2 rounded-xl bg-beacon py-3.5 text-base font-semibold text-harbor transition hover:brightness-105"
         >
-          <Heart className="h-5 w-5" /> Calm
+          <Heart className="h-5 w-5" /> Calm Tools
         </Pressable>
       </footer>
-
+      </div>
+      {/* ── Overlays — siblings of the world, so they stay crisp when it recedes ── */}
       {anchorOpen && (
         <Anchor
           childName={child.name}

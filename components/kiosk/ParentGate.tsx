@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Lock, X } from "lucide-react";
 import { PinPad } from "./PinPad";
+import { haptic, HAPTIC, play } from "@/lib/kiosk/feedback";
 import { KCard, KIconButton, KEyebrow } from "./ui";
 
 /** Full-screen PIN challenge. Calls onSuccess() when the PIN verifies. */
@@ -26,6 +27,8 @@ export function ParentGate({
       onSuccess();
     } else {
       setError(true);
+      haptic(HAPTIC.errorSoft); // soft, non-judgmental — never harsh (§11.1)
+      play("error");
       setTimeout(() => setError(false), 600);
     }
   }
@@ -48,8 +51,8 @@ export function ParentGate({
         <h2 className="mt-2 text-center font-display text-2xl font-bold text-ktext">{title}</h2>
         <p className="mt-1 text-center text-kmute">{subtitle}</p>
         {error && (
-          <p className="mt-3 text-sm font-semibold text-red-300">
-            Wrong PIN — try again.
+          <p className="mt-3 text-sm font-semibold text-rose-300">
+            Hmm, that&apos;s not it. Try again.
           </p>
         )}
         <div className="mt-8">

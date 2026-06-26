@@ -512,3 +512,12 @@ h4,
   }
   .sheet:last-of-type { break-after: auto; }
 }
+
+/* ── Anchor wall transformation (Kiosk Overhaul §9.1) — the world recedes ──── */
+.anchor-world { transition: filter 0.85s var(--ease-harbor-calm); }
+.anchor-world.is-receded {
+  filter: blur(8px) saturate(0.4) brightness(0.7);
+  pointer-events: none;
+}
+@keyframes anchor-in { from { opacity: 0; } to { opacity: 1; } }
+.anchor-veil { animation: anchor-in 0.7s var(--ease-harbor-calm); }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
@@ -37,7 +37,7 @@ type View =
   | { k: "calendar" }
   | { k: "lists" }
   | { k: "chores" }
-  | { k: "child"; id: string };
+  | { k: "child"; id: string; anchor?: boolean };
 
 export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const { state } = kiosk;
@@ -47,6 +47,9 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const [gate, setGate] = useState(false);
   const [menu, setMenu] = useState(false);
   const [asleep, setAsleep] = useState(false);
+  // True while a child's Anchor session is open — ducks the ambient depth layers and
+  // blocks idle sleep so co-regulation is never interrupted (§9.1).
+  const [anchorActive, setAnchorActive] = useState(false);
   const [, setTick] = useState(0);
   const lastActivity = useRef(Date.now());
 
@@ -89,6 +92,8 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
     window.addEventListener("touchstart", onActivity, { passive: true });
     const id = window.setInterval(() => {
       const idle = Date.now() - lastActivity.current > idleMs;
+      // Never sleep mid-Anchor — co-regulation completes first (§9.1).
+      if (anchorActive) return;
       // Only "sleep" when something will actually render (screensaver on, or in
       // quiet hours), so we never blank to nothing.
       if (idle && (screensaverOn || inQuietHours(quietStart, quietEnd))) {
@@ -106,7 +111,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       window.removeEventListener("keydown", onActivity);
       window.removeEventListener("touchstart", onActivity);
     };
-  }, [sleepEnabled, idleMs, asleep]);
+  }, [sleepEnabled, idleMs, asleep, anchorActive]);
 
   if (!state) return null;
 
@@ -122,10 +127,13 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
 
   return (
     <div className="min-h-full">
-      {/* Harbor Depth — fixed material layers behind all content (§3) */}
-      <LivingAmbient />
-      <BeaconLight accent={activeAccent} active={view.k === "child"} />
-      <div className="grain-overlay" aria-hidden />
+      {/* Harbor Depth — fixed material layers behind all content (§3). Duck during
+          Anchor so the world quiets while a child co-regulates (§9.1). */}
+      <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>
+        <LivingAmbient />
+        <BeaconLight accent={activeAccent} active={view.k === "child"} />
+        <div className="grain-overlay" aria-hidden />
+      </div>
 
       <div className="relative z-10">
       {/* Adaptive top bar — secondary surfaces get a ← Harbor home (§4.2) */}
@@ -155,10 +163,13 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       )}
       {view.k === "child" && (
         <ChildView
+          key={view.id + (view.anchor ? "-anchor" : "")}
           kiosk={kiosk}
           childId={view.id}
           onHome={() => setView({ k: "home" })}
           onOpenCalm={() => setCalmOpen(true)}
+          onAnchorActive={setAnchorActive}
+          autoAnchor={view.anchor}
         />
       )}
       {view.k === "calendar" && (
@@ -194,7 +205,16 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
         />
       )}
 
-      {menu && <ParentMenu kiosk={kiosk} onClose={() => setMenu(false)} />}
+      {menu && (
+        <ParentMenu
+          kiosk={kiosk}
+          onClose={() => setMenu(false)}
+          onQuickAnchor={(id) => {
+            setMenu(false);
+            setView({ k: "child", id, anchor: true });
+          }}
+        />
+      )}
 
       {!asleep && !gate && !menu && state.deviceSecret && (
         <VoiceButton deviceSecret={state.deviceSecret} onActed={() => void kiosk.syncNow()} />
@@ -240,12 +260,21 @@ function relativeTime(iso: string | null): string {
   return `${Math.round(hrs / 24)} d ago`;
 }
 
-function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
+function ParentMenu({
+  kiosk,
+  onClose,
+  onQuickAnchor,
+}: {
+  kiosk: Kiosk;
+  onClose: () => void;
+  onQuickAnchor: (childId: string) => void;
+}) {
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmPoints, setConfirmPoints] = useState(false);
   const [pointsErr, setPointsErr] = useState(false);
   const [resettingPoints, setResettingPoints] = useState(false);
+  const [anchorPick, setAnchorPick] = useState(false);
   const children = kiosk.state?.snapshot.children ?? [];
   const syncText = SYNC_LABEL[kiosk.syncStatus] ?? "";
   const lastSync = relativeTime(kiosk.lastSync);
@@ -306,6 +335,28 @@ function ParentMenu({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
           )}
           {pointsErr && (
             <p className="px-1 text-sm text-red-300">Couldn&apos;t reset — connect to Wi-Fi and try again.</p>
+          )}
+          {/* Quick Anchor — start a calm session for a child in the moment (§11.2) */}
+          {children.length > 0 && (
+            !anchorPick ? (
+              <MenuRow icon={Heart} label="Start an Anchor for a child" onClick={() => setAnchorPick(true)} />
+            ) : (
+              <div className="rounded-xl bg-kraise p-3">
+                <p className="px-1 pb-2 text-sm font-semibold text-kmute">Start an Anchor for…</p>
+                <div className="flex flex-wrap gap-2">
+                  {children.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => onQuickAnchor(c.id)}
+                      className="kiosk-tap rounded-xl px-4 py-2.5 font-semibold text-ktext ring-1 ring-kline/55"
+                      style={{ background: `${childColor(c)}22` }}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
           )}
           <MenuRow
             icon={RefreshCw}

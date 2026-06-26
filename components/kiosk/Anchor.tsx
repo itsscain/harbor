@@ -19,6 +19,14 @@ const PHASES: Phase[] = [
 ];
 const BREATHS = 5;
 
+const STRATEGIES = [
+  { emoji: "🤲", text: "Squeeze your hands tight… then let them go soft." },
+  { emoji: "👀", text: "Name three things you can see right now." },
+  { emoji: "🐢", text: "Push your feet into the floor, slow and steady." },
+  { emoji: "💧", text: "Take a slow sip of water." },
+  { emoji: "🫧", text: "Blow out like you're cooling warm soup." },
+];
+
 const FEELINGS = [
   { emoji: "😡", label: "Mad", big: true },
   { emoji: "😢", label: "Sad", big: false },
@@ -50,7 +58,8 @@ export function Anchor({
   /** Called when the child is still dysregulated at re-entry → auto-soften the day. */
   onSoften?: () => void;
 }) {
-  const [stage, setStage] = useState<"breathe" | "feelings" | "done">("breathe");
+  const [stage, setStage] = useState<"breathe" | "feelings" | "strategy" | "done">("breathe");
+  const [strategy] = useState(() => STRATEGIES[Math.floor(Math.random() * STRATEGIES.length)]);
   const [pi, setPi] = useState(0);
   const [breaths, setBreaths] = useState(0);
   const phase = PHASES[pi];
@@ -94,8 +103,13 @@ export function Anchor({
     <div
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-[80] flex flex-col items-center justify-center overflow-hidden px-6 text-center"
-      style={{ background: `radial-gradient(120% 100% at 50% 28%, ${accent}22, #0a1622 55%, #070d16)` }}
+      className="anchor-veil fixed inset-0 z-[80] flex flex-col items-center justify-center overflow-hidden px-6 text-center backdrop-blur-2xl"
+      style={{
+        // A translucent calming-blue veil (desaturated toward blue per §9.1), so the
+        // receded world is faintly visible behind — the cinematic "fade back."
+        background:
+          "radial-gradient(120% 100% at 50% 28%, rgba(60,124,148,0.34), rgba(10,22,34,0.80) 52%, rgba(7,13,22,0.92))",
+      }}
     >
       <button
         onClick={onClose}
@@ -145,7 +159,7 @@ export function Anchor({
                 onClick={() => {
                   onFeeling?.(f.label);
                   if (f.big) onSoften?.();
-                  finish();
+                  setStage("strategy");
                 }}
                 className="kiosk-tap flex flex-col items-center gap-2 rounded-2xl bg-white/8 p-5 text-white ring-1 ring-white/10 active:scale-95"
               >
@@ -156,6 +170,23 @@ export function Anchor({
           </div>
           <button onClick={finish} className="kiosk-tap mt-8 rounded-full px-6 py-2 text-base text-white/55 hover:underline">
             Skip — I just wanted to breathe
+          </button>
+        </>
+      )}
+
+      {stage === "strategy" && (
+        <>
+          <p className="mb-2 font-display text-2xl font-bold text-white sm:text-3xl">One thing that can help</p>
+          <p className="mb-8 text-white/55">Try this with me — or tap ready.</p>
+          <div className="flex max-w-md flex-col items-center gap-4 rounded-3xl bg-white/8 p-8 ring-1 ring-white/10">
+            <span className="text-6xl leading-none">{strategy.emoji}</span>
+            <p className="text-pretty text-xl font-medium leading-relaxed text-white/90">{strategy.text}</p>
+          </div>
+          <button
+            onClick={finish}
+            className="kiosk-tap mt-9 rounded-full bg-white/15 px-10 py-4 font-display text-lg font-bold text-white active:scale-95"
+          >
+            I&apos;m ready
           </button>
         </>
       )}

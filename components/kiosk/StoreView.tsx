@@ -7,6 +7,7 @@ import type { KioskStoreItem } from "@/lib/kiosk/types";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { haptic, speak, play, HAPTIC } from "@/lib/kiosk/feedback";
 import { cn } from "@/lib/cn";
+import { FillVessel } from "./FillVessel";
 import { KCard, KIconButton, KPill } from "./ui";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -100,9 +101,15 @@ export function StoreView({
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-kraise">
-                    <div className="h-full rounded-full bg-beacon transition-all" style={{ width: `${pct}%` }} />
-                  </div>
+                  {isGoal ? (
+                    <div className="mt-4 flex flex-col items-center">
+                      <FillVessel pct={pct} reached={affordable} />
+                    </div>
+                  ) : (
+                    <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-kraise">
+                      <div className="h-full rounded-full bg-beacon transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
                   {!isGoal && (
                     <button
                       onClick={() => buy(item)}
