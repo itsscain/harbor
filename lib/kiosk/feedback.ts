@@ -4,25 +4,7 @@
 // haptics. All best-effort and gated by per-child settings; zero network.
 
 import { playHarborVoice, stopHarborVoice } from "./voice";
-
-let audioCtx: AudioContext | null = null;
-
-function getAudioCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  try {
-    if (!audioCtx) {
-      const Ctor =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctor) return null;
-      audioCtx = new Ctor();
-    }
-    return audioCtx;
-  } catch {
-    return null;
-  }
-}
+import { getAudioCtx } from "./audioctx";
 
 /** Read text aloud in the Harbor Voice via the cache-first cascade (Tier 0 shared
  *  library → device cache → OS voice). No-op if disabled. */

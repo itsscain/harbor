@@ -9,6 +9,7 @@
 //      can't run on this device. Never blocks; never silent.
 
 import { openDB, type IDBPDatabase } from "idb";
+import { getAudioCtx } from "./audioctx";
 
 /** The Harbor Voice — Kokoro voice id. Bella is warm + gentle (af_sarah is the alt). */
 export const HARBOR_VOICE = "af_bella";
@@ -234,11 +235,25 @@ async function putCached(key: string, blob: Blob) {
 // ── playback + cascade ───────────────────────────────────────────────────────────
 let currentAudio: HTMLAudioElement | null = null;
 let currentUrl: string | null = null;
+let currentSource: AudioBufferSourceNode | null = null;
 let playSeq = 0;
 
 export function stopHarborVoice() {
   playSeq++; // invalidate any in-flight async playback
   try {
+    if (currentSource) {
+      try {
+        currentSource.stop();
+      } catch {
+        /* already stopped */
+      }
+      try {
+        currentSource.disconnect();
+      } catch {
+        /* ignore */
+      }
+      currentSource = null;
+    }
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.src = "";
@@ -254,7 +269,39 @@ export function stopHarborVoice() {
   }
 }
 
-function playBlob(blob: Blob) {
+async function playBlob(blob: Blob, seq: number) {
+  // Prefer the shared AudioContext — the SAME path as the chime, which the tablet has
+  // already unlocked. HTMLAudioElement.play() is gated separately and can be silently
+  // blocked after a refresh, so Web Audio is the reliable path.
+  const ctx = getAudioCtx();
+  if (ctx) {
+    try {
+      if (ctx.state === "suspended") await ctx.resume();
+      const buf = await blob.arrayBuffer();
+      const audioBuf = await ctx.decodeAudioData(buf);
+      if (seq !== playSeq) return; // superseded while decoding
+      if (currentSource) {
+        try {
+          currentSource.stop();
+        } catch {
+          /* ignore */
+        }
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = audioBuf;
+      src.connect(ctx.destination);
+      src.onended = () => {
+        if (currentSource === src) currentSource = null;
+      };
+      currentSource = src;
+      src.start();
+      return;
+    } catch {
+      /* fall through to HTMLAudioElement */
+    }
+  }
+  // Fallback: HTMLAudioElement (older browsers / no Web Audio).
+  if (seq !== playSeq) return;
   try {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
@@ -287,7 +334,7 @@ export function playHarborVoice(text: string, voice: string = HARBOR_VOICE) {
     const cached = await getCached(key);
     if (seq !== playSeq) return;
     if (cached) {
-      playBlob(cached);
+      void playBlob(cached, seq);
       return;
     }
     // 2) Kokoro if the model is loaded; otherwise OS now + warm for next time
@@ -296,7 +343,7 @@ export function playHarborVoice(text: string, voice: string = HARBOR_VOICE) {
       if (blob) void putCached(key, blob); // cache even if superseded
       if (seq !== playSeq) return;
       if (blob) {
-        playBlob(blob);
+        void playBlob(blob, seq);
         return;
       }
     } else {
