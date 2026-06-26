@@ -47,20 +47,19 @@ export function PairingScreen({
     <div className="flex min-h-dvh flex-col items-center justify-center bg-kbg px-6 text-center text-ktext">
       <div className="absolute inset-0 beacon-ring opacity-50" aria-hidden />
       <KCard className="relative w-full max-w-md p-5 sm:p-10">
-        <LighthouseMark className="mx-auto h-16 w-16 text-beacon" />
+        <LighthouseMark className="mx-auto h-20 w-20 animate-beacon text-beacon" />
         <KEyebrow className="mt-6">First-time setup</KEyebrow>
         <h1 className="mt-2 font-display text-3xl font-bold">
-          Set up this Harbor
+          Let&apos;s light your Harbor
         </h1>
         <p className="mt-2 text-kmute">
-          Enter the pairing code from your setup email to connect this wall to
-          your household.
+          Enter the pairing code from your setup email — we&apos;ll bring this wall to life.
         </p>
 
         <form onSubmit={submit} className="mt-8 space-y-4">
           <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            value={code.length > 4 ? `${code.slice(0, 4)}-${code.slice(4, 8)}` : code}
+            onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8))}
             placeholder="ABCD-EFGH"
             aria-label="Pairing code"
             autoCapitalize="characters"
@@ -70,7 +69,7 @@ export function PairingScreen({
             className="w-full rounded-xl bg-kraise px-5 py-3.5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-ktext placeholder-kmute ring-1 ring-kline/55 outline-none transition focus:ring-2 focus:ring-beacon/70"
           />
           {error && (
-            <p role="alert" className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/30">
+            <p role="alert" className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm text-rose-300 ring-1 ring-rose-500/30">
               {error}
             </p>
           )}
