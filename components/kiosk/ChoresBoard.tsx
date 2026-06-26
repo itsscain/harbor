@@ -60,7 +60,7 @@ export function ChoresBoard({
     const s = readChildSettings(child);
     chime(s.sound);
     haptic(HAPTIC.choreDone, s.haptics);
-    speak(`${cheer()}! ${chore.title} done!`, s.readAloud);
+    speak(cheer(), s.readAloud);
     if (chore.points > 0) {
       setCelebrate({ id: chore.id, points: chore.points, intensity: s.intensity, reducedMotion: s.reducedMotion });
       setTimeout(() => setCelebrate(null), 1100);

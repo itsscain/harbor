@@ -64,7 +64,7 @@ export function NowNext({
     if (mins <= 2 && mins > 0 && warnedFor.current !== nextId) {
       warnedFor.current = nextId;
       tone(sound);
-      speak(`Two minutes until ${nextLabel}`, readAloud);
+      speak("Time to switch", readAloud);
     }
   }, [nowMin, nextId, nextMin, nextLabel, sound, readAloud]);
 

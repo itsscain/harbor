@@ -13,6 +13,9 @@ import {
   type VoiceStatus,
 } from "@/lib/kiosk/voice";
 
+// Bump this with each voice deploy so the tablet's build is confirmable on-device.
+const BUILD = "v5 · library voice";
+
 // Parent menu → Debug tools. A tap here also unlocks audio, and surfaces exactly which
 // tier is firing so a silent-on-tablet issue is diagnosable instead of guesswork.
 export function VoiceDebug({ onBack }: { onBack: () => void }) {
@@ -139,8 +142,9 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
           </KButton>
           <p className="px-1 text-xs text-kmute">
             Heard the chime but no voice? Tap <b>Test</b> once (it unlocks sound), then if it still fails use{" "}
-            <b>Update app</b> to pull the latest, or <b>Re-download voice model</b>.
+            <b>Update app</b> to pull the latest.
           </p>
+          <p className="px-1 text-center text-[11px] text-kmute/70">Build {BUILD}</p>
         </div>
       </KCard>
     </div>

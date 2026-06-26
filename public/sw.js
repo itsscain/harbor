@@ -1,7 +1,7 @@
 /* Harbor Kiosk service worker — precache the shell, runtime-cache assets, and
    guarantee the wall boots fully offline. Supabase (cross-origin) requests are
    left untouched; the kiosk's sync layer handles being offline gracefully. */
-const CACHE = "harbor-kiosk-v4";
+const CACHE = "harbor-kiosk-v5";
 const PRECACHE = [
   "/kiosk",
   "/manifest.webmanifest",

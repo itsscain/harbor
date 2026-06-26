@@ -29,7 +29,7 @@ import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { accentRamp, accentVars } from "@/lib/kiosk/accent";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { speak, chime, haptic, cheer, play, HAPTIC } from "@/lib/kiosk/feedback";
+import { speak, chime, haptic, cheer, greetLine, doneLine, play, HAPTIC } from "@/lib/kiosk/feedback";
 import { activeStreak } from "@/lib/kiosk/streak";
 import { StreakBadge } from "./StreakBadge";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
@@ -135,7 +135,7 @@ export function ChildView({
   useEffect(() => {
     if (settings?.autoRead && child && activeRoutineId) {
       const r = routines.find((x) => x.id === activeRoutineId);
-      if (r) speak(`${child.name}'s ${r.name}`, settings.readAloud);
+      if (r) speak("Ready for the day", settings.readAloud);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRoutineId]);
@@ -147,9 +147,7 @@ export function ChildView({
     if (!child || !settings?.readAloud) return;
     const inCorner = (state?.snapshot.corners ?? []).some((c) => c.child_id === child.id && c.status === "active");
     if (inCorner) return;
-    const lines = child.ai_profile?.encouragement ?? [];
-    const enc = lines.length ? lines[new Date().getDate() % lines.length] : "Let's have a great day!";
-    speak(`Hi ${child.name}! ${enc}`, settings.readAloud);
+    speak(greetLine(), settings.readAloud);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);
 
@@ -174,7 +172,7 @@ export function ChildView({
     kiosk.completeStep(child!.id, step);
     chime(settings!.sound);
     haptic(HAPTIC.stepDone, settings!.haptics);
-    speak(`${cheer()}! ${step.label} done!`, settings!.readAloud);
+    speak(cheer(), settings!.readAloud);
     if (step.reward_points > 0) {
       setCelebrate({ points: step.reward_points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
@@ -187,7 +185,7 @@ export function ChildView({
       setBigCelebrate(true);
       play("routine", settings!.sound);
       haptic(HAPTIC.routineDone, settings!.haptics);
-      speak(`Amazing! You finished ${activeRoutine?.name ?? "your routine"}, ${child!.name}!`, settings!.readAloud);
+      speak(doneLine(), settings!.readAloud);
       kiosk.bumpStreak(child!.id); // finishing the routine keeps the streak alive
       setTimeout(() => setBigCelebrate(false), 4200);
     }
@@ -197,7 +195,7 @@ export function ChildView({
     kiosk.completeChore(child!.id, chore);
     chime(settings!.sound);
     haptic(HAPTIC.choreDone, settings!.haptics);
-    speak(`${cheer()}! ${chore.title} done!`, settings!.readAloud);
+    speak(cheer(), settings!.readAloud);
     if (chore.points > 0) {
       setCelebrate({ points: chore.points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
@@ -295,7 +293,7 @@ export function ChildView({
           </div>
         </div>
         <button
-          onClick={() => speak(`${child.name}'s ${activeRoutine?.name ?? "day"}. ${activeRoutine ? progressMsg : ""}`, settings.readAloud)}
+          onClick={() => speak("What's next", settings.readAloud)}
           className="mt-3.5 flex w-full items-center gap-4 text-left"
         >
           <span

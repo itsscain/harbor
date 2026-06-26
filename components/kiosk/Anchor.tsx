@@ -94,7 +94,7 @@ export function Anchor({
     setStage("done");
     haptic(HAPTIC.arrive, haptics);
     play("arrive", sound);
-    if (readAloud) speak(`Welcome back, ${childName}. Fresh start.`, true);
+    if (readAloud) speak("Welcome back", true);
   }
 
   const scale = reducedMotion ? 0.8 : phase.scale;

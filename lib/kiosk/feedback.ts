@@ -31,6 +31,22 @@ export function cheer() {
   return CHEERS[Math.floor(Math.random() * CHEERS.length)];
 }
 
+// The Harbor Voice only ever SPEAKS phrases that are in the pre-generated library
+// (so it's always warm Bella, never robotic/slow). The screen shows the specifics
+// (name, step); the voice picks from these fixed, library-backed lines.
+const GREETINGS = ["Welcome back", "Good morning", "Ready for the day", "You made it"];
+const DONES = ["You did it", "All done for today", "So proud of you", "Way to go"];
+
+/** A warm library greeting for opening a child's screen. */
+export function greetLine() {
+  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+}
+
+/** A warm library line for finishing a whole routine. */
+export function doneLine() {
+  return DONES[Math.floor(Math.random() * DONES.length)];
+}
+
 export function stopSpeaking() {
   stopHarborVoice();
 }

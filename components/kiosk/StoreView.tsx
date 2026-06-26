@@ -46,7 +46,7 @@ export function StoreView({
     kiosk.redeemStoreItem(childId, item);
     play("reward", settings.sound);
     haptic(HAPTIC.rewardRedeem, settings.haptics);
-    speak(`You got ${item.label}!`, settings.readAloud);
+    speak("You did it", settings.readAloud);
     setBought(item.id);
     setTimeout(() => setBought(null), 1600);
     setRedeemed(item);
