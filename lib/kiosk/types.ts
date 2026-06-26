@@ -85,6 +85,8 @@ export type KioskEvent = {
   color: string | null;
   responsible_label: string | null;
   recurrence_rule: string | null;
+  /** Set when the event came from a connected Google Calendar (sync affordance). */
+  google_event_id?: string | null;
 };
 
 export type KioskMeal = {

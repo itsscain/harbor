@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Check, ShoppingCart, ListTodo } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
+import { haptic, play, HAPTIC } from "@/lib/kiosk/feedback";
 import { KCard, KButton, KEyebrow } from "./ui";
 import { cn } from "@/lib/cn";
 
@@ -23,11 +24,26 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
     .filter((i) => i.list_kind === kind)
     .sort((a, b) => Number(a.checked) - Number(b.checked) || a.sort_order - b.sort_order);
 
+  const [flash, setFlash] = useState<string | null>(null);
+
   function add(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft.trim()) return;
+    const name = draft.trim();
+    if (!name) return;
     kiosk.addListItem(draft, { list_kind: kind });
+    haptic(HAPTIC.tapLight);
+    setFlash(name.toLowerCase());
+    setTimeout(() => setFlash(null), 700);
     setDraft("");
+  }
+
+  function toggle(id: string, checked: boolean) {
+    const next = !checked;
+    if (next) {
+      haptic(HAPTIC.tapMedium); // a satisfying "got it" on check
+      play("step");
+    }
+    kiosk.checkListItem(id, next);
   }
 
   const remaining = items.filter((i) => !i.checked).length;
@@ -39,7 +55,7 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
           <KEyebrow>Shared lists</KEyebrow>
           <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">{meta.label}</h1>
         </div>
-        <span className="pb-1 text-sm font-semibold text-kmute">{remaining} left</span>
+        <span className="pb-1 text-sm font-semibold tabular-nums text-kmute">{remaining} left</span>
       </header>
 
       {/* List switcher */}
@@ -78,12 +94,13 @@ export function ListsView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
         {items.map((item) => (
           <button
             key={item.id}
-            onClick={() => kiosk.checkListItem(item.id, !item.checked)}
+            onClick={() => toggle(item.id, item.checked)}
             className={cn(
               "flex w-full items-center gap-3 rounded-xl p-4 text-left ring-1 transition active:scale-[0.99]",
               item.checked
                 ? "bg-emerald-500/10 ring-emerald-500/30"
                 : "bg-kpanel shadow-k ring-kline/55 hover:brightness-110",
+              !item.checked && flash === item.name.toLowerCase() && "animate-pop",
             )}
           >
             <span

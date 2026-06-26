@@ -20,6 +20,25 @@ export type ChildDayStatus = {
   hasTasks: boolean;
 };
 
+/** Household-wide chore progress for today — the cooperative teamwork meter
+ *  (Kiosk Overhaul §8.2), never a leaderboard. */
+export function familyChoreProgress(s: KioskState): { done: number; total: number; pct: number } {
+  const snap = s.snapshot;
+  const today = todayKey();
+  const ids = new Set(snap.children.map((c) => c.id));
+  let total = 0;
+  let done = 0;
+  for (const c of snap.children) {
+    const prog = s.progress[c.id]?.date === today ? s.progress[c.id].completed : [];
+    const chores = (snap.chores ?? []).filter(
+      (ch) => ch.active && runsToday(ch.days_of_week) && choreAssignee(ch, ids) === c.id,
+    );
+    total += chores.length;
+    done += chores.filter((ch) => prog.includes(ch.id)).length;
+  }
+  return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+}
+
 export function childDayStatus(s: KioskState, childId: string): ChildDayStatus {
   const snap = s.snapshot;
   const today = todayKey();

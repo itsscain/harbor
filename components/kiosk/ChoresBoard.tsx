@@ -10,6 +10,7 @@ import { choreAssignee, isRotating } from "@/lib/kiosk/chores";
 import { childColor } from "@/lib/kiosk/colors";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { activeStreak } from "@/lib/kiosk/streak";
+import { familyChoreProgress } from "@/lib/kiosk/childStatus";
 import { StreakBadge } from "./StreakBadge";
 import { chime, haptic, speak, cheer, HAPTIC } from "@/lib/kiosk/feedback";
 import { scaleCount } from "@/lib/kiosk/motion";
@@ -257,6 +258,28 @@ export function ChoresView({ kiosk, onSelectChild }: { kiosk: Kiosk; onSelectChi
         <KEyebrow>Tap to check off</KEyebrow>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">Chores</h1>
       </header>
+      {kiosk.state &&
+        (() => {
+          const fp = familyChoreProgress(kiosk.state);
+          if (fp.total === 0) return null;
+          const allDone = fp.done === fp.total;
+          return (
+            <div className="mb-4 rounded-2xl bg-kpanel p-4 shadow-k ring-1 ring-kline/55">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-kmute">Family teamwork</span>
+                <span className="font-display font-bold tabular-nums text-ktext">
+                  {fp.done} <span className="text-kmute">of {fp.total}</span>
+                </span>
+              </div>
+              <div className="mt-2.5 h-3 overflow-hidden rounded-full bg-kraise">
+                <div className="h-full rounded-full bg-seafoam transition-all" style={{ width: `${fp.pct}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-kmute">
+                {allDone ? "The whole family did it! 🎉" : "Every chore helps the whole family."}
+              </p>
+            </div>
+          );
+        })()}
       <ChoresBoard kiosk={kiosk} onSelectChild={onSelectChild} variant="full" />
     </div>
   );

@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
-import { MapPin, ChevronLeft, ChevronRight, X, Repeat, User, Flag, Volume2 } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight, X, Repeat, User, Flag, Volume2, Cloud } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { eventsForDay, occursOn, formatEventTime } from "@/lib/kiosk/calendar";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
 import type { KioskEvent, KioskChild } from "@/lib/kiosk/types";
-import { speak } from "@/lib/kiosk/feedback";
+import { speak, haptic, HAPTIC } from "@/lib/kiosk/feedback";
 import { ChildAvatar } from "./ChildAvatar";
 import { KIconButton } from "./ui";
 import { cn } from "@/lib/cn";
@@ -126,7 +126,14 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   }, [anchor]);
 
   return (
-    <div className="animate-enter flex h-dvh flex-col overflow-hidden bg-kbg pb-[84px] text-ktext">
+    <div
+      className="animate-enter flex h-dvh flex-col overflow-hidden bg-kbg pb-[84px] text-ktext"
+      style={
+        filter
+          ? { background: `linear-gradient(180deg, ${childColor(children.find((c) => c.id === filter))}1c, var(--color-kbg) 42%)` }
+          : undefined
+      }
+    >
       <header className="flex items-center justify-between gap-3 border-b border-kline/50 bg-kbg2/80 px-4 py-3 backdrop-blur-md sm:px-6">
         <span className="font-display text-2xl font-bold text-ktext">Calendar</span>
         <div className="flex items-center gap-1 rounded-full bg-kpanel p-1 ring-1 ring-kline/55">
@@ -150,7 +157,10 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
       {children.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b border-kline/50 bg-kpanel px-4 py-2.5">
           <button
-            onClick={() => setFilter(null)}
+            onClick={() => {
+              haptic(HAPTIC.toggle);
+              setFilter(null);
+            }}
             className={cn(
               "kiosk-tap rounded-full px-3 py-1.5 text-sm font-semibold transition",
               filter === null ? "bg-kwater text-harbor" : "bg-kraise text-ktext",
@@ -163,7 +173,10 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
             return (
               <button
                 key={c.id}
-                onClick={() => setFilter(active ? null : c.id)}
+                onClick={() => {
+                  haptic(HAPTIC.toggle);
+                  setFilter(active ? null : c.id);
+                }}
                 className={cn(
                   "flex items-center gap-2 rounded-full py-1 pl-1 pr-3.5 text-sm font-medium transition",
                   active ? "text-white" : "bg-kraise text-ktext hover:brightness-125",
@@ -583,6 +596,11 @@ function EventDetail({
           <div className="min-w-0 flex-1">
             <h2 className="break-words font-display text-2xl font-bold leading-tight text-ktext">{event.title}</h2>
             <p className="mt-1 text-sm font-semibold text-kwater">{dateStr} · {timeStr}</p>
+            {event.google_event_id && (
+              <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-kmute">
+                <Cloud className="h-3.5 w-3.5" /> Synced from Google Calendar
+              </p>
+            )}
           </div>
           <KIconButton onClick={onClose} aria-label="Close">
             <X className="h-5 w-5" />
