@@ -225,7 +225,9 @@ export function useKiosk() {
             ...s.outbox,
             {
               kind: "completion",
-              op_id: crypto.randomUUID(),
+              // Deterministic key (Edge Cases §1.1): same child+step+day → one award,
+              // across devices and re-completes (server dedupes on client_op_id).
+              op_id: `${childId}:step:${step.id}:${today}`,
               child_id: childId,
               step_id: step.id,
               points: step.reward_points,
@@ -262,7 +264,8 @@ export function useKiosk() {
             ...s.outbox,
             {
               kind: "chore_done",
-              op_id: crypto.randomUUID(),
+              // Deterministic key (Edge Cases §1.1) — one award per child+chore+day.
+              op_id: `${childId}:chore:${chore.id}:${today}`,
               child_id: childId,
               chore_id: chore.id,
               points: chore.points,
