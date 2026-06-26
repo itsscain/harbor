@@ -4,6 +4,8 @@
 
 export type AccentRamp = {
   accent: string; // the raw color
+  bright: string; // +lightness — highlights, sails, lit buoys
+  deep: string; // -lightness, +sat — fills / strokes / track
   bg: string; // very dark tint for surfaces
   line: string; // border / hairline
   text: string; // legible accent text on the dark wall
@@ -40,13 +42,32 @@ export function hexToHsl(hex: string): [number, number, number] {
 
 /** Derive the full ramp from a single stored hex. */
 export function accentRamp(hex: string): AccentRamp {
-  const [h, s] = hexToHsl(hex);
+  const [h, s, l] = hexToHsl(hex);
   const sat = clamp(s, 30, 95);
   return {
     accent: hex,
+    bright: `hsl(${h} ${clamp(sat, 0, 100)}% ${clamp(l + 12, 0, 92)}%)`,
+    deep: `hsl(${h} ${clamp(sat + 10, 0, 100)}% ${clamp(l - 18, 16, 100)}%)`,
     bg: `hsl(${h} ${Math.round(sat * 0.5)}% 11%)`,
     line: `hsl(${h} ${Math.round(sat * 0.45)}% 28%)`,
-    text: `hsl(${h} ${clamp(sat + 12, 0, 96)}% 76%)`,
+    text: `hsl(${h} ${clamp(sat + 12, 0, 96)}% ${Math.max(76, l)}%)`,
     glow: `hsl(${h} ${sat}% 55% / 0.45)`,
   };
+}
+
+/** The per-child accent ramp as CSS custom properties for the ChildView root, so
+ *  the whole view (and its SVG) reads one child's color (ChildView Visual Spec §2.2).
+ *  Swapping the child's hex re-suffuses everything automatically. */
+export function accentVars(hex: string): Record<string, string> {
+  const r = accentRamp(hex);
+  const [h, s] = hexToHsl(hex);
+  const sat = clamp(s, 30, 95);
+  return {
+    "--accent": r.accent,
+    "--accent-bright": r.bright,
+    "--accent-deep": r.deep,
+    "--accent-glow": r.glow,
+    "--accent-soft": `hsl(${h} ${sat}% 60% / 0.14)`,
+    "--accent-text": r.text,
+  } as Record<string, string>;
 }

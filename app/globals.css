@@ -521,3 +521,12 @@ h4,
 }
 @keyframes anchor-in { from { opacity: 0; } to { opacity: 1; } }
 .anchor-veil { animation: anchor-in 0.7s var(--ease-harbor-calm); }
+
+/* ── ChildView now-card (Visual Spec §8) — the breathing "do this now" focal ─── */
+@keyframes now-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px var(--accent-glow, rgba(60,188,217,.2)), 0 22px 60px -30px var(--accent-glow, rgba(60,188,217,.4)); }
+  50% { box-shadow: 0 0 0 1px var(--accent-glow, rgba(60,188,217,.3)), 0 26px 74px -22px var(--accent-glow, rgba(60,188,217,.5)); }
+}
+.now-breathe { animation: now-breathe 4.5s ease-in-out infinite; }
+@keyframes nudge-x { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.nudge-x { animation: nudge-x 1.8s ease-in-out infinite; }

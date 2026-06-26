@@ -28,12 +28,12 @@ import { Anchor } from "./Anchor";
 import { Voyage } from "./Voyage";
 import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
+import { accentRamp, accentVars } from "@/lib/kiosk/accent";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic, cheer, play, HAPTIC } from "@/lib/kiosk/feedback";
 import { activeStreak } from "@/lib/kiosk/streak";
 import { StreakBadge } from "./StreakBadge";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
-import { NowNext } from "./NowNext";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
 import { ChildAvatar } from "./ChildAvatar";
@@ -237,6 +237,12 @@ export function ChildView({
   const hasTasks = !!activeRoutine || childChores.length > 0;
   const dayComplete = hasTasks && choresAllDone && (activeRoutine ? allDone : true);
   const color = childColor(child);
+  // Per-child accent ramp + CSS vars suffuse the whole view (Visual Spec §2.2);
+  // the Voyage scene tracks the time of day (§3.5).
+  const ramp = accentRamp(color);
+  const accentStyle = accentVars(color) as React.CSSProperties;
+  const hr = new Date().getHours();
+  const scene: "day" | "golden" | "night" = hr >= 21 || hr < 6 ? "night" : hr >= 18 ? "golden" : "day";
   const progressTotal = isFirstThen ? [firstStep, thenStep].filter(Boolean).length : scheduleSteps.length;
   const progressDone = isFirstThen
     ? [firstStep, thenStep].filter((s) => s && prog.includes(s.id)).length
@@ -249,7 +255,16 @@ export function ChildView({
       : `${progressDone} of ${progressTotal} done${pct >= 60 ? " — almost there!" : ""}`;
 
   return (
-    <div className="relative min-h-dvh bg-kbg text-ktext">
+    <div
+      className="relative min-h-dvh text-ktext"
+      style={{
+        ...accentStyle,
+        // Living ambient (§3): the child's accent washes the upper-right, deep water
+        // rises from the bottom — warm depth instead of flat near-black.
+        background:
+          "radial-gradient(760px 520px at 78% 4%, var(--accent-soft), transparent 56%), radial-gradient(1100px 820px at 50% 122%, #0c1a30 0%, #0a1424 45%, #070a0d 82%)",
+      }}
+    >
       {/* The "world" — recedes (blurs + desaturates) when Anchor opens (§9.1). */}
       <div className={cn("anchor-world animate-enter flex min-h-dvh flex-col", anchorOpen && "is-receded")}>
       {/* Header — per-child color tint, photo, and the day's progress */}
@@ -420,16 +435,8 @@ export function ChildView({
         )}
         {activeRoutine ? (
           <>
-            <NowNext steps={steps} sound={settings.sound} readAloud={settings.readAloud} />
-
-            {allDone && (
-              <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
-                🎉 All done! Great job, {child.name}!
-              </div>
-            )}
-
             {activeRoutine.type !== "first_then" && (
-              <Voyage steps={scheduleSteps} doneIds={new Set(prog)} accent={color} reducedMotion={settings.reducedMotion} />
+              <Voyage steps={scheduleSteps} doneIds={new Set(prog)} ramp={ramp} scene={scene} reducedMotion={settings.reducedMotion} />
             )}
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
@@ -438,21 +445,45 @@ export function ChildView({
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
                 <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                {scheduleSteps.map((s) => (
-                  <StepCard
-                    key={s.id}
-                    step={s}
-                    done={prog.includes(s.id)}
-                    reducedMotion={settings.reducedMotion}
-                    haptics={settings.haptics}
-                    accent={color}
-                    onTap={() => complete(s)}
-                    onSpeak={() => speak(s.label, settings.readAloud)}
-                  />
-                ))}
+            ) : allDone ? (
+              <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
+                🎉 All done! Great job, {child.name}!
               </div>
+            ) : (
+              (() => {
+                // The current step is the glowing "do this now" focal (§8); the rest
+                // (done + upcoming) recede into a calmer secondary row (§9).
+                const current = scheduleSteps.find((s) => !prog.includes(s.id));
+                const others = scheduleSteps.filter((s) => s !== current);
+                return (
+                  <>
+                    {current && (
+                      <NowCard
+                        step={current}
+                        reducedMotion={settings.reducedMotion}
+                        onTap={() => complete(current)}
+                        onSpeak={() => speak(current.label, settings.readAloud)}
+                      />
+                    )}
+                    {others.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                        {others.map((s) => (
+                          <StepCard
+                            key={s.id}
+                            step={s}
+                            done={prog.includes(s.id)}
+                            reducedMotion={settings.reducedMotion}
+                            haptics={settings.haptics}
+                            accent={color}
+                            onTap={() => complete(s)}
+                            onSpeak={() => speak(s.label, settings.readAloud)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()
             )}
           </>
         ) : childChores.length === 0 ? (
@@ -624,6 +655,80 @@ export function ChildView({
       {timerOpen && (
         <TransitionTimer seconds={120} label="Transition time" onClose={() => setTimerOpen(false)} />
       )}
+    </div>
+  );
+}
+
+/** The now-card (Visual Spec §8) — the single, unmistakable "do this now": large,
+ *  accent-bordered, gently breathing, accent-suffused (reads --accent-* from the
+ *  ChildView root). A div (not a button) so the read-aloud control can nest. */
+function NowCard({
+  step,
+  onTap,
+  onSpeak,
+  reducedMotion,
+}: {
+  step: KioskStep;
+  onTap: () => void;
+  onSpeak: () => void;
+  reducedMotion: boolean;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onTap}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onTap();
+      }}
+      className={cn(
+        "relative mb-3 flex w-full cursor-pointer items-center gap-5 overflow-hidden rounded-[24px] p-5 text-left transition active:scale-[0.985] sm:gap-7 sm:p-6",
+        !reducedMotion && "now-breathe",
+      )}
+      style={{
+        background:
+          "radial-gradient(420px 220px at 18% 0%, var(--accent-soft), transparent 70%), linear-gradient(165deg,#1c2740 0%,#141c2e 60%,#121826 100%)",
+        border: "1.5px solid var(--accent-glow)",
+      }}
+    >
+      <span
+        className="absolute right-4 top-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em]"
+        style={{ color: "var(--accent-text)" }}
+      >
+        <span className={cn("h-1.5 w-1.5 rounded-full", !reducedMotion && "k-glow")} style={{ background: "var(--accent)" }} /> Do this now
+      </span>
+      <span
+        className="flex aspect-square w-[clamp(72px,16vw,108px)] shrink-0 items-center justify-center rounded-[22px] text-[clamp(40px,9vw,62px)] leading-none"
+        style={{
+          background: "radial-gradient(circle at 50% 35%, var(--accent-soft), rgba(13,18,30,.6))",
+          boxShadow: "inset 0 0 30px var(--accent-soft), 0 0 0 1px var(--accent-glow)",
+        }}
+      >
+        {step.icon ?? "✅"}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-[clamp(26px,5.5vw,52px)] font-extrabold leading-none tracking-tight text-white">{step.label}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {step.reward_points > 0 && (
+            <span className="inline-flex items-center gap-1.5 font-semibold tabular-nums text-beacon">
+              <Star className="h-5 w-5 fill-beacon text-beacon" /> {step.reward_points}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--accent-text)" }}>
+            Tap when you&apos;re done <ArrowRight className={cn("h-4 w-4", !reducedMotion && "nudge-x")} />
+          </span>
+        </div>
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onSpeak();
+        }}
+        aria-label="Read aloud"
+        className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-ktext/70 ring-1 ring-white/10 transition active:scale-90"
+      >
+        <Volume2 className="h-4 w-4" />
+      </button>
     </div>
   );
 }
