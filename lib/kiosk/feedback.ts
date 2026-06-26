@@ -3,6 +3,8 @@
 // On-device multi-sensory feedback: text-to-speech, a soft success chime, and
 // haptics. All best-effort and gated by per-child settings; zero network.
 
+import { normalizeForSpeech, harborVoice } from "./voice";
+
 let audioCtx: AudioContext | null = null;
 
 function getAudioCtx(): AudioContext | null {
@@ -22,14 +24,19 @@ function getAudioCtx(): AudioContext | null {
   }
 }
 
-/** Read text aloud with the Web Speech API. No-op if unavailable or disabled. */
+/** Read text aloud in the Harbor Voice (Voice/TTS spec V1): normalized text + one
+ *  consistent warm voice + a calm rate. No-op if unavailable or disabled. */
 export function speak(text: string, enabled = true) {
   if (!enabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
   try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.95;
-    u.pitch = 1.05;
+    const spoken = normalizeForSpeech(text);
+    if (!spoken) return;
+    window.speechSynthesis.cancel(); // single stream — interrupt any in-flight read (§11)
+    const u = new SpeechSynthesisUtterance(spoken);
+    u.rate = 0.9; // slightly slow + calm, for processing time (§6.2)
+    u.pitch = 1.02;
+    const v = harborVoice();
+    if (v) u.voice = v;
     window.speechSynthesis.speak(u);
   } catch {
     /* ignore */
