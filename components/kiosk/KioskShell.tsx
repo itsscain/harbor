@@ -203,7 +203,16 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       {asleep && inQuietHours(quietStart, quietEnd) ? (
         <SleepMode onWake={() => setAsleep(false)} />
       ) : asleep && screensaverOn ? (
-        <Screensaver kiosk={kiosk} photos={photos} onWake={() => setAsleep(false)} deviceSecret={state.deviceSecret} />
+        <Screensaver
+          kiosk={kiosk}
+          photos={photos}
+          onWake={() => setAsleep(false)}
+          onSelectChild={(id) => {
+            setAsleep(false);
+            setView({ k: "child", id });
+          }}
+          deviceSecret={state.deviceSecret}
+        />
       ) : null}
       </div>
     </div>

@@ -6,10 +6,12 @@ import { startSoundMachine } from "@/lib/kiosk/feedback";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { WeatherWidget } from "./WeatherWidget";
 import { ChildAvatar } from "./ChildAvatar";
+import { GlanceDots } from "./GlanceDots";
 import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { childColor } from "@/lib/kiosk/colors";
+import { childDayStatus } from "@/lib/kiosk/childStatus";
 import { todayKey } from "@/lib/kiosk/db";
 import type { useKiosk } from "./useKiosk";
 
@@ -53,11 +55,13 @@ export function Screensaver({
   kiosk,
   photos,
   onWake,
+  onSelectChild,
   deviceSecret,
 }: {
   kiosk: Kiosk;
   photos: string[];
   onWake: () => void;
+  onSelectChild?: (id: string) => void;
   deviceSecret?: string;
 }) {
   const snap = kiosk.state?.snapshot;
@@ -365,6 +369,17 @@ export function Screensaver({
           </div>
         )}
         {!cur && <div className="flex-1" />}
+
+        {/* Glance dots — every kid's status at a glance, tap to wake into them (§5.4) */}
+        {onSelectChild && kiosk.state && (snap?.children?.length ?? 0) > 0 && (
+          <div className="mb-7 w-full">
+            <GlanceDots
+              children={[...(snap?.children ?? [])].sort((a, b) => a.sort_order - b.sort_order)}
+              statusFor={(id) => childDayStatus(kiosk.state!, id)}
+              onSelect={onSelectChild}
+            />
+          </div>
+        )}
 
         {/* Unlock button — the only way out */}
         <button
