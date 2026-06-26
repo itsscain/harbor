@@ -34,7 +34,7 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
 
   const test = async () => {
     setBusy("test");
-    setResult("Testing… (first time may download the voice)");
+    setResult("Testing…");
     const r = await speakDiag();
     setResult(
       `${r.ok ? "✓ Heard it?" : "✕ Couldn't play"} · via ${labelTier(r.tier)} · ${(r.ms / 1000).toFixed(1)}s — ${r.detail}`,
@@ -101,14 +101,17 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
 
         {/* status grid */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-          <Stat label="Voice model" value={status?.modelReady ? "Ready" : status?.workerDead ? "Unavailable" : status ? `Loading ${Math.round((status.progress || 0) * 100)}%` : "…"} good={status?.modelReady} bad={status?.workerDead} />
+          <Stat label="Voice library" value={status ? `${status.libraryPhrases} phrases` : "…"} good={!!status && status.libraryPhrases > 0} bad={!!status && status.libraryPhrases === 0} />
           <Stat label="Audio" value={status?.audioContext ?? "…"} good={status?.audioContext === "running"} bad={status?.audioContext === "suspended"} />
           <Stat label="Cached clips" value={cacheN == null ? "…" : String(cacheN)} />
-          <Stat label="Acceleration" value={status?.webgpu ? "WebGPU" : "CPU (WASM)"} />
           <Stat label="Device voice" value={status?.osVoice ?? "none"} />
           <Stat label="Secure (https)" value={status?.secureContext ? "Yes" : "No"} good={status?.secureContext} bad={status && !status.secureContext ? true : undefined} />
+          <Stat label="Custom-text model" value={status?.modelReady ? "Ready" : status?.modelLoading ? "Loading…" : "Idle"} />
         </div>
 
+        {status?.lastError && (
+          <p className="mt-3 rounded-xl bg-amber-400/10 px-3 py-2 text-xs text-amber-200">Last issue: {status.lastError}</p>
+        )}
         {result && (
           <p className="mt-3 rounded-xl bg-kraise px-3 py-2.5 text-sm text-ktext">{result}</p>
         )}
@@ -145,7 +148,15 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
 }
 
 function labelTier(t: string) {
-  return t === "kokoro" ? "Harbor voice" : t === "cache" ? "saved clip" : t === "os" ? "device voice" : t;
+  return t === "library"
+    ? "Harbor voice (Bella)"
+    : t === "cache"
+      ? "saved clip"
+      : t === "kokoro"
+        ? "Harbor voice (custom)"
+        : t === "os"
+          ? "device voice"
+          : t;
 }
 
 function Stat({ label, value, good, bad }: { label: string; value: string; good?: boolean; bad?: boolean }) {

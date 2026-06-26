@@ -1,12 +1,15 @@
-// The Harbor Voice (Voice/TTS spec) — free, on-device, offline. One warm consistent
-// voice (Kokoro "af_bella") generated in a Web Worker, cached in a small bounded LRU
-// on the device. No cloud, no API key, $0: the model downloads once (browser Cache
-// Storage) and audio is regenerated for free when evicted. Cascade per spoken request:
+// The Harbor Voice (Voice/TTS) — free, offline, and snappy on cheap tablets. The voice
+// is Kokoro "af_bella", but it is PRE-GENERATED on a capable machine (scripts/gen-voice-
+// kokoro.mjs) and shipped as tiny static WAVs in /public/voice, indexed by /voice-manifest.json.
+// The tablet just PLAYS them — no 92MB model download, no on-device synthesis. Cascade:
 //
-//   1. Device audio cache (IndexedDB, LRU-capped, plays instantly + offline)
-//   2. Kokoro on-device (af_bella) → cache the result → play   ← the Harbor Voice
-//   3. OS voice (Web Speech) — only while the model is still downloading, or if Kokoro
-//      can't run on this device. Never blocks; never silent.
+//   1. Device cache (IndexedDB)            — instant, offline, holds anything played before
+//   2. Shared library (static Bella WAV)   — instant Bella for the common vocabulary
+//   3. OS voice NOW + background Kokoro     — novel/custom text: never wait, never silent;
+//                                            Bella is generated quietly for next time
+//
+// All playback runs through ONE shared AudioContext (same as the chime) so if the chime
+// is audible the voice is too.
 
 import { openDB, type IDBPDatabase } from "idb";
 import { getAudioCtx } from "./audioctx";
@@ -14,7 +17,7 @@ import { getAudioCtx } from "./audioctx";
 /** The Harbor Voice — Kokoro voice id. Bella is warm + gentle (af_sarah is the alt). */
 export const HARBOR_VOICE = "af_bella";
 
-// ── text normalization (§12.3) ───────────────────────────────────────────────────
+// ── text normalization (§12.3) — keep byte-identical to scripts/gen-voice-kokoro.mjs ──
 const EMOJI_RE =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{200D}]/gu;
 const ONES = [
@@ -33,7 +36,6 @@ function numToWords(n: number): string {
   return String(n);
 }
 
-/** Strip emoji + markdown, expand times + small numbers to words, collapse whitespace. */
 export function normalizeForSpeech(text: string): string {
   let t = (text || "").replace(EMOJI_RE, " ").replace(/[*_`#~]/g, "");
   t = t.replace(/\b(\d{1,2}):(\d{2})\b/g, (_m, h, m) => {
@@ -46,7 +48,7 @@ export function normalizeForSpeech(text: string): string {
   return t.replace(/\s+/g, " ").trim();
 }
 
-// ── Tier 3: OS voice fallback ────────────────────────────────────────────────────
+// ── OS voice fallback ────────────────────────────────────────────────────────────
 let cachedVoice: SpeechSynthesisVoice | null | undefined;
 const PREFER = [
   /samantha/i, /aria/i, /jenny/i, /sonia/i, /libby/i, /google us english/i,
@@ -98,12 +100,39 @@ function speakOS(spoken: string) {
   }
 }
 
-// ── Tier 2: Kokoro worker ────────────────────────────────────────────────────────
+// ── shared library manifest (static Bella WAVs) ──────────────────────────────────
+type Manifest = { version?: string; voice?: string; phrases: Record<string, string> };
+let manifestPromise: Promise<Manifest> | null = null;
+
+function loadManifest(): Promise<Manifest> {
+  if (!manifestPromise) {
+    manifestPromise =
+      typeof fetch === "undefined"
+        ? Promise.resolve({ phrases: {} } as Manifest)
+        : fetch("/voice-manifest.json", { cache: "force-cache" })
+            .then((r) => (r.ok ? r.json() : { phrases: {} }))
+            .catch(() => ({ phrases: {} } as Manifest));
+  }
+  return manifestPromise;
+}
+
+async function fetchStatic(url: string): Promise<Blob | null> {
+  try {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return null;
+    const r = await fetch(url, { cache: "force-cache" });
+    return r.ok ? await r.blob() : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── on-device Kokoro worker (background only — for novel/custom text) ─────────────
 let worker: Worker | null = null;
 let modelReady = false;
 let workerDead = false;
 let reqId = 0;
-let lastProgress = 0; // 0..1 model download progress (for the debug panel)
+let lastProgress = 0;
+let lastError: string | null = null;
 const pending = new Map<number, (blob: Blob | null) => void>();
 let readyResolvers: Array<() => void> = [];
 
@@ -113,7 +142,7 @@ function getWorker(): Worker | null {
     try {
       worker = new Worker(new URL("./tts.worker.ts", import.meta.url), { type: "module" });
       worker.onmessage = (e: MessageEvent) => {
-        const d = (e.data || {}) as { id?: number; type?: string; blob?: Blob; data?: { progress?: number } };
+        const d = (e.data || {}) as { id?: number; type?: string; blob?: Blob; error?: string; data?: { progress?: number } };
         if (d.type === "ready") {
           modelReady = true;
           lastProgress = 1;
@@ -127,26 +156,31 @@ function getWorker(): Worker | null {
             pending.delete(d.id);
             r(d.blob ?? null);
           }
-        } else if (d.type === "error" && typeof d.id === "number") {
-          const r = pending.get(d.id);
-          if (r) {
-            pending.delete(d.id);
-            r(null);
+        } else if (d.type === "error") {
+          if (d.error) lastError = d.error;
+          if (typeof d.id === "number") {
+            const r = pending.get(d.id);
+            if (r) {
+              pending.delete(d.id);
+              r(null);
+            }
           }
         }
       };
-      worker.onerror = () => {
-        workerDead = true; // model can't run here → OS voice from now on
+      worker.onerror = (e) => {
+        workerDead = true;
+        lastError = (e as ErrorEvent)?.message || "worker failed to start";
       };
-    } catch {
+    } catch (err) {
       worker = null;
       workerDead = true;
+      lastError = String(err);
     }
   }
   return worker;
 }
 
-/** Start the one-time model download/warm in the background (call when sound is on). */
+/** Start the one-time model load (only needed for novel/custom text). */
 export function prewarmHarborVoice() {
   const w = getWorker();
   if (w) {
@@ -158,7 +192,23 @@ export function prewarmHarborVoice() {
   }
 }
 
-function generate(text: string, voice: string, timeoutMs = 12000): Promise<Blob | null> {
+function waitReady(ms: number): Promise<boolean> {
+  if (modelReady) return Promise.resolve(true);
+  if (workerDead || !getWorker()) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const fn = () => {
+      clearTimeout(to);
+      resolve(true);
+    };
+    const to = setTimeout(() => {
+      readyResolvers = readyResolvers.filter((r) => r !== fn);
+      resolve(false);
+    }, ms);
+    readyResolvers.push(fn);
+  });
+}
+
+function generate(text: string, voice: string, timeoutMs = 60000): Promise<Blob | null> {
   const w = getWorker();
   if (!w) return Promise.resolve(null);
   const id = ++reqId;
@@ -166,6 +216,7 @@ function generate(text: string, voice: string, timeoutMs = 12000): Promise<Blob 
     const t = setTimeout(() => {
       if (pending.has(id)) {
         pending.delete(id);
+        lastError = "generation timed out";
         resolve(null);
       }
     }, timeoutMs);
@@ -183,11 +234,24 @@ function generate(text: string, voice: string, timeoutMs = 12000): Promise<Blob 
   });
 }
 
-// ── Tier 1: bounded LRU audio cache (IndexedDB) — local + free, "temporary" ────────
+/** Generate a novel phrase in the BACKGROUND and cache it for next time (never plays —
+ *  the OS voice already spoke). Lazily loads the model only when novel text occurs. */
+async function backgroundGenerate(key: string, text: string, voice: string) {
+  if (workerDead || !getWorker()) return;
+  if (!modelReady) {
+    prewarmHarborVoice();
+    const ok = await waitReady(60000);
+    if (!ok) return;
+  }
+  const blob = await generate(text, voice, 60000);
+  if (blob) await putCached(key, blob);
+}
+
+// ── device audio cache (IndexedDB, bounded LRU) ──────────────────────────────────
 const A_DB = "harbor-voice";
 const A_AUDIO = "audio";
 const A_META = "meta";
-const CACHE_MAX = 160; // phrases; LRU-evicted so device storage stays small
+const CACHE_MAX = 220;
 let audioDb: Promise<IDBPDatabase> | null = null;
 
 function getAudioDb() {
@@ -207,7 +271,7 @@ async function getCached(key: string): Promise<Blob | null> {
     const db = await getAudioDb();
     const b = (await db.get(A_AUDIO, key)) as Blob | undefined;
     if (b) {
-      void db.put(A_META, Date.now(), key); // touch for LRU
+      void db.put(A_META, Date.now(), key);
       return b;
     }
     return null;
@@ -240,14 +304,14 @@ async function putCached(key: string, blob: Blob) {
   }
 }
 
-// ── playback + cascade ───────────────────────────────────────────────────────────
+// ── playback ─────────────────────────────────────────────────────────────────────
 let currentAudio: HTMLAudioElement | null = null;
 let currentUrl: string | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
 let playSeq = 0;
 
 export function stopHarborVoice() {
-  playSeq++; // invalidate any in-flight async playback
+  playSeq++;
   try {
     if (currentSource) {
       try {
@@ -278,16 +342,14 @@ export function stopHarborVoice() {
 }
 
 async function playBlob(blob: Blob, seq: number): Promise<boolean> {
-  // Prefer the shared AudioContext — the SAME path as the chime, which the tablet has
-  // already unlocked. HTMLAudioElement.play() is gated separately and can be silently
-  // blocked after a refresh, so Web Audio is the reliable path.
+  // Prefer the shared AudioContext — the SAME path as the chime (unlocked by a tap).
   const ctx = getAudioCtx();
   if (ctx) {
     try {
       if (ctx.state === "suspended") await ctx.resume();
       const buf = await blob.arrayBuffer();
       const audioBuf = await ctx.decodeAudioData(buf);
-      if (seq !== playSeq) return false; // superseded while decoding
+      if (seq !== playSeq) return false;
       if (currentSource) {
         try {
           currentSource.stop();
@@ -305,10 +367,9 @@ async function playBlob(blob: Blob, seq: number): Promise<boolean> {
       src.start();
       return true;
     } catch {
-      /* fall through to HTMLAudioElement */
+      /* fall through */
     }
   }
-  // Fallback: HTMLAudioElement (older browsers / no Web Audio).
   if (seq !== playSeq) return false;
   try {
     const url = URL.createObjectURL(blob);
@@ -328,7 +389,7 @@ async function playBlob(blob: Blob, seq: number): Promise<boolean> {
   }
 }
 
-/** Speak in the Harbor Voice via the cascade. Fire-and-forget; never throws/blocks. */
+/** Speak in the Harbor Voice via the cascade. Fire-and-forget; never blocks. */
 export function playHarborVoice(text: string, voice: string = HARBOR_VOICE) {
   if (typeof window === "undefined") return;
   const spoken = normalizeForSpeech(text);
@@ -344,68 +405,55 @@ export function playHarborVoice(text: string, voice: string = HARBOR_VOICE) {
       void playBlob(cached, seq);
       return;
     }
-    // 2) Kokoro if the model is loaded; otherwise OS now + warm for next time
-    if (modelReady && getWorker()) {
-      const blob = await generate(spoken, voice);
-      if (blob) void putCached(key, blob); // cache even if superseded
-      if (seq !== playSeq) return;
+    // 2) shared static library (Bella) → fetch + cache + play
+    const url = (await loadManifest()).phrases?.[spoken];
+    if (url) {
+      const blob = await fetchStatic(url);
       if (blob) {
+        void putCached(key, blob);
+        if (seq !== playSeq) return;
         void playBlob(blob, seq);
         return;
       }
-    } else {
-      prewarmHarborVoice(); // kick off the one-time model load
     }
-    // 3) OS fallback (model not ready yet, or generation failed)
+    // 3) novel text → speak instantly with the OS voice; generate Bella in the
+    //    background so it's instant next time. Never wait, never silent.
     if (seq !== playSeq) return;
     speakOS(spoken);
+    void backgroundGenerate(key, spoken, voice);
   })();
 }
 
 // ── debug / diagnostics (Parent menu → Debug tools) ──────────────────────────────
-function waitReady(ms: number): Promise<boolean> {
-  if (modelReady) return Promise.resolve(true);
-  if (workerDead || !getWorker()) return Promise.resolve(false);
-  return new Promise((resolve) => {
-    const fn = () => {
-      clearTimeout(to);
-      resolve(true);
-    };
-    const to = setTimeout(() => {
-      readyResolvers = readyResolvers.filter((r) => r !== fn);
-      resolve(false);
-    }, ms);
-    readyResolvers.push(fn);
-  });
-}
-
 export type VoiceStatus = {
   supported: boolean;
   secureContext: boolean;
-  webgpu: boolean;
-  hasWorker: boolean;
-  workerDead: boolean;
-  modelReady: boolean;
-  progress: number;
+  libraryPhrases: number;
   audioContext: string;
   osVoice: string | null;
+  modelReady: boolean;
+  modelLoading: boolean;
+  lastError: string | null;
 };
 
-/** A synchronous snapshot for the debug panel. */
 export function getVoiceStatus(): VoiceStatus {
   const ctx = getAudioCtx();
   return {
-    supported: typeof Worker !== "undefined",
+    supported: typeof window !== "undefined",
     secureContext: typeof window !== "undefined" ? window.isSecureContext : false,
-    webgpu: typeof navigator !== "undefined" && "gpu" in navigator,
-    hasWorker: !!worker,
-    workerDead,
-    modelReady,
-    progress: lastProgress,
+    libraryPhrases: manifestCount,
     audioContext: ctx ? ctx.state : "none",
     osVoice: harborVoice()?.name ?? null,
+    modelReady,
+    modelLoading: !!worker && !modelReady && !workerDead,
+    lastError,
   };
 }
+
+let manifestCount = 0;
+void loadManifest().then((m) => {
+  manifestCount = Object.keys(m.phrases || {}).length;
+});
 
 export async function voiceCacheCount(): Promise<number> {
   try {
@@ -416,12 +464,12 @@ export async function voiceCacheCount(): Promise<number> {
   }
 }
 
-/** Run the full cascade and REPORT which tier played — for the debug "Test voice"
- *  button. Being called from a tap also unlocks audio. Returns the outcome. */
+/** Run the cascade for a known LIBRARY phrase and report which tier played — the
+ *  parent "Test voice" button. The tap also unlocks audio. */
 export async function speakDiag(
-  text = "Hi, this is the Harbor voice. Can you hear me?",
+  text = "You did it",
   voice: string = HARBOR_VOICE,
-): Promise<{ tier: "cache" | "kokoro" | "os" | "none"; ok: boolean; ms: number; detail: string }> {
+): Promise<{ tier: "cache" | "library" | "os" | "kokoro" | "none"; ok: boolean; ms: number; detail: string }> {
   const t0 = Date.now();
   const ms = () => Date.now() - t0;
   if (typeof window === "undefined") return { tier: "none", ok: false, ms: 0, detail: "no window" };
@@ -443,34 +491,28 @@ export async function speakDiag(
     return { tier: "cache", ok, ms: ms(), detail: ok ? "played from cache" : "decode/playback failed" };
   }
 
-  if (getWorker() && !workerDead) {
-    if (!modelReady) {
-      prewarmHarborVoice();
-      await waitReady(25000);
+  const url = (await loadManifest()).phrases?.[spoken];
+  if (url) {
+    const blob = await fetchStatic(url);
+    if (blob) {
+      void putCached(key, blob);
+      const ok = await playBlob(blob, seq);
+      return {
+        tier: "library",
+        ok,
+        ms: ms(),
+        detail: ok ? "played the Harbor voice (Bella)" : "downloaded but playback failed — check Audio state",
+      };
     }
-    if (modelReady) {
-      const blob = await generate(spoken, voice, 25000);
-      if (blob) {
-        void putCached(key, blob);
-        const ok = await playBlob(blob, seq);
-        return { tier: "kokoro", ok, ms: ms(), detail: ok ? "generated + played" : "generated but playback failed" };
-      }
-      return { tier: "kokoro", ok: false, ms: ms(), detail: "generation failed/timed out" };
-    }
+    return { tier: "library", ok: false, ms: ms(), detail: "couldn't download the clip — check Wi-Fi" };
   }
 
   speakOS(spoken);
-  const osOk = "speechSynthesis" in window;
-  return {
-    tier: "os",
-    ok: osOk,
-    ms: ms(),
-    detail: workerDead ? "Kokoro can't run here — used device voice" : "model still loading — used device voice",
-  };
+  return { tier: "os", ok: "speechSynthesis" in window, ms: ms(), detail: "phrase not in library — used device voice" };
 }
 
-/** Reset the worker (and optionally drop the cached model) so the next play reloads. */
 export async function reloadVoiceEngine(clearModel = false): Promise<void> {
+  manifestPromise = null;
   try {
     worker?.terminate();
   } catch {
@@ -480,8 +522,12 @@ export async function reloadVoiceEngine(clearModel = false): Promise<void> {
   modelReady = false;
   workerDead = false;
   lastProgress = 0;
+  lastError = null;
   readyResolvers = [];
   pending.clear();
+  void loadManifest().then((m) => {
+    manifestCount = Object.keys(m.phrases || {}).length;
+  });
   if (clearModel && typeof caches !== "undefined") {
     try {
       await caches.delete("transformers-cache");
@@ -492,7 +538,6 @@ export async function reloadVoiceEngine(clearModel = false): Promise<void> {
   }
 }
 
-/** Empty the on-device generated-audio cache. */
 export async function clearVoiceCache(): Promise<void> {
   try {
     const db = await getAudioDb();

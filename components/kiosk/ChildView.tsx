@@ -30,7 +30,6 @@ import { childColor } from "@/lib/kiosk/colors";
 import { accentRamp, accentVars } from "@/lib/kiosk/accent";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, chime, haptic, cheer, play, HAPTIC } from "@/lib/kiosk/feedback";
-import { prewarmHarborVoice } from "@/lib/kiosk/voice";
 import { activeStreak } from "@/lib/kiosk/streak";
 import { StreakBadge } from "./StreakBadge";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
@@ -88,12 +87,6 @@ export function ChildView({
     return () => clearInterval(id);
   }, []);
 
-  // Warm the on-device Harbor Voice (Kokoro) in the background when a child who uses
-  // read-aloud opens their screen, so the ~one-time model download is done before the
-  // first tap — the first read sounds like Bella, not the OS fallback. Free + offline.
-  useEffect(() => {
-    if (settings?.readAloud || settings?.autoRead) prewarmHarborVoice();
-  }, [settings?.readAloud, settings?.autoRead]);
 
   const routines = useMemo(() => {
     if (!state || !child) return [];
