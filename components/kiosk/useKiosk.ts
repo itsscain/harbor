@@ -10,6 +10,7 @@ import {
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
 import { nextStreak } from "@/lib/kiosk/streak";
+import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
 import { createClient } from "@/lib/supabase/client";
 import type {
   KioskState,
@@ -65,6 +66,16 @@ export function useKiosk() {
     },
     [],
   );
+
+  // Clock-integrity watch (§1.2): track the wall clock and flag a backward jump as
+  // suspect (real time never reverses — that's a kid changing the device clock to
+  // re-earn). Cleared + re-anchored to server time on the next sync (applyPull).
+  useEffect(() => {
+    const tick = () =>
+      update((s) => ({ ...s, lastSeenWall: Date.now(), clockSuspect: s.clockSuspect || clockJumpedBack(s) }));
+    const id = window.setInterval(tick, 90_000);
+    return () => window.clearInterval(id);
+  }, [update]);
 
   // Background sync (no-op unless online + Plus). Daily use never needs this.
   // Reconciles against live state: mutations enqueued during the network await
@@ -226,8 +237,9 @@ export function useKiosk() {
             {
               kind: "completion",
               // Deterministic key (Edge Cases §1.1): same child+step+day → one award,
-              // across devices and re-completes (server dedupes on client_op_id).
-              op_id: `${childId}:step:${step.id}:${today}`,
+              // across devices and re-completes. The day is TRUSTED (§1.2 serviceDay)
+              // so a clock change can't mint a new key (frozen when clock is suspect).
+              op_id: `${childId}:step:${step.id}:${serviceDay(s)}`,
               child_id: childId,
               step_id: step.id,
               points: step.reward_points,
@@ -264,8 +276,9 @@ export function useKiosk() {
             ...s.outbox,
             {
               kind: "chore_done",
-              // Deterministic key (Edge Cases §1.1) — one award per child+chore+day.
-              op_id: `${childId}:chore:${chore.id}:${today}`,
+              // Deterministic key (§1.1) on the TRUSTED day (§1.2) — one award per
+              // child+chore+day, clock-tamper-resistant.
+              op_id: `${childId}:chore:${chore.id}:${serviceDay(s)}`,
               child_id: childId,
               chore_id: chore.id,
               points: chore.points,

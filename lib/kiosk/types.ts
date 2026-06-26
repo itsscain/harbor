@@ -261,6 +261,13 @@ export type KioskState = {
   autoSoften?: Record<string, string>;
   /** Per-child completion streaks (local-first). childId → { count, lastDate }. */
   streaks?: Record<string, { count: number; lastDate: string }>;
+  /** Time integrity (§1.2): wall-clock at the last sync (anchors trusted "now" with
+   *  state.lastSync = server time), the last trusted service day, the last observed
+   *  wall clock, and whether the clock looks tampered. */
+  trustedAt?: number;
+  lastTrustedDay?: string;
+  lastSeenWall?: number;
+  clockSuspect?: boolean;
   /** Pending mutations to push when online + Plus active. */
   outbox: Mutation[];
 };

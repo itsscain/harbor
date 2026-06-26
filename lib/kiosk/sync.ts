@@ -98,6 +98,14 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
       server_time: snap.server_time,
     },
     lastSync: snap.server_time,
+    // Re-anchor trusted time (§1.2): the server time is fresh + clears any clock-
+    // suspect flag; record the wall clock + trusted day for the offset + freeze.
+    trustedAt: Date.now(),
+    lastTrustedDay: snap.server_time
+      ? `${new Date(snap.server_time).getFullYear()}-${String(new Date(snap.server_time).getMonth() + 1).padStart(2, "0")}-${String(new Date(snap.server_time).getDate()).padStart(2, "0")}`
+      : state.lastTrustedDay,
+    lastSeenWall: Date.now(),
+    clockSuspect: false,
   };
   // Apply hard-deletion tombstones: drop the child + everything tied to it locally.
   const childDeletions = new Set(

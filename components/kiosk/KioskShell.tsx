@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart } from "lucide-react";
+import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart, Clock } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
@@ -136,6 +136,12 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       </div>
 
       <div className="relative z-10">
+      {/* Clock-suspect flag (§1.2) — calm, parent-facing, never alarming. */}
+      {state.clockSuspect && !asleep && (
+        <div className="fixed inset-x-0 top-0 z-[25] flex items-center justify-center gap-2 bg-amber-400/15 px-4 py-2 text-center text-sm font-medium text-amber-200 backdrop-blur">
+          <Clock className="h-4 w-4 shrink-0" /> The wall&apos;s clock changed — reconnecting to keep the day in sync.
+        </div>
+      )}
       {/* Adaptive top bar — secondary surfaces get a ← Harbor home (§4.2) */}
       {isSecondary && (
         <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-kline/50 bg-kbg2/80 px-4 py-3 backdrop-blur-md">
