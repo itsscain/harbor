@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, Badge, Input, Field, Select, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
-import { StepRow } from "@/components/app/StepRow";
+import { RoutineCard } from "@/components/app/RoutineCard";
+import { Disclosure } from "@/components/app/Disclosure";
 import { GroundingCard } from "@/components/app/GroundingCard";
 import { CornerCard, type CornerRow } from "@/components/app/CornerCard";
 import { TidesCard } from "@/components/app/TidesCard";
@@ -20,9 +21,6 @@ import {
   addRoutine,
   addRoutineFromTemplate,
   addGradeRoutines,
-  updateRoutine,
-  deleteRoutine,
-  addStep,
   createChore,
   updateChore,
   deleteChore,
@@ -134,8 +132,124 @@ export default async function ChildDetail({
         </div>
       </div>
 
-      <Card className="mb-4">
-        <h2 className="text-title text-harbor">Profile</h2>
+      {(() => {
+        const earned = new Map((skill ?? []).map((s) => [s.step_id as string, s.level_earned as number]));
+        const allSteps = steps ?? [];
+        const onOwn = allSteps.filter(
+          (s) => Math.min(4, ((s.support_level as number) ?? 1) + (earned.get(s.id) ?? 0)) >= 4,
+        ).length;
+        const faded = allSteps.reduce(
+          (n, s) => n + Math.max(0, Math.min(earned.get(s.id) ?? 0, 4 - ((s.support_level as number) ?? 1))),
+          0,
+        );
+        if (allSteps.length === 0) return null;
+        return (
+          <Card className="mb-4 flex items-center gap-3 bg-harbor-50/50">
+            <span className="text-2xl">🧭</span>
+            <p className="text-sm text-ink">
+              <b>Growing toward independence.</b> {onOwn} of {allSteps.length}{" "}
+              {allSteps.length === 1 ? "step" : "steps"} on their own
+              {faded > 0 ? ` · ${faded} prompt${faded === 1 ? "" : "s"} faded` : ""}.
+            </p>
+          </Card>
+        );
+      })()}
+
+      <div className="mb-2 flex items-center gap-2 text-sm text-muted">
+        <RefreshCw className="h-4 w-4" />
+        Changes save here and sync to your wall (with Harbor Plus).
+      </div>
+
+      <div className="space-y-3">
+        {(routines ?? []).map((r) => (
+          <RoutineCard
+            key={r.id}
+            routine={r}
+            steps={(steps ?? []).filter((s) => s.routine_id === r.id)}
+            childId={child.id}
+          />
+        ))}
+      </div>
+
+      {/* add routine */}
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <div>
+            <span className="text-title text-harbor">Add a routine</span>
+            <span className="mt-0.5 block text-sm text-muted">Start from a template or build your own</span>
+          </div>
+        }>
+        <p className="mt-1 text-sm text-muted">Quick start by grade — adds Morning, After school &amp; Bedtime, tuned for their age:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["kindergarten", "🎒 Kindergarten"],
+            ["grade2", "✏️ 2nd grade"],
+            ["grade4", "📚 4th grade"],
+          ].map(([key, label]) => (
+            <form key={key} action={addGradeRoutines.bind(null, child.id)}>
+              <input type="hidden" name="grade" value={key} />
+              <SubmitButton size="sm" variant="beacon" savedText="Added">{label}</SubmitButton>
+            </form>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted">Or add a single routine from a template:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["morning", "🌅 Morning"],
+            ["midday", "☀️ Summer day"],
+            ["bedtime", "🌙 Bedtime"],
+            ["afterschool", "🍎 After school"],
+            ["firstthen", "🔁 First / Then"],
+          ].map(([key, label]) => (
+            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
+              <input type="hidden" name="template" value={key} />
+              <SubmitButton size="sm" variant="secondary" savedText="Added">
+                {label}
+              </SubmitButton>
+            </form>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted">Designed around needs — a calm, expert starting point:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["adhd_morning", "⚡ ADHD morning"],
+            ["autism_bedtime", "🧩 Autism bedtime"],
+            ["anxiety_winddown", "🫧 Anxiety wind-down"],
+            ["low_demand", "💛 Low-demand day"],
+          ].map(([key, label]) => (
+            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
+              <input type="hidden" name="template" value={key} />
+              <SubmitButton size="sm" variant="secondary" savedText="Added">
+                {label}
+              </SubmitButton>
+            </form>
+          ))}
+        </div>
+        <p className="mt-4 text-sm font-semibold text-harbor">…or build your own:</p>
+        <form action={addRoutine.bind(null, child.id)} className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+          <Field label="Name">
+            <Input name="name" required placeholder="Morning, Bedtime…" />
+          </Field>
+          <Field label="Type">
+            <Select name="type" defaultValue="schedule">
+              <option value="schedule">Schedule (checklist)</option>
+              <option value="first_then">First–Then board</option>
+            </Select>
+          </Field>
+          <div className="flex items-end">
+            <SubmitButton>Add</SubmitButton>
+          </div>
+        </form>
+        </Disclosure>
+      </Card>
+
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <div>
+            <span className="text-title text-harbor">Profile</span>
+            <span className="mt-0.5 block text-sm text-muted">Photo, name, birthday, color</span>
+          </div>
+        }>
         <div className="mt-3 border-b border-harbor-100 pb-4">
           <ChildPhotoField
             childId={child.id}
@@ -177,10 +291,16 @@ export default async function ChildDetail({
           </Field>
           <SubmitButton variant="secondary">Save</SubmitButton>
         </form>
+        </Disclosure>
       </Card>
 
-      <Card className="mb-4">
-        <h2 className="text-title text-harbor">Accessibility &amp; wall</h2>
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <div>
+            <span className="text-title text-harbor">Accessibility & wall</span>
+            <span className="mt-0.5 block text-sm text-muted">Read-aloud, sound, sensory, theme, bedtime</span>
+          </div>
+        }>
         <p className="text-sm text-muted">How {child.name}&apos;s wall reads, sounds, and feels.</p>
         <form action={updateChildSettings.bind(null, child.id)} className="mt-3 space-y-3">
           <div className="divide-y divide-harbor-100 rounded-xl border border-harbor-100">
@@ -221,6 +341,7 @@ export default async function ChildDetail({
           </div>
           <SubmitButton variant="secondary">Save accessibility</SubmitButton>
         </form>
+        </Disclosure>
       </Card>
 
       <div className="mb-4">
@@ -250,8 +371,13 @@ export default async function ChildDetail({
       </div>
 
       {/* Chores */}
-      <Card className="mb-4">
-        <h3 className="text-title text-harbor">Chores</h3>
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <div>
+            <span className="text-title text-harbor">Chores</span>
+            <span className="mt-0.5 block text-sm text-muted">Tasks to earn stars on the wall</span>
+          </div>
+        }>
         <p className="mt-1 text-sm text-muted">
           Tasks {child.name} checks off on the wall to earn stars. They show on the family chore board.
         </p>
@@ -348,6 +474,7 @@ export default async function ChildDetail({
           </label>
           <SubmitButton variant="secondary">Add chore</SubmitButton>
         </form>
+        </Disclosure>
       </Card>
 
       <div className="mb-4">
@@ -358,185 +485,6 @@ export default async function ChildDetail({
         />
       </div>
 
-      {(() => {
-        const earned = new Map((skill ?? []).map((s) => [s.step_id as string, s.level_earned as number]));
-        const allSteps = steps ?? [];
-        const onOwn = allSteps.filter(
-          (s) => Math.min(4, ((s.support_level as number) ?? 1) + (earned.get(s.id) ?? 0)) >= 4,
-        ).length;
-        const faded = allSteps.reduce(
-          (n, s) => n + Math.max(0, Math.min(earned.get(s.id) ?? 0, 4 - ((s.support_level as number) ?? 1))),
-          0,
-        );
-        if (allSteps.length === 0) return null;
-        return (
-          <Card className="mb-4 flex items-center gap-3 bg-harbor-50/50">
-            <span className="text-2xl">🧭</span>
-            <p className="text-sm text-ink">
-              <b>Growing toward independence.</b> {onOwn} of {allSteps.length}{" "}
-              {allSteps.length === 1 ? "step" : "steps"} on their own
-              {faded > 0 ? ` · ${faded} prompt${faded === 1 ? "" : "s"} faded` : ""}.
-            </p>
-          </Card>
-        );
-      })()}
-
-      <div className="mb-2 flex items-center gap-2 text-sm text-muted">
-        <RefreshCw className="h-4 w-4" />
-        Changes save here and sync to your wall (with Harbor Plus).
-      </div>
-
-      {(routines ?? []).map((r) => {
-        const rSteps = (steps ?? []).filter((s) => s.routine_id === r.id);
-        return (
-          <Card key={r.id} className="mb-4">
-            {/* Routine header */}
-            <form action={updateRoutine.bind(null, r.id, child.id)} className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  name="name"
-                  defaultValue={r.name}
-                  aria-label="Routine name"
-                  className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-title text-harbor outline-none focus:bg-surface-sunken"
-                />
-                <Badge tone="neutral">{titleCase(r.type)}</Badge>
-                <Switch name="active" label="Active" defaultChecked={r.active} />
-                <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
-              </div>
-              <details className="rounded-xl bg-surface-sunken px-3 py-2">
-                <summary className="cursor-pointer select-none text-sm font-semibold text-water">Schedule &amp; days</summary>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <Field label="Starts (time-aware)">
-                    <Input name="start_time" type="time" defaultValue={r.start_time ? r.start_time.slice(0, 5) : ""} />
-                  </Field>
-                  <Field label="Ends">
-                    <Input name="end_time" type="time" defaultValue={r.end_time ? r.end_time.slice(0, 5) : ""} />
-                  </Field>
-                  <Field label="Order">
-                    <Input name="sort_order" type="number" defaultValue={r.sort_order} className="w-24" />
-                  </Field>
-                  <Field label="Days" className="sm:col-span-3">
-                    <div className="flex flex-wrap gap-1">
-                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
-                        <label key={i} className="cursor-pointer">
-                          <input type="checkbox" name="days" value={i} defaultChecked={(r.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                          <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
-                            {d}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </Field>
-                </div>
-              </details>
-            </form>
-
-            {/* Steps */}
-            <div className="mt-4 space-y-2">
-              {rSteps.length === 0 && (
-                <p className="rounded-xl bg-surface-sunken px-3 py-4 text-center text-sm text-muted">
-                  No steps yet — add the first one below.
-                </p>
-              )}
-              {rSteps.map((s, i) => (
-                <StepRow key={s.id} step={s} childId={child.id} isFirst={i === 0} isLast={i === rSteps.length - 1} />
-              ))}
-            </div>
-
-            {/* add step — one quiet affordance */}
-            <form
-              action={addStep.bind(null, r.id, child.id)}
-              className="mt-3 flex items-center gap-2 border-t border-harbor-100 pt-3"
-            >
-              <Input name="icon" placeholder="➕" aria-label="Emoji" className="w-14 shrink-0 text-center text-xl" />
-              <Input name="label" placeholder="Add a step…" required className="flex-1" />
-              {r.type === "first_then" ? (
-                <Select name="step_type" defaultValue="first" aria-label="First or Then" className="w-28 shrink-0">
-                  <option value="first">First</option>
-                  <option value="then">Then</option>
-                </Select>
-              ) : (
-                <input type="hidden" name="step_type" value="task" />
-              )}
-              <SubmitButton size="sm">Add</SubmitButton>
-            </form>
-
-            <div className="mt-4 flex justify-end">
-              <form action={deleteRoutine.bind(null, r.id, child.id)}>
-                <ConfirmSubmit message={`Delete the "${r.name}" routine and its steps?`}>
-                  <Trash2 className="h-4 w-4" /> Delete routine
-                </ConfirmSubmit>
-              </form>
-            </div>
-          </Card>
-        );
-      })}
-
-      {/* add routine */}
-      <Card className="mb-4">
-        <h3 className="text-title text-harbor">Add a routine</h3>
-        <p className="mt-1 text-sm text-muted">Quick start by grade — adds Morning, After school &amp; Bedtime, tuned for their age:</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[
-            ["kindergarten", "🎒 Kindergarten"],
-            ["grade2", "✏️ 2nd grade"],
-            ["grade4", "📚 4th grade"],
-          ].map(([key, label]) => (
-            <form key={key} action={addGradeRoutines.bind(null, child.id)}>
-              <input type="hidden" name="grade" value={key} />
-              <SubmitButton size="sm" variant="beacon" savedText="Added">{label}</SubmitButton>
-            </form>
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-muted">Or add a single routine from a template:</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[
-            ["morning", "🌅 Morning"],
-            ["midday", "☀️ Summer day"],
-            ["bedtime", "🌙 Bedtime"],
-            ["afterschool", "🍎 After school"],
-            ["firstthen", "🔁 First / Then"],
-          ].map(([key, label]) => (
-            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
-              <input type="hidden" name="template" value={key} />
-              <SubmitButton size="sm" variant="secondary" savedText="Added">
-                {label}
-              </SubmitButton>
-            </form>
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-muted">Designed around needs — a calm, expert starting point:</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[
-            ["adhd_morning", "⚡ ADHD morning"],
-            ["autism_bedtime", "🧩 Autism bedtime"],
-            ["anxiety_winddown", "🫧 Anxiety wind-down"],
-            ["low_demand", "💛 Low-demand day"],
-          ].map(([key, label]) => (
-            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
-              <input type="hidden" name="template" value={key} />
-              <SubmitButton size="sm" variant="secondary" savedText="Added">
-                {label}
-              </SubmitButton>
-            </form>
-          ))}
-        </div>
-        <p className="mt-4 text-sm font-semibold text-harbor">…or build your own:</p>
-        <form action={addRoutine.bind(null, child.id)} className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <Field label="Name">
-            <Input name="name" required placeholder="Morning, Bedtime…" />
-          </Field>
-          <Field label="Type">
-            <Select name="type" defaultValue="schedule">
-              <option value="schedule">Schedule (checklist)</option>
-              <option value="first_then">First–Then board</option>
-            </Select>
-          </Field>
-          <div className="flex items-end">
-            <SubmitButton>Add</SubmitButton>
-          </div>
-        </form>
-      </Card>
 
       <Card className="border-red-200">
         <h3 className="text-title text-red-700">Danger zone</h3>
