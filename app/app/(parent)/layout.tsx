@@ -3,6 +3,7 @@ import { ParentNav } from "@/components/app/ParentNav";
 import { ParentRail } from "@/components/app/ParentRail";
 import { AccountMenu } from "@/components/app/AccountMenu";
 import { RouteTransition } from "@/components/app/RouteTransition";
+import { RealtimeRefresh } from "@/components/app/RealtimeRefresh";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 
@@ -16,6 +17,7 @@ export default async function ParentLayout({
 
   return (
     <div className="min-h-screen bg-seafog">
+      {household?.id && <RealtimeRefresh householdId={household.id} />}
       {/* Desktop: persistent command rail (The Helm). Mobile: bottom nav. */}
       <ParentRail householdName={household?.name} />
       <div className="lg:pl-64">

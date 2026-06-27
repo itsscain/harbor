@@ -9,6 +9,7 @@ import {
   todayKey,
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
+import { subscribeHousehold } from "@/lib/kiosk/realtime";
 import { nextStreak } from "@/lib/kiosk/streak";
 import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
 import { SKILL_THRESHOLD } from "@/lib/kiosk/skill";
@@ -170,6 +171,26 @@ export function useKiosk() {
       window.clearInterval(fullId);
     };
   }, [runSync]);
+
+  // Realtime nudge (Real-Time §4) — a parent's change reaches the wall in < 1s instead
+  // of waiting for the 30s poll. Subscribe to the household's public, data-free topic;
+  // on a nudge, debounce + delta-pull (the same authoritative path as the poll, so the
+  // two can never diverge). The 30s poll + reconcile-on-wake remain the backstop.
+  const householdId = state?.snapshot.household.id;
+  const plusActive = state?.snapshot.household.plus_active ?? false;
+  useEffect(() => {
+    if (!householdId || !plusActive) return;
+    let t: number | undefined;
+    const nudge = () => {
+      window.clearTimeout(t);
+      t = window.setTimeout(() => void runSync(), 400);
+    };
+    const unsub = subscribeHousehold(householdId, nudge);
+    return () => {
+      window.clearTimeout(t);
+      unsub();
+    };
+  }, [householdId, plusActive, runSync]);
 
   // ── Setup / pairing ─────────────────────────────────────────────────────────
   const pair = useCallback(async (code: string) => {
