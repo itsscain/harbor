@@ -66,6 +66,11 @@ export default async function ChildDetail({
         .order("order_index")
     : { data: [] };
 
+  const { data: skill } = await supabase
+    .from("skill_progress")
+    .select("step_id, level_earned")
+    .eq("child_id", id);
+
   const { data: grounding } = await supabase
     .from("groundings")
     .select("*")
@@ -352,6 +357,29 @@ export default async function ChildDetail({
           profile={(child.ai_profile as AiProfile) ?? null}
         />
       </div>
+
+      {(() => {
+        const earned = new Map((skill ?? []).map((s) => [s.step_id as string, s.level_earned as number]));
+        const allSteps = steps ?? [];
+        const onOwn = allSteps.filter(
+          (s) => Math.min(4, ((s.support_level as number) ?? 1) + (earned.get(s.id) ?? 0)) >= 4,
+        ).length;
+        const faded = allSteps.reduce(
+          (n, s) => n + Math.max(0, Math.min(earned.get(s.id) ?? 0, 4 - ((s.support_level as number) ?? 1))),
+          0,
+        );
+        if (allSteps.length === 0) return null;
+        return (
+          <Card className="mb-4 flex items-center gap-3 bg-harbor-50/50">
+            <span className="text-2xl">🧭</span>
+            <p className="text-sm text-ink">
+              <b>Growing toward independence.</b> {onOwn} of {allSteps.length}{" "}
+              {allSteps.length === 1 ? "step" : "steps"} on their own
+              {faded > 0 ? ` · ${faded} prompt${faded === 1 ? "" : "s"} faded` : ""}.
+            </p>
+          </Card>
+        );
+      })()}
 
       <div className="mb-2 flex items-center gap-2 text-sm text-muted">
         <RefreshCw className="h-4 w-4" />

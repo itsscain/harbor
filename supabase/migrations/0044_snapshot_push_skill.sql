@@ -1,0 +1,9 @@
+-- Recreated FROM THE LIVE defs (on the 0043 base): kiosk_snapshot now carries
+-- `skill_progress` (per child); routine_steps already carry `support_level` via to_jsonb.
+-- rpc_kiosk_push accepts a `skill_progress` payload — an UPSERT keyed on (child_id, step_id)
+-- that never decreases level_earned (level_earned = greatest(existing, incoming)); the wall
+-- is the source of truth for earned independence.
+--
+-- Full bodies applied via migration 0044_snapshot_push_skill. Snapshot adds, after
+-- medication_logs: 'skill_progress' (skill_progress join children where household = p_household,
+-- delta on updated_at). Push adds a skill_progress loop before redemptions.

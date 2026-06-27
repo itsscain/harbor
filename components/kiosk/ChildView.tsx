@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Star,
   Check,
@@ -17,6 +17,7 @@ import {
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore, KioskMedication } from "@/lib/kiosk/types";
 import { dueDoses } from "@/lib/kiosk/medication";
+import { effectiveLevel, SUPPORT_LABELS } from "@/lib/kiosk/skill";
 import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
@@ -134,6 +135,20 @@ export function ChildView({
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
   const [medOpen, setMedOpen] = useState<{ med: KioskMedication; time: string } | null>(null);
+  const [levelUp, setLevelUp] = useState<string | null>(null);
+  const lastLevelN = useRef(0);
+  // A calm, proud independence moment (§4.4) — NOT the points confetti.
+  useEffect(() => {
+    const lu = state?.lastLevelUp;
+    if (!lu || lu.childId !== childId || lu.n === lastLevelN.current) return;
+    lastLevelN.current = lu.n;
+    const label = state?.snapshot.steps.find((s) => s.id === lu.stepId)?.label ?? "that";
+    setLevelUp(label);
+    speak("Look at you go", settings?.readAloud ?? false);
+    const t = setTimeout(() => setLevelUp(null), 4500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.lastLevelUp?.n, childId]);
 
   // Honor the per-child "auto-read on open" accessibility setting: speak the
   // routine name once when it opens (not on every render).
@@ -165,6 +180,7 @@ export function ChildView({
   const points = state.points[child.id] ?? 0;
   const grounding = activeGroundingFor(state.snapshot.groundings, child.id);
   const due = dueDoses(state, child.id); // §4.3 medication doses due now (calm, separate)
+  const lvl = (s: KioskStep) => effectiveLevel(state, child!.id, s); // §4.4 effective skill level
   const corner = (state.snapshot.corners ?? []).find((c) => c.child_id === child.id && c.status === "active") ?? null;
   // Auto-soften (§9.1.3): after a rough Anchor today, run gentler celebration.
   const softenedToday = state.autoSoften?.[child.id] === today;
@@ -377,6 +393,16 @@ export function ChildView({
             🌙 Taking it easy today
           </p>
         )}
+        {/* Independence level-up (§4.4) — calm + proud, not bribed. */}
+        {levelUp && (
+          <div
+            className="mb-4 flex items-center justify-center gap-3 rounded-2xl p-4 text-center font-display text-xl font-bold text-ktext ring-1"
+            style={{ background: "var(--accent-soft)", borderColor: "var(--accent-glow)" }}
+          >
+            <span className="text-2xl">🧭</span>
+            You&apos;re doing <span style={{ color: "var(--accent-text)" }}>{levelUp}</span> with less help now — look at you go!
+          </div>
+        )}
         {/* Medicine time (§4.3) — calm + separate from steps. No points, ever. */}
         {due.length > 0 && (
           <div className="mb-4 rounded-2xl bg-kraise p-4 ring-1 ring-kline/40">
@@ -496,9 +522,9 @@ export function ChildView({
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-                <StepCard step={firstStep} label="First" done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
+                <StepCard step={firstStep} label="First" level={lvl(firstStep)} done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
-                <StepCard step={thenStep} label="Then" done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
+                <StepCard step={thenStep} label="Then" level={lvl(thenStep)} done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : allDone ? (
               <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
@@ -515,6 +541,7 @@ export function ChildView({
                     {current && (
                       <NowCard
                         step={current}
+                        level={lvl(current)}
                         reducedMotion={settings.reducedMotion}
                         onTap={() => complete(current)}
                         onSpeak={() => speak(current.label, settings.readAloud)}
@@ -526,6 +553,7 @@ export function ChildView({
                           <StepCard
                             key={s.id}
                             step={s}
+                            level={lvl(s)}
                             done={prog.includes(s.id)}
                             reducedMotion={settings.reducedMotion}
                             haptics={settings.haptics}
@@ -742,11 +770,13 @@ function NowCard({
   onTap,
   onSpeak,
   reducedMotion,
+  level = 1,
 }: {
   step: KioskStep;
   onTap: () => void;
   onSpeak: () => void;
   reducedMotion: boolean;
+  level?: number;
 }) {
   return (
     <div
@@ -770,7 +800,15 @@ function NowCard({
         className="absolute right-4 top-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em]"
         style={{ color: "var(--accent-text)" }}
       >
-        <span className={cn("h-1.5 w-1.5 rounded-full", !reducedMotion && "k-glow")} style={{ background: "var(--accent)" }} /> Do this now
+        {level >= 4 ? (
+          <>🧭 On your own</>
+        ) : level === 3 ? (
+          <>Just a reminder</>
+        ) : (
+          <>
+            <span className={cn("h-1.5 w-1.5 rounded-full", !reducedMotion && "k-glow")} style={{ background: "var(--accent)" }} /> Do this now
+          </>
+        )}
       </span>
       <span
         className="flex aspect-square w-[clamp(72px,16vw,108px)] shrink-0 items-center justify-center rounded-[22px] text-[clamp(40px,9vw,62px)] leading-none"
@@ -794,16 +832,18 @@ function NowCard({
           </span>
         </div>
       </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onSpeak();
-        }}
-        aria-label="Read aloud"
-        className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-ktext/70 ring-1 ring-white/10 transition active:scale-90"
-      >
-        <Volume2 className="h-4 w-4" />
-      </button>
+      {level <= 2 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onSpeak();
+          }}
+          aria-label="Read aloud"
+          className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-ktext/70 ring-1 ring-white/10 transition active:scale-90"
+        >
+          <Volume2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
@@ -819,6 +859,7 @@ function StepCard({
   label,
   big = false,
   muted = false,
+  level = 1,
 }: {
   step: KioskStep;
   done: boolean;
@@ -830,6 +871,7 @@ function StepCard({
   label?: string;
   big?: boolean;
   muted?: boolean;
+  level?: number;
 }) {
   const press = usePress({ haptics });
   return (
@@ -862,7 +904,12 @@ function StepCard({
             {label}
           </span>
         )}
-        <span className={cn("leading-none", big ? "text-7xl" : "text-6xl", done && "opacity-50")}>
+        {level >= 4 && !done && (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[11px] font-bold text-ktext/70">
+            🧭 On your own
+          </span>
+        )}
+        <span className={cn("leading-none", big ? "text-7xl" : "text-6xl", done && "opacity-50", level >= 4 && "text-4xl opacity-40", level === 3 && "opacity-80")}>
           {step.icon ?? "✅"}
         </span>
         <span
@@ -885,8 +932,8 @@ function StepCard({
           </span>
         )}
       </button>
-      {/* Read-aloud — a sibling button (not nested), tucked in a corner. */}
-      {!done && !muted && (
+      {/* Read-aloud fades out as the child needs fewer prompts (§4.4). */}
+      {!done && !muted && level <= 2 && (
         <button
           onClick={onSpeak}
           aria-label={`Read ${step.label} aloud`}

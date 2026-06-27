@@ -23,6 +23,7 @@ function buildPayload(outbox: Mutation[]): Json {
   const chore_dones: Json[] = [];
   const person_completions: Json[] = [];
   const med_logs: Json[] = [];
+  const skill_progress: Json[] = [];
   const redemptions: Json[] = [];
   const list_ops: Json[] = [];
   for (const m of outbox) {
@@ -52,6 +53,14 @@ function buildPayload(outbox: Mutation[]): Json {
         dose_time: m.dose_time,
         confirmed_by: m.confirmed_by,
         created_at: m.created_at,
+      });
+    else if (m.kind === "skill_progress")
+      skill_progress.push({
+        child_id: m.child_id,
+        step_id: m.step_id,
+        streak: m.streak,
+        level_earned: m.level_earned,
+        last_date: m.last_date,
       });
     else if (m.kind === "chore_done")
       chore_dones.push({
@@ -84,7 +93,7 @@ function buildPayload(outbox: Mutation[]): Json {
     else if (m.kind === "list_check")
       list_ops.push({ op: "check", id: m.id, checked: m.checked, created_at: m.created_at });
   }
-  return { check_ins, completions, chore_dones, person_completions, med_logs, redemptions, list_ops };
+  return { check_ins, completions, chore_dones, person_completions, med_logs, skill_progress, redemptions, list_ops };
 }
 
 function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): KioskState {
@@ -107,6 +116,7 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
       chores: pull(state.snapshot.chores ?? [], snap.chores),
       medications: pull(state.snapshot.medications ?? [], snap.medications),
       medication_logs: pull(state.snapshot.medication_logs ?? [], snap.medication_logs),
+      skill_progress: pull(state.snapshot.skill_progress ?? [], snap.skill_progress),
       calm_tools: pull(state.snapshot.calm_tools, snap.calm_tools),
       house_rules: pull(state.snapshot.house_rules ?? [], snap.house_rules),
       events: pull(state.snapshot.events ?? [], snap.events),

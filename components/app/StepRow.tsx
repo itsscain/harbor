@@ -17,6 +17,7 @@ type Step = {
   start_time: string | null;
   duration_min: number | null;
   reward_points: number;
+  support_level?: number | null;
 };
 
 /** A calm, scannable step row. Collapsed = emoji + label + at-a-glance badges.
@@ -107,7 +108,15 @@ export function StepRow({
             </Field>
             <Field label="Time"><Input name="start_time" type="time" defaultValue={step.start_time ? step.start_time.slice(0, 5) : ""} /></Field>
             <Field label="Minutes"><Input name="duration_min" type="number" min={0} defaultValue={step.duration_min ?? ""} /></Field>
-            <Field label="Points" className="sm:col-span-2"><Input name="reward_points" type="number" min={0} defaultValue={step.reward_points} /></Field>
+            <Field label="Points"><Input name="reward_points" type="number" min={0} defaultValue={step.reward_points} /></Field>
+            <Field label="Support level" hint="Fades as they master it (§ Skill Levels)">
+              <Select name="support_level" defaultValue={String(step.support_level ?? 1)}>
+                <option value="1">1 · Full support</option>
+                <option value="2">2 · Fewer prompts</option>
+                <option value="3">3 · Just a reminder</option>
+                <option value="4">4 · On your own</option>
+              </Select>
+            </Field>
           </div>
         </form>
 

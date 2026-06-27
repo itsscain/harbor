@@ -63,6 +63,18 @@ export type KioskStep = {
   reward_points: number;
   start_time: string | null;
   duration_min: number | null;
+  /** Skill Levels (§4.4): parent baseline scaffolding (1 full → 4 on your own). */
+  support_level?: number;
+};
+
+/** Earned independence per (child, step) — synced for the parent's growth view. */
+export type KioskSkillProgress = {
+  id: string;
+  child_id: string;
+  step_id: string;
+  streak: number;
+  level_earned: number;
+  last_date: string | null;
 };
 
 export type KioskChore = {
@@ -248,6 +260,8 @@ export type KioskSnapshot = {
   /** Medication Station (§4.3). */
   medications?: KioskMedication[];
   medication_logs?: KioskMedLog[];
+  /** Skill Levels (§4.4) — earned independence per step. */
+  skill_progress?: KioskSkillProgress[];
   rewards: { child_id: string; points_total: number }[];
   calm_tools: KioskCalmTool[];
   house_rules?: KioskHouseRule[];
@@ -267,6 +281,15 @@ export type KioskSnapshot = {
 export type Mutation =
   | { kind: "completion"; op_id: string; child_id: string; step_id: string; points: number; created_at: string }
   | { kind: "person_completion"; op_id: string; person_id: string; step_id: string; created_at: string }
+  | {
+      kind: "skill_progress";
+      child_id: string;
+      step_id: string;
+      streak: number;
+      level_earned: number;
+      last_date: string;
+      created_at: string;
+    }
   | {
       kind: "med_log";
       op_id: string;
@@ -321,6 +344,10 @@ export type KioskState = {
   personProgress?: Record<string, DayProgress>;
   /** Doses taken today, per child: childId → { date, completed: ["<medId>:<time>"] }. */
   medProgress?: Record<string, DayProgress>;
+  /** Skill independence (§4.4), keyed "<childId>:<stepId>" → streak + earned level. */
+  skill?: Record<string, { streak: number; level: number; lastDate: string }>;
+  /** Transient: the most recent independence level-up, for a calm celebration. */
+  lastLevelUp?: { childId: string; stepId: string; level: number; n: number };
   /** Auto-soften (§9.1.3): childId → date the wall dialed them to calm intensity
    *  after a rough Anchor. Honored only for today; auto-restores next morning. */
   autoSoften?: Record<string, string>;

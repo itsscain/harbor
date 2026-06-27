@@ -11,6 +11,7 @@ import {
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
 import { nextStreak } from "@/lib/kiosk/streak";
 import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
+import { SKILL_THRESHOLD } from "@/lib/kiosk/skill";
 import { createClient } from "@/lib/supabase/client";
 import type {
   KioskState,
@@ -229,10 +230,31 @@ export function useKiosk() {
           ...s.points,
           [childId]: (s.points[childId] ?? 0) + step.reward_points,
         };
+        // Skill Levels (§4.4): completing builds toward fading the next prompt. Advance
+        // the streak once per TRUSTED day; at the threshold, fade one level + celebrate.
+        // Compassionate — a missed day never demotes (the parent re-scaffolds manually).
+        const day = serviceDay(s);
+        const skill = { ...(s.skill ?? {}) };
+        const key = `${childId}:${step.id}`;
+        const cur = skill[key] ?? { streak: 0, level: 0, lastDate: "" };
+        let { streak, level } = cur;
+        if (cur.lastDate !== day) streak += 1;
+        const baseline = step.support_level ?? 1;
+        let leveledUp = false;
+        if (streak >= SKILL_THRESHOLD && baseline + level < 4) {
+          level += 1;
+          streak = 0;
+          leveledUp = true;
+        }
+        skill[key] = { streak, level, lastDate: day };
         return {
           ...s,
           progress: { ...s.progress, [childId]: { date: today, completed } },
           points,
+          skill,
+          lastLevelUp: leveledUp
+            ? { childId, stepId: step.id, level: Math.min(4, baseline + level), n: Date.now() }
+            : s.lastLevelUp,
           outbox: [
             ...s.outbox,
             {
@@ -244,6 +266,15 @@ export function useKiosk() {
               child_id: childId,
               step_id: step.id,
               points: step.reward_points,
+              created_at: new Date().toISOString(),
+            },
+            {
+              kind: "skill_progress",
+              child_id: childId,
+              step_id: step.id,
+              streak,
+              level_earned: level,
+              last_date: day,
               created_at: new Date().toISOString(),
             },
           ],

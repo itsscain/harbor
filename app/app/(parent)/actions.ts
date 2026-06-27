@@ -580,6 +580,9 @@ export async function updateStep(id: string, childId: string, formData: FormData
       reward_points: int(formData.get("reward_points"), 0),
       start_time: str(formData.get("start_time")),
       duration_min: durationRaw ? int(durationRaw) : null,
+      ...(formData.has("support_level")
+        ? { support_level: Math.min(4, Math.max(1, int(formData.get("support_level"), 1))) }
+        : {}),
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

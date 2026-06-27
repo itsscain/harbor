@@ -1562,6 +1562,7 @@ export type Database = {
           routine_id: string
           start_time: string | null
           step_type: Database["public"]["Enums"]["step_type"]
+          support_level: number
           updated_at: string
         }
         Insert: {
@@ -1577,6 +1578,7 @@ export type Database = {
           routine_id: string
           start_time?: string | null
           step_type?: Database["public"]["Enums"]["step_type"]
+          support_level?: number
           updated_at?: string
         }
         Update: {
@@ -1592,6 +1594,7 @@ export type Database = {
           routine_id?: string
           start_time?: string | null
           step_type?: Database["public"]["Enums"]["step_type"]
+          support_level?: number
           updated_at?: string
         }
         Relationships: [
@@ -1676,6 +1679,64 @@ export type Database = {
             columns: ["with_child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_progress: {
+        Row: {
+          child_id: string
+          created_at: string
+          household_id: string
+          id: string
+          last_date: string | null
+          level_earned: number
+          step_id: string
+          streak: number
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          last_date?: string | null
+          level_earned?: number
+          step_id: string
+          streak?: number
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          last_date?: string | null
+          level_earned?: number
+          step_id?: string
+          streak?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_progress_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_progress_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_progress_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
             referencedColumns: ["id"]
           },
         ]
