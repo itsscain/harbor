@@ -291,6 +291,36 @@ export function useKiosk() {
     [update],
   );
 
+  // Parent/caregiver completes one of THEIR own routine steps (§4.1). NO points, no
+  // rewards — a calm sense of completion + modeling. Done-state lives in personProgress
+  // (resets daily), synced as a points-free person_completion for streaks/modeling.
+  const completePersonStep = useCallback(
+    (personId: string, step: KioskStep) => {
+      update((s) => {
+        const today = todayKey();
+        const pp = s.personProgress ?? {};
+        const prog = pp[personId]?.date === today ? pp[personId] : { date: today, completed: [] };
+        if (prog.completed.includes(step.id)) return s; // one-way for the day
+        const completed = [...prog.completed, step.id];
+        return {
+          ...s,
+          personProgress: { ...pp, [personId]: { date: today, completed } },
+          outbox: [
+            ...s.outbox,
+            {
+              kind: "person_completion",
+              op_id: `person:${personId}:step:${step.id}:${serviceDay(s)}`,
+              person_id: personId,
+              step_id: step.id,
+              created_at: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    },
+    [update],
+  );
+
   const checkIn = useCallback(
     (childId: string, feeling: string) => {
       update((s) => ({
@@ -486,6 +516,7 @@ export function useKiosk() {
     unpair,
     completeStep,
     completeChore,
+    completePersonStep,
     checkIn,
     softenChild,
     bumpStreak,

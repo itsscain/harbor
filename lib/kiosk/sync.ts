@@ -21,6 +21,7 @@ function buildPayload(outbox: Mutation[]): Json {
   const check_ins: Json[] = [];
   const completions: Json[] = [];
   const chore_dones: Json[] = [];
+  const person_completions: Json[] = [];
   const redemptions: Json[] = [];
   const list_ops: Json[] = [];
   for (const m of outbox) {
@@ -32,6 +33,13 @@ function buildPayload(outbox: Mutation[]): Json {
         child_id: m.child_id,
         step_id: m.step_id,
         points: m.points,
+        created_at: m.created_at,
+      });
+    else if (m.kind === "person_completion")
+      person_completions.push({
+        op_id: m.op_id,
+        person_id: m.person_id,
+        step_id: m.step_id,
         created_at: m.created_at,
       });
     else if (m.kind === "chore_done")
@@ -65,7 +73,7 @@ function buildPayload(outbox: Mutation[]): Json {
     else if (m.kind === "list_check")
       list_ops.push({ op: "check", id: m.id, checked: m.checked, created_at: m.created_at });
   }
-  return { check_ins, completions, chore_dones, redemptions, list_ops };
+  return { check_ins, completions, chore_dones, person_completions, redemptions, list_ops };
 }
 
 function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): KioskState {
@@ -82,6 +90,7 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
       ...state.snapshot,
       household: snap.household ?? state.snapshot.household,
       children: pull(state.snapshot.children, snap.children),
+      people: pull(state.snapshot.people ?? [], snap.people),
       routines: pull(state.snapshot.routines, snap.routines),
       steps: pull(state.snapshot.steps, snap.steps),
       chores: pull(state.snapshot.chores ?? [], snap.chores),
@@ -114,10 +123,10 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
   if (childDeletions.size) {
     const s = next.snapshot;
     const goneRoutineIds = new Set(
-      s.routines.filter((r) => childDeletions.has(r.child_id)).map((r) => r.id),
+      s.routines.filter((r) => r.child_id != null && childDeletions.has(r.child_id)).map((r) => r.id),
     );
     s.children = s.children.filter((c) => !childDeletions.has(c.id));
-    s.routines = s.routines.filter((r) => !childDeletions.has(r.child_id));
+    s.routines = s.routines.filter((r) => r.child_id == null || !childDeletions.has(r.child_id));
     s.steps = s.steps.filter((st) => !goneRoutineIds.has(st.routine_id));
     s.chores = (s.chores ?? []).filter((x) => !childDeletions.has(x.child_id));
     s.store_items = (s.store_items ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));

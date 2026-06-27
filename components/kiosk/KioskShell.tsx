@@ -6,6 +6,7 @@ import { VoiceDebug } from "./VoiceDebug";
 import type { useKiosk } from "./useKiosk";
 import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
+import { ParentView } from "./ParentView";
 import { CalendarView } from "./CalendarView";
 import { ListsView } from "./ListsView";
 import { ChoresView } from "./ChoresBoard";
@@ -38,7 +39,8 @@ type View =
   | { k: "calendar" }
   | { k: "lists" }
   | { k: "chores" }
-  | { k: "child"; id: string; anchor?: boolean };
+  | { k: "child"; id: string; anchor?: boolean }
+  | { k: "parent"; id: string };
 
 export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const { state } = kiosk;
@@ -161,12 +163,16 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
         <FamilyView
           kiosk={kiosk}
           onSelectChild={(id) => setView({ k: "child", id })}
+          onSelectPerson={(id) => setView({ k: "parent", id })}
           onOpenCalendar={() => setView({ k: "calendar" })}
           onOpenChores={() => setView({ k: "chores" })}
           onOpenLists={() => setView({ k: "lists" })}
           onOpenHouseRules={() => setHouseRulesOpen(true)}
           onParentMenu={() => setGate(true)}
         />
+      )}
+      {view.k === "parent" && (
+        <ParentView kiosk={kiosk} personId={view.id} onHome={() => setView({ k: "home" })} />
       )}
       {view.k === "child" && (
         <ChildView

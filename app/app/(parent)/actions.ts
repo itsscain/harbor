@@ -19,7 +19,7 @@ function int(v: FormDataEntryValue | null, fb = 0): number {
 
 // ── Children ─────────────────────────────────────────────────────────────────
 async function nextOrder(
-  table: "children" | "routines" | "routine_steps",
+  table: "children" | "routines" | "routine_steps" | "people",
   column: "sort_order" | "order_index",
   fkColumn: string,
   fkValue: string,
@@ -829,4 +829,118 @@ export async function clearParentPin() {
     .eq("id", household.id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/settings");
+}
+
+// ── Family people (Brand-True §4.1–4.2): parents/caregivers/siblings on the wall ──
+// People appear on the wall as PARTICIPANTS. Their routines earn NO points (health/
+// adulthood isn't gamified) — modeling is the value. A routine can be "together".
+const PERSON_ROLES = ["parent", "caregiver", "sibling"] as const;
+
+export async function addPerson(formData: FormData) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const supabase = await createClient();
+  const order = await nextOrder("people", "sort_order", "household_id", household.id);
+  const role = String(formData.get("role") || "parent");
+  const { error } = await supabase.from("people").insert({
+    household_id: household.id,
+    name: String(formData.get("name") || "New person"),
+    avatar: str(formData.get("avatar")) ?? "💙",
+    role: (PERSON_ROLES as readonly string[]).includes(role) ? role : "parent",
+    color: CHILD_PALETTE[order % CHILD_PALETTE.length].value,
+    sort_order: order,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function updatePerson(id: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const color = str(formData.get("color"));
+  const { error } = await supabase
+    .from("people")
+    .update({
+      name: String(formData.get("name") || ""),
+      avatar: str(formData.get("avatar")),
+      role: String(formData.get("role") || "parent"),
+      ...(color ? { color } : {}),
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function deletePerson(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("people").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function addPersonRoutine(personId: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("routines").insert({
+    person_id: personId,
+    child_id: null,
+    name: String(formData.get("name") || "New routine"),
+    type: "schedule",
+    together: formData.get("together") === "on",
+    with_child_id: str(formData.get("with_child_id")),
+    sort_order: await nextOrder("routines", "sort_order", "person_id", personId),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function updatePersonRoutine(id: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const days = formData.getAll("days").map((d) => Number(d)).filter((n) => Number.isFinite(n));
+  const { error } = await supabase
+    .from("routines")
+    .update({
+      name: String(formData.get("name") || ""),
+      active: formData.get("active") === "on",
+      together: formData.get("together") === "on",
+      with_child_id: str(formData.get("with_child_id")),
+      days_of_week: days.length ? days : null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function deletePersonRoutine(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("routines").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function addPersonStep(routineId: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("routine_steps").insert({
+    routine_id: routineId,
+    label: String(formData.get("label") || "New step"),
+    icon: str(formData.get("icon")),
+    step_type: "task",
+    reward_points: 0, // people never earn points
+    order_index: await nextOrder("routine_steps", "order_index", "routine_id", routineId),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
+}
+
+export async function deletePersonStep(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("routine_steps").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/family");
 }

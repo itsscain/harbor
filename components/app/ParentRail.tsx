@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   Users,
+  Heart,
   CalendarDays,
   ListChecks,
   UtensilsCrossed,
@@ -22,6 +23,7 @@ import { cn } from "@/lib/cn";
 const ITEMS = [
   { href: "/app", label: "Home", icon: Home, exact: true },
   { href: "/app/children", label: "Children", icon: Users },
+  { href: "/app/family", label: "Family", icon: Heart },
   { href: "/app/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/app/lists", label: "Lists", icon: ListChecks },
   { href: "/app/meals", label: "Meals", icon: UtensilsCrossed },

@@ -1047,6 +1047,108 @@ export type Database = {
           },
         ]
       }
+      people: {
+        Row: {
+          avatar: string | null
+          color: string | null
+          created_at: string
+          deleted_at: string | null
+          household_id: string
+          id: string
+          name: string
+          photo_url: string | null
+          role: string
+          settings: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          color?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          household_id: string
+          id?: string
+          name: string
+          photo_url?: string | null
+          role?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          color?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          household_id?: string
+          id?: string
+          name?: string
+          photo_url?: string | null
+          role?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_completions: {
+        Row: {
+          client_op_id: string | null
+          created_at: string
+          household_id: string
+          id: string
+          person_id: string
+          step_id: string | null
+        }
+        Insert: {
+          client_op_id?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          person_id: string
+          step_id?: string | null
+        }
+        Update: {
+          client_op_id?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          person_id?: string
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_completions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_completions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_completions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plus_subscriptions: {
         Row: {
           created_at: string
@@ -1369,50 +1471,73 @@ export type Database = {
       routines: {
         Row: {
           active: boolean
-          child_id: string
+          child_id: string | null
           created_at: string
           days_of_week: number[] | null
           deleted_at: string | null
           end_time: string | null
           id: string
           name: string
+          person_id: string | null
           sort_order: number
           start_time: string | null
+          together: boolean
           type: Database["public"]["Enums"]["routine_type"]
           updated_at: string
+          with_child_id: string | null
         }
         Insert: {
           active?: boolean
-          child_id: string
+          child_id?: string | null
           created_at?: string
           days_of_week?: number[] | null
           deleted_at?: string | null
           end_time?: string | null
           id?: string
           name: string
+          person_id?: string | null
           sort_order?: number
           start_time?: string | null
+          together?: boolean
           type?: Database["public"]["Enums"]["routine_type"]
           updated_at?: string
+          with_child_id?: string | null
         }
         Update: {
           active?: boolean
-          child_id?: string
+          child_id?: string | null
           created_at?: string
           days_of_week?: number[] | null
           deleted_at?: string | null
           end_time?: string | null
           id?: string
           name?: string
+          person_id?: string | null
           sort_order?: number
           start_time?: string | null
+          together?: boolean
           type?: Database["public"]["Enums"]["routine_type"]
           updated_at?: string
+          with_child_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "routines_child_id_fkey"
             columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routines_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routines_with_child_id_fkey"
+            columns: ["with_child_id"]
             isOneToOne: false
             referencedRelation: "children"
             referencedColumns: ["id"]

@@ -32,7 +32,9 @@ export default async function ChildrenPage() {
     supabase.from("rewards").select("child_id, points_total").in("child_id", ids),
   ]);
   const rc = new Map<string, number>();
-  (routines ?? []).forEach((r) => rc.set(r.child_id, (rc.get(r.child_id) ?? 0) + 1));
+  (routines ?? []).forEach((r) => {
+    if (r.child_id) rc.set(r.child_id, (rc.get(r.child_id) ?? 0) + 1);
+  });
   const pts = new Map<string, number>();
   (rewards ?? []).forEach((r) => pts.set(r.child_id, r.points_total ?? 0));
   const meta = (id: string) => {

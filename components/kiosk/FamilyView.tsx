@@ -30,6 +30,7 @@ type Kiosk = ReturnType<typeof useKiosk>;
 export function FamilyView({
   kiosk,
   onSelectChild,
+  onSelectPerson,
   onOpenCalendar,
   onOpenChores,
   onOpenLists,
@@ -38,6 +39,7 @@ export function FamilyView({
 }: {
   kiosk: Kiosk;
   onSelectChild: (id: string) => void;
+  onSelectPerson: (id: string) => void;
   onOpenCalendar: () => void;
   onOpenChores: () => void;
   onOpenLists: () => void;
@@ -57,6 +59,7 @@ export function FamilyView({
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const children = [...snap.children].sort((a, b) => a.sort_order - b.sort_order);
+  const people = [...(snap.people ?? [])].sort((a, b) => a.sort_order - b.sort_order);
   const childrenById = new Map(snap.children.map((c) => [c.id, c]));
   const hsettings = (snap.household.settings ?? {}) as Record<string, unknown>;
   const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
@@ -150,6 +153,35 @@ export function FamilyView({
         </div>
       ) : (
         <KCard className="p-6 text-center text-kmute">No kids yet. A grown-up can add them in the Harbor app.</KCard>
+      )}
+
+      {/* In the boat too (§4.1) — parents/caregivers are participants, calm + secondary. */}
+      {people.length > 0 && (
+        <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-2.5">
+          {people.map((p) => (
+            <Pressable
+              key={p.id}
+              haptics
+              onClick={() => onSelectPerson(p.id)}
+              aria-label={`${p.name}'s routine`}
+              className="kiosk-tap flex items-center gap-2.5 rounded-full py-2 pl-2 pr-4 ring-1 ring-kline/55"
+              style={{ background: `${p.color || "#6b8aa6"}14` }}
+            >
+              <span
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-lg"
+                style={{ background: `${p.color || "#6b8aa6"}26` }}
+              >
+                {p.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.photo_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  p.avatar || "💙"
+                )}
+              </span>
+              <span className="text-sm font-semibold text-ktext">{p.name}</span>
+            </Pressable>
+          ))}
+        </div>
       )}
 
       {/* Family goal — the cooperative vessel everyone fills */}

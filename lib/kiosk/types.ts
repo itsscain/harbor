@@ -22,9 +22,27 @@ export type KioskChild = {
   settings: Record<string, unknown> | null;
 };
 
+/** A wall-visible household member who isn't a kid — a parent, caregiver, or older
+ *  sibling. They participate (own routines + Together Time) but earn NO points. */
+export type KioskPerson = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  photo_url: string | null;
+  color: string | null;
+  role: string; // 'parent' | 'caregiver' | 'sibling'
+  settings: Record<string, unknown> | null;
+  sort_order: number;
+};
+
 export type KioskRoutine = {
   id: string;
-  child_id: string;
+  /** A routine belongs to a child OR a person (exactly one is set). */
+  child_id: string | null;
+  person_id?: string | null;
+  /** Together Time (§4.2): a shared parent+child moment, optionally linked to a child. */
+  together?: boolean;
+  with_child_id?: string | null;
   name: string;
   type: "schedule" | "first_then";
   active: boolean;
@@ -195,6 +213,8 @@ export type KioskHousehold = {
 export type KioskSnapshot = {
   household: KioskHousehold;
   children: KioskChild[];
+  /** Parents/caregivers/siblings who appear on the wall (§4.1). */
+  people?: KioskPerson[];
   routines: KioskRoutine[];
   steps: KioskStep[];
   chores?: KioskChore[];
@@ -216,6 +236,7 @@ export type KioskSnapshot = {
 
 export type Mutation =
   | { kind: "completion"; op_id: string; child_id: string; step_id: string; points: number; created_at: string }
+  | { kind: "person_completion"; op_id: string; person_id: string; step_id: string; created_at: string }
   | { kind: "chore_done"; op_id: string; child_id: string; chore_id: string; points: number; created_at: string }
   | { kind: "check_in"; child_id: string; feeling: string; note: string | null; created_at: string }
   | {
@@ -256,6 +277,8 @@ export type KioskState = {
   points: Record<string, number>;
   /** Per-child completion for the current day; resets when the date rolls over. */
   progress: Record<string, DayProgress>;
+  /** Per-person (parent/caregiver) completion for the current day — NO points. */
+  personProgress?: Record<string, DayProgress>;
   /** Auto-soften (§9.1.3): childId → date the wall dialed them to calm intensity
    *  after a rough Anchor. Honored only for today; auto-restores next morning. */
   autoSoften?: Record<string, string>;
