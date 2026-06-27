@@ -5,6 +5,7 @@ import { Card, Field, Input, Select, Switch, Badge } from "@/components/ui/primi
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { Disclosure } from "@/components/app/Disclosure";
+import { EntityAvatar } from "@/components/ui/EntityAvatar";
 import { CHILD_PALETTE } from "@/lib/kiosk/colors";
 import {
   addPerson,
@@ -69,24 +70,18 @@ export default async function FamilyPage() {
         {(people ?? []).map((p) => {
           const myRoutines = (routines ?? []).filter((r) => r.person_id === p.id);
           return (
-            <Card key={p.id} className="p-0">
+            <Card
+              key={p.id}
+              className="group/disc p-0 [border-left:3px_solid_transparent] hover:[border-left-color:var(--accent)]"
+              style={{ ["--accent" as string]: p.color || "#6b8aa6" }}
+            >
               <Disclosure
                 bodyClassName="px-5 pb-5"
                 summary={
                   <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-lg"
-                      style={{ background: `${p.color || "#6b8aa6"}22` }}
-                    >
-                      {p.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.photo_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        p.avatar || "💙"
-                      )}
-                    </span>
+                    <EntityAvatar photoUrl={p.photo_url} fallback={p.avatar || "💙"} accent={p.color || "#6b8aa6"} size="sm" />
                     <div className="min-w-0">
-                      <span className="block font-semibold text-ink">{p.name}</span>
+                      <span className="block font-display text-lg font-extrabold tracking-[-0.01em] text-harbor">{p.name}</span>
                       <span className="block text-xs capitalize text-muted">
                         {p.role} · {myRoutines.length} {myRoutines.length === 1 ? "routine" : "routines"}
                       </span>
