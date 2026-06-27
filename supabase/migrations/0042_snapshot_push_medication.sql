@@ -1,0 +1,12 @@
+-- Recreated FROM THE LIVE defs (on the 0041 base): kiosk_snapshot now carries
+-- `medications` (per child) and `medication_logs` (dose_date >= today-1); rpc_kiosk_push
+-- accepts a `med_logs` payload that records doses taken — NO rewards (health, not a prize),
+-- idempotent on client_op_id, validated against the device's household.
+--
+-- The full function bodies are applied to the database via migration
+-- 0042_snapshot_push_medication. Snapshot adds, after the `chores` block:
+--   'medications', (… medications join children where household = p_household, by sort_order)
+--   'medication_logs', (… medication_logs join children where dose_date >= current_date-1)
+-- Push adds, before the `redemptions` loop, a `med_logs` loop that inserts into
+-- public.medication_logs (status default 'taken', confirmed_by, dose_date/dose_time) with
+-- `on conflict (client_op_id) do nothing`. v_med uuid is added to the declare block.

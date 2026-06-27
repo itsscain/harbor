@@ -12,9 +12,12 @@ import {
   ArrowRight,
   Ban,
   ShieldCheck,
+  Pill,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
-import type { KioskChild, KioskStep, KioskChore } from "@/lib/kiosk/types";
+import type { KioskChild, KioskStep, KioskChore, KioskMedication } from "@/lib/kiosk/types";
+import { dueDoses } from "@/lib/kiosk/medication";
+import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday } from "@/lib/kiosk/calendar";
 import { choreAssignee } from "@/lib/kiosk/chores";
@@ -130,6 +133,7 @@ export function ChildView({
   });
   const [storeOpen, setStoreOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
+  const [medOpen, setMedOpen] = useState<{ med: KioskMedication; time: string } | null>(null);
 
   // Honor the per-child "auto-read on open" accessibility setting: speak the
   // routine name once when it opens (not on every render).
@@ -160,6 +164,7 @@ export function ChildView({
     state.progress[child.id]?.date === today ? state.progress[child.id].completed : [];
   const points = state.points[child.id] ?? 0;
   const grounding = activeGroundingFor(state.snapshot.groundings, child.id);
+  const due = dueDoses(state, child.id); // §4.3 medication doses due now (calm, separate)
   const corner = (state.snapshot.corners ?? []).find((c) => c.child_id === child.id && c.status === "active") ?? null;
   // Auto-soften (§9.1.3): after a rough Anchor today, run gentler celebration.
   const softenedToday = state.autoSoften?.[child.id] === today;
@@ -371,6 +376,35 @@ export function ChildView({
           <p className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-violet-400/10 py-2.5 text-sm font-medium text-violet-200 ring-1 ring-violet-400/20">
             🌙 Taking it easy today
           </p>
+        )}
+        {/* Medicine time (§4.3) — calm + separate from steps. No points, ever. */}
+        {due.length > 0 && (
+          <div className="mb-4 rounded-2xl bg-kraise p-4 ring-1 ring-kline/40">
+            <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-kmute">
+              <Pill className="h-4 w-4" /> Medicine time
+            </p>
+            <div className="space-y-2">
+              {due.map(({ med, time }) => (
+                <Pressable
+                  key={med.id + time}
+                  haptics={settings.haptics}
+                  onClick={() => setMedOpen({ med, time })}
+                  className="flex w-full items-center gap-3 rounded-xl bg-kpanel px-3 py-3 text-left ring-1 ring-kline/45"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg text-xl" style={{ background: `${color}1a` }}>
+                    {med.icon || "💊"}
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-semibold text-ktext">{med.name}</span>
+                    {med.dose && <span className="block text-xs text-kmute">{med.dose}</span>}
+                  </span>
+                  <span className="text-sm font-semibold" style={{ color }}>
+                    Tap
+                  </span>
+                </Pressable>
+              ))}
+            </div>
+          </div>
         )}
         {corner && (
           <div className="mb-4">
@@ -601,6 +635,21 @@ export function ChildView({
       </footer>
       </div>
       {/* ── Overlays — siblings of the world, so they stay crisp when it recedes ── */}
+      {medOpen && (
+        <MedMoment
+          med={medOpen.med}
+          doseTime={medOpen.time}
+          accent={color}
+          verifyPin={kiosk.verifyPin}
+          readAloud={settings.readAloud}
+          onConfirm={(by) => {
+            kiosk.takeMedication(child.id, medOpen.med, medOpen.time, by);
+            setMedOpen(null);
+          }}
+          onClose={() => setMedOpen(null)}
+        />
+      )}
+
       {anchorOpen && (
         <Anchor
           childName={child.name}

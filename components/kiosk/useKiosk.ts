@@ -16,6 +16,7 @@ import type {
   KioskState,
   KioskStep,
   KioskChore,
+  KioskMedication,
   KioskStoreItem,
   KioskListItem,
 } from "@/lib/kiosk/types";
@@ -321,6 +322,38 @@ export function useKiosk() {
     [update],
   );
 
+  // Medication Station (§4.3): log a dose taken. NO points, ever — health isn't a prize.
+  // Idempotent per (med, day, time) via a deterministic op_id on the TRUSTED day.
+  const takeMedication = useCallback(
+    (childId: string, med: KioskMedication, doseTime: string, confirmedBy: "child" | "parent") => {
+      update((s) => {
+        const day = serviceDay(s);
+        const mp = s.medProgress ?? {};
+        const prog = mp[childId]?.date === day ? mp[childId] : { date: day, completed: [] };
+        const id = `${med.id}:${doseTime}`;
+        if (prog.completed.includes(id)) return s;
+        return {
+          ...s,
+          medProgress: { ...mp, [childId]: { date: day, completed: [...prog.completed, id] } },
+          outbox: [
+            ...s.outbox,
+            {
+              kind: "med_log",
+              op_id: `med:${med.id}:${day}:${doseTime}`,
+              child_id: childId,
+              medication_id: med.id,
+              dose_date: day,
+              dose_time: doseTime,
+              confirmed_by: confirmedBy,
+              created_at: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    },
+    [update],
+  );
+
   const checkIn = useCallback(
     (childId: string, feeling: string) => {
       update((s) => ({
@@ -517,6 +550,7 @@ export function useKiosk() {
     completeStep,
     completeChore,
     completePersonStep,
+    takeMedication,
     checkIn,
     softenChild,
     bumpStreak,

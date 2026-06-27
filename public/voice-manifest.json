@@ -91,6 +91,9 @@
     "What's next": "/voice/46fdeff62267a834862780ae0326b4c1aaa4483d.wav",
     "Let's see the harbor": "/voice/8d9520880f3492cdc8318fc87c2b2490c03eec3f.wav",
     "Take your time": "/voice/c38705186fa511bf58707f66fa13aba75abca4c0.wav",
-    "Need a break? I'm here.": "/voice/fcefa9dcc61b86c026d24f232533205516cc06f3.wav"
+    "Need a break? I'm here.": "/voice/fcefa9dcc61b86c026d24f232533205516cc06f3.wav",
+    "Time for your medicine": "/voice/1929bf90ac6d0779e4c9599b4afc09fdbfd76bba.wav",
+    "Nice. That's looking after yourself.": "/voice/335a1c7ddbfce71b99d3de61a5df4cb5ed8a0d7c.wav",
+    "A grown-up will help with this one": "/voice/fe9f7216a010ac2059c0c6cd063c15f9ca85f5b1.wav"
   }
 }

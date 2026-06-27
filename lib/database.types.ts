@@ -1047,6 +1047,142 @@ export type Database = {
           },
         ]
       }
+      medication_logs: {
+        Row: {
+          child_id: string
+          client_op_id: string | null
+          confirmed_by: string | null
+          created_at: string
+          dose_date: string
+          dose_time: string | null
+          household_id: string
+          id: string
+          medication_id: string
+          status: string
+          taken_at: string
+        }
+        Insert: {
+          child_id: string
+          client_op_id?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          dose_date: string
+          dose_time?: string | null
+          household_id: string
+          id?: string
+          medication_id: string
+          status?: string
+          taken_at?: string
+        }
+        Update: {
+          child_id?: string
+          client_op_id?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          dose_date?: string
+          dose_time?: string | null
+          household_id?: string
+          id?: string
+          medication_id?: string
+          status?: string
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_logs_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_logs_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_logs_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          active: boolean
+          child_id: string
+          created_at: string
+          days_of_week: number[] | null
+          deleted_at: string | null
+          dose: string | null
+          helps_note: string | null
+          household_id: string
+          icon: string | null
+          id: string
+          name: string
+          parent_administered: boolean
+          schedule_times: string[]
+          sort_order: number
+          updated_at: string
+          with_food: boolean
+        }
+        Insert: {
+          active?: boolean
+          child_id: string
+          created_at?: string
+          days_of_week?: number[] | null
+          deleted_at?: string | null
+          dose?: string | null
+          helps_note?: string | null
+          household_id: string
+          icon?: string | null
+          id?: string
+          name: string
+          parent_administered?: boolean
+          schedule_times?: string[]
+          sort_order?: number
+          updated_at?: string
+          with_food?: boolean
+        }
+        Update: {
+          active?: boolean
+          child_id?: string
+          created_at?: string
+          days_of_week?: number[] | null
+          deleted_at?: string | null
+          dose?: string | null
+          helps_note?: string | null
+          household_id?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_administered?: boolean
+          schedule_times?: string[]
+          sort_order?: number
+          updated_at?: string
+          with_food?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medications_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           avatar: string | null

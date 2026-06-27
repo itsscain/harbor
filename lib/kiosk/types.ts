@@ -80,6 +80,33 @@ export type KioskChore = {
   sort_order: number;
 };
 
+/** A child's medication (§4.3). A calm tracker + ritual — NOT dosing instructions a
+ *  child acts on alone, NOT a reward. */
+export type KioskMedication = {
+  id: string;
+  child_id: string;
+  name: string;
+  dose: string | null;
+  icon: string | null;
+  helps_note: string | null;
+  schedule_times: string[];
+  days_of_week: number[] | null;
+  with_food: boolean;
+  parent_administered: boolean;
+  active: boolean;
+  sort_order: number;
+};
+
+/** A logged dose (today's, from the snapshot) so the wall shows taken state offline. */
+export type KioskMedLog = {
+  id: string;
+  child_id: string;
+  medication_id: string;
+  dose_date: string;
+  dose_time: string | null;
+  status: string;
+};
+
 export type KioskCalmTool = {
   id: string;
   child_id: string | null;
@@ -218,6 +245,9 @@ export type KioskSnapshot = {
   routines: KioskRoutine[];
   steps: KioskStep[];
   chores?: KioskChore[];
+  /** Medication Station (§4.3). */
+  medications?: KioskMedication[];
+  medication_logs?: KioskMedLog[];
   rewards: { child_id: string; points_total: number }[];
   calm_tools: KioskCalmTool[];
   house_rules?: KioskHouseRule[];
@@ -237,6 +267,16 @@ export type KioskSnapshot = {
 export type Mutation =
   | { kind: "completion"; op_id: string; child_id: string; step_id: string; points: number; created_at: string }
   | { kind: "person_completion"; op_id: string; person_id: string; step_id: string; created_at: string }
+  | {
+      kind: "med_log";
+      op_id: string;
+      child_id: string;
+      medication_id: string;
+      dose_date: string;
+      dose_time: string | null;
+      confirmed_by: string;
+      created_at: string;
+    }
   | { kind: "chore_done"; op_id: string; child_id: string; chore_id: string; points: number; created_at: string }
   | { kind: "check_in"; child_id: string; feeling: string; note: string | null; created_at: string }
   | {
@@ -279,6 +319,8 @@ export type KioskState = {
   progress: Record<string, DayProgress>;
   /** Per-person (parent/caregiver) completion for the current day — NO points. */
   personProgress?: Record<string, DayProgress>;
+  /** Doses taken today, per child: childId → { date, completed: ["<medId>:<time>"] }. */
+  medProgress?: Record<string, DayProgress>;
   /** Auto-soften (§9.1.3): childId → date the wall dialed them to calm intensity
    *  after a rough Anchor. Honored only for today; auto-restores next morning. */
   autoSoften?: Record<string, string>;

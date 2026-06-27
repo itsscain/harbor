@@ -19,7 +19,7 @@ function int(v: FormDataEntryValue | null, fb = 0): number {
 
 // ── Children ─────────────────────────────────────────────────────────────────
 async function nextOrder(
-  table: "children" | "routines" | "routine_steps" | "people",
+  table: "children" | "routines" | "routine_steps" | "people" | "medications",
   column: "sort_order" | "order_index",
   fkColumn: string,
   fkValue: string,
@@ -943,4 +943,65 @@ export async function deletePersonStep(id: string) {
   const { error } = await supabase.from("routine_steps").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/family");
+}
+
+// ── Medication Station (Brand-True §4.3) — a tracker + calm ritual, NO points ──
+// Harbor does not dispense or dose; it tracks and gently reminds. The parent is in charge.
+function parseTimes(v: FormDataEntryValue | null): string[] {
+  return String(v ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => /^\d{1,2}:\d{2}$/.test(s))
+    .map((s) => s.padStart(5, "0"));
+}
+
+export async function addMedication(childId: string, formData: FormData) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("medications").insert({
+    household_id: household.id,
+    child_id: childId,
+    name: String(formData.get("name") || "Medicine"),
+    dose: str(formData.get("dose")),
+    icon: str(formData.get("icon")) ?? "💊",
+    helps_note: str(formData.get("helps_note")),
+    schedule_times: parseTimes(formData.get("times")),
+    with_food: formData.get("with_food") === "on",
+    parent_administered: formData.get("parent_administered") === "on",
+    sort_order: await nextOrder("medications", "sort_order", "child_id", childId),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/medication");
+}
+
+export async function updateMedication(id: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const days = formData.getAll("days").map((d) => Number(d)).filter((n) => Number.isFinite(n));
+  const { error } = await supabase
+    .from("medications")
+    .update({
+      name: String(formData.get("name") || ""),
+      dose: str(formData.get("dose")),
+      icon: str(formData.get("icon")),
+      helps_note: str(formData.get("helps_note")),
+      schedule_times: parseTimes(formData.get("times")),
+      days_of_week: days.length ? days : null,
+      with_food: formData.get("with_food") === "on",
+      parent_administered: formData.get("parent_administered") === "on",
+      active: formData.get("active") === "on",
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/medication");
+}
+
+export async function deleteMedication(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("medications").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/medication");
 }
