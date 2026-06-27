@@ -10,6 +10,7 @@ import {
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
 import { subscribeHousehold } from "@/lib/kiosk/realtime";
+import { captureError } from "@/lib/observability";
 import { nextStreak } from "@/lib/kiosk/streak";
 import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
 import { SKILL_THRESHOLD } from "@/lib/kiosk/skill";
@@ -31,6 +32,10 @@ export function useKiosk() {
   const [status, setStatus] = useState<KioskStatus>("loading");
   const [online, setOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
+  // Sync-health (Real-Time §8) — observable diagnostics for the Debug panel.
+  const [realtimeStatus, setRealtimeStatus] = useState<string>("idle");
+  const [lastNudgeAt, setLastNudgeAt] = useState<number | null>(null);
+  const [lastPropagationMs, setLastPropagationMs] = useState<number | null>(null);
   const stateRef = useRef<KioskState | null>(null);
   stateRef.current = state;
 
@@ -99,8 +104,9 @@ export function useKiosk() {
     let synced: KioskState;
     try {
       synced = await syncNow(before, { full });
-    } catch {
+    } catch (e) {
       setSyncStatus("error");
+      captureError(e, { area: "sync", full });
       return;
     }
     setSyncStatus("ok");
@@ -181,13 +187,23 @@ export function useKiosk() {
   useEffect(() => {
     if (!householdId || !plusActive) return;
     let t: number | undefined;
-    const nudge = () => {
+    const nudge = (payload?: { at?: number }) => {
+      const now = Date.now();
+      setLastNudgeAt(now);
+      // Edit→wall propagation (§8 freshness SLO). payload.at is server epoch seconds;
+      // guard against device-clock skew so a bad clock can't show nonsense.
+      if (payload?.at) {
+        const ms = now - payload.at * 1000;
+        if (ms >= 0 && ms < 60_000) setLastPropagationMs(ms);
+      }
       window.clearTimeout(t);
       t = window.setTimeout(() => void runSync(), 400);
     };
-    const unsub = subscribeHousehold(householdId, nudge);
+    setRealtimeStatus("connecting");
+    const unsub = subscribeHousehold(householdId, nudge, setRealtimeStatus);
     return () => {
       window.clearTimeout(t);
+      setRealtimeStatus("idle");
       unsub();
     };
   }, [householdId, plusActive, runSync]);
@@ -595,6 +611,12 @@ export function useKiosk() {
     online,
     syncStatus,
     lastSync: state?.lastSync ?? null,
+    // Sync-health (Real-Time §8) — surfaced in the Debug panel.
+    realtimeStatus,
+    lastNudgeAt,
+    lastPropagationMs,
+    outboxDepth: state?.outbox.length ?? 0,
+    clockSuspect: state?.clockSuspect ?? false,
     pair,
     setPin,
     verifyPin,

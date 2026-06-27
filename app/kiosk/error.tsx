@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { LighthouseMark } from "@/components/brand/Logo";
+import { captureError } from "@/lib/observability";
 
 // Kiosk runs unattended on a wall — a render error must offer a big, obvious
 // recovery rather than a white screen.
-export default function KioskError({ reset }: { error: Error; reset: () => void }) {
+export default function KioskError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => captureError(error, { boundary: "kiosk" }), [error]);
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-harbor px-6 text-center text-white">
       <LighthouseMark className="h-16 w-16 text-white" />

@@ -1,7 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
+import { captureError } from "@/lib/observability";
+
 // Last-resort boundary (replaces the root layout), so it inlines its own styles.
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => captureError(error, { boundary: "global-error" }), [error]);
   return (
     <html lang="en">
       <body

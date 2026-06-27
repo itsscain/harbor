@@ -14,12 +14,26 @@ import {
 } from "@/lib/kiosk/voice";
 
 // Bump this with each voice deploy so the device's build is confirmable on-screen.
-const BUILD = "v6 · library voice";
+const BUILD = "v7 · realtime + sync health";
+
+/** Sync-health snapshot for the Debug panel (Real-Time §8). */
+export type SyncHealth = {
+  online: boolean;
+  plusActive: boolean;
+  syncStatus: string;
+  lastSync: string | null; // ISO (server time)
+  realtimeStatus: string; // SUBSCRIBED / connecting / CHANNEL_ERROR / …
+  lastNudgeAt: number | null; // epoch ms
+  lastPropagationMs: number | null;
+  outboxDepth: number;
+  clockSuspect: boolean;
+};
 
 // Parent menu → Debug tools. A tap here also unlocks audio, and surfaces exactly which
 // tier is firing so a silent-on-device issue is diagnosable, plus a one-tap recovery
-// (Clear everything) to defeat stale browser caching.
-export function VoiceDebug({ onBack }: { onBack: () => void }) {
+// (Clear everything) to defeat stale browser caching. The "Live sync" block makes the
+// freshness contract observable (Real-Time §8).
+export function VoiceDebug({ onBack, sync }: { onBack: () => void; sync?: SyncHealth }) {
   const [status, setStatus] = useState<VoiceStatus | null>(null);
   const [cacheN, setCacheN] = useState<number | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -122,6 +136,30 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
           <p className="mt-2 rounded-xl bg-amber-400/10 px-3 py-2 text-xs text-amber-200">Note: {status.lastError}</p>
         )}
 
+        {/* Live sync — makes the freshness contract observable (Real-Time §8) */}
+        {sync && (
+          <div className="mt-4">
+            <div className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-kmute/80">Live sync</div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <Stat
+                label="Connection"
+                value={connLabel(sync)}
+                good={sync.realtimeStatus === "SUBSCRIBED"}
+                bad={isConnError(sync.realtimeStatus)}
+              />
+              <Stat label="Backed up" value={relTime(sync.lastSync ? Date.parse(sync.lastSync) : null)} />
+              <Stat label="Last change" value={relTime(sync.lastNudgeAt)} />
+              <Stat
+                label="Speed"
+                value={sync.lastPropagationMs == null ? "—" : `${(sync.lastPropagationMs / 1000).toFixed(1)}s`}
+                good={sync.lastPropagationMs != null && sync.lastPropagationMs < 2000}
+              />
+              <Stat label="Pending" value={String(sync.outboxDepth)} good={sync.outboxDepth === 0} bad={sync.outboxDepth > 20} />
+              <Stat label="Clock" value={sync.clockSuspect ? "Suspect" : "OK"} good={!sync.clockSuspect} bad={sync.clockSuspect} />
+            </div>
+          </div>
+        )}
+
         {/* the two essential actions */}
         <div className="mt-4 space-y-2.5">
           <KButton variant="primary" size="lg" className="w-full" disabled={!!busy} haptics onClick={test}>
@@ -175,6 +213,30 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
       </KCard>
     </div>
   );
+}
+
+function isConnError(s: string) {
+  return s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED";
+}
+
+function connLabel(s: SyncHealth): string {
+  if (!s.plusActive) return "Local only";
+  if (s.realtimeStatus === "SUBSCRIBED") return "Live";
+  if (isConnError(s.realtimeStatus)) return "Reconnecting…";
+  if (!s.online) return "Offline";
+  return "Connecting…";
+}
+
+function relTime(ms: number | null): string {
+  if (!ms) return "—";
+  const secs = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (secs < 5) return "just now";
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
 }
 
 function labelTier(t: string) {

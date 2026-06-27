@@ -12,15 +12,24 @@ function rtClient(): SupabaseClient {
   return _client;
 }
 
+/** A nudge payload (data-free apart from a server timestamp for freshness measurement). */
+export type NudgePayload = { t?: string; tbl?: string; at?: number };
+
 /** Subscribe to a household's nudge topic (Real-Time §4.2). The topic is PRIVATE —
  *  Supabase DB-broadcast only fans out over the authorized path — gated by the
  *  realtime.messages RLS policy (migration 0046). Receipt is authorized with the
  *  parent's session JWT, or (on the kid wall, no login) the anon key. The nudge is
- *  data-free; `onChange` fires on each one and the caller debounces + delta-pulls.
+ *  data-free; `onChange` fires on each one (with the payload, for §8 freshness timing)
+ *  and the caller debounces + delta-pulls. `onStatus` surfaces the channel connection
+ *  state (SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED) for the sync-health panel.
  *
  *  Returns a cleanup that removes the channel — ALWAYS call it on unmount; leaked
  *  channels are the #1 realtime failure (§4.5). */
-export function subscribeHousehold(householdId: string, onChange: () => void): () => void {
+export function subscribeHousehold(
+  householdId: string,
+  onChange: (payload?: NudgePayload) => void,
+  onStatus?: (status: string) => void,
+): () => void {
   if (!householdId || typeof window === "undefined") return () => {};
   const supabase = rtClient();
   let channel: RealtimeChannel | null = null;
@@ -41,8 +50,8 @@ export function subscribeHousehold(householdId: string, onChange: () => void): (
     if (cancelled) return;
     channel = supabase
       .channel(`hh:${householdId}`, { config: { private: true } })
-      .on("broadcast", { event: "changed" }, () => onChange())
-      .subscribe();
+      .on("broadcast", { event: "changed" }, (msg) => onChange(msg.payload as NudgePayload))
+      .subscribe((status) => onStatus?.(status));
   })();
 
   return () => {

@@ -391,7 +391,22 @@ function ParentMenu({
           Done
         </KButton>
       </KCard>
-      {debugOpen && <VoiceDebug onBack={() => setDebugOpen(false)} />}
+      {debugOpen && (
+        <VoiceDebug
+          onBack={() => setDebugOpen(false)}
+          sync={{
+            online: kiosk.online,
+            plusActive: kiosk.state?.snapshot.household.plus_active ?? false,
+            syncStatus: kiosk.syncStatus,
+            lastSync: kiosk.lastSync,
+            realtimeStatus: kiosk.realtimeStatus,
+            lastNudgeAt: kiosk.lastNudgeAt,
+            lastPropagationMs: kiosk.lastPropagationMs,
+            outboxDepth: kiosk.outboxDepth,
+            clockSuspect: kiosk.clockSuspect,
+          }}
+        />
+      )}
     </div>
   );
 }
