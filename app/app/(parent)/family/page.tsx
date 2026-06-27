@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Field, Input, Select, Switch, Badge } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { Disclosure } from "@/components/app/Disclosure";
 import { CHILD_PALETTE } from "@/lib/kiosk/colors";
 import {
   addPerson,
@@ -68,9 +69,33 @@ export default async function FamilyPage() {
         {(people ?? []).map((p) => {
           const myRoutines = (routines ?? []).filter((r) => r.person_id === p.id);
           return (
-            <Card key={p.id}>
+            <Card key={p.id} className="p-0">
+              <Disclosure
+                bodyClassName="px-5 pb-5"
+                summary={
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-lg"
+                      style={{ background: `${p.color || "#6b8aa6"}22` }}
+                    >
+                      {p.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.photo_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        p.avatar || "💙"
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="block font-semibold text-ink">{p.name}</span>
+                      <span className="block text-xs capitalize text-muted">
+                        {p.role} · {myRoutines.length} {myRoutines.length === 1 ? "routine" : "routines"}
+                      </span>
+                    </div>
+                  </div>
+                }
+              >
               {/* profile */}
-              <form action={updatePerson.bind(null, p.id)} className="flex flex-wrap items-end gap-3">
+              <form action={updatePerson.bind(null, p.id)} className="flex flex-wrap items-end gap-3 pt-1">
                 <Field label="Avatar" className="w-20">
                   <Input name="avatar" defaultValue={p.avatar ?? "💙"} className="text-center text-xl" />
                 </Field>
@@ -201,16 +226,25 @@ export default async function FamilyPage() {
               <form action={deletePerson.bind(null, p.id)} className="mt-4">
                 <ConfirmSubmit message={`Remove ${p.name} from the wall?`}>Remove person</ConfirmSubmit>
               </form>
+              </Disclosure>
             </Card>
           );
         })}
       </div>
 
       {/* add a person */}
-      <Card className="mt-6">
-        <h3 className="text-title text-harbor">Add someone to the boat</h3>
-        <p className="mt-1 text-sm text-muted">Parents, caregivers, or older siblings who participate on the wall.</p>
-        <form action={addPerson} className="mt-3 flex flex-wrap items-end gap-3">
+      <Card className="mt-6 p-0">
+        <Disclosure
+          defaultOpen={(people ?? []).length === 0}
+          bodyClassName="px-5 pb-5"
+          summary={
+            <div>
+              <span className="text-title text-harbor">Add someone to the boat</span>
+              <span className="mt-0.5 block text-sm text-muted">Parents, caregivers, or older siblings</span>
+            </div>
+          }
+        >
+        <form action={addPerson} className="mt-1 flex flex-wrap items-end gap-3">
           <Field label="Avatar" className="w-20">
             <Input name="avatar" defaultValue="💙" className="text-center text-xl" />
           </Field>
@@ -229,6 +263,7 @@ export default async function FamilyPage() {
         <Badge tone="neutral" className="mt-3">
           No stars for grown-ups — modeling is the point.
         </Badge>
+        </Disclosure>
       </Card>
     </>
   );

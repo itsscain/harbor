@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Field, Input, Switch, Badge } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { Disclosure } from "@/components/app/Disclosure";
 import { addMedication, updateMedication, deleteMedication } from "../actions";
 
 export const metadata = { title: "Medication" };
@@ -59,8 +60,22 @@ export default async function MedicationPage() {
                   const days: number[] = Array.isArray(m.days_of_week) ? (m.days_of_week as number[]) : [];
                   const times = Array.isArray(m.schedule_times) ? (m.schedule_times as string[]).join(", ") : "";
                   return (
-                    <Card key={m.id as string}>
-                      <form action={updateMedication.bind(null, m.id as string)} className="space-y-3">
+                    <Card key={m.id as string} className="p-0">
+                      <Disclosure
+                        bodyClassName="px-5 pb-5"
+                        summary={
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{(m.icon as string) ?? "💊"}</span>
+                            <div className="min-w-0">
+                              <span className="block font-semibold text-ink">{m.name as string}</span>
+                              <span className="block text-xs text-muted">
+                                {[(m.dose as string) || null, times || null].filter(Boolean).join(" · ") || "Tap to edit"}
+                              </span>
+                            </div>
+                          </div>
+                        }
+                      >
+                      <form action={updateMedication.bind(null, m.id as string)} className="space-y-3 pt-1">
                         <div className="flex flex-wrap items-end gap-3">
                           <Field label="Icon" className="w-16">
                             <Input name="icon" defaultValue={(m.icon as string) ?? "💊"} className="text-center text-xl" />
@@ -101,14 +116,19 @@ export default async function MedicationPage() {
                       <form action={deleteMedication.bind(null, m.id as string)} className="mt-2">
                         <ConfirmSubmit message={`Remove "${m.name as string}"?`}>Remove</ConfirmSubmit>
                       </form>
+                      </Disclosure>
                     </Card>
                   );
                 })}
               </div>
 
-              <Card className="mt-3 border border-dashed border-line/70">
-                <h3 className="text-sm font-semibold text-harbor">Add a medication for {child.name}</h3>
-                <form action={addMedication.bind(null, child.id)} className="mt-3 space-y-3">
+              <Card className="mt-3 p-0">
+                <Disclosure
+                  defaultOpen={childMeds.length === 0}
+                  bodyClassName="px-5 pb-5"
+                  summary={<span className="text-sm font-semibold text-harbor">➕ Add a medication for {child.name}</span>}
+                >
+                <form action={addMedication.bind(null, child.id)} className="mt-1 space-y-3">
                   <div className="flex flex-wrap items-end gap-3">
                     <Field label="Icon" className="w-16">
                       <Input name="icon" defaultValue="💊" className="text-center text-xl" />
@@ -132,6 +152,7 @@ export default async function MedicationPage() {
                   </Field>
                   <SubmitButton size="sm">Add medication</SubmitButton>
                 </form>
+                </Disclosure>
               </Card>
             </section>
           );
