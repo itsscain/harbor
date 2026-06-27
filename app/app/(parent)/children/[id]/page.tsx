@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Trash2, RefreshCw, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Badge, Input, Field, Select, Switch } from "@/components/ui/primitives";
+import { Card, Badge, Input, Field, Select, Switch, SectionHeader, StatChip } from "@/components/ui/primitives";
+import { PageHero } from "@/components/ui/PageHero";
+import { EntityAvatar } from "@/components/ui/EntityAvatar";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { RoutineCard } from "@/components/app/RoutineCard";
@@ -99,8 +101,30 @@ export default async function ChildDetail({
   }));
   const activeCorner = corners.find((c) => c.status === "active") ?? null;
 
+  const { data: rewardRow } = await supabase
+    .from("rewards")
+    .select("points_total")
+    .eq("child_id", id)
+    .maybeSingle();
+
   const color = childColor(child);
   const colorName = CHILD_PALETTE.find((p) => p.value === color)?.name;
+  const reducedMotion = cs.reducedMotion === true;
+  const allSteps = steps ?? [];
+  const earnedByStep = new Map((skill ?? []).map((s) => [s.step_id as string, s.level_earned as number]));
+  const onOwn = allSteps.filter(
+    (s) => Math.min(4, ((s.support_level as number) ?? 1) + (earnedByStep.get(s.id) ?? 0)) >= 4,
+  ).length;
+  const faded = allSteps.reduce(
+    (n, s) => n + Math.max(0, Math.min(earnedByStep.get(s.id) ?? 0, 4 - ((s.support_level as number) ?? 1))),
+    0,
+  );
+  const routineCount = (routines ?? []).length;
+  const activeCount = (routines ?? []).filter((r) => r.active).length;
+  const points = rewardRow?.points_total ?? 0;
+  const age = child.birthday
+    ? Math.max(0, Math.floor((Date.now() - new Date(child.birthday).getTime()) / 31557600000))
+    : null;
 
   return (
     <>
@@ -111,54 +135,49 @@ export default async function ChildDetail({
         <ArrowLeft className="h-4 w-4" /> Children
       </Link>
 
-      {/* Colored hero */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-harbor-100 shadow-card animate-enter">
-        <div className="flex items-center gap-4 p-5" style={{ background: color + "14" }}>
-          <span
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-3xl"
-            style={{ background: color + "26", boxShadow: `inset 0 0 0 3px ${color}` }}
-          >
-            {child.avatar ?? "🙂"}
-          </span>
-          <div className="min-w-0">
-            <p className="text-eyebrow text-muted">Child profile</p>
-            <h1 className="truncate text-display text-harbor">{child.name}</h1>
+      <PageHero
+        eyebrow="Child profile"
+        title={child.name}
+        accent={color}
+        reducedMotion={reducedMotion}
+        avatar={<EntityAvatar photoUrl={child.photo_url} fallback={child.avatar ?? "🙂"} accent={color} size="lg" />}
+        meta={
+          <>
             {colorName && (
-              <span className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
+              <span className="inline-flex items-center gap-1.5 font-medium">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} /> {colorName}
               </span>
             )}
-          </div>
-        </div>
-      </div>
+            {age != null && (
+              <>
+                <span className="text-harbor-100">·</span>
+                <span>{age} years</span>
+              </>
+            )}
+          </>
+        }
+        stats={
+          allSteps.length > 0 ? (
+            <>
+              <StatChip value={`${onOwn}/${allSteps.length}`} label="on their own" hint={faded > 0 ? `${faded} faded` : "independence"} accent />
+              <StatChip value={routineCount} label="routines" hint={`${activeCount} active`} />
+              <StatChip value={points} label="stars" hint="earned" />
+            </>
+          ) : undefined
+        }
+      />
 
-      {(() => {
-        const earned = new Map((skill ?? []).map((s) => [s.step_id as string, s.level_earned as number]));
-        const allSteps = steps ?? [];
-        const onOwn = allSteps.filter(
-          (s) => Math.min(4, ((s.support_level as number) ?? 1) + (earned.get(s.id) ?? 0)) >= 4,
-        ).length;
-        const faded = allSteps.reduce(
-          (n, s) => n + Math.max(0, Math.min(earned.get(s.id) ?? 0, 4 - ((s.support_level as number) ?? 1))),
-          0,
-        );
-        if (allSteps.length === 0) return null;
-        return (
-          <Card className="mb-4 flex items-center gap-3 bg-harbor-50/50">
-            <span className="text-2xl">🧭</span>
-            <p className="text-sm text-ink">
-              <b>Growing toward independence.</b> {onOwn} of {allSteps.length}{" "}
-              {allSteps.length === 1 ? "step" : "steps"} on their own
-              {faded > 0 ? ` · ${faded} prompt${faded === 1 ? "" : "s"} faded` : ""}.
-            </p>
-          </Card>
-        );
-      })()}
-
-      <div className="mb-2 flex items-center gap-2 text-sm text-muted">
-        <RefreshCw className="h-4 w-4" />
-        Changes save here and sync to your wall (with Harbor Plus).
-      </div>
+      <SectionHeader
+        rule
+        eyebrow="Daily rhythm"
+        action={
+          <span className="hidden items-center gap-1.5 text-xs text-muted sm:inline-flex">
+            <RefreshCw className="h-3.5 w-3.5" /> Saves &amp; syncs to the wall
+          </span>
+        }
+      >
+        Routines
+      </SectionHeader>
 
       <div className="space-y-3">
         {(routines ?? []).map((r) => (
@@ -167,6 +186,7 @@ export default async function ChildDetail({
             routine={r}
             steps={(steps ?? []).filter((s) => s.routine_id === r.id)}
             childId={child.id}
+            color={color}
           />
         ))}
       </div>
@@ -243,106 +263,8 @@ export default async function ChildDetail({
         </Disclosure>
       </Card>
 
-      <Card className="mb-4 p-0">
-        <Disclosure bodyClassName="px-5 pb-5" summary={
-          <div>
-            <span className="text-title text-harbor">Profile</span>
-            <span className="mt-0.5 block text-sm text-muted">Photo, name, birthday, color</span>
-          </div>
-        }>
-        <div className="mt-3 border-b border-harbor-100 pb-4">
-          <ChildPhotoField
-            childId={child.id}
-            name={child.name}
-            photoUrl={child.photo_url}
-            color={child.color ?? "#18606f"}
-          />
-        </div>
-        <form action={updateChild.bind(null, child.id)} className="mt-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <Field label="Name">
-              <Input name="name" defaultValue={child.name} required />
-            </Field>
-            <Field label="Emoji" hint="Used on the wall if no photo is set.">
-              <Input name="avatar" defaultValue={child.avatar ?? ""} className="w-24 text-center text-xl" />
-            </Field>
-          </div>
-          <Field label="Birthday" hint="Drives a “N sleeps until their birthday” countdown on the wall.">
-            <Input name="birthday" type="date" defaultValue={child.birthday ?? ""} className="w-full sm:w-56" />
-          </Field>
-          <Field label="Color" hint="Shows on the wall calendar, tiles, and routine board.">
-            <div className="flex flex-wrap gap-2">
-              {CHILD_PALETTE.map((p) => (
-                <label key={p.value} className="flex h-11 w-11 cursor-pointer items-center justify-center" title={p.name}>
-                  <input
-                    type="radio"
-                    name="color"
-                    value={p.value}
-                    defaultChecked={childColor(child) === p.value}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className="block h-7 w-7 rounded-full ring-2 ring-transparent ring-offset-2 transition-transform peer-checked:scale-110 peer-checked:ring-harbor"
-                    style={{ backgroundColor: p.value }}
-                  />
-                </label>
-              ))}
-            </div>
-          </Field>
-          <SubmitButton variant="secondary">Save</SubmitButton>
-        </form>
-        </Disclosure>
-      </Card>
 
-      <Card className="mb-4 p-0">
-        <Disclosure bodyClassName="px-5 pb-5" summary={
-          <div>
-            <span className="text-title text-harbor">Accessibility & wall</span>
-            <span className="mt-0.5 block text-sm text-muted">Read-aloud, sound, sensory, theme, bedtime</span>
-          </div>
-        }>
-        <p className="text-sm text-muted">How {child.name}&apos;s wall reads, sounds, and feels.</p>
-        <form action={updateChildSettings.bind(null, child.id)} className="mt-3 space-y-3">
-          <div className="divide-y divide-harbor-100 rounded-xl border border-harbor-100">
-            {[
-              { name: "readAloud", label: "Read aloud on tap", hint: "Speak each step when tapped", def: cs.readAloud !== false },
-              { name: "autoRead", label: "Auto-read on open", hint: "Read the routine aloud automatically", def: cs.autoRead === true },
-              { name: "sound", label: "Success sounds", hint: "Play a chime on completion", def: cs.sound !== false },
-              { name: "haptics", label: "Vibrate on done", hint: "Gentle buzz when a step is finished", def: cs.haptics !== false },
-              { name: "reducedMotion", label: "Reduce motion", hint: "Calmer, minimal animation", def: cs.reducedMotion === true },
-            ].map((t) => (
-              <div key={t.name} className="px-3.5 py-3">
-                <Switch name={t.name} label={t.label} hint={t.hint} defaultChecked={t.def} />
-              </div>
-            ))}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Sensory intensity"
-              hint="Scales animation, celebration, and sound to the child. Calm for sensory-sensitive kids; Vivid for big, bright feedback."
-            >
-              <Select name="sensory" defaultValue={typeof cs.sensory === "string" ? (cs.sensory as string) : "standard"}>
-                <option value="calm">Calm — gentle &amp; minimal</option>
-                <option value="standard">Standard</option>
-                <option value="vivid">Vivid — big &amp; bright</option>
-              </Select>
-            </Field>
-            <Field label="Wall theme">
-              <Select name="theme" defaultValue={typeof cs.theme === "string" ? (cs.theme as string) : "harbor"}>
-                <option value="harbor">Deep Harbor</option>
-                <option value="water">Mid Water</option>
-                <option value="beacon">Beacon</option>
-                <option value="seafoam">Seafoam</option>
-              </Select>
-            </Field>
-            <Field label="Bedtime" hint="Shows a visual countdown to bed on the wall.">
-              <Input name="bedtime" type="time" defaultValue={typeof cs.bedtime === "string" ? (cs.bedtime as string) : ""} />
-            </Field>
-          </div>
-          <SubmitButton variant="secondary">Save accessibility</SubmitButton>
-        </form>
-        </Disclosure>
-      </Card>
+      <SectionHeader rule eyebrow="In the moment">Calm &amp; grounding</SectionHeader>
 
       <div className="mb-4">
         <GroundingCard
@@ -371,6 +293,8 @@ export default async function ChildDetail({
       </div>
 
       {/* Chores */}
+      <SectionHeader rule eyebrow="Care &amp; growth">Chores &amp; companion</SectionHeader>
+
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
           <div>
@@ -485,6 +409,109 @@ export default async function ChildDetail({
         />
       </div>
 
+
+      <SectionHeader rule eyebrow="Setup">Profile &amp; wall</SectionHeader>
+
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <div>
+            <span className="text-title text-harbor">Profile</span>
+            <span className="mt-0.5 block text-sm text-muted">Photo, name, birthday, color</span>
+          </div>
+        }>
+        <div className="mt-3 border-b border-harbor-100 pb-4">
+          <ChildPhotoField
+            childId={child.id}
+            name={child.name}
+            photoUrl={child.photo_url}
+            color={child.color ?? "#18606f"}
+          />
+        </div>
+        <form action={updateChild.bind(null, child.id)} className="mt-4 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <Field label="Name">
+              <Input name="name" defaultValue={child.name} required />
+            </Field>
+            <Field label="Emoji" hint="Used on the wall if no photo is set.">
+              <Input name="avatar" defaultValue={child.avatar ?? ""} className="w-24 text-center text-xl" />
+            </Field>
+          </div>
+          <Field label="Birthday" hint="Drives a “N sleeps until their birthday” countdown on the wall.">
+            <Input name="birthday" type="date" defaultValue={child.birthday ?? ""} className="w-full sm:w-56" />
+          </Field>
+          <Field label="Color" hint="Shows on the wall calendar, tiles, and routine board.">
+            <div className="flex flex-wrap gap-2">
+              {CHILD_PALETTE.map((p) => (
+                <label key={p.value} className="flex h-11 w-11 cursor-pointer items-center justify-center" title={p.name}>
+                  <input
+                    type="radio"
+                    name="color"
+                    value={p.value}
+                    defaultChecked={childColor(child) === p.value}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className="block h-7 w-7 rounded-full ring-2 ring-transparent ring-offset-2 transition-transform peer-checked:scale-110 peer-checked:ring-harbor"
+                    style={{ backgroundColor: p.value }}
+                  />
+                </label>
+              ))}
+            </div>
+          </Field>
+          <SubmitButton variant="secondary">Save</SubmitButton>
+        </form>
+        </Disclosure>
+      </Card>
+
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <div>
+            <span className="text-title text-harbor">Accessibility & wall</span>
+            <span className="mt-0.5 block text-sm text-muted">Read-aloud, sound, sensory, theme, bedtime</span>
+          </div>
+        }>
+        <p className="text-sm text-muted">How {child.name}&apos;s wall reads, sounds, and feels.</p>
+        <form action={updateChildSettings.bind(null, child.id)} className="mt-3 space-y-3">
+          <div className="divide-y divide-harbor-100 rounded-xl border border-harbor-100">
+            {[
+              { name: "readAloud", label: "Read aloud on tap", hint: "Speak each step when tapped", def: cs.readAloud !== false },
+              { name: "autoRead", label: "Auto-read on open", hint: "Read the routine aloud automatically", def: cs.autoRead === true },
+              { name: "sound", label: "Success sounds", hint: "Play a chime on completion", def: cs.sound !== false },
+              { name: "haptics", label: "Vibrate on done", hint: "Gentle buzz when a step is finished", def: cs.haptics !== false },
+              { name: "reducedMotion", label: "Reduce motion", hint: "Calmer, minimal animation", def: cs.reducedMotion === true },
+            ].map((t) => (
+              <div key={t.name} className="px-3.5 py-3">
+                <Switch name={t.name} label={t.label} hint={t.hint} defaultChecked={t.def} />
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Sensory intensity"
+              hint="Scales animation, celebration, and sound to the child. Calm for sensory-sensitive kids; Vivid for big, bright feedback."
+            >
+              <Select name="sensory" defaultValue={typeof cs.sensory === "string" ? (cs.sensory as string) : "standard"}>
+                <option value="calm">Calm — gentle &amp; minimal</option>
+                <option value="standard">Standard</option>
+                <option value="vivid">Vivid — big &amp; bright</option>
+              </Select>
+            </Field>
+            <Field label="Wall theme">
+              <Select name="theme" defaultValue={typeof cs.theme === "string" ? (cs.theme as string) : "harbor"}>
+                <option value="harbor">Deep Harbor</option>
+                <option value="water">Mid Water</option>
+                <option value="beacon">Beacon</option>
+                <option value="seafoam">Seafoam</option>
+              </Select>
+            </Field>
+            <Field label="Bedtime" hint="Shows a visual countdown to bed on the wall.">
+              <Input name="bedtime" type="time" defaultValue={typeof cs.bedtime === "string" ? (cs.bedtime as string) : ""} />
+            </Field>
+          </div>
+          <SubmitButton variant="secondary">Save accessibility</SubmitButton>
+        </form>
+        </Disclosure>
+      </Card>
 
       <Card className="border-red-200">
         <h3 className="text-title text-red-700">Danger zone</h3>

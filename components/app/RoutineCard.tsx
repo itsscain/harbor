@@ -5,8 +5,18 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { Disclosure } from "./Disclosure";
 import { StepRow } from "./StepRow";
+import { ListRow } from "@/components/ui/ListRow";
 import { Trash2, Clock } from "lucide-react";
 import { updateRoutine, addStep, deleteRoutine } from "@/app/app/(parent)/actions";
+
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function dayLabel(days: number[] | null): string | null {
+  if (!days || days.length === 0 || days.length === 7) return "Daily";
+  const set = new Set(days);
+  if (set.size === 5 && [1, 2, 3, 4, 5].every((d) => set.has(d))) return "Weekdays";
+  if (set.size === 2 && set.has(0) && set.has(6)) return "Weekends";
+  return [...days].sort((a, b) => a - b).map((d) => DAY_SHORT[d]).join(", ");
+}
 
 type Step = {
   id: string;
@@ -45,45 +55,63 @@ const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 /** One routine as a calm collapsed row (emoji · name · N steps · a soft peek). Tap to
  *  reveal the editor — steps, schedule, add-step, delete. Autosave is preserved by
  *  StepRow; the schedule + name save on their own buttons. */
-export function RoutineCard({ routine: r, steps, childId }: { routine: Routine; steps: Step[]; childId: string }) {
+export function RoutineCard({
+  routine: r,
+  steps,
+  childId,
+  color = "#18606f",
+}: {
+  routine: Routine;
+  steps: Step[];
+  childId: string;
+  color?: string;
+}) {
   const count = steps.length;
   const peek = steps.slice(0, 5);
   const when = r.start_time ? r.start_time.slice(0, 5) : null;
+  const days = dayLabel(r.days_of_week);
 
   return (
-    <Card className="p-0">
+    <Card
+      className="group/disc overflow-hidden p-0 transition-[box-shadow] duration-200 hover:shadow-card-hover [border-left:3px_solid_transparent] hover:[border-left-color:var(--accent)]"
+      style={{ ["--accent" as string]: color }}
+    >
       <Disclosure
         defaultOpen={false}
         summary={
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{routineEmoji(r)}</span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-title text-harbor">{r.name}</span>
+          <ListRow
+            tile={routineEmoji(r)}
+            dim={!r.active}
+            title={
+              <>
+                <span className="truncate">{r.name}</span>
                 {!r.active && <Badge tone="neutral">Off</Badge>}
-              </div>
-              <div className="mt-0.5 flex items-center gap-2.5 text-sm text-muted">
+              </>
+            }
+            subtitle={
+              <>
                 <span>
                   {count} {count === 1 ? "step" : "steps"}
                 </span>
-                {when && (
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> {when}
+                {(when || (days && days !== "Daily")) && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-harbor-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-water">
+                    <Clock className="h-3 w-3" />
+                    {[when, days && days !== "Daily" ? days : null].filter(Boolean).join(" · ")}
                   </span>
                 )}
                 {peek.length > 0 && (
-                  <span className="flex items-center gap-0.5 opacity-70">
+                  <span className="hidden items-center gap-1 sm:flex">
                     {peek.map((s) => (
-                      <span key={s.id} className="text-base">
+                      <span key={s.id} className="grid h-6 w-6 place-items-center rounded-md bg-surface-sunken text-sm">
                         {s.icon ?? "•"}
                       </span>
                     ))}
-                    {count > peek.length && <span className="text-xs">+{count - peek.length}</span>}
+                    {count > peek.length && <span className="text-xs font-semibold text-muted">+{count - peek.length}</span>}
                   </span>
                 )}
-              </div>
-            </div>
-          </div>
+              </>
+            }
+          />
         }
       >
         <div className="space-y-4 px-4 pb-4 pt-1">

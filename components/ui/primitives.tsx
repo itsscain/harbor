@@ -67,15 +67,24 @@ export function SectionHeader({
   children,
   eyebrow,
   action,
+  rule = false,
   className,
 }: {
   children: React.ReactNode;
   eyebrow?: string;
   action?: React.ReactNode;
+  /** Editorial section rule — a hairline under the heading + extra top air. */
+  rule?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cn("mb-3 flex items-end justify-between gap-3", className)}>
+    <div
+      className={cn(
+        "flex items-end justify-between gap-3",
+        rule ? "mb-4 border-b border-harbor-100 pb-2" : "mb-3",
+        className,
+      )}
+    >
       <div>
         {eyebrow && <p className="text-eyebrow mb-1 text-muted">{eyebrow}</p>}
         <h2 className="text-title text-harbor">{children}</h2>
@@ -143,6 +152,34 @@ export function Stat({
       </p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </Card>
+  );
+}
+
+// ── StatChip ─ a glance figure inside a fused band (no card chrome) ───────────────
+export function StatChip({
+  value,
+  label,
+  hint,
+  accent = false,
+}: {
+  value: React.ReactNode;
+  label: string;
+  hint?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="px-4 py-3.5 text-center sm:text-left">
+      <p
+        className={cn(
+          "font-display text-2xl font-extrabold leading-none tracking-[-0.02em] text-harbor",
+          accent && "text-beacon",
+        )}
+      >
+        {value}
+      </p>
+      <p className="text-eyebrow mt-1 text-muted">{label}</p>
+      {hint && <p className="mt-0.5 text-[11px] text-muted/80">{hint}</p>}
+    </div>
   );
 }
 
