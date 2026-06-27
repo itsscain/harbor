@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { QuickCapture } from "@/components/app/QuickCapture";
 import { Card, Input, Field, Select, Switch, SectionHeader } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { Disclosure } from "@/components/app/Disclosure";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DateTimeField } from "@/components/app/DateTimeField";
@@ -44,9 +45,9 @@ export default async function CalendarPage() {
         <QuickCapture />
       </div>
 
-      <Card className="mb-6">
-        <h2 className="text-title text-harbor">Add an event</h2>
-        <form action={addEvent} className="mt-3 grid gap-3 sm:grid-cols-2">
+      <Card className="mb-6 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={<span className="text-title text-harbor">Add an event</span>}>
+        <form action={addEvent} className="grid gap-3 pt-1 sm:grid-cols-2">
           <Field label="Title" className="sm:col-span-2">
             <Input name="title" required placeholder="Soccer practice" />
           </Field>
@@ -86,6 +87,7 @@ export default async function CalendarPage() {
           </div>
           <div className="sm:col-span-2"><SubmitButton>Add event</SubmitButton></div>
         </form>
+        </Disclosure>
       </Card>
 
       {/* Per-person legend */}
@@ -156,11 +158,18 @@ export default async function CalendarPage() {
           ))}
           {(reminders ?? []).length === 0 && <p className="rounded-xl bg-surface-sunken px-3 py-3 text-sm text-muted">No reminders yet.</p>}
         </div>
-        <form action={addReminder} className="mt-4 grid gap-3 border-t border-harbor-100 pt-4 sm:grid-cols-[1fr_auto_auto]">
-          <Field label="Reminder"><Input name="title" required placeholder="Library books due" /></Field>
-          <Field label="Due"><Input name="due_date" type="date" required /></Field>
-          <div className="flex items-end"><SubmitButton variant="secondary">Add</SubmitButton></div>
-        </form>
+        <Disclosure
+          className="mt-3 border-t border-harbor-100"
+          defaultOpen={(reminders ?? []).length === 0}
+          bodyClassName="px-1 pb-1"
+          summary={<span className="text-sm font-semibold text-harbor">Add a reminder</span>}
+        >
+          <form action={addReminder} className="grid gap-3 pt-2 sm:grid-cols-[1fr_auto_auto]">
+            <Field label="Reminder"><Input name="title" required placeholder="Library books due" /></Field>
+            <Field label="Due"><Input name="due_date" type="date" required /></Field>
+            <div className="flex items-end"><SubmitButton variant="secondary">Add</SubmitButton></div>
+          </form>
+        </Disclosure>
       </Card>
     </>
   );

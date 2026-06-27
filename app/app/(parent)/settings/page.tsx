@@ -6,6 +6,7 @@ import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, Input, Field, Button, Textarea, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { Disclosure } from "@/components/app/Disclosure";
 import { GoogleSyncButton } from "@/components/app/GoogleSyncButton";
 import { GuardiansCard, type Guardian } from "@/components/app/GuardiansCard";
 import { formatPairingCode } from "@/lib/pairing-format";
@@ -103,8 +104,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </form>
       </Card>
 
-      <Card className="mb-4">
-        <h2 className="text-title text-harbor">Wall display</h2>
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <span className="text-title text-harbor">Wall display</span>
+        }>
         <p className="text-sm text-muted">How the wall behaves when idle.</p>
         {(() => {
           const s = (household.settings ?? {}) as Record<string, unknown>;
@@ -151,14 +154,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </form>
           );
         })()}
+        </Disclosure>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-water" />
-          <h2 className="text-title text-harbor">AI Companion</h2>
+          <span className="text-title text-harbor">AI Companion</span>
           {aiEnabled && aiKeySet ? <Badge tone="green">On</Badge> : <Badge tone="gray">Off</Badge>}
         </div>
+        }>
         <p className="mt-2 text-sm text-muted">
           Bring your own Anthropic API key to power AI features — meal-plan generation now, with daily
           briefs, chore ideas and more coming. It runs on Claude Haiku to keep costs low. Your key is
@@ -193,14 +199,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             )}
           </div>
         </form>
+        </Disclosure>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-water" />
-          <h2 className="text-title text-harbor">Google Calendar</h2>
+          <span className="text-title text-harbor">Google Calendar</span>
           {googleConnected ? <Badge tone="green">Connected</Badge> : <Badge tone="gray">Not connected</Badge>}
         </div>
+        }>
         <p className="mt-2 text-sm text-muted">
           Two-way sync with your Google Calendar — events you add in Harbor appear in Google, and Google
           events show on the wall. Tokens are stored securely server-side and <strong>never</strong> reach the wall tablet.
@@ -238,18 +247,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <CalendarDays className="h-4 w-4" /> Connect Google Calendar
           </a>
         )}
+        </Disclosure>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
           <KeyRound className="h-5 w-5 text-water" />
-          <h2 className="text-title text-harbor">Wall PIN</h2>
+          <span className="text-title text-harbor">Wall PIN</span>
           {household.parent_pin_hash ? (
             <Badge tone="green">Set</Badge>
           ) : (
             <Badge tone="gray">Not set</Badge>
           )}
         </div>
+        }>
         <p className="mt-2 text-sm text-muted">
           Gates settings and editing on the wall tablet. Syncs to the wall with
           Harbor Plus; otherwise set it on the device itself.
@@ -265,13 +277,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <Button type="submit" variant="ghost" size="sm">Clear PIN</Button>
           </form>
         )}
+        </Disclosure>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-4 p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
           <Tablet className="h-5 w-5 text-water" />
-          <h2 className="text-title text-harbor">Devices</h2>
+          <span className="text-title text-harbor">Devices</span>
         </div>
+        }>
         <p className="mt-1 text-sm text-muted">
           The wall is your hub. Turn any spare tablet into a per-child <strong>room device</strong> — their
           routine, Anchor, and a bedtime nightlight — at no extra cost.
@@ -308,17 +323,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
           <p className="mt-2 text-xs text-muted">A new code appears above — open Harbor on the spare tablet and enter it.</p>
         </div>
+        </Disclosure>
       </Card>
 
       <div className="mb-4">
         <GuardiansCard guardians={guardians} isOwner={isOwner} available={guardiansAvailable} />
       </div>
 
-      <Card>
-        <h2 className="text-title text-harbor">Account</h2>
+      <Card className="p-0">
+        <Disclosure bodyClassName="px-5 pb-5" summary={
+          <span className="text-title text-harbor">Account</span>
+        }>
         <Link href="/account/password" className="mt-2 inline-block">
           <Button variant="secondary" size="sm">Change password</Button>
         </Link>
+        </Disclosure>
       </Card>
     </>
   );

@@ -6,6 +6,8 @@ import { Card, Input, Field, Select, Badge, Switch } from "@/components/ui/primi
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Disclosure } from "@/components/app/Disclosure";
+import { ListRow } from "@/components/ui/ListRow";
 import { FamilyGoalCard } from "@/components/app/FamilyGoalCard";
 import { titleCase } from "@/lib/format";
 import { addStoreItem, updateStoreItem, deleteStoreItem } from "../hub-actions";
@@ -45,9 +47,13 @@ export default async function StorePage() {
         />
       </div>
 
-      <Card className="mb-6">
-        <h2 className="text-title text-harbor">Add a reward</h2>
-        <form action={addStoreItem} className="mt-3 grid gap-3 sm:grid-cols-2">
+      <Card className="mb-6 p-0">
+        <Disclosure
+          defaultOpen={(items ?? []).length === 0}
+          bodyClassName="px-5 pb-5"
+          summary={<span className="text-title text-harbor">Add a reward</span>}
+        >
+        <form action={addStoreItem} className="grid gap-3 pt-1 sm:grid-cols-2">
           <Field label="Reward" className="sm:col-span-2"><Input name="label" required placeholder="Ice cream trip" /></Field>
           <Field label="Emoji"><Input name="emoji" placeholder="🍦" className="text-center text-xl" /></Field>
           <Field label="Cost (stars)"><Input name="cost_points" type="number" min={0} defaultValue={20} /></Field>
@@ -69,12 +75,30 @@ export default async function StorePage() {
           </Field>
           <div className="sm:col-span-2"><SubmitButton>Add reward</SubmitButton></div>
         </form>
+        </Disclosure>
       </Card>
 
       <div className="space-y-3">
         {(items ?? []).map((item) => (
-          <Card key={item.id}>
-            <form action={updateStoreItem.bind(null, item.id)} className="grid grid-cols-12 items-end gap-2">
+          <Card key={item.id} className="group/disc p-0">
+            <Disclosure
+              bodyClassName="px-5 pb-5"
+              summary={
+                <ListRow
+                  tile={item.emoji ?? "🎁"}
+                  dim={!item.enabled}
+                  title={item.label}
+                  subtitle={
+                    <>
+                      <span className="font-semibold text-harbor">{item.cost_points} ★</span>
+                      <Badge tone="neutral">{childName(item.child_id)} · {titleCase(item.kind)}</Badge>
+                      {!item.enabled && <Badge tone="neutral">Off</Badge>}
+                    </>
+                  }
+                />
+              }
+            >
+            <form action={updateStoreItem.bind(null, item.id)} className="grid grid-cols-12 items-end gap-2 pt-1">
               <Field label="Emoji" className="col-span-3 sm:col-span-1">
                 <Input name="emoji" defaultValue={item.emoji ?? ""} className="text-center text-xl" />
               </Field>
@@ -109,6 +133,7 @@ export default async function StorePage() {
                 </ConfirmSubmit>
               </form>
             </div>
+            </Disclosure>
           </Card>
         ))}
         {(items ?? []).length === 0 && (

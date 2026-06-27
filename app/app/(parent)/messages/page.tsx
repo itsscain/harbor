@@ -6,6 +6,7 @@ import { Card, Input, Field, Select, Textarea, Badge, Switch } from "@/component
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Disclosure } from "@/components/app/Disclosure";
 import { addMessage, deleteMessage } from "../hub-actions";
 
 export const metadata = { title: "Message board" };
@@ -31,9 +32,13 @@ export default async function MessagesPage() {
         subtitle="Notes and nudges that appear on the wall's home screen."
       />
 
-      <Card className="mb-6">
-        <h2 className="text-title text-harbor">Post a note</h2>
-        <form action={addMessage} className="mt-3 grid gap-3 sm:grid-cols-2">
+      <Card className="mb-6 p-0">
+        <Disclosure
+          defaultOpen={(messages ?? []).length === 0}
+          bodyClassName="px-5 pb-5"
+          summary={<span className="text-title text-harbor">Post a note</span>}
+        >
+        <form action={addMessage} className="grid gap-3 pt-1 sm:grid-cols-2">
           <Field label="Message" className="sm:col-span-2">
             <Textarea name="body" required placeholder="Mom home by 5:30 — snack's in the fridge. You've got this!" />
           </Field>
@@ -55,6 +60,7 @@ export default async function MessagesPage() {
           </div>
           <div className="sm:col-span-2"><SubmitButton>Post to the wall</SubmitButton></div>
         </form>
+        </Disclosure>
       </Card>
 
       <div className="space-y-2">
