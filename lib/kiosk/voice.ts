@@ -131,7 +131,6 @@ let worker: Worker | null = null;
 let modelReady = false;
 let workerDead = false;
 let reqId = 0;
-let lastProgress = 0;
 let lastError: string | null = null;
 const pending = new Map<number, (blob: Blob | null) => void>();
 let readyResolvers: Array<() => void> = [];
@@ -142,14 +141,11 @@ function getWorker(): Worker | null {
     try {
       worker = new Worker(new URL("./tts.worker.ts", import.meta.url), { type: "module" });
       worker.onmessage = (e: MessageEvent) => {
-        const d = (e.data || {}) as { id?: number; type?: string; blob?: Blob; error?: string; data?: { progress?: number } };
+        const d = (e.data || {}) as { id?: number; type?: string; blob?: Blob; error?: string };
         if (d.type === "ready") {
           modelReady = true;
-          lastProgress = 1;
           readyResolvers.forEach((r) => r());
           readyResolvers = [];
-        } else if (d.type === "progress") {
-          if (typeof d.data?.progress === "number") lastProgress = Math.max(lastProgress, d.data.progress / 100);
         } else if (d.type === "audio" && typeof d.id === "number") {
           const r = pending.get(d.id);
           if (r) {
@@ -377,6 +373,7 @@ async function playBlob(blob: Blob, seq: number): Promise<boolean> {
     currentAudio = audio;
     currentUrl = url;
     audio.onended = () => {
+      if (currentAudio === audio) currentAudio = null;
       if (currentUrl === url) {
         URL.revokeObjectURL(url);
         currentUrl = null;
@@ -425,10 +422,21 @@ export function playHarborVoice(text: string, voice: string = HARBOR_VOICE) {
 }
 
 // ── debug / diagnostics (Parent menu → Debug tools) ──────────────────────────────
+let manifestCount = 0;
+let manifestVersion = "";
+function refreshManifestStats() {
+  void loadManifest().then((m) => {
+    manifestCount = Object.keys(m.phrases || {}).length;
+    manifestVersion = m.version || "";
+  });
+}
+refreshManifestStats();
+
 export type VoiceStatus = {
   supported: boolean;
   secureContext: boolean;
   libraryPhrases: number;
+  libraryVersion: string;
   audioContext: string;
   osVoice: string | null;
   modelReady: boolean;
@@ -442,6 +450,7 @@ export function getVoiceStatus(): VoiceStatus {
     supported: typeof window !== "undefined",
     secureContext: typeof window !== "undefined" ? window.isSecureContext : false,
     libraryPhrases: manifestCount,
+    libraryVersion: manifestVersion,
     audioContext: ctx ? ctx.state : "none",
     osVoice: harborVoice()?.name ?? null,
     modelReady,
@@ -449,11 +458,6 @@ export function getVoiceStatus(): VoiceStatus {
     lastError,
   };
 }
-
-let manifestCount = 0;
-void loadManifest().then((m) => {
-  manifestCount = Object.keys(m.phrases || {}).length;
-});
 
 export async function voiceCacheCount(): Promise<number> {
   try {
@@ -521,13 +525,10 @@ export async function reloadVoiceEngine(clearModel = false): Promise<void> {
   worker = null;
   modelReady = false;
   workerDead = false;
-  lastProgress = 0;
   lastError = null;
   readyResolvers = [];
   pending.clear();
-  void loadManifest().then((m) => {
-    manifestCount = Object.keys(m.phrases || {}).length;
-  });
+  refreshManifestStats();
   if (clearModel && typeof caches !== "undefined") {
     try {
       await caches.delete("transformers-cache");

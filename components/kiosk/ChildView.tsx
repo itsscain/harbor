@@ -42,10 +42,12 @@ type Kiosk = ReturnType<typeof useKiosk>;
 
 export function readChildSettings(child: KioskChild) {
   const s = (child.settings ?? {}) as Record<string, unknown>;
+  const soundOn = s.sound !== false;
   return {
-    readAloud: s.readAloud !== false,
+    // Voice requires BOTH read-aloud AND sound on — "sound off" is a master mute.
+    readAloud: s.readAloud !== false && soundOn,
     autoRead: s.autoRead === true,
-    sound: s.sound !== false,
+    sound: soundOn,
     haptics: s.haptics !== false,
     reducedMotion: s.reducedMotion === true,
     theme: typeof s.theme === "string" ? (s.theme as string) : "harbor",

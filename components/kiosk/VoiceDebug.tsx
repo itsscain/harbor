@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Volume2, RefreshCw, Trash2, Download, RotateCw, ArrowLeft } from "lucide-react";
+import { Volume2, RefreshCw, ChevronDown, ArrowLeft } from "lucide-react";
 import { KButton, KCard } from "./ui";
 import {
   getVoiceStatus,
@@ -13,16 +13,19 @@ import {
   type VoiceStatus,
 } from "@/lib/kiosk/voice";
 
-// Bump this with each voice deploy so the tablet's build is confirmable on-device.
-const BUILD = "v5 · library voice";
+// Bump this with each voice deploy so the device's build is confirmable on-screen.
+const BUILD = "v6 · library voice";
 
 // Parent menu → Debug tools. A tap here also unlocks audio, and surfaces exactly which
-// tier is firing so a silent-on-tablet issue is diagnosable instead of guesswork.
+// tier is firing so a silent-on-device issue is diagnosable, plus a one-tap recovery
+// (Clear everything) to defeat stale browser caching.
 export function VoiceDebug({ onBack }: { onBack: () => void }) {
   const [status, setStatus] = useState<VoiceStatus | null>(null);
   const [cacheN, setCacheN] = useState<number | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
 
   const refresh = useCallback(() => {
     setStatus(getVoiceStatus());
@@ -39,42 +42,17 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
     setBusy("test");
     setResult("Testing…");
     const r = await speakDiag();
-    setResult(
-      `${r.ok ? "✓ Heard it?" : "✕ Couldn't play"} · via ${labelTier(r.tier)} · ${(r.ms / 1000).toFixed(1)}s — ${r.detail}`,
-    );
+    setResult(`${r.ok ? "✓ Heard it?" : "✕ Couldn't play"} · via ${labelTier(r.tier)} · ${(r.ms / 1000).toFixed(1)}s`);
     setBusy(null);
     refresh();
   };
 
-  const reloadEngine = async () => {
-    setBusy("reload");
-    setResult(null);
-    await reloadVoiceEngine(false);
-    prewarmHarborVoice();
-    setBusy(null);
-    refresh();
-  };
-
-  const redownload = async () => {
-    setBusy("redl");
-    setResult("Re-downloading the voice model…");
-    await reloadVoiceEngine(true);
-    prewarmHarborVoice();
-    setResult("Voice model reset — it will re-download on the next test.");
-    setBusy(null);
-    refresh();
-  };
-
-  const clearCache = async () => {
+  // The bulletproof recovery: wipe ALL browser caches + service workers + the voice
+  // audio cache, then reload — so the latest code + voices load fresh. PRESERVES the
+  // device pairing, PIN, and progress (never touches the "harbor-kiosk" database).
+  const clearEverything = async () => {
     setBusy("clear");
-    await clearVoiceCache();
-    setBusy(null);
-    refresh();
-  };
-
-  const updateApp = async () => {
-    setBusy("update");
-    setResult("Updating the app…");
+    setResult("Clearing everything…");
     try {
       if ("serviceWorker" in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -82,14 +60,38 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
       }
       if ("caches" in window) {
         const keys = await caches.keys();
-        // drop the app shell so the latest code loads; keep the voice MODEL cache
-        await Promise.all(keys.filter((k) => /harbor/i.test(k)).map((k) => caches.delete(k)));
+        await Promise.all(keys.map((k) => caches.delete(k))); // every cache, incl. the voice model
       }
+      await reloadVoiceEngine(true);
+      await clearVoiceCache();
     } catch {
-      /* ignore */
+      /* ignore — reload anyway */
     }
     location.reload();
   };
+
+  const reloadEngine = async () => {
+    setBusy("reload");
+    await reloadVoiceEngine(false);
+    prewarmHarborVoice();
+    setBusy(null);
+    refresh();
+  };
+  const redownload = async () => {
+    setBusy("redl");
+    setResult("Voice model reset — re-downloads if custom text is used.");
+    await reloadVoiceEngine(true);
+    setBusy(null);
+    refresh();
+  };
+  const clearClips = async () => {
+    setBusy("clips");
+    await clearVoiceCache();
+    setBusy(null);
+    refresh();
+  };
+
+  const soundLocked = status?.audioContext === "suspended";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
@@ -100,52 +102,76 @@ export function VoiceDebug({ onBack }: { onBack: () => void }) {
           </button>
           <h2 className="font-display text-2xl font-bold text-ktext">Debug tools</h2>
         </div>
-        <p className="mt-1 text-sm text-kmute">Voice (read-aloud) diagnostics. Tap Test to check sound on this device.</p>
+        <p className="mt-1 text-sm text-kmute">Check the read-aloud voice on this device.</p>
 
-        {/* status grid */}
+        {/* status — plain English */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-          <Stat label="Voice library" value={status ? `${status.libraryPhrases} phrases` : "…"} good={!!status && status.libraryPhrases > 0} bad={!!status && status.libraryPhrases === 0} />
-          <Stat label="Audio" value={status?.audioContext ?? "…"} good={status?.audioContext === "running"} bad={status?.audioContext === "suspended"} />
-          <Stat label="Cached clips" value={cacheN == null ? "…" : String(cacheN)} />
-          <Stat label="Device voice" value={status?.osVoice ?? "none"} />
-          <Stat label="Secure (https)" value={status?.secureContext ? "Yes" : "No"} good={status?.secureContext} bad={status && !status.secureContext ? true : undefined} />
-          <Stat label="Custom-text model" value={status?.modelReady ? "Ready" : status?.modelLoading ? "Loading…" : "Idle"} />
+          <Stat
+            label="Voices ready"
+            value={status ? String(status.libraryPhrases) : "…"}
+            good={!!status && status.libraryPhrases > 0}
+            bad={!!status && status.libraryPhrases === 0}
+          />
+          <Stat label="Sound" value={soundLocked ? "Locked" : "On"} good={!!status && !soundLocked} bad={soundLocked} />
+          <Stat label="Saved clips" value={cacheN == null ? "…" : String(cacheN)} />
+          {status && !status.secureContext && <Stat label="Secure (https)" value="No" bad />}
         </div>
 
+        {result && <p className="mt-3 rounded-xl bg-kraise px-3 py-2.5 text-sm text-ktext">{result}</p>}
         {status?.lastError && (
-          <p className="mt-3 rounded-xl bg-amber-400/10 px-3 py-2 text-xs text-amber-200">Last issue: {status.lastError}</p>
-        )}
-        {result && (
-          <p className="mt-3 rounded-xl bg-kraise px-3 py-2.5 text-sm text-ktext">{result}</p>
+          <p className="mt-2 rounded-xl bg-amber-400/10 px-3 py-2 text-xs text-amber-200">Note: {status.lastError}</p>
         )}
 
+        {/* the two essential actions */}
         <div className="mt-4 space-y-2.5">
           <KButton variant="primary" size="lg" className="w-full" disabled={!!busy} haptics onClick={test}>
             <Volume2 className="mr-2 inline h-5 w-5" />
             {busy === "test" ? "Testing…" : "Test the Harbor voice"}
           </KButton>
-          <KButton variant="tonal" className="w-full" disabled={!!busy} onClick={reloadEngine}>
-            <RotateCw className="mr-2 inline h-4 w-4" />
-            {busy === "reload" ? "Reloading…" : "Reload voice engine"}
-          </KButton>
-          <KButton variant="tonal" className="w-full" disabled={!!busy} onClick={redownload}>
-            <Download className="mr-2 inline h-4 w-4" />
-            {busy === "redl" ? "Resetting…" : "Re-download voice model"}
-          </KButton>
-          <KButton variant="tonal" className="w-full" disabled={!!busy} onClick={clearCache}>
-            <Trash2 className="mr-2 inline h-4 w-4" />
-            {busy === "clear" ? "Clearing…" : "Clear cached clips"}
-          </KButton>
-          <KButton variant="beacon" size="lg" className="w-full" disabled={!!busy} onClick={updateApp}>
-            <RefreshCw className="mr-2 inline h-5 w-5" />
-            {busy === "update" ? "Updating…" : "Update app (clear cache & reload)"}
-          </KButton>
-          <p className="px-1 text-xs text-kmute">
-            Heard the chime but no voice? Tap <b>Test</b> once (it unlocks sound), then if it still fails use{" "}
-            <b>Update app</b> to pull the latest.
-          </p>
-          <p className="px-1 text-center text-[11px] text-kmute/70">Build {BUILD}</p>
+
+          {!confirmClear ? (
+            <KButton variant="beacon" size="lg" className="w-full" disabled={!!busy} onClick={() => setConfirmClear(true)}>
+              <RefreshCw className="mr-2 inline h-5 w-5" />
+              Clear everything &amp; restart
+            </KButton>
+          ) : (
+            <div className="rounded-xl bg-kraise p-3">
+              <p className="px-1 pb-2 text-sm text-kmute">
+                Wipes cached app + voices and reloads fresh. <b>Keeps your pairing, PIN, and progress.</b>
+              </p>
+              <KButton variant="beacon" size="lg" className="w-full" disabled={!!busy} onClick={clearEverything}>
+                {busy === "clear" ? "Clearing…" : "Tap again to clear & restart"}
+              </KButton>
+            </div>
+          )}
         </div>
+
+        {/* advanced — collapsed by default */}
+        <button
+          onClick={() => setAdvanced((a) => !a)}
+          className="kiosk-tap mt-4 flex w-full items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-kmute"
+        >
+          Advanced
+          <ChevronDown className={`h-4 w-4 transition ${advanced ? "rotate-180" : ""}`} />
+        </button>
+        {advanced && (
+          <div className="space-y-2.5">
+            <KButton variant="tonal" className="w-full" disabled={!!busy} onClick={reloadEngine}>
+              {busy === "reload" ? "Reloading…" : "Reload voice engine"}
+            </KButton>
+            <KButton variant="tonal" className="w-full" disabled={!!busy} onClick={redownload}>
+              {busy === "redl" ? "Resetting…" : "Re-download voice model (custom text)"}
+            </KButton>
+            <KButton variant="tonal" className="w-full" disabled={!!busy} onClick={clearClips}>
+              {busy === "clips" ? "Clearing…" : "Clear saved clips"}
+            </KButton>
+          </div>
+        )}
+
+        <p className="mt-4 text-center text-[11px] text-kmute/70">
+          Build {BUILD}
+          {status?.libraryVersion ? ` · voices ${status.libraryVersion}` : ""}
+        </p>
       </KCard>
     </div>
   );
