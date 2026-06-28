@@ -11,6 +11,7 @@ import { BeaconLight } from "./BeaconLight";
 import { KButton, KCard } from "./ui";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { childColor } from "@/lib/kiosk/colors";
+import { intensityOf } from "@/lib/kiosk/motion";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -23,6 +24,7 @@ export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
   const [calmOpen, setCalmOpen] = useState(false);
   const [gate, setGate] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [anchorActive, setAnchorActive] = useState(false);
   if (!state) return null;
 
   const child = state.snapshot.children.find((c) => c.id === childId);
@@ -42,14 +44,23 @@ export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
   }
 
   const accent = childColor(child);
+  const ambIntensity = intensityOf(child.settings?.sensory);
+  const ambReduced = child.settings?.reducedMotion === true;
 
   return (
     <div className="min-h-full">
-      <LivingAmbient />
-      <div className="lumen-caustics" aria-hidden />
-      <BeaconLight accent={accent} active />
-      <div className="grain-overlay" aria-hidden />
-      <div className="lumen-vignette" aria-hidden />
+      {/* Duck the lit world during Anchor so the room quiets while the child regulates (§9.1). */}
+      <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>
+        <LivingAmbient />
+        <div
+          className="lumen-caustics"
+          aria-hidden
+          style={{ opacity: 0.06 * ambIntensity, ...(ambReduced ? { animationPlayState: "paused" } : null) }}
+        />
+        <BeaconLight accent={accent} active intensity={ambIntensity} reduced={ambReduced} />
+        <div className="grain-overlay" aria-hidden style={{ opacity: 0.025 * ambIntensity }} />
+        <div className="lumen-vignette" aria-hidden />
+      </div>
 
       <div className="relative z-10">
         <ChildView
@@ -58,6 +69,7 @@ export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
           hideHome
           onHome={() => setGate(true)}
           onOpenCalm={() => setCalmOpen(true)}
+          onAnchorActive={setAnchorActive}
         />
 
         {/* discreet parent access for managing / unpairing the room device */}

@@ -20,6 +20,7 @@ import { BeaconLight } from "./BeaconLight";
 import { Pressable } from "./Pressable";
 import { KButton, KCard } from "./ui";
 import { childColor } from "@/lib/kiosk/colors";
+import { intensityOf } from "@/lib/kiosk/motion";
 import { cn } from "@/lib/cn";
 
 function inQuietHours(start?: string, end?: string, d = new Date()): boolean {
@@ -124,6 +125,10 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   // The Beacon tints to the active child's accent while their screen is open.
   const activeChild = view.k === "child" ? children.find((c) => c.id === view.id) : null;
   const activeAccent = activeChild ? childColor(activeChild) : null;
+  // Adaptive Sensory Intensity (§14) — the ambient dials down for a calm child and
+  // freezes for one with reducedMotion. No active child (home/family) → standard.
+  const ambIntensity = intensityOf(activeChild?.settings?.sensory);
+  const ambReduced = activeChild?.settings?.reducedMotion === true;
 
   const SECONDARY_TITLE: Record<string, string> = { calendar: "Calendar", lists: "Lists", chores: "Chores" };
   const isSecondary = view.k === "calendar" || view.k === "lists" || view.k === "chores";
@@ -134,9 +139,13 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
           Anchor so the world quiets while a child co-regulates (§9.1). */}
       <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>
         <LivingAmbient />
-        <div className="lumen-caustics" aria-hidden />
-        <BeaconLight accent={activeAccent} active={view.k === "child"} />
-        <div className="grain-overlay" aria-hidden />
+        <div
+          className="lumen-caustics"
+          aria-hidden
+          style={{ opacity: 0.06 * ambIntensity, ...(ambReduced ? { animationPlayState: "paused" } : null) }}
+        />
+        <BeaconLight accent={activeAccent} active={view.k === "child"} intensity={ambIntensity} reduced={ambReduced} />
+        <div className="grain-overlay" aria-hidden style={{ opacity: 0.025 * ambIntensity }} />
         <div className="lumen-vignette" aria-hidden />
       </div>
 

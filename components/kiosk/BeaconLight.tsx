@@ -12,18 +12,24 @@ export function BeaconLight({
   accent,
   active = false,
   night = isNight(),
+  intensity = 1,
+  reduced = false,
 }: {
   accent?: string | null;
   active?: boolean;
   night?: boolean;
+  /** Adaptive Sensory Intensity (§14) — scales the beacon's brightness per active child. */
+  intensity?: number;
+  /** The active child's reducedMotion — freezes the sweep to a still ember. */
+  reduced?: boolean;
 }) {
   const tint = active && accent ? accent : "rgba(246, 178, 61, 1)";
-  const opacity = night ? 0.05 : active ? 0.1 : 0.06;
+  const opacity = (night ? 0.05 : active ? 0.1 : 0.06) * intensity;
   const style = {
     "--beacon-tint": tint,
     "--beacon-opacity": String(opacity),
     "--beacon-speed": active ? "6s" : "8s",
-    ...(night ? { animationPlayState: "paused" } : null),
+    ...(night || reduced ? { animationPlayState: "paused" } : null),
   } as CSSProperties;
   return <div className="beacon-light" aria-hidden style={style} />;
 }

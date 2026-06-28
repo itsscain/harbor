@@ -88,6 +88,15 @@ export function Voyage({
             <stop offset="0" stopColor={ramp.bright} stopOpacity="0.9" />
             <stop offset="100%" stopColor={ramp.bright} stopOpacity="0" />
           </radialGradient>
+          {/* §2/§3 — the built objects catch light: lighter top (lamp-lit), darker base. */}
+          <linearGradient id="vg-tower" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#f4f7fc" />
+            <stop offset="1" stopColor="#aab4c8" />
+          </linearGradient>
+          <linearGradient id="vg-hull" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#eef1fb" />
+            <stop offset="1" stopColor="#b7bed6" />
+          </linearGradient>
         </defs>
 
         {/* sky + sea */}
@@ -141,7 +150,7 @@ export function Voyage({
         <g transform={`translate(${boatX},178)`} style={glide} className={reducedMotion ? undefined : "k-float"}>
           <ellipse cx="0" cy="34" rx="46" ry="7" fill="#0a1a2c" opacity="0.7" />
           <circle cx="0" cy="0" r="44" fill="url(#vg-buoy)" opacity="0.8" />
-          <path d="M-26 6 L26 6 L20 22 L-20 22 Z" fill="#e9edff" />
+          <path d="M-26 6 L26 6 L20 22 L-20 22 Z" fill="url(#vg-hull)" />
           <rect x="-1.5" y="-30" width="3" height="36" fill="#cdd4f0" />
           <path d="M2 -29 L2 1 L30 1 Z" fill={ramp.accent} />
           <path d="M-2 -24 L-2 -2 L-24 -2 Z" fill={ramp.bright} />
@@ -150,8 +159,9 @@ export function Voyage({
         {/* the lighthouse — home */}
         <g transform="translate(1010,0)">
           <circle cx="0" cy="120" r="78" fill="url(#vg-lh)" />
+          <ellipse cx="0" cy="181" rx="42" ry="4" fill="#08131f" opacity="0.55" /> {/* §5 contact shadow */}
           <path d="M-46 178 Q-30 168 0 168 Q30 168 46 178 Z" fill="#0e2236" />
-          <path d="M-13 168 L-9 96 L9 96 L13 168 Z" fill="#e7ecf7" />
+          <path d="M-13 168 L-9 96 L9 96 L13 168 Z" fill="url(#vg-tower)" />
           <path d="M-13 150 L13 150 M-11 130 L11 130 M-10 112 L10 112" stroke="#c2462f" strokeWidth="6" opacity="0.85" />
           <rect x="-11" y="78" width="22" height="20" rx="3" fill="#1a2740" />
           <circle cx="0" cy="88" r="7" fill="#ffd27a" />

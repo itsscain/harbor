@@ -345,15 +345,15 @@ h4,
 }
 
 /* §6.2 Caustics — the signature "this is water" detail: slow drifting underwater light.
-   Cheap per §13 (layered soft radials translated via transform; screen blend; no blur).
-   Auto-disabled by the global prefers-reduced-motion block below. */
+   Cheap per §13 (layered soft radials translated via transform; no blur, no blend-mode —
+   over the dark sea a plain low-opacity layer reads the same as a screen blend without the
+   per-frame full-viewport composite cost). Auto-disabled by the global reduced-motion block. */
 .lumen-caustics {
   position: fixed;
   inset: -22%;
   z-index: 0;
   pointer-events: none;
   opacity: 0.06;
-  mix-blend-mode: screen;
   background:
     radial-gradient(38% 30% at 30% 38%, rgba(120, 200, 230, 0.5), transparent 70%),
     radial-gradient(30% 26% at 72% 58%, rgba(120, 200, 230, 0.4), transparent 72%),
