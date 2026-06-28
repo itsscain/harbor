@@ -1,7 +1,13 @@
 /* Harbor Kiosk service worker — precache the shell, runtime-cache assets, and
    guarantee the wall boots fully offline. Supabase (cross-origin) requests are
    left untouched; the kiosk's sync layer handles being offline gracefully. */
-const CACHE = "harbor-kiosk-v11";
+
+// Self-versioning: the page registers this worker as `/sw.js?v=<BUILD_ID>` (the deploy's
+// git SHA). Each deploy → a new script URL → the browser installs a NEW worker even on a
+// kiosk whose tab never closes, and the cache name changes so old caches are purged on
+// activate. This is what kills Safari/iOS stale-build strandings (Safari-Cache-Fix §4.2/4.4).
+const BUILD = new URL(self.location.href).searchParams.get("v") || "v11";
+const CACHE = "harbor-kiosk-" + BUILD;
 const PRECACHE = [
   "/kiosk",
   "/manifest.webmanifest",
@@ -52,6 +58,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // don't intercept Supabase, etc.
+  if (url.pathname.startsWith("/api/")) return; // dynamic data — never cache (§4.6)
 
   // App navigations: network-first, fall back to the cached kiosk shell.
   if (req.mode === "navigate") {

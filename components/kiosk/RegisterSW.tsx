@@ -51,7 +51,11 @@ export function RegisterSW() {
           window.location.reload();
         });
 
-        const reg = await navigator.serviceWorker.register("/sw.js");
+        // Cache-bust the worker URL per deploy (the git SHA). Safari/iOS will serve a
+        // cached /sw.js and never see a new build otherwise — a changing ?v= forces it to
+        // fetch + install the new worker even on a never-closing kiosk tab (§4.4).
+        const buildId = process.env.NEXT_PUBLIC_BUILD_ID || "dev";
+        const reg = await navigator.serviceWorker.register(`/sw.js?v=${buildId}`);
         setTimeout(cacheLoadedAssets, 1500);
         // Check for a new service worker periodically (the wall rarely reloads).
         const check = () => reg.update().catch(() => {});
