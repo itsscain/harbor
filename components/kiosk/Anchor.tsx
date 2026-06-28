@@ -122,17 +122,39 @@ export function Anchor({
       {stage === "breathe" && (
         <>
           <p className="mb-10 font-display text-3xl font-semibold text-white/90 sm:text-4xl">{phase.label}</p>
-          <div className="relative flex h-72 w-72 items-center justify-center">
-            <span className="absolute inset-6 rounded-full" style={{ border: `2px solid ${accent}44` }} />
+          {/* Lumen §10.4 — concentric rings of soft light expanding and contracting like a
+              slow water ripple meeting a lighthouse-beam pulse: a warm luminous core that
+              swells on the inhale and settles on the exhale, calming-blue rings rippling
+              out behind it (staggered, follow-through §7.2). The most intentional element. */}
+          <div className="relative flex h-80 w-80 items-center justify-center">
+            {[0, 1, 2, 3].map((i) => (
+              <span
+                key={i}
+                className="absolute rounded-full"
+                aria-hidden
+                style={{
+                  width: 150 + i * 50,
+                  height: 150 + i * 50,
+                  border: "1.5px solid rgba(150, 200, 225, 1)",
+                  opacity: 0.46 - i * 0.1,
+                  boxShadow: "0 0 26px -8px rgba(150,200,225,.9)",
+                  transform: `scale(${scale})`,
+                  transition: reducedMotion
+                    ? "none"
+                    : `transform ${phase.secs}s var(--ease-harbor-calm) ${i * 0.12}s, opacity ${phase.secs}s var(--ease-harbor-calm)`,
+                }}
+              />
+            ))}
             <span
               className="rounded-full"
+              aria-hidden
               style={{
-                width: 224,
-                height: 224,
-                background: `radial-gradient(circle at 50% 38%, ${accent}, ${accent}66 58%, transparent 76%)`,
+                width: 150,
+                height: 150,
+                background: `radial-gradient(circle at 50% 32%, #fff6e8 0%, ${accent} 46%, ${accent}66 72%, transparent 84%)`,
                 transform: `scale(${scale})`,
                 transition: reducedMotion ? "none" : `transform ${phase.secs}s var(--ease-harbor-calm)`,
-                boxShadow: `0 0 90px -10px ${accent}aa`,
+                boxShadow: `0 0 72px -8px ${accent}, 0 0 150px -28px rgba(150,200,225,.55)`,
               }}
             />
           </div>
@@ -193,7 +215,7 @@ export function Anchor({
 
       {stage === "done" && (
         <>
-          {!reducedMotion && <Confetti count={20} />}
+          {!reducedMotion && <Confetti count={20} accent={accent} />}
           <p className="font-display text-5xl font-bold text-white">Welcome back 💙</p>
           <p className="mt-3 text-xl text-white/70">Fresh start, {childName}.</p>
           <button

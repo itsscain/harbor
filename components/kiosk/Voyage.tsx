@@ -94,6 +94,11 @@ export function Voyage({
         <rect x="0" y="0" width="1120" height="250" fill="url(#vg-sky)" />
         <rect x="0" y="150" width="1120" height="100" fill="url(#vg-sea)" />
 
+        {/* §6.3 — the moon/sun shimmering on the water below it (a soft reflected band) */}
+        <rect x={sc.bodyX - 16} y="150" width="32" height="92" fill={sc.bodyFill} opacity="0.1">
+          {!reducedMotion && <animate attributeName="opacity" values="0.05;0.15;0.05" dur="6s" repeatCount="indefinite" />}
+        </rect>
+
         {/* stars (night) */}
         {sc.stars &&
           STARS.map((s, i) => (
@@ -119,6 +124,7 @@ export function Voyage({
           const x = xFor(i);
           return done ? (
             <g key={s.id}>
+              <ellipse cx={x} cy="191" rx="13" ry="3" fill="#0a1a2c" opacity="0.5" /> {/* §5 contact shadow — seat the buoy */}
               <circle cx={x} cy="178" r="30" fill="url(#vg-buoy)" />
               <circle cx={x} cy="178" r="9" fill={ramp.bright} />
               <circle cx={x} cy="178" r="9" fill="none" stroke="#cfd6ff" strokeWidth="1.5" />
@@ -151,7 +157,9 @@ export function Voyage({
           <circle cx="0" cy="88" r="7" fill="#ffd27a" />
           <circle cx="0" cy="88" r="16" fill="url(#vg-lh)" />
           <path d="M-9 74 L9 74 L5 66 L-5 66 Z" fill="#cdd4e6" />
-          <path d="M0 88 L-150 40 L-150 64 Z" fill="#ffd27a" opacity={oneLeft || allDone ? "0.22" : "0.1"} />
+          {/* §10.5 — bloomed beam: a wide soft cone behind the crisp beam */}
+          <path d="M0 88 L-180 20 L-180 84 Z" fill="#ffd27a" opacity={oneLeft || allDone ? "0.12" : "0.05"} />
+          <path d="M0 88 L-150 40 L-150 64 Z" fill="#ffd27a" opacity={oneLeft || allDone ? "0.26" : "0.12"} />
         </g>
       </svg>
     </div>

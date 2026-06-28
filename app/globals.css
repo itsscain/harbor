@@ -262,7 +262,7 @@ h4,
 
 /* §2.3 — elevation → light response. Four reusable shadow/highlight stacks. */
 .kiosk-root {
-  --lumen-sunken: inset 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 0, 0, 0.25);
+  --lumen-sunken: inset 0 2px 6px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255, 250, 240, 0.04);
   --lumen-base: inset 0 1px 0 rgba(255, 250, 240, 0.03);
   --lumen-raised: inset 0 1px 0 rgba(255, 250, 240, 0.06), 0 16px 38px -26px #05080c, 0 3px 10px -6px rgba(0, 0, 0, 0.6);
   --lumen-floating: inset 0 1px 0 rgba(255, 250, 240, 0.1), 0 30px 70px -30px #04060a, 0 8px 24px -14px rgba(0, 0, 0, 0.7);
@@ -274,7 +274,12 @@ h4,
   background: linear-gradient(168deg, #1b2331 0%, #141b27 52%, #10151f 100%);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-top-color: rgba(255, 250, 240, 0.08); /* §2.4 warm top lip */
-  box-shadow: var(--lumen-raised);
+  box-shadow: var(
+    --lumen-raised,
+    inset 0 1px 0 rgba(255, 250, 240, 0.06),
+    0 16px 38px -26px #05080c,
+    0 3px 10px -6px rgba(0, 0, 0, 0.6)
+  );
 }
 
 /* §3.3 Frosted Glass — floating chrome (dock, top bar, sheets). Use sparingly (§13). */
@@ -370,11 +375,12 @@ h4,
    spring overshoot. Press-in is quick; release uses the emphasis curve. */
 .pressable {
   transition: transform 240ms var(--ease-harbor-emphasis);
-  will-change: transform;
 }
 .pressable[data-pressed="true"] {
   transform: scale(0.97);
   transition: transform 90ms var(--ease-harbor-out);
+  will-change: transform; /* promote only while pressing — a permanent hint on every
+                             tappable element explodes compositor layers on cheap tablets */
 }
 /* Sensory-vulnerable users: no scale snap at all — these are meltdown-prone kids. */
 @media (prefers-reduced-motion: reduce) {
@@ -652,11 +658,13 @@ h4,
 @keyframes anchor-in { from { opacity: 0; } to { opacity: 1; } }
 .anchor-veil { animation: anchor-in 0.7s var(--ease-harbor-calm); }
 
-/* ── ChildView now-card (Visual Spec §8) — the breathing "do this now" focal ─── */
+/* ── ChildView now-card (Visual Spec §8) — the breathing "do this now" focal ─────
+   Lumen §13: breathe via transform (compositor-cheap), NOT a per-frame box-shadow
+   repaint. The card's static liquid-light rim (set inline) stays lit the whole cycle. */
 @keyframes now-breathe {
-  0%, 100% { box-shadow: 0 0 0 1px var(--accent-glow, rgba(60,188,217,.2)), 0 22px 60px -30px var(--accent-glow, rgba(60,188,217,.4)); }
-  50% { box-shadow: 0 0 0 1px var(--accent-glow, rgba(60,188,217,.3)), 0 26px 74px -22px var(--accent-glow, rgba(60,188,217,.5)); }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.012); }
 }
-.now-breathe { animation: now-breathe 4.5s ease-in-out infinite; }
+.now-breathe { animation: now-breathe 4.5s ease-in-out infinite; will-change: transform; }
 @keyframes nudge-x { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
 .nudge-x { animation: nudge-x 1.8s ease-in-out infinite; }

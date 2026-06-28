@@ -723,9 +723,12 @@ export function ChildView({
 
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
-          {!settings.reducedMotion && <Confetti key={celebrate.n} count={scaleCount(24, fxIntensity)} />}
-          <div className={cn("rounded-full bg-beacon px-10 py-8 text-center shadow-2xl", !settings.reducedMotion && "animate-reward")}>
-            <Star className="mx-auto h-12 w-12 fill-harbor text-harbor" />
+          {!settings.reducedMotion && <Confetti key={celebrate.n} count={scaleCount(24, fxIntensity)} accent={ramp.accent} />}
+          <div
+            className={cn("rounded-full bg-beacon px-10 py-8 text-center shadow-2xl", !settings.reducedMotion && "animate-reward")}
+            style={{ boxShadow: "0 0 60px -6px rgba(246,178,61,.8), 0 24px 48px -12px rgba(0,0,0,.6)" }}
+          >
+            <Star className="mx-auto h-12 w-12 fill-harbor text-harbor" style={{ filter: "drop-shadow(0 0 10px rgba(255,255,255,.6))" }} />
             <p className="mt-1 font-display text-3xl font-bold text-harbor">
               +{celebrate.points}
             </p>
@@ -739,7 +742,7 @@ export function ChildView({
           className="fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-kbg2/97 px-6 text-center text-white backdrop-blur-sm"
           aria-label="Continue"
         >
-          {!settings.reducedMotion && <Confetti count={scaleCount(64, fxIntensity)} spread={560} />}
+          {!settings.reducedMotion && <Confetti count={scaleCount(64, fxIntensity)} spread={560} accent={ramp.accent} />}
           <span className="absolute inset-x-0 top-1/4 mx-auto h-72 w-72 beacon-ring" aria-hidden />
           <span className={cn("relative text-8xl", !settings.reducedMotion && "animate-pop")}>{child.avatar ?? "🎉"}</span>
           <p className="relative mt-4 font-display text-4xl font-bold sm:text-5xl">You did it, {child.name}!</p>
@@ -794,6 +797,9 @@ function NowCard({
         background:
           "radial-gradient(420px 220px at 18% 0%, var(--accent-soft), transparent 70%), linear-gradient(165deg,#1c2740 0%,#141c2e 60%,#121826 100%)",
         border: "1.5px solid var(--accent-glow)",
+        // Lumen §10.3/§2.5 — liquid-light rim: the now-card emits, not just bordered.
+        boxShadow:
+          "0 0 0 1px var(--accent-line), 0 0 44px -14px var(--accent-glow), inset 0 1px 0 rgba(255,250,240,.08)",
       }}
     >
       <span
@@ -883,13 +889,13 @@ function StepCard({
         aria-label={`${step.label}${done ? " — done" : ""}`}
         {...press}
         className={cn(
-          "pressable relative flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl p-4 text-center ring-1",
+          "pressable relative flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl p-4 text-center",
           big ? "min-h-52" : "min-h-40",
           done
-            ? "bg-emerald-500/15 ring-emerald-500/45"
+            ? "bg-emerald-500/15 ring-1 ring-emerald-500/45"
             : muted
-              ? "bg-kpanel/40 opacity-50 shadow-none ring-kline/40"
-              : "bg-kpanel shadow-k ring-kline/55 hover:brightness-110",
+              ? "bg-kpanel/40 opacity-50 shadow-none ring-1 ring-kline/40"
+              : "mat-obsidian hover:brightness-110", // Lumen §3.1 — was a flat bg-kpanel fill
         )}
       >
         {done && !reducedMotion && (
@@ -927,7 +933,10 @@ function StepCard({
           </span>
         )}
         {done && (
-          <span className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel">
+          <span
+            className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-kpanel"
+            style={{ boxShadow: "0 0 18px -2px rgba(16,185,129,.85)" }} /* §10.5 — the checkmark emits light */
+          >
             <Check className="h-5 w-5" strokeWidth={3} />
           </span>
         )}

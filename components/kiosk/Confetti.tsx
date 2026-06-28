@@ -5,12 +5,14 @@ import { useMemo } from "react";
 const COLORS = ["#f6b23d", "#3cbcd9", "#4cc09a", "#e8755a", "#9b8cff", "#ffffff"];
 
 /** A one-shot confetti burst from the center of its (relative/absolute) parent.
- *  Pure CSS particles — no deps. Respects reduced-motion (the global rule
- *  collapses the animation). Mount it (keyed) when a task is completed. */
-export function Confetti({ count = 26, spread = 240 }: { count?: number; spread?: number }) {
+ *  Pure CSS particles — no deps. Lumen §10.5/§11: soft LUMINOUS flecks (each carries a
+ *  glow), biased toward the child's accent + gold + white when `accent` is given.
+ *  Respects reduced-motion (the global rule collapses the animation). Mount it (keyed). */
+export function Confetti({ count = 26, spread = 240, accent }: { count?: number; spread?: number; accent?: string }) {
   const bits = useMemo(
-    () =>
-      Array.from({ length: count }, () => {
+    () => {
+      const palette = accent ? [accent, accent, "#f6b23d", "#ffffff", "#ffe9b8"] : COLORS;
+      return Array.from({ length: count }, () => {
         const ang = Math.random() * Math.PI * 2;
         const dist = spread * (0.35 + Math.random() * 0.65);
         return {
@@ -18,13 +20,14 @@ export function Confetti({ count = 26, spread = 240 }: { count?: number; spread?
           cy: `${Math.sin(ang) * dist - 50}px`, // bias upward, like a pop
           cr: `${(Math.random() * 2 - 1) * 420}deg`,
           cd: `${750 + Math.random() * 650}ms`,
-          bg: COLORS[Math.floor(Math.random() * COLORS.length)],
+          bg: palette[Math.floor(Math.random() * palette.length)],
           delay: `${Math.random() * 90}ms`,
           size: 6 + Math.round(Math.random() * 8),
           round: Math.random() > 0.5,
         };
-      }),
-    [count, spread],
+      });
+    },
+    [count, spread, accent],
   );
 
   return (
@@ -44,6 +47,7 @@ export function Confetti({ count = 26, spread = 240 }: { count?: number; spread?
                 width: b.size,
                 height: b.size,
                 borderRadius: b.round ? "9999px" : "2px",
+                boxShadow: `0 0 ${b.size}px -1px ${b.bg}`, // luminous fleck (§11)
                 animationDelay: b.delay,
               } as React.CSSProperties
             }

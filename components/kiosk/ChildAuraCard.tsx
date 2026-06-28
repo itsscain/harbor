@@ -49,10 +49,13 @@ export function ChildAuraCard({
       onClick={onSelect}
       aria-label={`${child.name} — ${glance}`}
       className={cn(
-        "kiosk-tap-xl flex w-full flex-col items-center gap-3 rounded-2xl bg-kpanel p-5 text-center shadow-k ring-1 transition",
-        active ? "ring-2" : "ring-kline/55",
+        "kiosk-tap-xl mat-obsidian flex w-full flex-col items-center gap-3 rounded-2xl p-5 text-center transition",
       )}
-      style={active ? { boxShadow: `0 0 0 1px ${ramp.line}, var(--shadow-k), 0 0 40px -6px ${ramp.glow}`, borderColor: color } : undefined}
+      style={
+        active
+          ? { boxShadow: `0 0 0 1.5px ${ramp.line}, var(--lumen-raised), 0 0 48px -8px ${ramp.glow}` }
+          : undefined
+      }
     >
       <span className="relative inline-flex items-center justify-center">
         <span
