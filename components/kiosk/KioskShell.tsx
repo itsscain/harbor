@@ -59,10 +59,13 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   const lastActivity = useRef(Date.now());
 
   const settings = (state?.snapshot.household.settings ?? {}) as Record<string, unknown>;
-  const idleMs = ((settings.idleSeconds as number) || 120) * 1000;
-  const screensaverOn = settings.screensaver !== false;
-  const quietStart = settings.quietStart as string | undefined;
-  const quietEnd = settings.quietEnd as string | undefined;
+  // Device Management D2 — this device's own settings override the household defaults for
+  // sleep/quiet hours, so a bedroom Outpost can sleep earlier than the kitchen Wall.
+  const eff = { ...settings, ...(kiosk.deviceSettings ?? {}) } as Record<string, unknown>;
+  const idleMs = ((eff.idleSeconds as number) || 120) * 1000;
+  const screensaverOn = eff.screensaver !== false;
+  const quietStart = eff.quietStart as string | undefined;
+  const quietEnd = eff.quietEnd as string | undefined;
   const photos =
     (settings.homePhotos as string[] | undefined)?.length
       ? (settings.homePhotos as string[])

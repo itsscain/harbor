@@ -1,14 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Field, Input, Badge, Select } from "@/components/ui/primitives";
+import { Card, Field, Input, Badge, Select, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { Disclosure } from "@/components/app/Disclosure";
 import { ListRow } from "@/components/ui/ListRow";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPairingCode } from "@/lib/codes";
-import { addDevice, updateDevice, unpairDevice, deviceCommand } from "../actions";
+import { addDevice, updateDevice, unpairDevice, deviceCommand, updateDeviceSettings } from "../actions";
 
 export const metadata = { title: "Devices" };
 export const dynamic = "force-dynamic";
@@ -28,6 +28,7 @@ type Device = {
   icon: string | null;
   color: string | null;
   app_version: string | null;
+  settings_json: Record<string, unknown> | null;
 };
 
 function relTime(iso: string | null): string {
@@ -66,7 +67,7 @@ export default async function DevicesPage() {
     .order("sort_order");
   const { data: rows } = await supabase
     .from("device_pairings")
-    .select("id, device_label, kind, child_id, status, code, last_synced_at, paired_at, icon, color, app_version")
+    .select("id, device_label, kind, child_id, status, code, last_synced_at, paired_at, icon, color, app_version, settings_json")
     .eq("household_id", household.id)
     .order("created_at");
 
@@ -100,6 +101,7 @@ export default async function DevicesPage() {
           const st = deviceStatus(d);
           const color = d.color || "#18606f";
           const stale = d.status === "paired" && !!d.app_version && d.app_version !== CURRENT_BUILD;
+          const ds = (d.settings_json ?? {}) as Record<string, unknown>;
           return (
             <Card
               key={d.id}
@@ -167,6 +169,33 @@ export default async function DevicesPage() {
                   </div>
                   <SubmitButton size="sm" variant="secondary" savedText="Saved">Save</SubmitButton>
                 </form>
+
+                {d.status === "paired" && (
+                  <div className="mt-4 border-t border-harbor-100 pt-3">
+                    <p className="text-eyebrow mb-2 text-muted">Sleep &amp; quiet hours</p>
+                    <form action={updateDeviceSettings.bind(null, d.id)} className="space-y-3">
+                      <Switch name="screensaver" label="Screensaver when idle" defaultChecked={ds.screensaver !== false} />
+                      <div className="flex flex-wrap items-end gap-3">
+                        <Field label="Sleep after (sec idle)" className="w-40">
+                          <Input
+                            name="idleSeconds"
+                            type="number"
+                            min={30}
+                            defaultValue={ds.idleSeconds ? String(ds.idleSeconds) : ""}
+                            placeholder="default"
+                          />
+                        </Field>
+                        <Field label="Quiet from" className="w-32">
+                          <Input name="quietStart" type="time" defaultValue={(ds.quietStart as string) ?? ""} />
+                        </Field>
+                        <Field label="Quiet until" className="w-32">
+                          <Input name="quietEnd" type="time" defaultValue={(ds.quietEnd as string) ?? ""} />
+                        </Field>
+                      </div>
+                      <SubmitButton size="sm" variant="secondary" savedText="Saved">Save sleep settings</SubmitButton>
+                    </form>
+                  </div>
+                )}
 
                 <form action={unpairDevice.bind(null, d.id)} className="mt-2">
                   <ConfirmSubmit

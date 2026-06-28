@@ -41,6 +41,9 @@ export function useKiosk() {
   const [identifyAt, setIdentifyAt] = useState<number | null>(null);
   const [deviceLabel, setDeviceLabel] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  // Device Management D2 — this device's own settings (quiet hours, etc.), overlaid on
+  // the household defaults by the shell.
+  const [deviceSettings, setDeviceSettings] = useState<Record<string, unknown> | null>(null);
   const stateRef = useRef<KioskState | null>(null);
   stateRef.current = state;
 
@@ -226,6 +229,7 @@ export function useKiosk() {
       if (stopped || !ds) return;
       setDeviceLabel(ds.device_label);
       setPaused(ds.paused === true);
+      setDeviceSettings((ds.settings as Record<string, unknown>) ?? {});
       if (ds.command === "refresh") {
         void nukeAndReload(); // drops caches/SW + reloads to the latest build
         return;
@@ -653,6 +657,7 @@ export function useKiosk() {
     identifyAt,
     deviceLabel,
     paused,
+    deviceSettings,
     pair,
     setPin,
     verifyPin,

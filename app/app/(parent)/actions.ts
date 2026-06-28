@@ -8,6 +8,7 @@ import { getMyHousehold } from "@/lib/household";
 import { hashPinServer } from "@/lib/pin";
 import { CHILD_PALETTE } from "@/lib/kiosk/colors";
 import { generatePairingCode } from "@/lib/codes";
+import type { Json } from "@/lib/database.types";
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -1062,6 +1063,31 @@ export async function updateDevice(id: string, formData: FormData) {
       icon: str(formData.get("icon")),
       color: str(formData.get("color")),
     })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/devices");
+}
+
+/** Per-device settings (Device Management D2) — merged into settings_json so the device
+ *  overrides household defaults (e.g. a bedroom Outpost sleeps earlier). Blank = inherit. */
+export async function updateDeviceSettings(id: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const { data: cur } = await supabase.from("device_pairings").select("settings_json").eq("id", id).maybeSingle();
+  const next: Record<string, unknown> = { ...((cur?.settings_json as Record<string, unknown>) ?? {}) };
+
+  next.screensaver = formData.get("screensaver") === "on";
+  const idle = str(formData.get("idleSeconds"));
+  if (idle && Number(idle) > 0) next.idleSeconds = Math.trunc(Number(idle));
+  else delete next.idleSeconds;
+  const qs = str(formData.get("quietStart"));
+  if (qs) next.quietStart = qs; else delete next.quietStart;
+  const qe = str(formData.get("quietEnd"));
+  if (qe) next.quietEnd = qe; else delete next.quietEnd;
+
+  const { error } = await supabase
+    .from("device_pairings")
+    .update({ settings_json: next as unknown as Json })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/devices");

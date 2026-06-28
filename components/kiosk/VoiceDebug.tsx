@@ -14,7 +14,7 @@ import {
 } from "@/lib/kiosk/voice";
 
 // Bump this with each voice deploy so the device's build is confirmable on-screen.
-const BUILD = "v13 · remote refresh + identify";
+const BUILD = "v14 · per-device sleep settings";
 
 /** Sync-health snapshot for the Debug panel (Real-Time §8). */
 export type SyncHealth = {
