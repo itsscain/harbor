@@ -689,6 +689,9 @@ export function ChildView({
           onFeeling={(f) => kiosk.checkIn(child.id, f)}
           onSoften={() => kiosk.softenChild(child.id)}
           onClose={() => setAnchorOpen(false)}
+          deviceSecret={kiosk.state?.deviceSecret}
+          childId={child.id}
+          voiceChat={(child.settings as Record<string, unknown> | null)?.voiceChat === true}
         />
       )}
 

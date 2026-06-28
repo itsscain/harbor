@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     text?: string;
     step?: string;
     routine?: string;
+    anchor?: boolean;
   };
   try {
     body = await req.json();
@@ -111,13 +112,28 @@ export async function POST(req: Request) {
     "ACTIONS: answer (just speak), reread (read the current step again), breakdown (split the step into a tiny " +
     "first part), open_anchor (they need a calm break → guide them to tap the calm corner), log_feeling (they " +
     "told you a feeling — set `feeling`), suggest_break (gently offer a break), notify_parent (distress → tell " +
-    "them you'll let their grown-up know). Keep `speech` short, warm, and for THIS child.";
+    "them you'll let their grown-up know). Keep `speech` short, warm, and for THIS child." +
+    (body.anchor
+      ? "\n\nRIGHT NOW the child is in a CALM-DOWN moment (the Anchor / 'I need a break'). Lead gentle " +
+        "co-regulation, NOT their routine: name the feeling kindly, breathe WITH them in short cues ('in… " +
+        "and slowly out…'), and offer the one calming thing that helps THIS child (from the parent's notes, " +
+        "or counting, a calm place, a slow sip). Go slow, very short lines. As they settle, reassure them and " +
+        "gently point them back to calm or to their grown-up — never start a routine step here, never push. " +
+        "Prefer action 'answer' (or 'log_feeling' if they named a feeling).\n" +
+        "DISTRESS CALIBRATION (here only): a calm-down break is FOR big feelings, so ordinary upset — mad, " +
+        "frustrated, sad, 'too much', crying — is EXPECTED; co-regulate it and set distress=FALSE. Reserve " +
+        "distress=true (→ alert the grown-up) for REAL concern only: hopelessness, wanting to disappear or not " +
+        "exist, wanting to hurt themselves or someone, fear of a person, or mentions of being hurt or unsafe. " +
+        "Don't over-alert the parent for normal big feelings the break is meant to soothe."
+      : "");
 
   const prompt =
     `This child: ${child.name}, ${ageBand(child.birthday)} years old, sensory profile "${sensory}".` +
     (child.ai_profile ? ` Notes from their parent: ${String(child.ai_profile).slice(0, 300)}.` : "") +
-    (body.routine ? `\nRight now they're on the "${String(body.routine).slice(0, 60)}" routine.` : "") +
-    (body.step ? ` The step in front of them is: "${String(body.step).slice(0, 100)}".` : "") +
+    (body.anchor
+      ? "\nThey are in a calm-down break right now (co-regulation, not a routine)."
+      : (body.routine ? `\nRight now they're on the "${String(body.routine).slice(0, 60)}" routine.` : "") +
+        (body.step ? ` The step in front of them is: "${String(body.step).slice(0, 100)}".` : "")) +
     `\n\nThey said out loud: "${text}"`;
 
   const tools: Anthropic.Tool[] = [

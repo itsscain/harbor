@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { X, Mic, Loader2 } from "lucide-react";
 import { haptic, HAPTIC, speak, stopSpeaking, play } from "@/lib/kiosk/feedback";
+import { useTapToTalk } from "@/lib/kiosk/useTapToTalk";
 import { Confetti } from "./Confetti";
 
 /** Anchor — the guided co-regulation engine (HARBOR_V2 §9.1.1). The wall recedes,
@@ -46,6 +47,9 @@ export function Anchor({
   onClose,
   onFeeling,
   onSoften,
+  deviceSecret,
+  childId,
+  voiceChat = false,
 }: {
   childName: string;
   accent: string;
@@ -57,12 +61,59 @@ export function Anchor({
   onFeeling?: (feeling: string) => void;
   /** Called when the child is still dysregulated at re-entry → auto-soften the day. */
   onSoften?: () => void;
+  /** AI-led co-regulation (Voice §3.2): when voiceChat is on, the child can talk and Harbor
+   *  leads adaptive, bounded co-regulation (distress → escalates to the parent). */
+  deviceSecret?: string;
+  childId?: string;
+  voiceChat?: boolean;
 }) {
   const [stage, setStage] = useState<"breathe" | "feelings" | "strategy" | "done">("breathe");
   const [strategy] = useState(() => STRATEGIES[Math.floor(Math.random() * STRATEGIES.length)]);
   const [pi, setPi] = useState(0);
   const [breaths, setBreaths] = useState(0);
   const phase = PHASES[pi];
+
+  // AI-led co-regulation (Voice §3.2) — the child can talk; Harbor leads bounded, adaptive
+  // co-regulation through /api/ai/voice (anchor mode), and distress escalates to the parent.
+  const aiOn = voiceChat && !!deviceSecret && !!childId;
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiSaid, setAiSaid] = useState<string | null>(null);
+  const [aiReply, setAiReply] = useState<string | null>(null);
+  const [aiDistress, setAiDistress] = useState(false);
+
+  const runAnchorVoice = useCallback(
+    async (text: string) => {
+      if (!deviceSecret || !childId) return;
+      setAiBusy(true);
+      setAiSaid(text);
+      setAiReply(null);
+      try {
+        const res = await fetch("/api/ai/voice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_secret: deviceSecret, child_id: childId, text, anchor: true }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { speech?: string; distress?: boolean; disabled?: boolean };
+        const reply = data.speech || (data.disabled ? "" : "I'm right here with you.");
+        if (reply) {
+          setAiReply(reply);
+          speak(reply);
+        }
+        if (data.distress) {
+          setAiDistress(true);
+          onSoften?.(); // a hard moment → soften the rest of the day too
+        }
+      } catch {
+        const fb = "Let's just breathe together.";
+        setAiReply(fb);
+        speak(fb);
+      } finally {
+        setAiBusy(false);
+      }
+    },
+    [deviceSecret, childId, onSoften],
+  );
+  const talk = useTapToTalk(runAnchorVoice);
 
   // Drive the breathing cycle. Each phase boundary fires its breath-paced haptic
   // and (once) a spoken cue, then schedules the next phase.
@@ -161,6 +212,29 @@ export function Anchor({
           <p className="mt-10 text-lg text-white/50">
             Breath {Math.min(breaths + 1, BREATHS)} of {BREATHS}
           </p>
+
+          {aiOn && talk.supported && (
+            <div className="mt-6 flex flex-col items-center gap-2.5">
+              {(talk.interim || aiSaid || aiReply) && (
+                <div className="max-w-md rounded-2xl bg-white/8 px-4 py-2.5 text-center ring-1 ring-white/10">
+                  {(talk.interim || aiSaid) && <p className="text-sm text-white/55">{talk.interim || aiSaid}</p>}
+                  {aiReply && (
+                    <p className={"mt-0.5 text-base " + (aiDistress ? "text-amber-200" : "text-white/90")}>{aiReply}</p>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => talk.start()}
+                disabled={talk.listening || aiBusy}
+                aria-label="Talk to Harbor"
+                className="kiosk-tap flex items-center gap-2 rounded-full bg-white/12 px-5 py-3 text-base font-semibold text-white ring-1 ring-white/20 active:scale-95 disabled:opacity-70"
+              >
+                {aiBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
+                {talk.listening ? "Listening…" : aiBusy ? "…" : "Talk to me"}
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => setStage("feelings")}
             className="kiosk-tap mt-5 rounded-full px-6 py-2 text-base text-white/55 hover:underline"
