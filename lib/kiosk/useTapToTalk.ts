@@ -24,9 +24,11 @@ function getCtor(): SRCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-/** One-shot tap-to-talk speech-to-text (privacy: on-device, no audio leaves the wall).
- *  `start()` listens once; on end it calls `onResult` with the final transcript. Reusable
- *  across the kiosk's voice surfaces. Returns `supported=false` where the API is missing. */
+/** One-shot tap-to-talk speech-to-text via the Web Speech API. `start()` listens once; on end
+ *  it calls `onResult` with the final TRANSCRIPT (the app never handles/sends raw audio). NOTE:
+ *  on Chromium the browser routes the audio to Google for transcription — so this is "the app
+ *  keeps no audio," not "audio never leaves the device." True on-device STT (WASM) is the §8 V3
+ *  hardening. Reusable across the kiosk's voice surfaces; `supported=false` where the API is missing. */
 export function useTapToTalk(onResult: (text: string) => void) {
   const ctorRef = useRef<SRCtor | null>(null);
   const recRef = useRef<SR | null>(null);

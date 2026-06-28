@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { HAIKU, aiErrorMessage } from "@/lib/ai/anthropic";
+import { captureError } from "@/lib/observability";
 
 /** AI-Led Voice — CHILD-FACING (HARBOR_AI_VOICE_INTERACTIONS.md). A child speaks; Harbor
  *  understands and responds in the keeper's voice, BOUNDED to their routine, feelings, and
@@ -16,8 +17,11 @@ import { HAIKU, aiErrorMessage } from "@/lib/ai/anthropic";
 
 // Coarse safety net IN ADDITION to the model's own safety + its distress flag: obvious
 // harm/abuse/crisis phrasing always forces escalation even if the model were to miss it.
+// The floor under the model: explicit OR indirect/passive harm phrasing always escalates,
+// even if the model (biased toward calm in anchor mode) would soften it. Over-catches on
+// purpose — a spurious "a grown-up is checking in" is cheap; a missed child is not.
 const DISTRESS_RE =
-  /\b(kill myself|want to die|wanna die|end it|hurt myself|hurting myself|cut myself|kms|suicide|abus|touch(ed)? me|hit me|hits me|hurt me|hurting me|bleeding|can'?t breathe|someone (is )?hurting|help me)\b/i;
+  /\b(kill myself|killing myself|want to die|wanna die|wish (i was|i were) dead|better off (dead|without me)|don'?t want to (be alive|wake up|be here|exist|live)|don'?t wanna (wake up|be here|live)|no reason to (be here|live)|no point|give up|end it|end my life|hurt myself|hurting myself|cut myself|cutting myself|kms|suicide|starve myself|hate (myself|my life|being alive)|i'?m worthless|nobody (would|will)? ?(care|miss me)|no one would miss me|everyone hates me|better without me|abus|touch(ed|es|ing)? me|hit me|hits me|hitting me|hurt me|hurts me|hurting me|always hurts|make it stop|bleeding|can'?t breathe|someone (is )?hurting|scared (of|to go home)|won'?t stop|help me)\b/i;
 
 type Action = "answer" | "reread" | "breakdown" | "open_anchor" | "log_feeling" | "suggest_break" | "notify_parent";
 const ALLOWED: Action[] = ["answer", "reread", "breakdown", "open_anchor", "log_feeling", "suggest_break", "notify_parent"];
@@ -120,11 +124,15 @@ export async function POST(req: Request) {
         "or counting, a calm place, a slow sip). Go slow, very short lines. As they settle, reassure them and " +
         "gently point them back to calm or to their grown-up — never start a routine step here, never push. " +
         "Prefer action 'answer' (or 'log_feeling' if they named a feeling).\n" +
-        "DISTRESS CALIBRATION (here only): a calm-down break is FOR big feelings, so ordinary upset — mad, " +
-        "frustrated, sad, 'too much', crying — is EXPECTED; co-regulate it and set distress=FALSE. Reserve " +
-        "distress=true (→ alert the grown-up) for REAL concern only: hopelessness, wanting to disappear or not " +
-        "exist, wanting to hurt themselves or someone, fear of a person, or mentions of being hurt or unsafe. " +
-        "Don't over-alert the parent for normal big feelings the break is meant to soothe."
+        "DISTRESS CALIBRATION (here only): set distress=FALSE only for PLAINLY ordinary upset that is clearly " +
+        "ABOUT a normal frustration — mad/sad/frustrated/'too much'/crying about a task, a person saying no, " +
+        "losing a game, being tired. Co-regulate those. But set distress=TRUE the moment there is ANY hint — " +
+        "even mild, indirect, joking, or whispered — of: not wanting to exist, be here, wake up, or be alive; " +
+        "wishing they were gone or that others would be better off without them; hating themselves or feeling " +
+        "worthless; hopelessness or 'what's the point'; wanting to hurt themselves or anyone; being scared OF " +
+        "someone; or being hurt, touched, or unsafe. If a phrase could be read EITHER as ordinary upset OR as " +
+        "one of these, it is NOT ordinary — set distress=TRUE. Never talk a child out of a hard feeling to " +
+        "avoid alerting; a grown-up coming is always the safe choice. When in ANY doubt, distress=TRUE."
       : "");
 
   const prompt =
@@ -181,23 +189,26 @@ export async function POST(req: Request) {
   }
 
   // Distress → escalate to the parent (§5.3). No push channel exists yet, so route through a
-  // check-in (the existing, points-free kid→parent signal the parent already sees in Insights/
-  // History). Force the action so the spoken line tells the child a grown-up is coming.
+  // check-in (the existing, points-free kid→parent signal the parent sees in Insights/History).
+  // This is a SAFETY write: AWAIT it and log any failure — never silently swallow, because the
+  // child is being told a grown-up is coming. The voice_interactions row (distress flagged, shown
+  // on the child page) is the guaranteed secondary surface if the check-in ever fails.
   if (distress) {
     action = "notify_parent";
-    await admin
+    const { error: ciErr } = await admin
       .from("check_ins")
-      .insert({ child_id: child.id, feeling: feeling || "needs a grown-up", note: text.slice(0, 200) })
-      .then(() => {}, () => {});
+      .insert({ child_id: child.id, feeling: feeling || "needs a grown-up", note: text.slice(0, 200) });
+    if (ciErr) captureError(ciErr, { area: "voice-distress-checkin", child_id: child.id });
   } else if (action === "log_feeling" && feeling) {
     await admin.from("check_ins").insert({ child_id: child.id, feeling }).then(() => {}, () => {});
   }
 
-  // Parent-reviewable log + safety flag (§5.5/§8). Best-effort; never block the reply.
-  await admin
+  // Parent-reviewable log + safety flag (§5.5/§8). For distress this is the guaranteed record,
+  // so await + log a failure; otherwise best-effort.
+  const { error: viErr } = await admin
     .from("voice_interactions")
-    .insert({ household_id, child_id: child.id, transcript: text.slice(0, 400), reply: speech, action, distress })
-    .then(() => {}, () => {});
+    .insert({ household_id, child_id: child.id, transcript: text.slice(0, 400), reply: speech, action, distress });
+  if (viErr && distress) captureError(viErr, { area: "voice-distress-log", child_id: child.id });
 
   return NextResponse.json({ speech, action, distress });
 }

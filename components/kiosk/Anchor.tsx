@@ -97,6 +97,7 @@ export function Anchor({
         const reply = data.speech || (data.disabled ? "" : "I'm right here with you.");
         if (reply) {
           setAiReply(reply);
+          stopSpeaking(); // don't talk over a breathing cue
           speak(reply);
         }
         if (data.distress) {
@@ -106,6 +107,7 @@ export function Anchor({
       } catch {
         const fb = "Let's just breathe together.";
         setAiReply(fb);
+        stopSpeaking();
         speak(fb);
       } finally {
         setAiBusy(false);
