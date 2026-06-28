@@ -14,6 +14,7 @@ import {
   ScrollText,
   Sparkles,
   History,
+  Tablet,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const ITEMS = [
   { href: "/app/rules", label: "House rules", icon: ScrollText },
   { href: "/app/insights", label: "Insights", icon: Sparkles },
   { href: "/app/history", label: "History", icon: History },
+  { href: "/app/devices", label: "Devices", icon: Tablet },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 

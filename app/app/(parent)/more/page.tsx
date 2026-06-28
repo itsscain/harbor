@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot, ScrollText, History, Users, Pill } from "lucide-react";
+import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot, ScrollText, History, Users, Pill, Tablet } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/primitives";
 
@@ -29,8 +29,9 @@ const groups = [
   {
     heading: "Account",
     links: [
+      { href: "/app/devices", label: "Devices", desc: "Name, monitor & manage every screen", icon: Tablet },
       { href: "/app/billing", label: "Harbor Plus", desc: "Cloud sync & extras", icon: CreditCard },
-      { href: "/app/settings", label: "Settings", desc: "Household, wall PIN, devices", icon: Settings },
+      { href: "/app/settings", label: "Settings", desc: "Household, wall PIN, account", icon: Settings },
     ],
   },
 ];

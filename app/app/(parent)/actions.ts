@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { hashPinServer } from "@/lib/pin";
 import { CHILD_PALETTE } from "@/lib/kiosk/colors";
+import { generatePairingCode } from "@/lib/codes";
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -1007,4 +1008,72 @@ export async function deleteMedication(id: string) {
   const { error } = await supabase.from("medications").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/medication");
+}
+
+// ── Devices (Wall & Device Management D1) ─────────────────────────────────────
+// Identity + lifecycle for paired devices. PIN-gated in the app; RLS scopes every
+// row to the parent's household (migration 0050). Type/child binding is set when a
+// device is added; live reassignment of an already-paired device waits for D3 (it
+// needs the snapshot to carry device identity, or the device re-pairs).
+
+/** Mint a new pairing code with identity, ready for the parent to enter on the device. */
+export async function addDevice(formData: FormData) {
+  const me = await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household.");
+  const supabase = await createClient();
+
+  const kind = formData.get("kind") === "outpost" ? "outpost" : "wall";
+  const child_id = kind === "outpost" ? str(formData.get("child_id")) : null;
+  if (kind === "outpost") {
+    if (!child_id) throw new Error("Pick a child for the room device.");
+    const { data: ok } = await supabase
+      .from("children")
+      .select("id")
+      .eq("id", child_id)
+      .eq("household_id", household.id)
+      .maybeSingle();
+    if (!ok) throw new Error("That child isn't in your household.");
+  }
+
+  const { error } = await supabase.from("device_pairings").insert({
+    household_id: household.id,
+    code: generatePairingCode(),
+    status: "pending",
+    kind,
+    child_id,
+    device_label: str(formData.get("device_label")),
+    icon: str(formData.get("icon")),
+    color: str(formData.get("color")),
+    paired_by: me.id,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/devices");
+}
+
+/** Rename / re-icon / re-color a device (parent-side identity). */
+export async function updateDevice(id: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("device_pairings")
+    .update({
+      device_label: str(formData.get("device_label")),
+      icon: str(formData.get("icon")),
+      color: str(formData.get("color")),
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/devices");
+}
+
+/** Remove a device — revokes its access (the row is deleted, so its device-secret no
+ *  longer matches a paired row and rpc_kiosk_pull/push reject it). The device falls
+ *  back to the pairing screen on its next connect. (Remote wipe is D3.) */
+export async function unpairDevice(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("device_pairings").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/devices");
 }

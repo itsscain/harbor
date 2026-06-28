@@ -512,45 +512,69 @@ export type Database = {
       }
       device_pairings: {
         Row: {
+          app_version: string | null
           child_id: string | null
+          clock_suspect: boolean
           code: string
+          color: string | null
           created_at: string
           device_label: string | null
           device_secret: string | null
           household_id: string
+          icon: string | null
           id: string
           kind: string
           last_synced_at: string | null
           paired_at: string | null
+          paired_by: string | null
+          paused: boolean
+          settings_json: Json
           status: Database["public"]["Enums"]["pairing_status"]
+          status_note: string | null
           updated_at: string
         }
         Insert: {
+          app_version?: string | null
           child_id?: string | null
+          clock_suspect?: boolean
           code: string
+          color?: string | null
           created_at?: string
           device_label?: string | null
           device_secret?: string | null
           household_id: string
+          icon?: string | null
           id?: string
           kind?: string
           last_synced_at?: string | null
           paired_at?: string | null
+          paired_by?: string | null
+          paused?: boolean
+          settings_json?: Json
           status?: Database["public"]["Enums"]["pairing_status"]
+          status_note?: string | null
           updated_at?: string
         }
         Update: {
+          app_version?: string | null
           child_id?: string | null
+          clock_suspect?: boolean
           code?: string
+          color?: string | null
           created_at?: string
           device_label?: string | null
           device_secret?: string | null
           household_id?: string
+          icon?: string | null
           id?: string
           kind?: string
           last_synced_at?: string | null
           paired_at?: string | null
+          paired_by?: string | null
+          paused?: boolean
+          settings_json?: Json
           status?: Database["public"]["Enums"]["pairing_status"]
+          status_note?: string | null
           updated_at?: string
         }
         Relationships: [
