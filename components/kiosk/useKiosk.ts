@@ -10,7 +10,7 @@ import {
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
 import { subscribeHousehold } from "@/lib/kiosk/realtime";
-import { fetchDeviceState, nukeAndReload } from "@/lib/kiosk/deviceState";
+import { fetchDeviceState, nukeAndReload, wipeEverythingAndReload } from "@/lib/kiosk/deviceState";
 import { captureError } from "@/lib/observability";
 import { nextStreak } from "@/lib/kiosk/streak";
 import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
@@ -225,8 +225,21 @@ export function useKiosk() {
     let stopped = false;
     const check = async () => {
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
-      const ds = await fetchDeviceState(deviceSecret);
-      if (stopped || !ds) return;
+      const res = await fetchDeviceState(deviceSecret);
+      if (stopped) return;
+      // Remote wipe / lost-device safeguard (§7): the parent removed this device, so the
+      // server now rejects its secret. Clear all local data (snapshot, progress, secret,
+      // PIN) and return to the pairing screen — the wall can no longer see anything. Only
+      // a DEFINITIVE "revoked" does this; transient/offline errors keep the wall working.
+      if (res.kind === "revoked") {
+        // Remove the sensitive record now via the live DB connection, then scrub everything
+        // else (voice clips, localStorage, caches) and reload to a clean pairing screen.
+        await clearState();
+        await wipeEverythingAndReload();
+        return;
+      }
+      if (res.kind === "error") return;
+      const ds = res.state;
       setDeviceLabel(ds.device_label);
       setPaused(ds.paused === true);
       setDeviceSettings((ds.settings as Record<string, unknown>) ?? {});
