@@ -68,6 +68,7 @@ export function accentVars(hex: string): Record<string, string> {
     "--accent-deep": r.deep,
     "--accent-glow": r.glow,
     "--accent-soft": `hsl(${h} ${sat}% 60% / 0.14)`,
+    "--accent-line": `hsl(${h} ${Math.round(sat * 0.55)}% 42% / 0.55)`,
     "--accent-text": r.text,
   } as Record<string, string>;
 }

@@ -46,8 +46,10 @@ export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
   return (
     <div className="min-h-full">
       <LivingAmbient />
+      <div className="lumen-caustics" aria-hidden />
       <BeaconLight accent={accent} active />
       <div className="grain-overlay" aria-hidden />
+      <div className="lumen-vignette" aria-hidden />
 
       <div className="relative z-10">
         <ChildView

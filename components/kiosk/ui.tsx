@@ -20,7 +20,7 @@ export function KCard({
 }: { className?: string; children: ReactNode } & HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-xl bg-kpanel ring-1 ring-kline/55 shadow-k", className)}
+      className={cn("mat-obsidian rounded-xl", className)}
       {...rest}
     >
       {children}
@@ -39,8 +39,8 @@ export function KEyebrow({ children, className }: { children: ReactNode; classNa
 
 const PILL_TONES = {
   default: "bg-kraise text-kmute ring-1 ring-kline/55",
-  water: "bg-kwater/15 text-kwater ring-1 ring-kwater/30",
-  beacon: "bg-beacon/15 text-beacon ring-1 ring-beacon/30",
+  water: "bg-kwater/15 text-kwater ring-1 ring-kwater/30 shadow-[0_0_16px_-8px_rgba(60,188,217,.5)]",
+  beacon: "bg-beacon/15 text-beacon ring-1 ring-beacon/30 shadow-[0_0_16px_-8px_rgba(246,178,61,.5)]",
   good: "bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30",
   warn: "bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/30",
   danger: "bg-red-500/15 text-red-300 ring-1 ring-red-500/30",
@@ -78,10 +78,15 @@ const BTN_SIZES = {
   lg: "h-14 rounded-xl px-6 text-base gap-2.5",
 } as const;
 
+// Lumen §4 — CTAs emit light. primary/beacon carry a soft accent bloom + a warm top lip
+// (light catching the lip); tonal gets the faint base highlight so it reads as lit glass.
 const BTN_VARIANTS = {
-  primary: "bg-kwater text-harbor font-semibold hover:brightness-110 active:brightness-95",
-  beacon: "bg-beacon text-harbor font-semibold hover:brightness-105 active:brightness-95",
-  tonal: "bg-kraise text-ktext ring-1 ring-kline/55 hover:brightness-125",
+  primary:
+    "bg-kwater text-harbor font-semibold shadow-[0_0_22px_-8px_rgba(60,188,217,.55),inset_0_1px_0_rgba(255,255,255,.18)] hover:brightness-110 active:brightness-95",
+  beacon:
+    "bg-beacon text-harbor font-semibold shadow-[0_0_22px_-8px_rgba(246,178,61,.6),inset_0_1px_0_rgba(255,255,255,.22)] hover:brightness-105 active:brightness-95",
+  tonal:
+    "bg-kraise text-ktext ring-1 ring-kline/55 shadow-[inset_0_1px_0_rgba(255,250,240,.05)] hover:brightness-125",
   ghost: "bg-transparent text-kmute hover:bg-kraise hover:text-ktext",
   danger: "bg-red-500/15 text-red-300 ring-1 ring-red-500/30 hover:bg-red-500/25",
 } as const;

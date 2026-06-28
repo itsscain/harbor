@@ -155,7 +155,14 @@ h4,
    and any layout gaps fall back to the dark background. */
 .kiosk-root {
   color-scheme: dark;
-  background: var(--color-kbg);
+  /* Lumen §3.4 — the ground is lit deep water, never a flat fill, so every screen
+     (pairing, loading, shell) sits in the sea and the wall is full-bleed. The richer
+     drifting field + beacon live in the shell's LivingAmbient; this is the base sea. */
+  background-color: var(--amb-base, #0c1014); /* solid fallback if gradients/color-mix unsupported */
+  background-image:
+    radial-gradient(120% 80% at 78% 2%, var(--amb-accent, rgba(60, 188, 217, 0.06)), transparent 60%),
+    radial-gradient(120% 90% at 12% 100%, var(--amb-accent2, rgba(246, 178, 61, 0.05)), transparent 64%),
+    linear-gradient(180deg, color-mix(in srgb, var(--amb-base, #0c1014) 86%, #000), var(--amb-base, #0c1014) 48%, #06090d 100%);
   color: var(--color-ktext);
 }
 .kiosk-root ::-webkit-scrollbar {
@@ -243,6 +250,119 @@ h4,
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 160px 160px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LUMEN — the kiosk light + material language (HARBOR_KIOSK_LUMEN_VISUAL.md).
+   One warm beacon lights everything; surfaces are glass / water / light that
+   respond to it — not pigment. Builds on Harbor Depth v2 (tokens above), the
+   existing ambient/grain/beacon, and the per-child accent ramp (lib/kiosk/accent).
+   §13: beauty lives in static light + materials, so it degrades gracefully.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* §2.3 — elevation → light response. Four reusable shadow/highlight stacks. */
+.kiosk-root {
+  --lumen-sunken: inset 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 0, 0, 0.25);
+  --lumen-base: inset 0 1px 0 rgba(255, 250, 240, 0.03);
+  --lumen-raised: inset 0 1px 0 rgba(255, 250, 240, 0.06), 0 16px 38px -26px #05080c, 0 3px 10px -6px rgba(0, 0, 0, 0.6);
+  --lumen-floating: inset 0 1px 0 rgba(255, 250, 240, 0.1), 0 30px 70px -30px #04060a, 0 8px 24px -14px rgba(0, 0, 0, 0.7);
+}
+
+/* §3.1 Obsidian Glass — the default card/panel: dark glass, warm beacon-lit top lip,
+   grounded shadow. Replaces flat #161b22 fills. */
+.mat-obsidian {
+  background: linear-gradient(168deg, #1b2331 0%, #141b27 52%, #10151f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-top-color: rgba(255, 250, 240, 0.08); /* §2.4 warm top lip */
+  box-shadow: var(--lumen-raised);
+}
+
+/* §3.3 Frosted Glass — floating chrome (dock, top bar, sheets). Use sparingly (§13). */
+.mat-frosted {
+  background: rgba(18, 24, 36, 0.55);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 40px -22px #04060a;
+}
+
+/* §3.2 Liquid Light — emitted accent (focal surfaces, the child's color). Never a flat
+   fill: a core wash + bloom + inner glow. Derives from the accent ramp; safe fallbacks. */
+.mat-liquid-light {
+  background:
+    radial-gradient(130% 90% at 50% 0%, var(--accent-soft, rgba(60, 188, 217, 0.14)) 0%, transparent 68%),
+    linear-gradient(168deg, #1c2740, #141c2e 60%, #121826);
+  box-shadow:
+    0 0 0 1px var(--accent-line, var(--accent-glow, rgba(60, 188, 217, 0.3))),
+    0 0 40px -10px var(--accent-glow, rgba(60, 188, 217, 0.45)),
+    inset 0 0 32px -12px var(--accent-glow, rgba(60, 188, 217, 0.45)),
+    inset 0 1px 0 rgba(255, 250, 240, 0.08);
+}
+
+/* §3.6 Vellum — warm matte paper for the rare soft/human moment (story, read-aloud). */
+.mat-vellum {
+  background: linear-gradient(180deg, #f3ebdd, #e9dfce);
+  color: #3a3326;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 12px 34px -18px rgba(0, 0, 0, 0.5);
+}
+
+/* §2.4 — a bare warm top-lip border for surfaces not using a full material. */
+.lumen-lip {
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-top-color: rgba(255, 250, 240, 0.08);
+}
+
+/* §2.5 Rim light — anything "touched by importance" (current step, active child): the
+   key light refracting through the object's color. */
+.lumen-rim {
+  box-shadow:
+    0 0 0 1px var(--accent-line, var(--accent-glow, rgba(60, 188, 217, 0.4))),
+    0 0 34px -6px var(--accent-glow, rgba(60, 188, 217, 0.45)),
+    inset 0 1px 0 rgba(255, 250, 240, 0.1);
+}
+
+/* §2.7 Seated well — a sunken tile that holds an emoji/icon so it feels set into the
+   surface, not pasted on. Backs the previously-unused --color-ksunken token. */
+.lumen-well {
+  background: var(--color-ksunken, #0a0d11);
+  box-shadow: var(--lumen-sunken);
+}
+
+/* §2.8 Vignette — darkens the far edges, focuses the eye on center, deepens space.
+   Mount inside the shell ambient wrapper (above ambient, below content). */
+.lumen-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 120% 100% at 50% 42%, transparent 52%, rgba(4, 6, 10, 0.28) 100%);
+}
+
+/* §6.2 Caustics — the signature "this is water" detail: slow drifting underwater light.
+   Cheap per §13 (layered soft radials translated via transform; screen blend; no blur).
+   Auto-disabled by the global prefers-reduced-motion block below. */
+.lumen-caustics {
+  position: fixed;
+  inset: -22%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(38% 30% at 30% 38%, rgba(120, 200, 230, 0.5), transparent 70%),
+    radial-gradient(30% 26% at 72% 58%, rgba(120, 200, 230, 0.4), transparent 72%),
+    radial-gradient(26% 22% at 52% 82%, rgba(150, 210, 235, 0.32), transparent 74%);
+  animation: lumen-caustics 46s var(--ease-harbor-calm) infinite alternate;
+  will-change: transform;
+}
+@keyframes lumen-caustics {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1.04);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.12);
+  }
 }
 
 /* ── Harbor Depth Layer 4 — Physical touch (the "feel" upgrade) ────────────────
