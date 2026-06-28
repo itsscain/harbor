@@ -528,6 +528,7 @@ export type Database = {
           paired_at: string | null
           paired_by: string | null
           paused: boolean
+          pending_command: string | null
           settings_json: Json
           status: Database["public"]["Enums"]["pairing_status"]
           status_note: string | null
@@ -550,6 +551,7 @@ export type Database = {
           paired_at?: string | null
           paired_by?: string | null
           paused?: boolean
+          pending_command?: string | null
           settings_json?: Json
           status?: Database["public"]["Enums"]["pairing_status"]
           status_note?: string | null
@@ -572,6 +574,7 @@ export type Database = {
           paired_at?: string | null
           paired_by?: string | null
           paused?: boolean
+          pending_command?: string | null
           settings_json?: Json
           status?: Database["public"]["Enums"]["pairing_status"]
           status_note?: string | null
@@ -1984,6 +1987,10 @@ export type Database = {
       }
       reset_household: { Args: { p_household: string }; Returns: undefined }
       routine_is_mine: { Args: { r: string }; Returns: boolean }
+      rpc_kiosk_device_state: {
+        Args: { p_app_version?: string; p_secret: string }
+        Returns: Json
+      }
       rpc_kiosk_pair: { Args: { p_code: string }; Returns: Json }
       rpc_kiosk_pull: {
         Args: { p_secret: string; p_since?: string }

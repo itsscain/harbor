@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart, Clock, Wrench } from "lucide-react";
 import { VoiceDebug } from "./VoiceDebug";
+import { IdentifyFlash } from "./IdentifyFlash";
 import type { useKiosk } from "./useKiosk";
 import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
@@ -135,6 +136,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
 
   return (
     <div className="min-h-full">
+      <IdentifyFlash at={kiosk.identifyAt} name={kiosk.deviceLabel} />
       {/* Harbor Depth — fixed material layers behind all content (§3). Duck during
           Anchor so the world quiets while a child co-regulates (§9.1). */}
       <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>

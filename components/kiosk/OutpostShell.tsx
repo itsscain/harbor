@@ -8,6 +8,7 @@ import { CalmCorner } from "./CalmCorner";
 import { ParentGate } from "./ParentGate";
 import { LivingAmbient } from "./LivingAmbient";
 import { BeaconLight } from "./BeaconLight";
+import { IdentifyFlash } from "./IdentifyFlash";
 import { KButton, KCard } from "./ui";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { childColor } from "@/lib/kiosk/colors";
@@ -49,6 +50,7 @@ export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
 
   return (
     <div className="min-h-full">
+      <IdentifyFlash at={kiosk.identifyAt} name={kiosk.deviceLabel} />
       {/* Duck the lit world during Anchor so the room quiets while the child regulates (§9.1). */}
       <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>
         <LivingAmbient />

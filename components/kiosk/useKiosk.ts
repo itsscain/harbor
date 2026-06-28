@@ -10,6 +10,7 @@ import {
 } from "@/lib/kiosk/db";
 import { pairDevice, syncNow } from "@/lib/kiosk/sync";
 import { subscribeHousehold } from "@/lib/kiosk/realtime";
+import { fetchDeviceState, nukeAndReload } from "@/lib/kiosk/deviceState";
 import { captureError } from "@/lib/observability";
 import { nextStreak } from "@/lib/kiosk/streak";
 import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
@@ -36,6 +37,10 @@ export function useKiosk() {
   const [realtimeStatus, setRealtimeStatus] = useState<string>("idle");
   const [lastNudgeAt, setLastNudgeAt] = useState<number | null>(null);
   const [lastPropagationMs, setLastPropagationMs] = useState<number | null>(null);
+  // Device Management D3 — remote control surfaced from the parent's manager.
+  const [identifyAt, setIdentifyAt] = useState<number | null>(null);
+  const [deviceLabel, setDeviceLabel] = useState<string | null>(null);
+  const [paused, setPaused] = useState(false);
   const stateRef = useRef<KioskState | null>(null);
   stateRef.current = state;
 
@@ -207,6 +212,33 @@ export function useKiosk() {
       unsub();
     };
   }, [householdId, plusActive, runSync]);
+
+  // Device check-in (Device Management D3) — report this build + last-seen and pop any
+  // remote command the parent queued. NOT Plus-gated: device control (Remote Refresh,
+  // Identify) must work for every paired wall, not just synced ones. Polls every 30s.
+  const deviceSecret = state?.deviceSecret;
+  useEffect(() => {
+    if (!deviceSecret) return;
+    let stopped = false;
+    const check = async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      const ds = await fetchDeviceState(deviceSecret);
+      if (stopped || !ds) return;
+      setDeviceLabel(ds.device_label);
+      setPaused(ds.paused === true);
+      if (ds.command === "refresh") {
+        void nukeAndReload(); // drops caches/SW + reloads to the latest build
+        return;
+      }
+      if (ds.command === "identify") setIdentifyAt(Date.now());
+    };
+    void check();
+    const id = window.setInterval(check, 30_000);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
+  }, [deviceSecret]);
 
   // ── Setup / pairing ─────────────────────────────────────────────────────────
   const pair = useCallback(async (code: string) => {
@@ -617,6 +649,10 @@ export function useKiosk() {
     lastPropagationMs,
     outboxDepth: state?.outbox.length ?? 0,
     clockSuspect: state?.clockSuspect ?? false,
+    // Device Management D3 — remote control signals for the shell.
+    identifyAt,
+    deviceLabel,
+    paused,
     pair,
     setPin,
     verifyPin,

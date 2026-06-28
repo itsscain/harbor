@@ -1067,6 +1067,17 @@ export async function updateDevice(id: string, formData: FormData) {
   revalidatePath("/app/devices");
 }
 
+/** Queue a remote command for a device (Device Management D3). The device pops it on its
+ *  next check-in (≤30s) and acts: "refresh" clears caches + reloads to the latest build
+ *  (the remote fix for a stale wall); "identify" makes it flash + chime + show its name. */
+export async function deviceCommand(id: string, action: string) {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("device_pairings").update({ pending_command: action }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/devices");
+}
+
 /** Remove a device — revokes its access (the row is deleted, so its device-secret no
  *  longer matches a paired row and rpc_kiosk_pull/push reject it). The device falls
  *  back to the pairing screen on its next connect. (Remote wipe is D3.) */

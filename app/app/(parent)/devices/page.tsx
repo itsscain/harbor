@@ -8,10 +8,13 @@ import { Disclosure } from "@/components/app/Disclosure";
 import { ListRow } from "@/components/ui/ListRow";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPairingCode } from "@/lib/codes";
-import { addDevice, updateDevice, unpairDevice } from "../actions";
+import { addDevice, updateDevice, unpairDevice, deviceCommand } from "../actions";
 
 export const metadata = { title: "Devices" };
 export const dynamic = "force-dynamic";
+
+// The build this deploy is running; a device reporting a different one is stale.
+const CURRENT_BUILD = process.env.NEXT_PUBLIC_BUILD_ID || "dev";
 
 type Device = {
   id: string;
@@ -24,6 +27,7 @@ type Device = {
   paired_at: string | null;
   icon: string | null;
   color: string | null;
+  app_version: string | null;
 };
 
 function relTime(iso: string | null): string {
@@ -62,7 +66,7 @@ export default async function DevicesPage() {
     .order("sort_order");
   const { data: rows } = await supabase
     .from("device_pairings")
-    .select("id, device_label, kind, child_id, status, code, last_synced_at, paired_at, icon, color")
+    .select("id, device_label, kind, child_id, status, code, last_synced_at, paired_at, icon, color, app_version")
     .eq("household_id", household.id)
     .order("created_at");
 
@@ -95,6 +99,7 @@ export default async function DevicesPage() {
         {devices.map((d) => {
           const st = deviceStatus(d);
           const color = d.color || "#18606f";
+          const stale = d.status === "paired" && !!d.app_version && d.app_version !== CURRENT_BUILD;
           return (
             <Card
               key={d.id}
@@ -107,9 +112,10 @@ export default async function DevicesPage() {
                   <ListRow
                     tile={d.icon || KIND_ICON[d.kind] || "🖥️"}
                     title={
-                      <span className="flex items-center gap-2">
+                      <span className="flex flex-wrap items-center gap-2">
                         {smartName(d)}
                         <Badge tone={st.tone}>{st.label}</Badge>
+                        {stale && <Badge tone="amber">Old version</Badge>}
                       </span>
                     }
                     subtitle={<span>{typeLabel(d)}</span>}
@@ -125,10 +131,26 @@ export default async function DevicesPage() {
                     <p className="mt-1 text-xs text-muted">It pairs the moment the code is entered.</p>
                   </div>
                 ) : (
-                  <p className="mb-4 text-sm text-muted">
+                  <p className="mb-3 text-sm text-muted">
                     {typeLabel(d)} · {st.label}
                     {d.paired_at ? ` · paired ${relTime(d.paired_at)}` : ""}
                   </p>
+                )}
+
+                {d.status === "paired" && (
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <form action={deviceCommand.bind(null, d.id, "identify")}>
+                      <SubmitButton size="sm" variant="secondary" savedText="Sent ✓" confirmSaved={false}>
+                        👋 Identify
+                      </SubmitButton>
+                    </form>
+                    <form action={deviceCommand.bind(null, d.id, "refresh")}>
+                      <SubmitButton size="sm" variant={stale ? "primary" : "ghost"} savedText="Sent ✓" confirmSaved={false}>
+                        {stale ? "Update to latest" : "Refresh app"}
+                      </SubmitButton>
+                    </form>
+                    {stale && <span className="text-xs font-medium text-amber-600">⚠️ Running an old build</span>}
+                  </div>
                 )}
 
                 <form action={updateDevice.bind(null, d.id)} className="space-y-3 pt-1">
