@@ -37,7 +37,18 @@ type Status = "idle" | "listening" | "thinking" | "speaking";
  *  always-listening for the wake word. Commands go to the device-validated
  *  /api/ai/command endpoint; replies are spoken aloud. After an action that may
  *  have changed data (a new chore, grocery item, or meal plan), we pull to sync. */
-export function VoiceButton({ deviceSecret, onActed }: { deviceSecret: string; onActed?: () => void }) {
+export function VoiceButton({
+  deviceSecret,
+  onActed,
+  childId = null,
+}: {
+  deviceSecret: string;
+  onActed?: () => void;
+  /** When set (a child's screen is open AND that child's voice chat is ON), the mic is
+   *  CHILD-FACING: it routes to the bounded /api/ai/voice (routine help + co-regulation,
+   *  no economy, distress→parent) instead of the household command endpoint. */
+  childId?: string | null;
+}) {
   const ctorRef = useRef<SRCtor | null>(null);
   const [supported, setSupported] = useState(false);
   const [wakeOn, setWakeOn] = useState(false);
@@ -75,13 +86,22 @@ export function VoiceButton({ deviceSecret, onActed }: { deviceSecret: string; o
       setS("thinking");
       setCaption({ you: t });
       try {
-        const res = await fetch("/api/ai/command", {
+        // Child's screen + voice chat on → the bounded child-facing endpoint; else the
+        // household "Hey Harbor" command endpoint.
+        const res = await fetch(childId ? "/api/ai/voice" : "/api/ai/command", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_secret: deviceSecret, text: t, date: todayKey() }),
+          body: JSON.stringify(
+            childId
+              ? { device_secret: deviceSecret, child_id: childId, text: t }
+              : { device_secret: deviceSecret, text: t, date: todayKey() },
+          ),
         });
-        const data = (await res.json().catch(() => ({}))) as { reply?: string };
-        const reply = data.reply || "Sorry, I had trouble with that.";
+        const data = (await res.json().catch(() => ({}))) as { reply?: string; speech?: string; disabled?: boolean };
+        const reply =
+          data.speech ||
+          data.reply ||
+          (data.disabled ? "Ask a grown-up to set up Harbor's voice." : "Sorry, I had trouble with that.");
         setCaption({ you: t, harbor: reply });
         setS("speaking");
         speak(reply);
@@ -99,7 +119,7 @@ export function VoiceButton({ deviceSecret, onActed }: { deviceSecret: string; o
         wakeStartRef.current?.();
       }
     },
-    [deviceSecret, onActed],
+    [deviceSecret, onActed, childId],
   );
 
   // Tap-to-talk: one-shot capture.

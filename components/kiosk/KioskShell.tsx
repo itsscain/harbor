@@ -246,7 +246,15 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       )}
 
       {!asleep && !gate && !menu && state.deviceSecret && (
-        <VoiceButton deviceSecret={state.deviceSecret} onActed={() => void kiosk.syncNow()} />
+        <VoiceButton
+          deviceSecret={state.deviceSecret}
+          onActed={() => void kiosk.syncNow()}
+          childId={
+            view.k === "child" && activeChild && (activeChild.settings as Record<string, unknown> | null)?.voiceChat === true
+              ? activeChild.id
+              : null
+          }
+        />
       )}
 
       {asleep && inQuietHours(quietStart, quietEnd) ? (

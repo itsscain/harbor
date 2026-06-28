@@ -791,6 +791,8 @@ export async function updateChildSettings(childId: string, formData: FormData) {
     sensory: ["calm", "standard", "vivid"].includes(str(formData.get("sensory")) ?? "")
       ? str(formData.get("sensory"))
       : "standard",
+    // AI-Led Voice §5.5 — child voice conversation, OFF by default (conservative).
+    voiceChat: formData.get("voiceChat") === "on",
     theme: str(formData.get("theme")) ?? "harbor",
     bedtime: (() => {
       const b = str(formData.get("bedtime"));

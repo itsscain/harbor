@@ -71,6 +71,14 @@ export default async function ChildDetail({
     .select("step_id, level_earned")
     .eq("child_id", id);
 
+  // AI-Led Voice §5.5 — the reviewable conversation log + safety flags.
+  const { data: voiceLog } = await supabase
+    .from("voice_interactions")
+    .select("transcript, reply, action, distress, created_at")
+    .eq("child_id", id)
+    .order("created_at", { ascending: false })
+    .limit(15);
+
   const { data: grounding } = await supabase
     .from("groundings")
     .select("*")
@@ -479,6 +487,7 @@ export default async function ChildDetail({
               { name: "sound", label: "Success sounds", hint: "Play a chime on completion", def: cs.sound !== false },
               { name: "haptics", label: "Vibrate on done", hint: "Gentle buzz when a step is finished", def: cs.haptics !== false },
               { name: "reducedMotion", label: "Reduce motion", hint: "Calmer, minimal animation", def: cs.reducedMotion === true },
+              { name: "voiceChat", label: "AI voice conversation", hint: "Let this child talk to Harbor for routine help — bounded, safe, never an open chatbot. Off by default; you can review every conversation below.", def: cs.voiceChat === true },
             ].map((t) => (
               <div key={t.name} className="px-3.5 py-3">
                 <Switch name={t.name} label={t.label} hint={t.hint} defaultChecked={t.def} />
@@ -512,6 +521,48 @@ export default async function ChildDetail({
         </form>
         </Disclosure>
       </Card>
+
+      {(cs.voiceChat === true || (voiceLog ?? []).length > 0) && (
+        <Card className="mb-4 p-0">
+          <Disclosure
+            bodyClassName="px-5 pb-5"
+            summary={
+              <div>
+                <span className="text-title text-harbor">Voice activity</span>
+                <span className="mt-0.5 block text-sm text-muted">
+                  {(voiceLog ?? []).length
+                    ? `${(voiceLog ?? []).length} recent ${(voiceLog ?? []).length === 1 ? "conversation" : "conversations"}`
+                    : `What ${child.name} says to Harbor`}
+                </span>
+              </div>
+            }
+          >
+            <p className="text-sm text-muted">
+              Every voice conversation {child.name} has with Harbor — review anything, anytime. A red flag means
+              Harbor heard distress and recorded it as a check-in so you&apos;d see it.
+            </p>
+            {(voiceLog ?? []).length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No conversations yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-2.5">
+                {(voiceLog ?? []).map((v, i) => (
+                  <li
+                    key={i}
+                    className={"rounded-xl border p-3 " + (v.distress ? "border-red-200 bg-red-50/60" : "border-harbor-100")}
+                  >
+                    {v.distress && (
+                      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-red-700">⚠️ Harbor flagged this for you</p>
+                    )}
+                    <p className="text-sm text-ink">&ldquo;{v.transcript}&rdquo;</p>
+                    <p className="mt-1 text-sm text-muted">Harbor: {v.reply}</p>
+                    <p className="mt-1 text-xs text-muted/70">{new Date(v.created_at).toLocaleString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Disclosure>
+        </Card>
+      )}
 
       <Card className="border-red-200">
         <h3 className="text-title text-red-700">Danger zone</h3>

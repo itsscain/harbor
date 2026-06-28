@@ -1885,6 +1885,54 @@ export type Database = {
           },
         ]
       }
+      voice_interactions: {
+        Row: {
+          action: string | null
+          child_id: string | null
+          created_at: string
+          distress: boolean
+          household_id: string
+          id: string
+          reply: string | null
+          transcript: string | null
+        }
+        Insert: {
+          action?: string | null
+          child_id?: string | null
+          created_at?: string
+          distress?: boolean
+          household_id: string
+          id?: string
+          reply?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          action?: string | null
+          child_id?: string | null
+          created_at?: string
+          distress?: boolean
+          household_id?: string
+          id?: string
+          reply?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_interactions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_interactions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           created_at: string
