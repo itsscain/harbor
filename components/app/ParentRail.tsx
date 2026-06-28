@@ -15,6 +15,7 @@ import {
   Sparkles,
   History,
   Tablet,
+  MessageCircleHeart,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/cn";
 
 const ITEMS = [
   { href: "/app", label: "Home", icon: Home, exact: true },
+  { href: "/app/ask", label: "Ask Harbor", icon: MessageCircleHeart },
   { href: "/app/children", label: "Children", icon: Users },
   { href: "/app/family", label: "Family", icon: Heart },
   { href: "/app/medication", label: "Medication", icon: Pill },
