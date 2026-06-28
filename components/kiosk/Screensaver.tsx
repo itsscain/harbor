@@ -304,27 +304,42 @@ export function Screensaver({
       onKeyDown={stop}
       className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-kbg2 text-white"
     >
-      {/* Ambient + optional photo backdrop */}
-      {photos.length > 0 ? (
-        photos.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={src + i}
-            src={src}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms]"
-            style={{ opacity: i === safePhoto ? 0.32 : 0 }}
-          />
-        ))
-      ) : null}
-      <div className="kiosk-ambient animate-drift" aria-hidden />
-      <div className="absolute inset-0 bg-gradient-to-b from-kbg2/40 via-transparent to-kbg2/80" aria-hidden />
+      {/* Lumen §10.1 — the resting wall on lit deep water: a daypart sea, drifting
+          caustics, and a vignette, with family photos floating WITHIN the scene (not on
+          a flat page). This is the most-seen surface, so it gets the full light treatment. */}
+      <div
+        className="absolute inset-0"
+        aria-hidden
+        style={{
+          backgroundColor: "var(--amb-base, #0c1014)",
+          backgroundImage:
+            "radial-gradient(120% 80% at 78% 2%, var(--amb-accent, rgba(60,188,217,.06)), transparent 60%), radial-gradient(120% 90% at 12% 100%, var(--amb-accent2, rgba(246,178,61,.05)), transparent 64%), linear-gradient(180deg, #0a0e14, #0c1014 48%, #06090d 100%)",
+        }}
+      />
+      {photos.length > 0
+        ? photos.map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={src + i}
+              src={src}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms]"
+              style={{ opacity: i === safePhoto ? 0.3 : 0 }}
+            />
+          ))
+        : null}
+      <div className="lumen-caustics" aria-hidden />
+      <div className="lumen-vignette" aria-hidden />
 
       <div className="relative z-10 flex min-h-full flex-col items-center px-6 py-8 sm:px-10">
         {/* Clock header */}
         <header className="flex flex-col items-center pt-6 text-center">
           <LighthouseMark className="h-9 w-9 animate-beacon text-white/80" />
-          <p className="mt-4 font-display text-7xl font-bold tabular-nums leading-none sm:text-8xl">
+          {/* §8 — the clock as the warmest, calmest emitted light on the wall */}
+          <p
+            className="mt-4 font-display text-7xl font-bold tabular-nums leading-none sm:text-8xl"
+            style={{ textShadow: "0 0 32px rgba(255,250,240,0.22)" }}
+          >
             {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </p>
           <p className="mt-3 text-xl text-white/70">
