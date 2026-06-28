@@ -64,12 +64,16 @@ self.addEventListener("fetch", (event) => {
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
-        .then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put("/kiosk", copy));
+        .then(async (res) => {
+          // Only cache a real same-origin app response. If the request was redirected
+          // off-origin (e.g. a Vercel auth/login wall), never cache it as the shell —
+          // that would poison the kiosk with a login page. Prefer the cached app instead.
+          const redirectedAway = res && res.redirected && new URL(res.url).origin !== self.location.origin;
+          if (res && res.ok && !redirectedAway) {
+            caches.open(CACHE).then((c) => c.put("/kiosk", res.clone()));
+            return res;
           }
-          return res;
+          return (await caches.match("/kiosk")) || res;
         })
         .catch(async () => (await caches.match("/kiosk")) || Response.error()),
     );
