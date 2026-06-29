@@ -155,7 +155,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       {/* Harbor Depth — fixed material layers behind all content (§3). Duck during
           Anchor so the world quiets while a child co-regulates (§9.1). */}
       <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>
-        <LivingAmbient />
+        <LivingAmbient intensity={ambIntensity} reduced={ambReduced} />
         <div
           className="lumen-caustics"
           aria-hidden

@@ -219,6 +219,48 @@ h4,
     radial-gradient(46% 42% at 78% 6%, var(--amb-accent), transparent 70%),
     radial-gradient(42% 40% at 12% 94%, var(--amb-accent2), transparent 72%);
 }
+/* §5.6 — drifting caustics in the lower "water" so a sparse home is never flat black. */
+.living-ambient__caustics {
+  position: absolute;
+  inset: 44% -20% -12% -20%;
+  opacity: calc(0.06 * var(--amb-intensity, 1));
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(40% 32% at 28% 30%, var(--amb-accent), transparent 70%),
+    radial-gradient(34% 28% at 70% 55%, rgba(120, 200, 230, 0.16), transparent 72%),
+    radial-gradient(30% 24% at 50% 82%, var(--amb-accent2), transparent 74%);
+  animation: lumen-caustics 54s var(--ease-harbor-calm) infinite alternate;
+  will-change: transform;
+}
+/* The harbor's slow breath — a soft central glow swelling on a long cadence. */
+.living-ambient__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(58% 44% at 50% 36%, var(--amb-accent), transparent 70%);
+  opacity: calc(0.32 * var(--amb-intensity, 1));
+  mix-blend-mode: screen;
+  animation: ambient-breathe 16s var(--ease-harbor-calm) infinite;
+}
+/* A faint horizon band gives the deep-water depth (a world, not a flat gradient). */
+.living-ambient__horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 44%;
+  height: 26%;
+  background: linear-gradient(180deg, transparent, var(--amb-accent), transparent);
+  opacity: calc(0.5 * var(--amb-intensity, 1));
+}
+@keyframes ambient-breathe {
+  0%, 100% { opacity: calc(0.2 * var(--amb-intensity, 1)); }
+  50% { opacity: calc(0.42 * var(--amb-intensity, 1)); }
+}
+/* Per-child reduced motion (not just the OS query): freeze the living harbor's motion. */
+.living-ambient[data-reduced] .living-ambient__field,
+.living-ambient[data-reduced] .living-ambient__caustics,
+.living-ambient[data-reduced] .living-ambient__glow {
+  animation: none;
+}
 
 /* ── Harbor Depth Layer 2 — The Beacon as a living light ───────────────────────
    A slow volumetric sweep across the top of the wall; behavior is state-bound
