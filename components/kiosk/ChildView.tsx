@@ -22,7 +22,7 @@ import { effectiveLevel, SUPPORT_LABELS } from "@/lib/kiosk/skill";
 import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday, withinWindow, windowLabel } from "@/lib/kiosk/calendar";
-import { trustedNow, tzOf } from "@/lib/kiosk/time";
+import { trustedNow, tzOf, serviceDay } from "@/lib/kiosk/time";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
 import { Confetti } from "./Confetti";
@@ -182,7 +182,7 @@ export function ChildView({
 
   if (!state || !child || !settings) return null;
 
-  const today = todayKey();
+  const today = serviceDay(state); // family-tz day → matches what completeStep writes
   const prog =
     state.progress[child.id]?.date === today ? state.progress[child.id].completed : [];
   const points = state.points[child.id] ?? 0;

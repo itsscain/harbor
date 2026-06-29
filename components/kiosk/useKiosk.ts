@@ -305,7 +305,7 @@ export function useKiosk() {
   const completeStep = useCallback(
     (childId: string, step: KioskStep) => {
       update((s) => {
-        const today = todayKey();
+        const today = serviceDay(s); // family-tz day → matches the ledger op_id
         const prog =
           s.progress[childId]?.date === today
             ? s.progress[childId]
@@ -375,7 +375,7 @@ export function useKiosk() {
   const completeChore = useCallback(
     (childId: string, chore: KioskChore) => {
       update((s) => {
-        const today = todayKey();
+        const today = serviceDay(s); // family-tz day → matches the ledger op_id
         const prog =
           s.progress[childId]?.date === today
             ? s.progress[childId]
@@ -415,7 +415,7 @@ export function useKiosk() {
   const completePersonStep = useCallback(
     (personId: string, step: KioskStep) => {
       update((s) => {
-        const today = todayKey();
+        const today = serviceDay(s); // family-tz day → matches the ledger op_id
         const pp = s.personProgress ?? {};
         const prog = pp[personId]?.date === today ? pp[personId] : { date: today, completed: [] };
         if (prog.completed.includes(step.id)) return s; // one-way for the day
@@ -518,7 +518,7 @@ export function useKiosk() {
     (childId: string) => {
       update((s) => ({
         ...s,
-        progress: { ...s.progress, [childId]: { date: todayKey(), completed: [] } },
+        progress: { ...s.progress, [childId]: { date: serviceDay(s), completed: [] } },
       }));
     },
     [update],

@@ -79,11 +79,16 @@ export function wallTimeToUtcMs(naive: string, tz: string): number {
   if (!m) return NaN;
   const Y = +m[1], Mo = +m[2], D = +m[3], H = +m[4], Mi = +m[5];
   const wallAsUtc = Date.UTC(Y, Mo - 1, D, H, Mi);
-  // How far the zone is from UTC at that instant (handles DST).
-  const p = partsInTz(new Date(wallAsUtc), tz);
-  const shownAsUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
-  const offset = shownAsUtc - wallAsUtc;
-  return wallAsUtc - offset;
+  // The zone's offset from UTC at a given instant.
+  const offsetAt = (utcMs: number) => {
+    const p = partsInTz(new Date(utcMs), tz);
+    return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - utcMs;
+  };
+  // Two passes: the first guess can land in the wrong DST regime near a transition;
+  // re-evaluating the offset at the candidate instant converges (DST-correct).
+  let utc = wallAsUtc - offsetAt(wallAsUtc);
+  utc = wallAsUtc - offsetAt(utc);
+  return utc;
 }
 
 /** UTC instant → a datetime-local "YYYY-MM-DDTHH:mm" string showing the wall time in

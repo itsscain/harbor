@@ -5,6 +5,7 @@ import { Bell, Lock } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { todayKey } from "@/lib/kiosk/db";
 import { eventsForDay } from "@/lib/kiosk/calendar";
+import { tzFromSettings, minutesIntoDayInTz, formatTimeInTz } from "@/lib/tz";
 import { eventColor } from "@/lib/kiosk/colors";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { childDayStatus } from "@/lib/kiosk/childStatus";
@@ -62,6 +63,7 @@ export function FamilyView({
   const people = [...(snap.people ?? [])].sort((a, b) => a.sort_order - b.sort_order);
   const childrenById = new Map(snap.children.map((c) => [c.id, c]));
   const hsettings = (snap.household.settings ?? {}) as Record<string, unknown>;
+  const tz = tzFromSettings(hsettings);
   const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
   const familyGoal = hsettings.family_goal as
     | { label?: string; emoji?: string; target?: number; reward?: string | null; active?: boolean }
@@ -117,7 +119,7 @@ export function FamilyView({
             <WeatherWidget lat={weather.lat} lon={weather.lon} label={weather.label} />
           )}
           <p className="font-display text-3xl font-bold tabular-nums leading-none text-ktext sm:text-4xl">
-            {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+            {now.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" })}
           </p>
           <Pressable haptics onClick={onParentMenu} aria-label="Parents" className="kiosk-tap flex h-10 w-10 items-center justify-center rounded-xl bg-kpanel text-kmute ring-1 ring-kline/55">
             <Lock className="h-4 w-4" />
@@ -195,7 +197,7 @@ export function FamilyView({
       )}
 
       {/* Rhythm strip — today's shared events with a "now" marker */}
-      <RhythmStrip events={eventsForDay(snap.events ?? [], now)} childrenById={childrenById} now={now} onOpen={onOpenCalendar} />
+      <RhythmStrip events={eventsForDay(snap.events ?? [], now, tz)} childrenById={childrenById} now={now} tz={tz} onOpen={onOpenCalendar} />
 
       {/* Glance tiles */}
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -250,11 +252,13 @@ function RhythmStrip({
   events,
   childrenById,
   now,
+  tz,
   onOpen,
 }: {
   events: ReturnType<typeof eventsForDay>;
   childrenById: Map<string, { id: string; color?: string | null }>;
   now: Date;
+  tz: string;
   onOpen: () => void;
 }) {
   const DAY_START = 6 * 60;
@@ -264,12 +268,12 @@ function RhythmStrip({
     .filter((e) => !e.all_day && !e.is_countdown && e.starts_at)
     .map((e) => {
       const d = new Date(e.starts_at);
-      return { e, min: d.getHours() * 60 + d.getMinutes(), label: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) };
+      return { e, min: minutesIntoDayInTz(d, tz), label: formatTimeInTz(d, tz) };
     })
     .filter((x) => x.min >= DAY_START && x.min <= DAY_END)
     .sort((a, b) => a.min - b.min);
   if (timed.length === 0) return null;
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = minutesIntoDayInTz(now, tz);
   const nowVisible = nowMin >= DAY_START && nowMin <= DAY_END;
 
   return (

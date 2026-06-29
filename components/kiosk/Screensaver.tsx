@@ -8,6 +8,7 @@ import { WeatherWidget } from "./WeatherWidget";
 import { ChildAvatar } from "./ChildAvatar";
 import { GlanceDots } from "./GlanceDots";
 import { eventsForDay, formatEventTime, runsToday } from "@/lib/kiosk/calendar";
+import { tzFromSettings } from "@/lib/tz";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { nextBirthday } from "@/lib/kiosk/birthday";
 import { childColor } from "@/lib/kiosk/colors";
@@ -108,6 +109,7 @@ export function Screensaver({
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const hsettings = (snap?.household.settings ?? {}) as Record<string, unknown>;
+  const tz = tzFromSettings(hsettings);
   const weather = hsettings.weather as { lat?: number; lon?: number; label?: string } | undefined;
 
   const panels = useMemo<Panel[]>(() => {
@@ -142,7 +144,7 @@ export function Screensaver({
       });
     }
 
-    const todays = snap ? eventsForDay(snap.events ?? [], now).slice(0, 4) : [];
+    const todays = snap ? eventsForDay(snap.events ?? [], now, tz).slice(0, 4) : [];
     if (todays.length) {
       out.push({
         key: "agenda",
@@ -155,7 +157,7 @@ export function Screensaver({
               const c = e.child_id ? childrenById.get(e.child_id) : null;
               return (
                 <li key={e.id} className="flex items-center gap-3 text-xl text-white/90 sm:text-2xl">
-                  <span className="w-24 shrink-0 font-semibold text-kwater">{formatEventTime(e)}</span>
+                  <span className="w-24 shrink-0 font-semibold text-kwater">{formatEventTime(e, tz)}</span>
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: c ? childColor(c) : "#3cbcd9" }} />
                   <span className="truncate">{e.emoji ? `${e.emoji} ` : ""}{e.title}</span>
                 </li>
@@ -340,10 +342,10 @@ export function Screensaver({
             className="mt-4 font-display text-7xl font-bold tabular-nums leading-none sm:text-8xl"
             style={{ textShadow: "0 0 32px rgba(255,250,240,0.22)" }}
           >
-            {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+            {now.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" })}
           </p>
           <p className="mt-3 text-xl text-white/70">
-            {greeting} · {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            {greeting} · {now.toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" })}
           </p>
           {weather?.lat != null && weather?.lon != null && (
             <div className="mt-3">
