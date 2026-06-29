@@ -224,7 +224,9 @@ h4,
   position: absolute;
   inset: 44% -20% -12% -20%;
   opacity: calc(0.06 * var(--amb-intensity, 1));
-  mix-blend-mode: screen;
+  /* No mix-blend over the near-black base it reads identical, and skipping it avoids a
+     per-frame full-viewport backdrop composite on weak tablets (matches the lumen-caustics
+     decision). */
   background:
     radial-gradient(40% 32% at 28% 30%, var(--amb-accent), transparent 70%),
     radial-gradient(34% 28% at 70% 55%, rgba(120, 200, 230, 0.16), transparent 72%),
@@ -238,7 +240,6 @@ h4,
   inset: 0;
   background: radial-gradient(58% 44% at 50% 36%, var(--amb-accent), transparent 70%);
   opacity: calc(0.32 * var(--amb-intensity, 1));
-  mix-blend-mode: screen;
   animation: ambient-breathe 16s var(--ease-harbor-calm) infinite;
 }
 /* A faint horizon band gives the deep-water depth (a world, not a flat gradient). */
