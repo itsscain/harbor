@@ -33,7 +33,7 @@ import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { accentRamp, accentVars } from "@/lib/kiosk/accent";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
-import { speak, chime, haptic, cheer, greetLine, doneLine, play, HAPTIC } from "@/lib/kiosk/feedback";
+import { speak, cheer, greetLine, doneLine, feedback } from "@/lib/kiosk/feedback";
 import { activeStreak } from "@/lib/kiosk/streak";
 import { StreakBadge } from "./StreakBadge";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
@@ -190,25 +190,25 @@ export function ChildView({
   const encLines = child.ai_profile?.encouragement ?? [];
   const encLine = encLines.length ? encLines[new Date().getDate() % encLines.length] : null;
 
+  // One coordinated beat per completion (§3.6): sound + haptic + the keeper's voice,
+  // gated by the child's settings and scaled by today's sensory intensity.
+  const fx = { sound: settings!.sound, haptics: settings!.haptics, intensity: fxIntensity };
+
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
     kiosk.completeStep(child!.id, step);
-    chime(settings!.sound);
-    haptic(HAPTIC.stepDone, settings!.haptics);
-    speak(cheer(), settings!.readAloud);
+    feedback("step-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
     if (step.reward_points > 0) {
       setCelebrate({ points: step.reward_points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
     }
-    // Does this tap finish the whole routine? → the big celebration moment.
+    // Does this tap finish the whole routine? → the big "you're home" arrival moment.
     const finishes = isFirstThen
       ? !!thenStep && step.id === thenStep.id
       : scheduleSteps.length > 0 && scheduleSteps.every((s) => s.id === step.id || prog.includes(s.id));
     if (finishes) {
       setBigCelebrate(true);
-      play("routine", settings!.sound);
-      haptic(HAPTIC.routineDone, settings!.haptics);
-      speak(doneLine(), settings!.readAloud);
+      feedback("arrival", { ...fx, say: settings!.readAloud ? doneLine() : undefined });
       kiosk.bumpStreak(child!.id); // finishing the routine keeps the streak alive
       setTimeout(() => setBigCelebrate(false), 4200);
     }
@@ -216,9 +216,7 @@ export function ChildView({
 
   function doCompleteChore(chore: KioskChore) {
     kiosk.completeChore(child!.id, chore);
-    chime(settings!.sound);
-    haptic(HAPTIC.choreDone, settings!.haptics);
-    speak(cheer(), settings!.readAloud);
+    feedback("chore-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
     if (chore.points > 0) {
       setCelebrate({ points: chore.points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
@@ -296,6 +294,9 @@ export function ChildView({
           ) : (
             <Pressable
               haptics={settings.haptics}
+              fx="back"
+              sound={settings.sound}
+              intensity={settings.intensity}
               onClick={onHome}
               className="kiosk-tap flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 font-semibold text-ktext"
             >
@@ -348,7 +349,10 @@ export function ChildView({
           {routines.map((r) => (
             <button
               key={r.id}
-              onClick={() => setRoutineId(r.id)}
+              onClick={() => {
+                feedback("tab-switch", { sound: settings.sound, haptics: settings.haptics, intensity: settings.intensity });
+                setRoutineId(r.id);
+              }}
               className={cn(
                 "kiosk-tap whitespace-nowrap rounded-full px-4 py-2 font-semibold transition",
                 r.id === activeRoutine?.id ? "bg-kwater text-harbor shadow-k" : "bg-kpanel text-ktext ring-1 ring-kline/55 hover:brightness-125",
@@ -373,6 +377,9 @@ export function ChildView({
           )}
           <Pressable
             haptics={settings.haptics}
+            fx="break"
+            sound={settings.sound}
+            intensity={settings.intensity}
             onClick={() => setAnchorOpen(true)}
             className="flex shrink-0 items-center gap-2.5 rounded-full px-5 py-2.5 font-semibold text-[#d3daff] ring-1 backdrop-blur"
             style={{

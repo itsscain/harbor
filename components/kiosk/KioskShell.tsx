@@ -22,6 +22,7 @@ import { Pressable } from "./Pressable";
 import { KButton, KCard } from "./ui";
 import { childColor } from "@/lib/kiosk/colors";
 import { intensityOf } from "@/lib/kiosk/motion";
+import { setFxDefaults } from "@/lib/kiosk/feedback";
 import { cn } from "@/lib/cn";
 
 function inQuietHours(start?: string, end?: string, d = new Date()): boolean {
@@ -74,6 +75,16 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
         : [];
   const quietConfigured = Boolean(quietStart && quietEnd);
   const sleepEnabled = screensaverOn || quietConfigured;
+
+  // Feedback System defaults (§3.6) for hub-level events (nav, dock, tabs): this device's
+  // sound/haptics toggle + sensory intensity, muted during quiet hours. Child-scoped
+  // events (completions) pass the child's own settings to override these.
+  const fxSound = eff.sound !== false && !inQuietHours(quietStart, quietEnd);
+  const fxHaptics = eff.haptics !== false;
+  const fxIntensity = intensityOf(eff.sensory);
+  useEffect(() => {
+    setFxDefaults({ sound: fxSound, haptics: fxHaptics, intensity: fxIntensity });
+  }, [fxSound, fxHaptics, fxIntensity]);
 
   // If the current child was removed via sync, fall back Home.
   useEffect(() => {

@@ -46,6 +46,7 @@ export function ChildAuraCard({
   return (
     <Pressable
       haptics={haptics}
+      fx="navigate-in"
       onClick={onSelect}
       aria-label={`${child.name} — ${glance}`}
       className={cn(

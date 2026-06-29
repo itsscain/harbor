@@ -34,6 +34,7 @@ export function FamilyDock({
         <Pressable
           key={it.key}
           haptics
+          fx="navigate-in"
           onClick={it.onClick}
           aria-label={it.label}
           className={cn(

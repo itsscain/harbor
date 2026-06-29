@@ -79,6 +79,9 @@ export function chime(enabled = true) {
   }
 }
 
+// Sensory intensity scales loudness (set per-call by play()); blip reads it.
+let curGain = 1;
+
 /** One soft synth note with a gentle bell-like envelope (no asset). */
 function blip(ctx: AudioContext, freq: number, at: number, dur: number, vol = 0.16, type: OscillatorType = "sine") {
   const osc = ctx.createOscillator();
@@ -87,7 +90,7 @@ function blip(ctx: AudioContext, freq: number, at: number, dur: number, vol = 0.
   osc.frequency.value = freq;
   const t0 = ctx.currentTime + at;
   gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+  gain.gain.exponentialRampToValueAtTime(vol * curGain, t0 + 0.015);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(gain).connect(ctx.destination);
   osc.start(t0);
@@ -96,11 +99,25 @@ function blip(ctx: AudioContext, freq: number, at: number, dur: number, vol = 0.
 
 /** The Harbor sonic identity (HARBOR_V2 §6.1) — short, watery/bell timbres, each
  *  semantic. All gated by the child's `settings.sound`; no-op without Web Audio. */
-export type SoundName = "step" | "routine" | "reward" | "arrive" | "transition" | "error" | "milestone";
-export function play(name: SoundName, enabled = true) {
+export type SoundName =
+  | "step" | "routine" | "reward" | "arrive" | "transition" | "error" | "milestone"
+  | "tap" | "navigate" | "back" | "tabswitch" | "break" | "listen" | "listenend" | "select";
+
+// The lightest, most-repeated sounds are debounced so rapid taps never stack into
+// noise (§3.3 / Edge-Cases L3) — at most one light sound per ~45ms window.
+const LIGHT: ReadonlySet<SoundName> = new Set(["tap", "navigate", "back", "tabswitch", "listen", "listenend", "select"]);
+let lastLightAt = 0;
+
+export function play(name: SoundName, enabled = true, gain = 1) {
   if (!enabled) return;
   const ctx = getAudioCtx();
   if (!ctx) return;
+  if (LIGHT.has(name)) {
+    const now = typeof performance !== "undefined" ? performance.now() : 0;
+    if (now - lastLightAt < 45) return;
+    lastLightAt = now;
+  }
+  curGain = Math.max(0.4, Math.min(1.4, gain)); // intensity → gentle loudness scaling
   try {
     if (ctx.state === "suspended") void ctx.resume();
     switch (name) {
@@ -127,6 +144,34 @@ export function play(name: SoundName, enabled = true) {
         break;
       case "error": // soft, non-judgmental low tone
         blip(ctx, 196, 0, 0.45, 0.11);
+        break;
+      // ── micro-interaction palette (§3.2) — soft, warm, one key, lovely on repeat ──
+      case "tap": // water-drop tick (every press) — must be lovely on the 50th tap
+        blip(ctx, 587.33, 0, 0.13, 0.06, "sine");
+        break;
+      case "navigate": // gentle rising swell — opening a screen
+        blip(ctx, 523.25, 0, 0.3, 0.07);
+        blip(ctx, 659.25, 0.05, 0.34, 0.06);
+        break;
+      case "back": // soft descending whoosh
+        blip(ctx, 659.25, 0, 0.26, 0.06);
+        blip(ctx, 440, 0.05, 0.32, 0.06);
+        break;
+      case "tabswitch": // light tick + tone
+        blip(ctx, 783.99, 0, 0.16, 0.06, "triangle");
+        break;
+      case "break": // calming descending pad — entering the calm corner
+        blip(ctx, 392, 0, 0.9, 0.08, "sine");
+        blip(ctx, 261.63, 0.2, 1.0, 0.06, "sine");
+        break;
+      case "listen": // soft "open" tone — mic on
+        blip(ctx, 587.33, 0, 0.2, 0.06, "sine");
+        break;
+      case "listenend": // soft "close" tone — mic off
+        blip(ctx, 440, 0, 0.2, 0.05, "sine");
+        break;
+      case "select": // picking a tab / option
+        blip(ctx, 659.25, 0, 0.14, 0.06);
         break;
     }
   } catch {
@@ -228,3 +273,58 @@ export const HAPTIC = {
   breathHold: 10, // Anchor — start of hold
   breathOut: 18, // Anchor — start of exhale
 } as const;
+
+// ── ★ The unified feedback bus (§3.6) ────────────────────────────────────────
+// Device/household defaults — set once by KioskShell from the effective settings
+// (sound on/off, haptics, quiet hours, sensory intensity). Hub-level events (nav,
+// tabs) use these; child-scoped events pass the child's own settings to override.
+let fxDefaults = { sound: true, haptics: true, intensity: 1 };
+export function setFxDefaults(d: Partial<typeof fxDefaults>) {
+  fxDefaults = { ...fxDefaults, ...d };
+}
+
+function scaleHaptic(p: number | readonly number[], k: number): number | number[] {
+  if (typeof p === "number") return Math.max(1, Math.round(p * k));
+  return (p as readonly number[]).map((n) => Math.max(0, Math.round(n * k)));
+}
+
+/** The named feedback events (§3.2) — every interactive element triggers one. */
+export type FeedbackEvent =
+  | "tap" | "navigate-in" | "back" | "tab-switch" | "toggle" | "select"
+  | "step-complete" | "chore-complete" | "reward" | "arrival"
+  | "break" | "soft-error" | "listening-start" | "listening-end";
+
+const FX: Record<FeedbackEvent, { sound?: SoundName; haptic?: number | readonly number[]; speaks?: boolean }> = {
+  "tap": { sound: "tap", haptic: HAPTIC.tapLight },
+  "navigate-in": { sound: "navigate", haptic: HAPTIC.tapMedium },
+  "back": { sound: "back", haptic: HAPTIC.tapLight },
+  "tab-switch": { sound: "tabswitch", haptic: HAPTIC.select },
+  "toggle": { sound: "select", haptic: HAPTIC.toggle },
+  "select": { sound: "select", haptic: HAPTIC.select },
+  "step-complete": { sound: "step", haptic: HAPTIC.stepDone, speaks: true },
+  "chore-complete": { sound: "step", haptic: HAPTIC.choreDone, speaks: true },
+  "reward": { sound: "reward", haptic: HAPTIC.rewardRedeem },
+  "arrival": { sound: "arrive", haptic: HAPTIC.arrive, speaks: true },
+  "break": { sound: "break", haptic: HAPTIC.breathOut },
+  "soft-error": { sound: "error", haptic: HAPTIC.errorSoft },
+  "listening-start": { sound: "listen", haptic: HAPTIC.tapLight },
+  "listening-end": { sound: "listenend" },
+};
+
+/** ★ One coordinated feedback beat (§3.6): fires the sound + haptic — and the voice
+ *  for meaningful events when `say` is provided — gated by sound/haptics and scaled by
+ *  sensory intensity. Hub events omit opts (→ device defaults); child-scoped events
+ *  pass the child's {sound, haptics, intensity}. Every interactive element calls this. */
+export function feedback(
+  event: FeedbackEvent,
+  opts: { sound?: boolean; haptics?: boolean; intensity?: number; say?: string } = {},
+) {
+  const m = FX[event];
+  if (!m) return;
+  const sound = opts.sound ?? fxDefaults.sound;
+  const haptics = opts.haptics ?? fxDefaults.haptics;
+  const intensity = opts.intensity ?? fxDefaults.intensity;
+  if (m.haptic) haptic(scaleHaptic(m.haptic, intensity), haptics);
+  if (m.sound) play(m.sound, sound, intensity);
+  if (m.speaks && opts.say) speak(opts.say, sound);
+}
