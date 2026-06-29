@@ -79,12 +79,13 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   // Feedback System defaults (§3.6) for hub-level events (nav, dock, tabs): this device's
   // sound/haptics toggle + sensory intensity, muted during quiet hours. Child-scoped
   // events (completions) pass the child's own settings to override these.
-  const fxSound = eff.sound !== false && !inQuietHours(quietStart, quietEnd);
+  const fxSound = eff.sound !== false;
   const fxHaptics = eff.haptics !== false;
   const fxIntensity = intensityOf(eff.sensory);
+  const fxQuiet = inQuietHours(quietStart, quietEnd);
   useEffect(() => {
-    setFxDefaults({ sound: fxSound, haptics: fxHaptics, intensity: fxIntensity });
-  }, [fxSound, fxHaptics, fxIntensity]);
+    setFxDefaults({ sound: fxSound, haptics: fxHaptics, intensity: fxIntensity, quiet: fxQuiet });
+  }, [fxSound, fxHaptics, fxIntensity, fxQuiet]);
 
   // If the current child was removed via sync, fall back Home.
   useEffect(() => {

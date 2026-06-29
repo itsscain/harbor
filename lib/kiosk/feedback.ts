@@ -104,9 +104,10 @@ export type SoundName =
   | "tap" | "navigate" | "back" | "tabswitch" | "break" | "listen" | "listenend" | "select";
 
 // The lightest, most-repeated sounds are debounced so rapid taps never stack into
-// noise (§3.3 / Edge-Cases L3) — at most one light sound per ~45ms window.
+// noise (§3.3 / Edge-Cases L3) — at most one of EACH light sound per ~45ms window
+// (per-name, so a fast dock→child nav doesn't swallow the second distinct sound).
 const LIGHT: ReadonlySet<SoundName> = new Set(["tap", "navigate", "back", "tabswitch", "listen", "listenend", "select"]);
-let lastLightAt = 0;
+const lastLight = new Map<SoundName, number>();
 
 export function play(name: SoundName, enabled = true, gain = 1) {
   if (!enabled) return;
@@ -114,8 +115,8 @@ export function play(name: SoundName, enabled = true, gain = 1) {
   if (!ctx) return;
   if (LIGHT.has(name)) {
     const now = typeof performance !== "undefined" ? performance.now() : 0;
-    if (now - lastLightAt < 45) return;
-    lastLightAt = now;
+    if (now - (lastLight.get(name) ?? 0) < 45) return;
+    lastLight.set(name, now);
   }
   curGain = Math.max(0.4, Math.min(1.4, gain)); // intensity → gentle loudness scaling
   try {
@@ -278,7 +279,7 @@ export const HAPTIC = {
 // Device/household defaults — set once by KioskShell from the effective settings
 // (sound on/off, haptics, quiet hours, sensory intensity). Hub-level events (nav,
 // tabs) use these; child-scoped events pass the child's own settings to override.
-let fxDefaults = { sound: true, haptics: true, intensity: 1 };
+let fxDefaults = { sound: true, haptics: true, intensity: 1, quiet: false };
 export function setFxDefaults(d: Partial<typeof fxDefaults>) {
   fxDefaults = { ...fxDefaults, ...d };
 }
@@ -323,7 +324,9 @@ export function feedback(
   if (!m) return;
   const sound = opts.sound ?? fxDefaults.sound;
   const haptics = opts.haptics ?? fxDefaults.haptics;
-  const intensity = opts.intensity ?? fxDefaults.intensity;
+  // Quiet hours DUCK every sound (hub AND child completions), softer not silent (§3.3
+  // "ducked for sleep/quiet"); the device sound toggle remains the hard mute.
+  const intensity = (opts.intensity ?? fxDefaults.intensity) * (fxDefaults.quiet ? 0.5 : 1);
   if (m.haptic) haptic(scaleHaptic(m.haptic, intensity), haptics);
   if (m.sound) play(m.sound, sound, intensity);
   if (m.speaks && opts.say) speak(opts.say, sound);

@@ -197,20 +197,23 @@ export function ChildView({
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
     kiosk.completeStep(child!.id, step);
-    feedback("step-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
-    if (step.reward_points > 0) {
-      setCelebrate({ points: step.reward_points, n: Date.now() });
-      setTimeout(() => setCelebrate(null), 1300);
-    }
     // Does this tap finish the whole routine? → the big "you're home" arrival moment.
     const finishes = isFirstThen
       ? !!thenStep && step.id === thenStep.id
       : scheduleSteps.length > 0 && scheduleSteps.every((s) => s.id === step.id || prog.includes(s.id));
+    // One beat per completion: a finishing step plays ONLY the arrival bell (not the
+    // step chime + bell on top of each other, nor two voice lines).
     if (finishes) {
       setBigCelebrate(true);
       feedback("arrival", { ...fx, say: settings!.readAloud ? doneLine() : undefined });
       kiosk.bumpStreak(child!.id); // finishing the routine keeps the streak alive
       setTimeout(() => setBigCelebrate(false), 4200);
+    } else {
+      feedback("step-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
+    }
+    if (step.reward_points > 0) {
+      setCelebrate({ points: step.reward_points, n: Date.now() });
+      setTimeout(() => setCelebrate(null), 1300);
     }
   }
 
