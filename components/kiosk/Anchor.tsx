@@ -164,6 +164,9 @@ export function Anchor({
           "radial-gradient(120% 100% at 50% 28%, rgba(60,124,148,0.34), rgba(10,22,34,0.80) 52%, rgba(7,13,22,0.92))",
       }}
     >
+      {/* §5.7 — the deep water rises to fill the screen as the world dissolves away. */}
+      <div className="anchor-water" aria-hidden />
+
       <button
         onClick={onClose}
         aria-label="Close"
@@ -180,6 +183,16 @@ export function Anchor({
               swells on the inhale and settles on the exhale, calming-blue rings rippling
               out behind it (staggered, follow-through §7.2). The most intentional element. */}
           <div className="relative flex h-80 w-80 items-center justify-center">
+            {/* §5.7 — slow water ripples rolling out behind the core (the living-water quality) */}
+            {!reducedMotion &&
+              [0, 1, 2].map((i) => (
+                <span
+                  key={`rip${i}`}
+                  className="anchor-ripple"
+                  aria-hidden
+                  style={{ width: 160, height: 160, ["--rip-delay" as string]: `${i * 2.3}s` }}
+                />
+              ))}
             {[0, 1, 2, 3].map((i) => (
               <span
                 key={i}
@@ -291,6 +304,8 @@ export function Anchor({
 
       {stage === "done" && (
         <>
+          {/* §5.7 — warmth + color flow back in. */}
+          <div className="anchor-warm" aria-hidden />
           {!reducedMotion && <Confetti count={20} accent={accent} />}
           <p className="font-display text-5xl font-bold text-white">Welcome back 💙</p>
           <p className="mt-3 text-xl text-white/70">Fresh start, {childName}.</p>
