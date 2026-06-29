@@ -70,6 +70,16 @@ export function Voyage({
     prevAllDone.current = allDone;
   }, [allDone, reducedMotion]);
 
+  // Boat surge — a brief forward-lean overshoot when a step is completed (§6 "momentum on
+  // advance"). Driven by arrivalSignal (a tap timestamp) so a passive re-render doesn't
+  // trigger it; purely decorative — the boat's target x stays derived from doneIds.
+  const prevSig = useRef(arrivalSignal);
+  const [surgeKey, setSurgeKey] = useState(0);
+  useEffect(() => {
+    if (arrivalSignal != null && arrivalSignal !== prevSig.current && !reducedMotion) setSurgeKey((k) => k + 1);
+    prevSig.current = arrivalSignal;
+  }, [arrivalSignal, reducedMotion]);
+
   if (N < 2) return null;
 
   const currentIdx = steps.findIndex((s) => !doneIds.has(s.id));
@@ -199,6 +209,7 @@ export function Voyage({
             holds the baseline position so the inner CSS bob transform doesn't clobber it */}
         <g style={{ transform: `translateX(${boatX}px)`, ...glide }}>
           <g transform="translate(0,178)">
+          <g key={surgeKey} className={!reducedMotion && surgeKey > 0 ? "vg-surge" : undefined} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
           <g className={reducedMotion ? undefined : "vg-bob"}>
             <path d="M-26 10 L-78 2 L-78 20 Z" fill={ramp.glow} opacity="0.18" /> {/* wake */}
             <circle cx="0" cy="0" r="42" fill={`url(#vg-buoy-${uid})`} opacity="0.7" /> {/* lit aura */}
@@ -207,6 +218,7 @@ export function Voyage({
             <rect x="-1.5" y="-30" width="3" height="36" fill="#cdd4f0" />
             <path d="M2 -29 L2 1 L30 1 Z" fill={ramp.accent} />
             <path d="M-2 -24 L-2 -2 L-24 -2 Z" fill={ramp.bright} />
+          </g>
           </g>
           </g>
         </g>
