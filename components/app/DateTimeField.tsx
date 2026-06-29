@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/primitives";
 
-/** A datetime-local field that also submits the picked time as an absolute ISO
- *  instant computed in the BROWSER (the user's timezone). Server actions run in
- *  UTC, so `new Date(localValue)` server-side would mis-shift the time; this
- *  hidden ISO field carries the correct instant. The action prefers `${name}_iso`. */
+/** A datetime-local field. It submits the picked WALL time (the naive "YYYY-MM-DDTHH:mm"
+ *  string) under `name` so the server interprets it in the household's family timezone —
+ *  the same instant no matter which device/zone the parent is on. The hidden `${name}_iso`
+ *  (browser-tz instant) is kept only as a legacy fallback. */
 export function DateTimeField({ name, defaultValue = "" }: { name: string; defaultValue?: string }) {
   const [local, setLocal] = useState(defaultValue);
   let iso = "";
@@ -16,7 +16,7 @@ export function DateTimeField({ name, defaultValue = "" }: { name: string; defau
   }
   return (
     <>
-      <Input type="datetime-local" value={local} onChange={(e) => setLocal(e.target.value)} />
+      <Input type="datetime-local" name={name} value={local} onChange={(e) => setLocal(e.target.value)} />
       <input type="hidden" name={`${name}_iso`} value={iso} />
     </>
   );

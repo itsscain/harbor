@@ -13,6 +13,7 @@ import {
   Ban,
   ShieldCheck,
   Pill,
+  Lock,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore, KioskMedication } from "@/lib/kiosk/types";
@@ -20,7 +21,8 @@ import { dueDoses } from "@/lib/kiosk/medication";
 import { effectiveLevel, SUPPORT_LABELS } from "@/lib/kiosk/skill";
 import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
-import { runsToday } from "@/lib/kiosk/calendar";
+import { runsToday, withinWindow, windowLabel } from "@/lib/kiosk/calendar";
+import { trustedNow, tzOf } from "@/lib/kiosk/time";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
 import { Confetti } from "./Confetti";
@@ -95,15 +97,20 @@ export function ChildView({
   }, []);
 
 
+  const tz = tzOf(state);
   const routines = useMemo(() => {
     if (!state || !child) return [];
     return state.snapshot.routines
-      .filter((r) => r.child_id === child.id && r.active && runsToday(r.days_of_week))
+      .filter((r) => r.child_id === child.id && r.active && runsToday(r.days_of_week, tz))
       .sort((a, b) => a.sort_order - b.sort_order);
-  }, [state, child]);
+  }, [state, child, tz]);
 
   const [routineId, setRoutineId] = useState<string | null>(null);
   const activeRoutine = routines.find((r) => r.id === routineId) ?? routines[0];
+  // Time-lock (§ routine windows): a routine with a start/end can only be completed inside
+  // its window, measured in the family tz against trusted (tamper-resistant) time.
+  const routineLocked = !!state && !!activeRoutine && !withinWindow(activeRoutine, trustedNow(state), tz);
+  const lockLabel = activeRoutine ? windowLabel(activeRoutine) : null;
 
   const steps = useMemo(() => {
     if (!state || !activeRoutine) return [];
@@ -197,6 +204,11 @@ export function ChildView({
 
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
+    // Time-locked routine: gently refuse outside its window (no completion, no points).
+    if (routineLocked) {
+      feedback("soft-error", fx);
+      return;
+    }
     kiosk.completeStep(child!.id, step);
     // Does this tap finish the whole routine? → the big "you're home" arrival moment.
     const finishes = isFirstThen
@@ -243,7 +255,7 @@ export function ChildView({
   }
 
   const childChores = (state.snapshot.chores ?? [])
-    .filter((c) => c.active && runsToday(c.days_of_week) && choreAssignee(c, new Set(state.snapshot.children.map((k) => k.id))) === child.id)
+    .filter((c) => c.active && runsToday(c.days_of_week, tz) && choreAssignee(c, new Set(state.snapshot.children.map((k) => k.id))) === child.id)
     .sort((a, b) => a.sort_order - b.sort_order);
   const choresDone = childChores.filter((c) => prog.includes(c.id)).length;
 
@@ -526,6 +538,14 @@ export function ChildView({
         )}
         {activeRoutine ? (
           <>
+            {routineLocked && (
+              <div className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-amber-400/10 px-4 py-3 text-center font-semibold text-amber-200 ring-1 ring-amber-400/25">
+                <Lock className="h-5 w-5 shrink-0" />
+                <span>
+                  {activeRoutine.name} {lockLabel ? `opens ${lockLabel}` : "isn't available right now"}
+                </span>
+              </div>
+            )}
             {activeRoutine.type !== "first_then" && (
               <Voyage
                 steps={scheduleSteps}

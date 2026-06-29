@@ -10,6 +10,7 @@ import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DateTimeField } from "@/components/app/DateTimeField";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
+import { tzFromSettings } from "@/lib/tz";
 import { addEvent, deleteEvent, addReminder, deleteReminder } from "../hub-actions";
 
 export const metadata = { title: "Calendar" };
@@ -27,6 +28,7 @@ export default async function CalendarPage() {
     supabase.from("children").select("id, name, color").eq("household_id", household.id).is("deleted_at", null).order("sort_order"),
   ]);
   const childrenById = new Map((children ?? []).map((c) => [c.id, c]));
+  const tz = tzFromSettings(household.settings as Record<string, unknown> | null);
 
   return (
     <>
@@ -118,7 +120,7 @@ export default async function CalendarPage() {
                   <span>
                     {e.all_day
                       ? "All day"
-                      : new Date(e.starts_at).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                      : new Date(e.starts_at).toLocaleString("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                   </span>
                   {e.recurrence_rule ? <span>· repeats {e.recurrence_rule}</span> : null}
                   {e.person_label ? <span>· {e.person_label}</span> : null}

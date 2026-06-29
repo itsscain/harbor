@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
 import { MapPin, ChevronLeft, ChevronRight, X, Repeat, User, Flag, Volume2, Cloud } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import { eventsForDay, occursOn, formatEventTime } from "@/lib/kiosk/calendar";
+import { tzFromSettings, dayKeyInTz, minutesIntoDayInTz } from "@/lib/tz";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
 import type { KioskEvent, KioskChild } from "@/lib/kiosk/types";
 import { speak, haptic, HAPTIC } from "@/lib/kiosk/feedback";
@@ -27,30 +28,29 @@ function fmtHour(h: number) {
   return `${hr} ${am ? "AM" : "PM"}`;
 }
 
-function isAllDayish(e: KioskEvent): boolean {
+function isAllDayish(e: KioskEvent, tz: string): boolean {
   if (e.all_day) return true;
-  const s = new Date(e.starts_at);
   const end = e.ends_at ? new Date(e.ends_at) : null;
-  return !!end && !sameDate(s, end);
+  return !!end && dayKeyInTz(new Date(e.starts_at), tz) !== dayKeyInTz(end, tz);
 }
 
-function eventMinutes(e: KioskEvent): { start: number; end: number } {
+function eventMinutes(e: KioskEvent, tz: string): { start: number; end: number } {
   const s = new Date(e.starts_at);
-  const start = s.getHours() * 60 + s.getMinutes();
+  const start = minutesIntoDayInTz(s, tz);
   let end = start + 60;
   if (e.ends_at) {
     const en = new Date(e.ends_at);
-    end = sameDate(s, en) ? en.getHours() * 60 + en.getMinutes() : 24 * 60;
+    end = dayKeyInTz(s, tz) === dayKeyInTz(en, tz) ? minutesIntoDayInTz(en, tz) : 24 * 60;
   }
   return { start, end: Math.max(end, start + 30) };
 }
 
 type Laid = { e: KioskEvent; start: number; end: number; col: number; cols: number };
 
-function layoutDay(events: KioskEvent[]): Laid[] {
+function layoutDay(events: KioskEvent[], tz: string): Laid[] {
   const items = events
-    .filter((e) => !isAllDayish(e))
-    .map((e) => ({ e, ...eventMinutes(e), col: 0, cols: 1 }))
+    .filter((e) => !isAllDayish(e, tz))
+    .map((e) => ({ e, ...eventMinutes(e, tz), col: 0, cols: 1 }))
     .sort((a, b) => a.start - b.start || a.end - b.end);
   const out: Laid[] = [];
   let cluster: Laid[] = [];
@@ -78,6 +78,7 @@ function layoutDay(events: KioskEvent[]): Laid[] {
 
 export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   const snap = kiosk.state?.snapshot;
+  const tz = tzFromSettings((snap?.household?.settings ?? null) as Record<string, unknown> | null);
   const events = useMemo(() => snap?.events ?? [], [snap]);
   const children = useMemo(() => [...(snap?.children ?? [])].sort((a, b) => a.sort_order - b.sort_order), [snap]);
   const childrenById = useMemo(() => new Map(children.map((c) => [c.id, c])), [children]);
@@ -93,17 +94,17 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
   }, [events, selected]);
 
   const dayEvents = (d: Date): KioskEvent[] => {
-    const evs = eventsForDay(events, d);
+    const evs = eventsForDay(events, d, tz);
     return filter ? evs.filter((e) => e.child_id === filter) : evs;
   };
   const allDayFor = (d: Date): KioskEvent[] => {
-    const day = startOfDay(d).getTime();
+    const day = dayKeyInTz(d, tz);
     return events.filter((e) => {
       if (filter && e.child_id !== filter) return false;
-      if (!isAllDayish(e)) return false;
-      const s = startOfDay(new Date(e.starts_at)).getTime();
-      const en = e.ends_at ? startOfDay(new Date(e.ends_at)).getTime() : s;
-      return (day >= s && day <= en) || occursOn(e, d);
+      if (!isAllDayish(e, tz)) return false;
+      const s = dayKeyInTz(new Date(e.starts_at), tz);
+      const en = e.ends_at ? dayKeyInTz(new Date(e.ends_at), tz) : s;
+      return (day >= s && day <= en) || occursOn(e, d, tz);
     });
   };
 
@@ -209,14 +210,14 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
         {view === "agenda" && (
           <div className="mx-auto h-full max-w-3xl overflow-y-auto">
-            <AgendaView events={events} filter={filter} childrenById={childrenById} onOpen={setSelected} />
+            <AgendaView events={events} filter={filter} childrenById={childrenById} tz={tz} onOpen={setSelected} />
           </div>
         )}
         {view === "day" && (
-          <TimeGrid days={[anchor]} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} onOpen={setSelected} />
+          <TimeGrid days={[anchor]} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} tz={tz} onOpen={setSelected} />
         )}
         {view === "week" && (
-          <TimeGrid days={weekDays} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} onOpen={setSelected} onPickDay={(d) => { setAnchor(d); setView("day"); }} />
+          <TimeGrid days={weekDays} dayEvents={dayEvents} allDayFor={allDayFor} childrenById={childrenById} tz={tz} onOpen={setSelected} onPickDay={(d) => { setAnchor(d); setView("day"); }} />
         )}
         {view === "month" && (
           <div className="mx-auto h-full max-w-5xl overflow-y-auto">
@@ -230,6 +231,7 @@ export function CalendarView({ kiosk }: { kiosk: Kiosk; onHome?: () => void }) {
           event={selected}
           child={selChild}
           color={eventColor(selected, childrenById)}
+          tz={tz}
           onClose={() => setSelected(null)}
         />
       )}
@@ -242,6 +244,7 @@ function TimeGrid({
   dayEvents,
   allDayFor,
   childrenById,
+  tz,
   onOpen,
   onPickDay,
 }: {
@@ -249,6 +252,7 @@ function TimeGrid({
   dayEvents: (d: Date) => KioskEvent[];
   allDayFor: (d: Date) => KioskEvent[];
   childrenById: Map<string, { id: string; color?: string | null }>;
+  tz: string;
   onOpen?: (e: KioskEvent) => void;
   onPickDay?: (d: Date) => void;
 }) {
@@ -259,8 +263,8 @@ function TimeGrid({
     let lo = 8, hi = 18;
     for (const d of days) {
       for (const e of dayEvents(d)) {
-        if (isAllDayish(e)) continue;
-        const { start, end } = eventMinutes(e);
+        if (isAllDayish(e, tz)) continue;
+        const { start, end } = eventMinutes(e, tz);
         lo = Math.min(lo, Math.floor(start / 60));
         hi = Math.max(hi, Math.ceil(end / 60));
       }
@@ -282,8 +286,8 @@ function TimeGrid({
     let earliest = Infinity;
     for (const d of days) {
       for (const e of dayEvents(d)) {
-        if (isAllDayish(e)) continue;
-        earliest = Math.min(earliest, eventMinutes(e).start);
+        if (isAllDayish(e, tz)) continue;
+        earliest = Math.min(earliest, eventMinutes(e, tz).start);
       }
     }
     const target = Number.isFinite(earliest) ? Math.min(nowMin, earliest) : nowMin;
@@ -357,7 +361,7 @@ function TimeGrid({
           </div>
 
           {days.map((d) => {
-            const laid = layoutDay(dayEvents(d));
+            const laid = layoutDay(dayEvents(d), tz);
             const isToday = sameDate(d, today);
             const nowMin = now.getHours() * 60 + now.getMinutes();
             const nowTop = ((nowMin - from * 60) / 60) * HOUR_H;
@@ -391,7 +395,7 @@ function TimeGrid({
                       <span className="block truncate text-xs font-bold leading-tight text-ktext">
                         {e.emoji ? `${e.emoji} ` : ""}{e.title}
                       </span>
-                      {tall && <span className="block truncate text-[10px] leading-tight text-kmute">{formatEventTime(e)}</span>}
+                      {tall && <span className="block truncate text-[10px] leading-tight text-kmute">{formatEventTime(e, tz)}</span>}
                     </button>
                   );
                 })}
@@ -412,7 +416,7 @@ function TimeGrid({
   );
 }
 
-function EventRow({ event, color, onOpen }: { event: KioskEvent; color: string; onOpen: (e: KioskEvent) => void }) {
+function EventRow({ event, color, tz, onOpen }: { event: KioskEvent; color: string; tz: string; onOpen: (e: KioskEvent) => void }) {
   return (
     <button
       onClick={() => onOpen(event)}
@@ -425,7 +429,7 @@ function EventRow({ event, color, onOpen }: { event: KioskEvent; color: string; 
       <div className="min-w-0 flex-1">
         <p className="font-display text-lg font-bold text-ktext">{event.title}</p>
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-kmute">
-          <span className="font-semibold text-kwater">{formatEventTime(event)}</span>
+          <span className="font-semibold text-kwater">{formatEventTime(event, tz)}</span>
           {event.person_label && <span>· {event.person_label}</span>}
           {event.location && (
             <span className="inline-flex items-center gap-0.5">· <MapPin className="h-3.5 w-3.5" /> {event.location}</span>
@@ -440,18 +444,20 @@ function AgendaView({
   events,
   filter,
   childrenById,
+  tz,
   onOpen,
 }: {
   events: KioskEvent[];
   filter: string | null;
   childrenById: Map<string, { id: string; color?: string | null }>;
+  tz: string;
   onOpen: (e: KioskEvent) => void;
 }) {
   const base = startOfDay(new Date());
   const days: { date: Date; evs: KioskEvent[] }[] = [];
   for (let i = 0; i < 14; i++) {
     const d = addDays(base, i);
-    let evs = eventsForDay(events, d);
+    let evs = eventsForDay(events, d, tz);
     if (filter) evs = evs.filter((e) => e.child_id === filter);
     if (evs.length) days.push({ date: d, evs });
   }
@@ -466,7 +472,7 @@ function AgendaView({
             {date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           </p>
           <div className="space-y-2">
-            {evs.map((e) => <EventRow key={e.id} event={e} color={eventColor(e, childrenById)} onOpen={onOpen} />)}
+            {evs.map((e) => <EventRow key={e.id} event={e} color={eventColor(e, childrenById)} tz={tz} onOpen={onOpen} />)}
           </div>
         </div>
       ))}
@@ -541,16 +547,18 @@ function EventDetail({
   event,
   child,
   color,
+  tz,
   onClose,
 }: {
   event: KioskEvent;
   child: KioskChild | null;
   color: string;
+  tz: string;
   onClose: () => void;
 }) {
-  const dateStr = new Date(event.starts_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  const allDay = isAllDayish(event);
-  const timeStr = allDay ? "All day" : formatEventTime(event);
+  const dateStr = new Date(event.starts_at).toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" });
+  const allDay = isAllDayish(event, tz);
+  const timeStr = allDay ? "All day" : formatEventTime(event, tz);
   const recurrence = recurrenceLabel(event.recurrence_rule ?? "");
   const spoken =
     `${event.title}. ${dateStr}. ${timeStr}.` +

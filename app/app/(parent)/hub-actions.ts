@@ -13,6 +13,7 @@ import { pushToGoogle, deleteGoogleEvent } from "@/lib/google/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generatePairingCode } from "@/lib/codes";
 import { env, serverEnv } from "@/lib/env";
+import { tzFromSettings, wallTimeToUtcMs } from "@/lib/tz";
 import type { Json } from "@/lib/database.types";
 
 /** Drop cached AI briefs for a household so the screensaver brief regenerates
@@ -47,14 +48,19 @@ async function myHouseholdId(): Promise<string> {
 // ── Calendar events ──────────────────────────────────────────────────────────
 export async function addEvent(formData: FormData) {
   await requireUser();
-  const household_id = await myHouseholdId();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const household_id = household.id;
   const supabase = await createClient();
   const allDay = formData.get("all_day") === "on";
-  // Prefer the browser-computed absolute instant (correct timezone); fall back to
-  // the raw datetime-local only if JS is off (parsed in the server's UTC zone).
-  const dtIso = str(formData.get("starts_at_iso"));
+  // Interpret the parent's entered WALL time in the family timezone (default America/New_York),
+  // so the event lands at the same instant no matter which device/zone added it. The legacy
+  // browser-tz ISO is only a fallback when the naive value is missing.
+  const tz = tzFromSettings((household.settings ?? {}) as Record<string, unknown>);
   const dt = str(formData.get("starts_at"));
-  const starts_at = dtIso || (dt ? new Date(dt).toISOString() : nowIso());
+  const dtIso = str(formData.get("starts_at_iso"));
+  const startMs = dt ? wallTimeToUtcMs(dt, tz) : NaN;
+  const starts_at = Number.isFinite(startMs) ? new Date(startMs).toISOString() : dtIso || nowIso();
   const { error } = await supabase.from("events").insert({
     household_id,
     title: String(formData.get("title") || "Event"),
@@ -615,12 +621,16 @@ export async function scanCapture(formData: FormData): Promise<ScanResult> {
  *  is stored as the correct instant for the family's timezone, not the server's. */
 export async function applyCapture(
   items: CaptureResult,
-  tzOffsetMinutes = 0,
+  _tzOffsetMinutes = 0,
 ): Promise<{ ok: boolean; added: number; error?: string }> {
   await requireUser();
-  const household_id = await myHouseholdId();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const household_id = household.id;
   const supabase = await createClient();
-  const off = Number.isFinite(tzOffsetMinutes) ? Math.trunc(tzOffsetMinutes) : 0;
+  // Interpret captured times in the FAMILY timezone (not the capturing device's), so an
+  // AI-read flyer's "3:00 PM" lands at 3 PM family-time on every screen.
+  const tz = tzFromSettings((household.settings ?? {}) as Record<string, unknown>);
   let added = 0;
 
   try {
@@ -629,12 +639,9 @@ export async function applyCapture(
       // date like "2024-13-45" would otherwise throw a RangeError and crash apply).
       if (!e?.title || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? "")) continue;
       const time = e.time && /^\d{2}:\d{2}$/.test(e.time) ? e.time : null;
-      const [hh, mm] = (time ?? "09:00").split(":").map(Number);
-      const base = new Date(`${e.date}T00:00:00Z`); // midnight UTC of that calendar day
-      if (Number.isNaN(base.getTime())) continue;
-      // Wall-clock minutes in the family's zone, shifted to UTC (offset = UTC − local).
-      base.setUTCMinutes(base.getUTCMinutes() + hh * 60 + mm + off);
-      const starts_at = base.toISOString();
+      const ms = wallTimeToUtcMs(`${e.date}T${time ?? "09:00"}`, tz);
+      if (!Number.isFinite(ms)) continue;
+      const starts_at = new Date(ms).toISOString();
       await supabase.from("events").insert({
         household_id,
         title: String(e.title).slice(0, 120),
@@ -1305,6 +1312,7 @@ export async function updateKioskSettings(formData: FormData) {
 
   const next = {
     ...current,
+    timezone: str(formData.get("timezone")) ?? (current.timezone as string) ?? "America/New_York",
     idleSeconds: Math.max(30, int(formData.get("idleSeconds"), 120)),
     screensaver: formData.get("screensaver") === "on",
     homePhotoUrl: str(formData.get("homePhotoUrl")),

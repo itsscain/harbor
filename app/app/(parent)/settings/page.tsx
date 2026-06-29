@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Badge, Input, Field, Button, Textarea, Switch } from "@/components/ui/primitives";
+import { Card, Badge, Input, Field, Button, Textarea, Switch, Select } from "@/components/ui/primitives";
+import { DEFAULT_TZ } from "@/lib/tz";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Disclosure } from "@/components/app/Disclosure";
 import { GoogleSyncButton } from "@/components/app/GoogleSyncButton";
@@ -113,6 +114,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           const s = (household.settings ?? {}) as Record<string, unknown>;
           return (
             <form action={updateKioskSettings} className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label="Time zone" className="sm:col-span-2" hint="Calendar times and the daily reset all use this zone, on every device.">
+                <Select name="timezone" defaultValue={(s.timezone as string) ?? DEFAULT_TZ}>
+                  <option value="America/New_York">Eastern (New York)</option>
+                  <option value="America/Chicago">Central (Chicago)</option>
+                  <option value="America/Denver">Mountain (Denver)</option>
+                  <option value="America/Phoenix">Arizona (no DST)</option>
+                  <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                  <option value="America/Anchorage">Alaska (Anchorage)</option>
+                  <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                </Select>
+              </Field>
               <Field label="Return to home after (seconds)">
                 <Input name="idleSeconds" type="number" min={30} defaultValue={(s.idleSeconds as number) ?? 120} />
               </Field>

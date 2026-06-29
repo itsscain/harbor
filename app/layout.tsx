@@ -33,6 +33,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Extend under the notch/status bar so the app fills the screen edge-to-edge when
+  // installed — and so env(safe-area-inset-*) actually resolves (it's 0 without this).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -82,6 +82,11 @@
 
 html {
   height: 100%;
+  /* App-feel: don't let iOS resize the type, and stop the whole-page rubber-band
+     bounce so an installed Harbor reads like a native app, not a web page. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
 }
 
 body {
@@ -91,6 +96,10 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+  /* No grey flash on tap, no long-press callout menu on controls/images. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 h1,
