@@ -370,6 +370,154 @@ h4,
   }
 }
 
+/* ── The Voyage (Kiosk Rework §5.3) — a luminous, layered harbor scene ──────────────
+   Atmospheric planes are GPU-cheap CSS gradients reading the daypart + accent CSS vars
+   set inline; all motion is transform/opacity only. `data-rm` freezes everything for a
+   per-child reduced-motion setting; `data-lite` (reserved) drops the heaviest layers on
+   weak devices. The crisp pieces (track/buoys/boat/lighthouse/beam) live in the SVG. */
+.vg-svg {
+  z-index: 2;
+}
+.vg-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--sky-top), var(--sky-bot));
+  transition: background 1.2s var(--ease-harbor-calm);
+}
+.vg-stars {
+  position: absolute;
+  inset: 0 0 45% 0;
+  background-repeat: no-repeat;
+  animation: vg-twinkle 7s var(--ease-harbor-calm) infinite;
+}
+.vg-bloom {
+  position: absolute;
+  left: var(--body-x);
+  top: var(--body-y);
+  width: 26%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, var(--body-glow) 0%, transparent 62%);
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  animation: vg-bloom-breathe 9s var(--ease-harbor-calm) infinite;
+}
+.vg-shore {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 52%;
+  height: 12%;
+  background: linear-gradient(180deg, var(--shore), transparent);
+  opacity: 0.45;
+  filter: blur(2px);
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent);
+  mask-image: linear-gradient(180deg, #000, transparent);
+}
+.vg-water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 60%;
+  bottom: 0;
+  background: linear-gradient(180deg, var(--sea-top), var(--sea-bot));
+  transition: background 1.2s var(--ease-harbor-calm);
+}
+.vg-reflect {
+  position: absolute;
+  top: 60%;
+  bottom: 0;
+  left: var(--body-x);
+  width: 7%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, var(--body-glow), transparent 80%);
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 3px, transparent 3px 7px);
+  mask-image: repeating-linear-gradient(180deg, #000 0 3px, transparent 3px 7px);
+  animation: vg-reflect 5s var(--ease-harbor-calm) infinite;
+}
+.vg-caustics {
+  position: absolute;
+  left: -22%;
+  right: -22%;
+  top: 60%;
+  bottom: -10%;
+  opacity: calc(0.08 * var(--vg-intensity, 1));
+  background:
+    radial-gradient(38% 30% at 30% 38%, var(--accent-glow), transparent 70%),
+    radial-gradient(32% 26% at 68% 60%, rgba(120, 200, 230, 0.4), transparent 70%),
+    radial-gradient(28% 22% at 50% 80%, var(--accent-soft), transparent 70%);
+  animation: lumen-caustics 46s var(--ease-harbor-calm) infinite alternate;
+  will-change: transform;
+}
+.vg-waterline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--body-glow), transparent);
+  opacity: 0.4;
+  mix-blend-mode: screen;
+  animation: vg-shimmer 4s var(--ease-harbor-calm) infinite;
+}
+.vg-bob {
+  animation: vg-bob 6s var(--ease-harbor-calm) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.vg-beam {
+  animation: vg-beam-sweep 12s var(--ease-harbor-calm) infinite;
+}
+.vg-flare {
+  animation: vg-flare 1.6s var(--ease-harbor-out) 1 both;
+}
+@keyframes vg-twinkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+@keyframes vg-bloom-breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.06); }
+}
+@keyframes vg-reflect {
+  0%, 100% { opacity: 0.18; transform: translateX(-50%) translateY(0); }
+  50% { opacity: 0.26; transform: translateX(-50%) translateY(2px); }
+}
+@keyframes vg-shimmer {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.55; }
+}
+@keyframes vg-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-4px) rotate(1deg); }
+}
+@keyframes vg-beam-sweep {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
+}
+@keyframes vg-flare {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 0.9; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+/* Per-child reduced-motion (not just the OS query): freeze every Voyage motion, leaving
+   the correct lit end-state (boat at its node, buoys lit, lighthouse at its brightness). */
+.vg-root[data-rm] *,
+.vg-root[data-rm] *::before,
+.vg-root[data-rm] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+/* Weak-device hook (reserved; never set in v1) — drop the heaviest atmospherics. */
+.vg-root[data-lite] .vg-caustics,
+.vg-root[data-lite] .vg-stars,
+.vg-root[data-lite] .vg-waterline,
+.vg-root[data-lite] .vg-shore {
+  display: none;
+}
+
 /* ── Harbor Depth Layer 4 — Physical touch (the "feel" upgrade) ────────────────
    Anything tappable presses in under the finger and releases with a slight
    spring overshoot. Press-in is quick; release uses the emphasis curve. */

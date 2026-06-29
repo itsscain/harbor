@@ -14,7 +14,7 @@ import {
 } from "@/lib/kiosk/voice";
 
 // Bump this with each voice deploy so the device's build is confirmable on-screen.
-const BUILD = "v18 · Feedback System (K1)";
+const BUILD = "v19 · Voyage elevation (K2)";
 
 /** Sync-health snapshot for the Debug panel (Real-Time §8). */
 export type SyncHealth = {

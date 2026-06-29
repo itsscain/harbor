@@ -32,6 +32,7 @@ import { Voyage } from "./Voyage";
 import { Pressable, usePress } from "./Pressable";
 import { childColor } from "@/lib/kiosk/colors";
 import { accentRamp, accentVars } from "@/lib/kiosk/accent";
+import { daypartFor } from "@/lib/kiosk/daypart";
 import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, cheer, greetLine, doneLine, feedback } from "@/lib/kiosk/feedback";
 import { activeStreak } from "@/lib/kiosk/streak";
@@ -263,8 +264,7 @@ export function ChildView({
   // the Voyage scene tracks the time of day (§3.5).
   const ramp = accentRamp(color);
   const accentStyle = accentVars(color) as React.CSSProperties;
-  const hr = new Date().getHours();
-  const scene: "day" | "golden" | "night" = hr >= 21 || hr < 6 ? "night" : hr >= 18 ? "golden" : "day";
+  const daypart = daypartFor();
   const progressTotal = isFirstThen ? [firstStep, thenStep].filter(Boolean).length : scheduleSteps.length;
   const progressDone = isFirstThen
     ? [firstStep, thenStep].filter((s) => s && prog.includes(s.id)).length
@@ -527,7 +527,16 @@ export function ChildView({
         {activeRoutine ? (
           <>
             {activeRoutine.type !== "first_then" && (
-              <Voyage steps={scheduleSteps} doneIds={new Set(prog)} ramp={ramp} scene={scene} reducedMotion={settings.reducedMotion} />
+              <Voyage
+                steps={scheduleSteps}
+                doneIds={new Set(prog)}
+                ramp={ramp}
+                daypart={daypart}
+                reducedMotion={settings.reducedMotion}
+                intensity={fxIntensity}
+                arrivalSignal={celebrate?.n}
+                uid={child.id}
+              />
             )}
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
