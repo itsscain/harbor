@@ -87,7 +87,7 @@ export default async function DashboardPage() {
 
   // ── Needs your attention ────────────────────────────────────────────────────
   const toReview = sigs.filter((s) => s.status === "reserved").length;
-  const lowStock = inv.filter((p) => p.on_hand_qty <= p.reorder_threshold);
+  const lowStock = inv.filter((p) => Number(p.on_hand_qty ?? 0) <= Number(p.reorder_threshold ?? 0));
   const pastDue = subList.filter((s) => s.status === "past_due" || s.status === "unpaid").length;
   const coldLeads = leads.filter((c) => now.getTime() - new Date(c.updated_at ?? c.created_at).getTime() > 7 * 86_400_000).length;
   const clockSuspect = paired.filter((d) => d.clock_suspect).length;
@@ -110,6 +110,8 @@ export default async function DashboardPage() {
     { label: "Installed", count: installed.length, tone: "bg-beacon" },
   ];
   const pipelineTotal = leads.length + scheduled.length + installed.length;
+  // Per-stage funnel counts (intentionally a different view than the "Founder spots" KPI, which
+  // uses getFounderStatus → founder_active_count, i.e. TOTAL spots taken across all active stages).
   const sigBy = (s: string) => sigs.filter((x) => x.status === s).length;
   const founderFunnel = [
     { label: "Reserved", count: sigBy("reserved") },
