@@ -96,11 +96,11 @@ export default async function DashboardPage() {
   const attention: Item[] = [];
   if (toReview > 0) attention.push({ icon: Sparkles, label: `${toReview} founder signup${toReview === 1 ? "" : "s"} to review`, href: "/admin/founders", tone: "amber" });
   if (pastDue > 0) attention.push({ icon: CreditCard, label: `${pastDue} payment${pastDue === 1 ? "" : "s"} need attention`, href: "/admin/customers", tone: "red" });
-  if (staleWalls.length > 0) attention.push({ icon: Tablet, label: `${staleWalls.length} wall${staleWalls.length === 1 ? "" : "s"} on an old version`, href: "/admin/customers", tone: "amber" });
-  if (offlineWalls.length > 0) attention.push({ icon: Tablet, label: `${offlineWalls.length} wall${offlineWalls.length === 1 ? "" : "s"} offline 24h+`, href: "/admin/customers", tone: "amber" });
+  if (staleWalls.length > 0) attention.push({ icon: Tablet, label: `${staleWalls.length} wall${staleWalls.length === 1 ? "" : "s"} on an old version`, href: "/admin/fleet?filter=stale", tone: "amber" });
+  if (offlineWalls.length > 0) attention.push({ icon: Tablet, label: `${offlineWalls.length} wall${offlineWalls.length === 1 ? "" : "s"} offline 24h+`, href: "/admin/fleet?filter=offline", tone: "amber" });
   if (lowStock.length > 0) attention.push({ icon: Boxes, label: `${lowStock.length} part${lowStock.length === 1 ? "" : "s"} low on stock`, href: "/admin/inventory", tone: "amber" });
   if (coldLeads > 0) attention.push({ icon: Snowflake, label: `${coldLeads} lead${coldLeads === 1 ? "" : "s"} cold (7+ days)`, href: "/admin/customers", tone: "gray" });
-  if (clockSuspect > 0) attention.push({ icon: AlertTriangle, label: `${clockSuspect} device${clockSuspect === 1 ? "" : "s"} with a clock issue`, href: "/admin/customers", tone: "amber" });
+  if (clockSuspect > 0) attention.push({ icon: AlertTriangle, label: `${clockSuspect} device${clockSuspect === 1 ? "" : "s"} with a clock issue`, href: "/admin/fleet", tone: "amber" });
   if (founder.remaining > 0 && founder.remaining <= 3) attention.push({ icon: Sparkles, label: `Only ${founder.remaining} founder spot${founder.remaining === 1 ? "" : "s"} left`, href: "/admin/founders", tone: "beacon" });
 
   // ── Funnels ─────────────────────────────────────────────────────────────────
