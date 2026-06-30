@@ -12,6 +12,7 @@ import {
   Sparkles,
   Tablet,
   ShieldCheck,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -25,6 +26,7 @@ const items = [
   { href: "/admin/builds", label: "Build Catalog", icon: Package },
   { href: "/admin/shopping-list", label: "Shopping List", icon: ShoppingCart },
   { href: "/admin/inventory", label: "Inventory", icon: Boxes },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminNav({

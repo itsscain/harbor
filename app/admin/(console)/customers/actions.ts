@@ -50,8 +50,8 @@ export async function updateCustomer(
   const supabase = await createClient();
 
   const founder = num(formData.get("founder_number"));
-  if (founder != null && (founder < 1 || founder > FOUNDER_SPOTS)) {
-    return { error: `Founder number must be between 1 and ${FOUNDER_SPOTS}.` };
+  if (founder != null && founder < 1) {
+    return { error: "Founder number must be 1 or higher." };
   }
 
   const { error } = await supabase
@@ -92,15 +92,16 @@ export async function deleteCustomer(id: string) {
   redirect("/admin/customers");
 }
 
-/** Smallest unused founder number in 1..15, or null if all are taken. */
+/** Smallest unused founder number in 1..cap (the configurable cap), or null if all are taken. */
 export async function nextFounderNumber(): Promise<number | null> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("customers")
-    .select("founder_number")
-    .not("founder_number", "is", null);
+  const [{ data: prog }, { data }] = await Promise.all([
+    supabase.from("founder_program").select("cap").maybeSingle(),
+    supabase.from("customers").select("founder_number").not("founder_number", "is", null),
+  ]);
+  const cap = prog?.cap ?? FOUNDER_SPOTS;
   const used = new Set((data ?? []).map((r) => r.founder_number));
-  for (let i = 1; i <= FOUNDER_SPOTS; i++) if (!used.has(i)) return i;
+  for (let i = 1; i <= cap; i++) if (!used.has(i)) return i;
   return null;
 }
 
