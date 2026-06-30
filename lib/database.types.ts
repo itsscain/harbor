@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          actor_name: string | null
+          created_at: string
+          detail: Json
+          id: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          actor_name?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          actor_name?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       ai_briefs: {
         Row: {
           brief: string
@@ -2182,7 +2215,6 @@ export type Database = {
           screen_size: string
           sort_order: number
           standard_price: number
-          tablet_model: string
         }[]
       }
       rpc_reserve_founder_spot: { Args: { p: Json }; Returns: Json }

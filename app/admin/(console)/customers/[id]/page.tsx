@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Trash2, Plus, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -103,13 +104,19 @@ export default async function CustomerDetail({
               />
             ) : (
               <div className="mt-3 space-y-4">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="green">Provisioned</Badge>
                   {["active", "trialing", "past_due"].includes(plusStatus ?? "") ? (
                     <Badge tone="green">Plus active</Badge>
                   ) : (
                     <Badge tone="gray">Plus inactive</Badge>
                   )}
+                  <Link
+                    href={`/admin/accounts/${customer.household_id}`}
+                    className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-harbor px-3.5 py-1.5 text-sm font-semibold text-white"
+                  >
+                    Open account inspector
+                  </Link>
                 </div>
 
                 <div>

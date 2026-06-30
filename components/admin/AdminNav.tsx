@@ -11,6 +11,7 @@ import {
   House,
   Sparkles,
   Tablet,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -18,6 +19,7 @@ const items = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/founders", label: "Founder Signups", icon: Sparkles },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/accounts", label: "Accounts", icon: ShieldCheck },
   { href: "/admin/fleet", label: "Fleet", icon: Tablet },
   { href: "/admin/my-family", label: "My Family", icon: House },
   { href: "/admin/builds", label: "Build Catalog", icon: Package },

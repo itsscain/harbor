@@ -20,6 +20,7 @@ export type DevicePairing = Tables<"device_pairings">;
 export type WaitlistEntry = Tables<"waitlist">;
 export type FounderSignup = Tables<"founder_signups">;
 export type FounderProgram = Tables<"founder_program">;
+export type AdminAuditLog = Tables<"admin_audit_log">;
 export type FamilyEvent = Tables<"events">;
 export type StoreItem = Tables<"store_items">;
 export type ListItem = Tables<"list_items">;
