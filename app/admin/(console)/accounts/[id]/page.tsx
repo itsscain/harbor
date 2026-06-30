@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { shortDate } from "@/lib/format";
 import { accountDeviceCommand, addAccountNote } from "./actions";
+import { logAudit } from "@/lib/admin/audit";
 import type { AdminAuditLog } from "@/lib/types";
 
 export const metadata = { title: "Account" };
@@ -50,6 +51,9 @@ export default async function AccountInspector({ params }: { params: Promise<{ i
 
   const { data: household } = await supabase.from("households").select("*").eq("id", id).maybeSingle();
   if (!household) notFound();
+  // §13 — deep family-data access is itself logged (not just write-actions), so opening any
+  // account leaves an audit trace. Best-effort; never block the page.
+  await logAudit({ action: "account.view", targetType: "household", targetId: id }).catch(() => {});
 
   const [{ data: children }, { data: devices }, { data: sub }, choresN, eventsN, listsN, storeN, { data: audit }] = await Promise.all([
     supabase.from("children").select("id, name").eq("household_id", id).is("deleted_at", null).order("sort_order"),
@@ -98,7 +102,9 @@ export default async function AccountInspector({ params }: { params: Promise<{ i
 
   const plusDrift = !!household.plus_active !== subActive;
   const timeline = ((audit ?? []) as AdminAuditLog[]).filter(
-    (a) => a.target_id === id || (a.detail as { household_id?: string } | null)?.household_id === id,
+    (a) =>
+      a.action !== "account.view" && // views are logged for compliance, not shown in the support feed
+      (a.target_id === id || (a.detail as { household_id?: string } | null)?.household_id === id),
   );
 
   return (

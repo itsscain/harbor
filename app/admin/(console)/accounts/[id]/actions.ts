@@ -10,7 +10,13 @@ import { logAudit } from "@/lib/admin/audit";
 export async function accountDeviceCommand(householdId: string, deviceId: string, action: string) {
   await requireAdmin();
   const supabase = await createClient();
-  const { error } = await supabase.from("device_pairings").update({ pending_command: action }).eq("id", deviceId);
+  // Scope to the household so a forged/mismatched form can't command another household's device
+  // (and the audit trail stays honest).
+  const { error } = await supabase
+    .from("device_pairings")
+    .update({ pending_command: action })
+    .eq("id", deviceId)
+    .eq("household_id", householdId);
   if (error) throw new Error(error.message);
   await logAudit({ action: `device.${action}`, targetType: "device_pairing", targetId: deviceId, detail: { household_id: householdId } });
   revalidatePath(`/admin/accounts/${householdId}`);
