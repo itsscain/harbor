@@ -63,6 +63,8 @@ returns int language sql stable security definer set search_path = '' as $$
     + (select count(*) from public.customers where founder_number is not null)
   )::int;
 $$;
+-- Internal helper — the public RPCs call it as SECURITY DEFINER; the anon caller must not.
+revoke execute on function public.founder_active_count() from anon, authenticated, public;
 
 create or replace function public.rpc_founder_spots_remaining()
 returns jsonb language sql stable security definer set search_path = '' as $$

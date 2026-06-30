@@ -17,14 +17,19 @@ export async function releaseFounderSignup(id: string) {
   revalidatePath("/admin/founders");
 }
 
+const ALLOWED_STATUS = ["reserved", "approved", "scheduled", "invoiced", "active", "released", "waitlist"] as const;
+type SignupStatus = (typeof ALLOWED_STATUS)[number];
+
 /** Move a signup forward in the funnel (the full review→approve→schedule→invoice workflow
- *  is §17.5 / O2; F1 supports the basic stage moves + release). */
+ *  is §17.5 / O2; F1 supports the basic stage moves + release). Status is validated against
+ *  the enum set before the write (no blind cast). */
 export async function setFounderSignupStatus(id: string, status: string) {
   await requireAdmin();
+  if (!ALLOWED_STATUS.includes(status as SignupStatus)) throw new Error("Invalid status.");
   const supabase = await createClient();
   const { error } = await supabase
     .from("founder_signups")
-    .update({ status: status as never })
+    .update({ status: status as SignupStatus })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/founders");
