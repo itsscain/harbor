@@ -1,61 +1,91 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Button, Field, Select, Input, Badge, Switch } from "@/components/ui/primitives";
 import { currency, amazonLink } from "@/lib/format";
-import { ExternalLink } from "lucide-react";
+import { forecastFromScheduled } from "@/lib/admin/forecast";
+import { ExternalLink, Truck } from "lucide-react";
 import type { BuildWithSupplies } from "@/lib/types";
 
 export const metadata = { title: "Shopping List" };
 export const dynamic = "force-dynamic";
 
+type Line = { id: string; item: string; vendor: string; unit_cost: number; totalQty: number; lineTotal: number; url: string | null; optional: boolean };
+
 export default async function ShoppingListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ build?: string; qty?: string; optional?: string }>;
+  searchParams: Promise<{ build?: string; qty?: string; optional?: string; source?: string }>;
 }) {
-  const { build: buildId, qty: qtyRaw, optional } = await searchParams;
+  const { build: buildId, qty: qtyRaw, optional, source } = await searchParams;
   const qty = Math.max(1, Number(qtyRaw) || 1);
   const includeOptional = optional === "on";
+  const fromScheduled = source === "scheduled";
 
   const supabase = await createClient();
-  const { data: builds } = await supabase
-    .from("builds")
-    .select("id, name")
-    .order("sort_order");
+  const { data: builds } = await supabase.from("builds").select("id, name").order("sort_order");
 
-  let selected: BuildWithSupplies | null = null;
-  if (buildId) {
-    const { data } = await supabase
-      .from("builds")
-      .select("*, build_supplies(*)")
-      .eq("id", buildId)
-      .single();
-    selected = (data as BuildWithSupplies) ?? null;
-  }
+  let lines: Line[] = [];
+  let title = "";
+  let subtitle = "";
 
-  const lines = selected
-    ? [...selected.build_supplies]
+  if (fromScheduled) {
+    const fc = await forecastFromScheduled();
+    title = `${fc.installs} scheduled install${fc.installs === 1 ? "" : "s"}`;
+    subtitle = "Aggregated required parts across every scheduled install.";
+    lines = fc.items.map((i) => ({
+      id: i.item,
+      item: i.item,
+      vendor: "Amazon",
+      unit_cost: i.unit_cost,
+      totalQty: i.qty,
+      lineTotal: i.unit_cost * i.qty,
+      url: i.item, // search Amazon by the part name
+      optional: false,
+    }));
+  } else if (buildId) {
+    const { data } = await supabase.from("builds").select("*, build_supplies(*)").eq("id", buildId).single();
+    const selected = (data as BuildWithSupplies) ?? null;
+    if (selected) {
+      title = `${qty} × ${selected.name}`;
+      subtitle = "";
+      lines = [...selected.build_supplies]
         .filter((s) => includeOptional || !s.optional)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((s) => ({
-          ...s,
+          id: s.id,
+          item: s.item,
+          vendor: s.vendor,
+          unit_cost: Number(s.unit_cost),
           totalQty: s.quantity * qty,
           lineTotal: Number(s.unit_cost) * s.quantity * qty,
-        }))
-    : [];
+          url: s.url,
+          optional: s.optional,
+        }));
+    }
+  }
   const grandTotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
 
   return (
     <>
       <PageHeader
+        eyebrow="Product & Supply"
         title="Shopping List"
-        subtitle="Pick a build and a quantity to get an aggregated Amazon parts list with a total."
+        subtitle="Aggregate a parts list — by build, or auto-filled from your scheduled installs."
+        actions={
+          <Link
+            href="/admin/shopping-list?source=scheduled"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-harbor px-3.5 py-2 text-sm font-semibold text-white"
+          >
+            <Truck className="h-4 w-4" /> From scheduled installs
+          </Link>
+        }
       />
 
       <Card>
         <form method="get" className="grid items-end gap-3 sm:grid-cols-4">
           <Field label="Build" className="sm:col-span-2">
-            <Select name="build" defaultValue={buildId ?? ""}>
+            <Select name="build" defaultValue={fromScheduled ? "" : buildId ?? ""}>
               <option value="">Choose a build…</option>
               {(builds ?? []).map((b) => (
                 <option key={b.id} value={b.id}>
@@ -76,14 +106,13 @@ export default async function ShoppingListPage({
         </form>
       </Card>
 
-      {selected && (
+      {lines.length > 0 && (
         <Card className="mt-4">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-title text-harbor">
-              {qty} × {selected.name}
-            </h2>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-title text-harbor">{title}</h2>
             <Badge tone="beacon">Est. total {currency(grandTotal)}</Badge>
           </div>
+          {subtitle && <p className="mb-3 text-sm text-muted">{subtitle}</p>}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -102,23 +131,14 @@ export default async function ShoppingListPage({
                   <tr key={l.id} className="border-b border-harbor-50">
                     <td className="py-2 pr-3 font-medium text-ink">
                       {l.item}
-                      {l.optional && (
-                        <span className="ml-2 text-xs text-muted">(optional)</span>
-                      )}
+                      {l.optional && <span className="ml-2 text-xs text-muted">(optional)</span>}
                     </td>
                     <td className="py-2 pr-3 text-muted">{l.vendor}</td>
                     <td className="py-2 pr-3 text-right">{currency(l.unit_cost)}</td>
                     <td className="py-2 pr-3 text-right">{l.totalQty}</td>
-                    <td className="py-2 pr-3 text-right font-semibold">
-                      {currency(l.lineTotal)}
-                    </td>
+                    <td className="py-2 pr-3 text-right font-semibold">{currency(l.lineTotal)}</td>
                     <td className="py-2 pr-3">
-                      <a
-                        href={amazonLink(l.url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-semibold text-water"
-                      >
+                      <a href={amazonLink(l.url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-water">
                         Open <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </td>
@@ -127,22 +147,19 @@ export default async function ShoppingListPage({
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={4} className="py-3 text-right font-semibold text-harbor">
-                    Estimated batch total
-                  </td>
-                  <td className="py-3 pr-3 text-right font-display text-lg font-extrabold text-harbor">
-                    {currency(grandTotal)}
-                  </td>
+                  <td colSpan={4} className="py-3 text-right font-semibold text-harbor">Estimated batch total</td>
+                  <td className="py-3 pr-3 text-right font-display text-lg font-extrabold text-harbor">{currency(grandTotal)}</td>
                   <td />
                 </tr>
               </tfoot>
             </table>
           </div>
-          <p className="mt-3 text-xs text-muted">
-            Estimates only — confirm live Amazon pricing. Fire tablets swing on
-            sale; buy in batches when discounted.
-          </p>
+          <p className="mt-3 text-xs text-muted">Estimates only — confirm live pricing. Buy tablets in batches when discounted.</p>
         </Card>
+      )}
+
+      {fromScheduled && lines.length === 0 && (
+        <Card className="mt-4 text-center text-muted">No scheduled installs with builds yet — schedule installs to forecast a reorder list.</Card>
       )}
     </>
   );
