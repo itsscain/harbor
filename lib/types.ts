@@ -18,6 +18,8 @@ export type Referral = Tables<"referrals">;
 export type PlusSubscription = Tables<"plus_subscriptions">;
 export type DevicePairing = Tables<"device_pairings">;
 export type WaitlistEntry = Tables<"waitlist">;
+export type FounderSignup = Tables<"founder_signups">;
+export type FounderProgram = Tables<"founder_program">;
 export type FamilyEvent = Tables<"events">;
 export type StoreItem = Tables<"store_items">;
 export type ListItem = Tables<"list_items">;
@@ -33,6 +35,7 @@ export type CustomerStatus = Enums<"customer_status">;
 export type PairingStatus = Enums<"pairing_status">;
 export type PlusPlan = Enums<"plus_plan">;
 export type ReferralStatus = Enums<"referral_status">;
+export type FounderSignupStatus = Enums<"founder_signup_status">;
 export type UserRole = Enums<"user_role">;
 
 // A build joined with its supplies (used by the catalog + shopping list).

@@ -675,6 +675,127 @@ export type Database = {
           },
         ]
       }
+      founder_program: {
+        Row: {
+          cap: number
+          enrollment_state: string
+          id: boolean
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          cap?: number
+          enrollment_state?: string
+          id?: boolean
+          rate?: number
+          updated_at?: string
+        }
+        Update: {
+          cap?: number
+          enrollment_state?: string
+          id?: boolean
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      founder_signups: {
+        Row: {
+          address: string | null
+          campaign: Json
+          city: string | null
+          created_at: string
+          customer_id: string | null
+          email: string
+          email_verified: boolean
+          family_info: Json
+          founder_number: number | null
+          heard_from: string | null
+          household_id: string | null
+          id: string
+          intended_build_id: string | null
+          logistics: Json
+          name: string
+          notes: string | null
+          phone: string | null
+          quote: Json
+          state: string | null
+          status: Database["public"]["Enums"]["founder_signup_status"]
+          updated_at: string
+          wants_plus: boolean
+        }
+        Insert: {
+          address?: string | null
+          campaign?: Json
+          city?: string | null
+          created_at?: string
+          customer_id?: string | null
+          email: string
+          email_verified?: boolean
+          family_info?: Json
+          founder_number?: number | null
+          heard_from?: string | null
+          household_id?: string | null
+          id?: string
+          intended_build_id?: string | null
+          logistics?: Json
+          name: string
+          notes?: string | null
+          phone?: string | null
+          quote?: Json
+          state?: string | null
+          status?: Database["public"]["Enums"]["founder_signup_status"]
+          updated_at?: string
+          wants_plus?: boolean
+        }
+        Update: {
+          address?: string | null
+          campaign?: Json
+          city?: string | null
+          created_at?: string
+          customer_id?: string | null
+          email?: string
+          email_verified?: boolean
+          family_info?: Json
+          founder_number?: number | null
+          heard_from?: string | null
+          household_id?: string | null
+          id?: string
+          intended_build_id?: string | null
+          logistics?: Json
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          quote?: Json
+          state?: string | null
+          status?: Database["public"]["Enums"]["founder_signup_status"]
+          updated_at?: string
+          wants_plus?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_signups_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_signups_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_signups_intended_build_id_fkey"
+            columns: ["intended_build_id"]
+            isOneToOne: false
+            referencedRelation: "builds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar: {
         Row: {
           access_token: string | null
@@ -2026,6 +2147,7 @@ export type Database = {
     }
     Functions: {
       child_is_mine: { Args: { c: string }; Returns: boolean }
+      founder_active_count: { Args: never; Returns: number }
       hard_delete_child: { Args: { p_child: string }; Returns: undefined }
       household_is_mine: { Args: { hh: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
@@ -2035,6 +2157,7 @@ export type Database = {
       }
       reset_household: { Args: { p_household: string }; Returns: undefined }
       routine_is_mine: { Args: { r: string }; Returns: boolean }
+      rpc_founder_spots_remaining: { Args: never; Returns: Json }
       rpc_kiosk_device_state: {
         Args: { p_app_version?: string; p_secret: string }
         Returns: Json
@@ -2049,10 +2172,32 @@ export type Database = {
         Returns: Json
       }
       rpc_kiosk_reset_points: { Args: { p_secret: string }; Returns: Json }
+      rpc_public_builds: {
+        Args: never
+        Returns: {
+          founder_price: number
+          id: string
+          is_default: boolean
+          name: string
+          screen_size: string
+          sort_order: number
+          standard_price: number
+          tablet_model: string
+        }[]
+      }
+      rpc_reserve_founder_spot: { Args: { p: Json }; Returns: Json }
     }
     Enums: {
       calm_tool_type: "breathing" | "feelings" | "break" | "social_story"
       customer_status: "lead" | "scheduled" | "installed"
+      founder_signup_status:
+        | "reserved"
+        | "approved"
+        | "scheduled"
+        | "invoiced"
+        | "active"
+        | "released"
+        | "waitlist"
       pairing_status: "pending" | "paired"
       plus_plan: "monthly" | "annual"
       referral_status: "pending" | "contacted" | "converted" | "declined"
@@ -2188,6 +2333,15 @@ export const Constants = {
     Enums: {
       calm_tool_type: ["breathing", "feelings", "break", "social_story"],
       customer_status: ["lead", "scheduled", "installed"],
+      founder_signup_status: [
+        "reserved",
+        "approved",
+        "scheduled",
+        "invoiced",
+        "active",
+        "released",
+        "waitlist",
+      ],
       pairing_status: ["pending", "paired"],
       plus_plan: ["monthly", "annual"],
       referral_status: ["pending", "contacted", "converted", "declined"],
