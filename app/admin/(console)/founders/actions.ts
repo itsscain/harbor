@@ -35,9 +35,11 @@ export async function convertFounderToCustomer(signupId: string) {
     .filter(Boolean)
     .join(" ");
 
-  const { data: cust, error } = await supabase
+  const cid = crypto.randomUUID();
+  const { error } = await supabase
     .from("customers")
     .insert({
+      id: cid,
       name: sig.name,
       email: sig.email,
       phone: sig.phone,
@@ -45,17 +47,30 @@ export async function convertFounderToCustomer(signupId: string) {
       founder_number: sig.founder_number,
       status: "lead",
       notes,
-    })
-    .select("id")
-    .single();
+    });
   if (error) {
     if (error.code === "23505") throw new Error(`Founder #${sig.founder_number} is already assigned to a customer.`);
     throw new Error(error.message);
   }
 
-  await supabase.from("founder_signups").update({ customer_id: cust.id, status: "approved" }).eq("id", signupId);
+  // Atomically claim the signup — the conditional `customer_id is null` guards a concurrent
+  // double-convert (the only case the customers founder_number unique index can't, i.e. a
+  // null-number waitlist conversion). If we lose the race, roll back our customer.
+  const { data: linked } = await supabase
+    .from("founder_signups")
+    .update({ customer_id: cid, status: "approved" })
+    .eq("id", signupId)
+    .is("customer_id", null)
+    .select("id");
+  if (!linked || linked.length === 0) {
+    await supabase.from("customers").delete().eq("id", cid);
+    const { data: again } = await supabase.from("founder_signups").select("customer_id").eq("id", signupId).maybeSingle();
+    if (again?.customer_id) redirect(`/admin/customers/${again.customer_id}`);
+    throw new Error("This signup was just converted.");
+  }
+
   revalidatePath("/admin/founders");
-  redirect(`/admin/customers/${cust.id}`);
+  redirect(`/admin/customers/${cid}`);
 }
 
 /** Release a founder spot (spam / not a fit / backed out) — frees it; the public counter
