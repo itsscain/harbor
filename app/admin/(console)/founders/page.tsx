@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
-import { releaseFounderSignup, setFounderSignupStatus } from "./actions";
+import { releaseFounderSignup, convertFounderToCustomer } from "./actions";
 import type { FounderSignup, Build } from "@/lib/types";
 
 export const metadata = { title: "Founder Signups" };
@@ -86,11 +86,18 @@ export default async function FounderSignupsPage() {
                 </div>
                 {ACTIVE.includes(r.status) && (
                   <div className="flex shrink-0 items-center gap-2">
-                    {r.status === "reserved" && (
-                      <form action={setFounderSignupStatus.bind(null, r.id, "approved")}>
-                        <SubmitButton size="sm" variant="primary">Approve</SubmitButton>
+                    {r.customer_id ? (
+                      <a
+                        href={`/admin/customers/${r.customer_id}`}
+                        className="inline-flex items-center rounded-xl bg-harbor-50 px-3.5 py-2 text-sm font-semibold text-harbor"
+                      >
+                        View customer
+                      </a>
+                    ) : r.status === "reserved" ? (
+                      <form action={convertFounderToCustomer.bind(null, r.id)}>
+                        <SubmitButton size="sm" variant="primary">Approve → CRM</SubmitButton>
                       </form>
-                    )}
+                    ) : null}
                     <form action={releaseFounderSignup.bind(null, r.id)}>
                       <ConfirmSubmit
                         title="Release this spot?"
