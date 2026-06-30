@@ -143,7 +143,7 @@ export default async function FoundersPage({ searchParams }: { searchParams: Pro
               <div key={b.id} className={"rounded-2xl border bg-white p-6 " + (b.is_default ? "border-beacon shadow-card" : "border-harbor-100")}>
                 {b.is_default && <span className="text-eyebrow text-beacon">Most popular</span>}
                 <h3 className="mt-1 font-display text-xl font-bold text-harbor">{b.name}</h3>
-                <p className="text-sm text-muted">{b.tablet_model} · {b.screen_size}</p>
+                <p className="text-sm text-muted">{b.screen_size} display</p>
                 <p className="mt-3 font-display text-2xl font-bold text-harbor">${Number(b.founder_price).toLocaleString()}</p>
                 <p className="text-xs text-muted line-through">${Number(b.standard_price).toLocaleString()} standard</p>
               </div>

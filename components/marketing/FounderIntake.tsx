@@ -115,7 +115,7 @@ export function FounderIntake({ builds, lanternBase, utm }: { builds: PublicBuil
           <Select name="build_id" value={buildId} onChange={(e) => setBuildId(e.target.value)}>
             {builds.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name} ({b.tablet_model}) — {usd(Number(b.founder_price))}
+                {b.name} ({b.screen_size}) — {usd(Number(b.founder_price))}
               </option>
             ))}
           </Select>

@@ -22,7 +22,6 @@ export type PublicBuild = {
   id: string;
   name: string;
   screen_size: string | null;
-  tablet_model: string | null;
   standard_price: number;
   founder_price: number;
   is_default: boolean;
