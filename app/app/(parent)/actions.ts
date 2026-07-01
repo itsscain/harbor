@@ -284,10 +284,17 @@ export async function updateRoutine(id: string, childId: string, formData: FormD
       start_time: str(formData.get("start_time")),
       end_time: str(formData.get("end_time")),
       days_of_week: days.length ? days : null,
+      // P2 §2.2: a routine may point at a household schedule template. Only write the
+      // link when the form actually rendered the field — a save from a form without it
+      // must not silently clear an existing template reference.
+      ...(formData.get("schedule_template_id") !== null
+        ? { schedule_template_id: str(formData.get("schedule_template_id")) }
+        : {}),
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
+  revalidatePath("/app/schedule");
 }
 
 type TemplateStep = { icon: string; label: string; points?: number; step_type?: "task" | "first" | "then" };

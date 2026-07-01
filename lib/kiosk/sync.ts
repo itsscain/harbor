@@ -113,6 +113,8 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
       people: pull(state.snapshot.people ?? [], snap.people),
       routines: pull(state.snapshot.routines, snap.routines),
       steps: pull(state.snapshot.steps, snap.steps),
+      schedule_templates: pull(state.snapshot.schedule_templates ?? [], snap.schedule_templates),
+      routine_child_overrides: pull(state.snapshot.routine_child_overrides ?? [], snap.routine_child_overrides),
       chores: pull(state.snapshot.chores ?? [], snap.chores),
       medications: pull(state.snapshot.medications ?? [], snap.medications),
       medication_logs: pull(state.snapshot.medication_logs ?? [], snap.medication_logs),
@@ -152,6 +154,11 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
     s.routines = s.routines.filter((r) => r.child_id == null || !childDeletions.has(r.child_id));
     s.steps = s.steps.filter((st) => !goneRoutineIds.has(st.routine_id));
     s.chores = (s.chores ?? []).filter((x) => !childDeletions.has(x.child_id));
+    // Shared routines survive a child deletion (child_id == null above) — but their
+    // per-child overrides for the gone child don't.
+    s.routine_child_overrides = (s.routine_child_overrides ?? []).filter(
+      (x) => !childDeletions.has(x.child_id),
+    );
     s.store_items = (s.store_items ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));
     s.events = (s.events ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));
     s.wall_messages = (s.wall_messages ?? []).filter((x) => !x.child_id || !childDeletions.has(x.child_id));

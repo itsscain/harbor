@@ -1729,6 +1729,64 @@ export type Database = {
           },
         ]
       }
+      routine_child_overrides: {
+        Row: {
+          child_id: string
+          created_at: string
+          deleted_at: string | null
+          enabled: boolean
+          household_id: string
+          id: string
+          routine_id: string
+          time_offset_min: number
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          deleted_at?: string | null
+          enabled?: boolean
+          household_id: string
+          id?: string
+          routine_id: string
+          time_offset_min?: number
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          enabled?: boolean
+          household_id?: string
+          id?: string
+          routine_id?: string
+          time_offset_min?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_child_overrides_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_child_overrides_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_child_overrides_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_steps: {
         Row: {
           created_at: string
@@ -1791,14 +1849,18 @@ export type Database = {
       routines: {
         Row: {
           active: boolean
+          assigned_child_ids: string[] | null
           child_id: string | null
           created_at: string
           days_of_week: number[] | null
           deleted_at: string | null
           end_time: string | null
+          household_id: string | null
           id: string
           name: string
           person_id: string | null
+          schedule_template_id: string | null
+          scope: string
           sort_order: number
           start_time: string | null
           together: boolean
@@ -1808,14 +1870,18 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          assigned_child_ids?: string[] | null
           child_id?: string | null
           created_at?: string
           days_of_week?: number[] | null
           deleted_at?: string | null
           end_time?: string | null
+          household_id?: string | null
           id?: string
           name: string
           person_id?: string | null
+          schedule_template_id?: string | null
+          scope?: string
           sort_order?: number
           start_time?: string | null
           together?: boolean
@@ -1825,14 +1891,18 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          assigned_child_ids?: string[] | null
           child_id?: string | null
           created_at?: string
           days_of_week?: number[] | null
           deleted_at?: string | null
           end_time?: string | null
+          household_id?: string | null
           id?: string
           name?: string
           person_id?: string | null
+          schedule_template_id?: string | null
+          scope?: string
           sort_order?: number
           start_time?: string | null
           together?: boolean
@@ -1849,6 +1919,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "routines_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "routines_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
@@ -1856,10 +1933,64 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "routines_schedule_template_id_fkey"
+            columns: ["schedule_template_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "routines_with_child_id_fkey"
             columns: ["with_child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_templates: {
+        Row: {
+          created_at: string
+          days_of_week: number[] | null
+          deleted_at: string | null
+          end_time: string | null
+          household_id: string
+          id: string
+          name: string
+          sort_order: number
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_of_week?: number[] | null
+          deleted_at?: string | null
+          end_time?: string | null
+          household_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_of_week?: number[] | null
+          deleted_at?: string | null
+          end_time?: string | null
+          household_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_templates_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
             referencedColumns: ["id"]
           },
         ]

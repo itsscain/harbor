@@ -56,6 +56,24 @@ export default async function ChildDetail({
     .is("deleted_at", null)
     .order("sort_order");
 
+  // Family-wide scheduling (P2): templates for the routine editor + any shared
+  // routines this child is assigned to (managed on /app/schedule, surfaced here).
+  const { data: templates } = await supabase
+    .from("schedule_templates")
+    .select("id, name, start_time, end_time")
+    .eq("household_id", child.household_id)
+    .is("deleted_at", null)
+    .order("sort_order");
+  const { data: sharedForChild } = await supabase
+    .from("routines")
+    .select("id, name, start_time, end_time, active, schedule_template_id")
+    .eq("household_id", child.household_id)
+    .eq("scope", "shared")
+    .eq("active", true)
+    .contains("assigned_child_ids", [id])
+    .is("deleted_at", null)
+    .order("sort_order");
+
   const routineIds = (routines ?? []).map((r) => r.id);
   const { data: steps } = routineIds.length
     ? await supabase
@@ -188,6 +206,19 @@ export default async function ChildDetail({
       </SectionHeader>
 
       <div className="space-y-3">
+        {(sharedForChild ?? []).length > 0 && (
+          <Card className="border-dashed">
+            <p className="text-sm text-muted">
+              <span className="font-semibold text-harbor">{child.name} also does:</span>{" "}
+              {(sharedForChild ?? []).map((r) => r.name).join(", ")} — shared family{" "}
+              {(sharedForChild ?? []).length === 1 ? "routine" : "routines"}, managed in the{" "}
+              <Link href="/app/schedule" className="font-semibold text-water underline">
+                Family Schedule
+              </Link>
+              .
+            </p>
+          </Card>
+        )}
         {(routines ?? []).map((r) => (
           <RoutineCard
             key={r.id}
@@ -195,6 +226,7 @@ export default async function ChildDetail({
             steps={(steps ?? []).filter((s) => s.routine_id === r.id)}
             childId={child.id}
             color={color}
+            templates={templates ?? []}
           />
         ))}
       </div>

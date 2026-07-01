@@ -3,9 +3,9 @@
 // chore progress ChildView shows, so the hub and the spoke never disagree.
 
 import type { KioskState } from "./types";
-import { todayKey } from "./db";
 import { runsToday, withinWindow, windowCountdown, formatCountdown, opensAtLabel } from "./calendar";
-import { trustedNow, tzOf } from "./time";
+import { routineForChild, effectiveSchedule } from "./schedule";
+import { trustedNow, tzOf, serviceDay } from "./time";
 import { choreAssignee } from "./chores";
 import { activeGroundingFor } from "./grounding";
 
@@ -29,14 +29,17 @@ export type ChildDayStatus = {
  *  (Kiosk Overhaul §8.2), never a leaderboard. */
 export function familyChoreProgress(s: KioskState): { done: number; total: number; pct: number } {
   const snap = s.snapshot;
-  const today = todayKey();
+  // Progress is WRITTEN under the trusted family-tz service day (useKiosk) — read the
+  // same key, and evaluate chore days in the family tz, so hub and spoke agree.
+  const today = serviceDay(s);
+  const tz = tzOf(s);
   const ids = new Set(snap.children.map((c) => c.id));
   let total = 0;
   let done = 0;
   for (const c of snap.children) {
     const prog = s.progress[c.id]?.date === today ? s.progress[c.id].completed : [];
     const chores = (snap.chores ?? []).filter(
-      (ch) => ch.active && runsToday(ch.days_of_week) && choreAssignee(ch, ids) === c.id,
+      (ch) => ch.active && runsToday(ch.days_of_week, tz) && choreAssignee(ch, ids) === c.id,
     );
     total += chores.length;
     done += chores.filter((ch) => prog.includes(ch.id)).length;
@@ -46,13 +49,20 @@ export function familyChoreProgress(s: KioskState): { done: number; total: numbe
 
 export function childDayStatus(s: KioskState, childId: string): ChildDayStatus {
   const snap = s.snapshot;
-  const today = todayKey();
+  // Same service-day key completions are written under — hub cards match the wall.
+  const today = serviceDay(s);
   const prog = s.progress[childId]?.date === today ? s.progress[childId].completed : [];
+  const tz = tzOf(s);
+  const now = trustedNow(s);
 
-  // The child's primary routine today (ChildView's default = first active, by order).
+  // The child's primary routine today (ChildView's default = first active, by order) —
+  // own OR shared+assigned, through the per-child effective window (P2 §2/§4).
   const routine = snap.routines
-    .filter((r) => r.child_id === childId && r.active && runsToday(r.days_of_week))
-    .sort((a, b) => a.sort_order - b.sort_order)[0];
+    .filter((r) => r.active && routineForChild(r, childId))
+    .map((r) => ({ r, eff: effectiveSchedule(r, childId, snap) }))
+    .filter(({ eff }) => !eff.disabled && runsToday(eff.days_of_week, tz))
+    .sort((a, b) => a.r.sort_order - b.r.sort_order)[0]?.r;
+  const routineWindow = routine ? effectiveSchedule(routine, childId, snap) : null;
 
   const routineSteps = routine
     ? snap.steps
@@ -66,14 +76,12 @@ export function childDayStatus(s: KioskState, childId: string): ChildDayStatus {
 
   const ids = new Set(snap.children.map((c) => c.id));
   const chores = (snap.chores ?? [])
-    .filter((c) => c.active && runsToday(c.days_of_week) && choreAssignee(c, ids) === childId)
+    .filter((c) => c.active && runsToday(c.days_of_week, tz) && choreAssignee(c, ids) === childId)
     .sort((a, b) => a.sort_order - b.sort_order);
 
   // Routine time-lock (§6.4): steps behind a closed window aren't doable yet. Chores have
   // no window, so they stay available and keep the card "active".
-  const tz = tzOf(s);
-  const now = trustedNow(s);
-  const routineLocked = !!routine && !withinWindow(routine, now, tz);
+  const routineLocked = !!routineWindow && !withinWindow(routineWindow, now, tz);
 
   const items = [
     ...stepList.map((st) => ({ id: st.id, label: st.label, locked: routineLocked })),
@@ -92,12 +100,12 @@ export function childDayStatus(s: KioskState, childId: string): ChildDayStatus {
 
   // "Everything left is behind a closed window" → the day hasn't started yet, not idle.
   const waiting = routineLocked && undone.length > 0 && !nextAvailable;
-  const cw = waiting && routine ? windowCountdown(routine, now, tz) : null;
+  const cw = waiting && routineWindow ? windowCountdown(routineWindow, now, tz) : null;
   const opensLabel = waiting
     ? cw?.untilOpenMin != null
       ? `opens in ${formatCountdown(cw.untilOpenMin)}`
-      : routine
-        ? opensAtLabel(routine)
+      : routineWindow
+        ? opensAtLabel(routineWindow)
         : null
     : null;
 

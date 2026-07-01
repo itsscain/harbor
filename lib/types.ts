@@ -27,6 +27,8 @@ export type ListItem = Tables<"list_items">;
 export type WallMessage = Tables<"wall_messages">;
 export type Reminder = Tables<"reminders">;
 export type Meal = Tables<"meals">;
+export type ScheduleTemplate = Tables<"schedule_templates">;
+export type RoutineChildOverride = Tables<"routine_child_overrides">;
 
 // Enum aliases.
 export type RoutineType = Enums<"routine_type">;

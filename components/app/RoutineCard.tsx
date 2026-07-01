@@ -38,7 +38,10 @@ type Routine = {
   end_time: string | null;
   sort_order: number;
   days_of_week: number[] | null;
+  schedule_template_id?: string | null;
 };
+
+type Template = { id: string; name: string; start_time: string | null; end_time: string | null };
 
 function routineEmoji(r: Routine): string {
   const n = r.name.toLowerCase();
@@ -60,11 +63,14 @@ export function RoutineCard({
   steps,
   childId,
   color = "#18606f",
+  templates = [],
 }: {
   routine: Routine;
   steps: Step[];
   childId: string;
   color?: string;
+  /** Household schedule templates (P2 §2.2) — a routine can point at a named window. */
+  templates?: Template[];
 }) {
   const count = steps.length;
   const peek = steps.slice(0, 5);
@@ -132,6 +138,22 @@ export function RoutineCard({
             <details className="rounded-xl bg-surface-sunken px-3 py-2">
               <summary className="cursor-pointer select-none text-sm font-semibold text-water">Schedule &amp; days</summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {templates.length > 0 && (
+                  <Field
+                    label="Schedule template"
+                    hint="When set, the window comes from the template — edit it once, every routine using it follows."
+                    className="sm:col-span-3"
+                  >
+                    <Select name="schedule_template_id" defaultValue={r.schedule_template_id ?? ""}>
+                      <option value="">Use this routine&apos;s own times</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
                 <Field label="Starts (time-aware)">
                   <Input name="start_time" type="time" defaultValue={r.start_time ? r.start_time.slice(0, 5) : ""} />
                 </Field>

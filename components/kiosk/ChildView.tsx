@@ -23,6 +23,7 @@ import { effectiveLevel, SUPPORT_LABELS } from "@/lib/kiosk/skill";
 import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday, withinWindow, windowLabel, windowCountdown, opensAtLabel, formatCountdown } from "@/lib/kiosk/calendar";
+import { routineForChild, effectiveSchedule } from "@/lib/kiosk/schedule";
 import { trustedNow, tzOf, serviceDay } from "@/lib/kiosk/time";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
@@ -99,25 +100,35 @@ export function ChildView({
 
 
   const tz = tzOf(state);
+  // Family-wide scheduling (P2): a child's wall shows their own routines PLUS shared
+  // routines they're assigned to, each through the per-child effective window
+  // (override → template → own schedule) so "define once" really applies to everyone.
   const routines = useMemo(() => {
     if (!state || !child) return [];
     return state.snapshot.routines
-      .filter((r) => r.child_id === child.id && r.active && runsToday(r.days_of_week, tz))
+      .filter((r) => {
+        if (!r.active || !routineForChild(r, child.id)) return false;
+        const eff = effectiveSchedule(r, child.id, state.snapshot);
+        return !eff.disabled && runsToday(eff.days_of_week, tz);
+      })
       .sort((a, b) => a.sort_order - b.sort_order);
   }, [state, child, tz]);
 
   const [routineId, setRoutineId] = useState<string | null>(null);
   const activeRoutine = routines.find((r) => r.id === routineId) ?? routines[0];
   // Time-lock (§ routine windows): a routine with a start/end can only be completed inside
-  // its window, measured in the family tz against trusted (tamper-resistant) time.
-  const routineLocked = !!state && !!activeRoutine && !withinWindow(activeRoutine, trustedNow(state), tz);
-  const lockLabel = activeRoutine ? windowLabel(activeRoutine) : null;
+  // its window, measured in the family tz against trusted (tamper-resistant) time. The
+  // window is the PER-CHILD effective one (P2: override → template → own schedule).
+  const activeWindow =
+    state && child && activeRoutine ? effectiveSchedule(activeRoutine, child.id, state.snapshot) : null;
+  const routineLocked = !!state && !!activeWindow && !withinWindow(activeWindow, trustedNow(state), tz);
+  const lockLabel = activeWindow ? windowLabel(activeWindow) : null;
   // No silent no-op (§5–§7): when a routine is time-locked, Harbor explains WHY — gently,
   // with a live countdown — and offers the calm corner as a forward path. This recomputes
   // on the 60s dayTick above, so the countdown stays honest without extra timers.
   const lockCountdown =
-    routineLocked && activeRoutine ? windowCountdown(activeRoutine, trustedNow(state!), tz) : null;
-  const lockOpensAt = activeRoutine ? opensAtLabel(activeRoutine) : null;
+    routineLocked && activeWindow ? windowCountdown(activeWindow, trustedNow(state!), tz) : null;
+  const lockOpensAt = activeWindow ? opensAtLabel(activeWindow) : null;
   // A short, warm spoken line for a blocked tap — voiced only if read-aloud is on.
   const lockSpeech = (() => {
     if (!activeRoutine) return "";
@@ -132,8 +143,8 @@ export function ChildView({
   // non-pressuring nudge — never a stressful ticking clock. Recomputes on the 60s dayTick.
   const CLOSING_SOON_MIN = 20;
   const closeMin =
-    !routineLocked && activeRoutine && state
-      ? windowCountdown(activeRoutine, trustedNow(state), tz).untilCloseMin
+    !routineLocked && activeWindow && state
+      ? windowCountdown(activeWindow, trustedNow(state), tz).untilCloseMin
       : null;
   const closingSoonMin = closeMin != null && closeMin > 0 && closeMin <= CLOSING_SOON_MIN ? closeMin : null;
 

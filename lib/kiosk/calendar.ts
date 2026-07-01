@@ -116,7 +116,8 @@ export function opensAtLabel(routine: { start_time?: string | null }): string | 
 }
 
 /** Minutes until a routine's window opens / until it closes, in the family tz (§7). Either is
- *  null when not applicable (already open, no start, already closed). Same-day windows. */
+ *  null when not applicable (already open, no start, already closed). Handles an overnight
+ *  window (end before start — parent-set or produced by a per-child offset) like withinWindow. */
 export function windowCountdown(
   routine: { start_time?: string | null; end_time?: string | null },
   nowMs: number,
@@ -125,6 +126,12 @@ export function windowCountdown(
   const cur = minutesIntoDayInTz(nowMs, tz);
   const sm = routine.start_time ? toMin(routine.start_time) : null;
   const em = routine.end_time ? toMin(routine.end_time) : null;
+  // Overnight (e.g. 21:00 → 01:00): open when cur >= sm OR cur < em.
+  if (sm != null && em != null && sm > em) {
+    if (cur >= sm) return { untilOpenMin: null, untilCloseMin: em + 1440 - cur }; // evening side
+    if (cur < em) return { untilOpenMin: null, untilCloseMin: em - cur }; // after-midnight side
+    return { untilOpenMin: sm - cur, untilCloseMin: null }; // daytime gap before it opens
+  }
   const untilOpenMin = sm != null && cur < sm ? sm - cur : null;
   const open = (sm == null || cur >= sm) && (em == null || cur < em);
   const untilCloseMin = open && em != null ? em - cur : null;

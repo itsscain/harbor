@@ -37,7 +37,7 @@ export type KioskPerson = {
 
 export type KioskRoutine = {
   id: string;
-  /** A routine belongs to a child OR a person (exactly one is set). */
+  /** A routine belongs to a child OR a person (exactly one is set) — unless shared. */
   child_id: string | null;
   person_id?: string | null;
   /** Together Time (§4.2): a shared parent+child moment, optionally linked to a child. */
@@ -50,6 +50,32 @@ export type KioskRoutine = {
   start_time: string | null;
   end_time: string | null;
   days_of_week: number[] | null;
+  /** Family-wide scheduling (Routines P2 §2.1): 'shared' = defined once, assigned to many. */
+  scope?: "child" | "shared";
+  assigned_child_ids?: string[] | null;
+  /** §2.2: when set, the window comes from the named template, not the fields above. */
+  schedule_template_id?: string | null;
+  household_id?: string | null;
+};
+
+/** §2.2 — a reusable named window ("School Morning" 6:30–8:00 Mon–Fri). */
+export type KioskScheduleTemplate = {
+  id: string;
+  household_id: string;
+  name: string;
+  start_time: string | null;
+  end_time: string | null;
+  days_of_week: number[] | null;
+  sort_order: number;
+};
+
+/** §2.3 — a small per-child diff on a shared routine (never a duplicate). */
+export type KioskRoutineOverride = {
+  id: string;
+  routine_id: string;
+  child_id: string;
+  time_offset_min: number;
+  enabled: boolean;
 };
 
 export type KioskStep = {
@@ -256,6 +282,9 @@ export type KioskSnapshot = {
   people?: KioskPerson[];
   routines: KioskRoutine[];
   steps: KioskStep[];
+  /** Family-wide scheduling (Routines P2): reusable windows + per-child diffs. */
+  schedule_templates?: KioskScheduleTemplate[];
+  routine_child_overrides?: KioskRoutineOverride[];
   chores?: KioskChore[];
   /** Medication Station (§4.3). */
   medications?: KioskMedication[];
