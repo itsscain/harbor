@@ -13,7 +13,8 @@ import {
   Ban,
   ShieldCheck,
   Pill,
-  Lock,
+  Moon,
+  Sparkles,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
 import type { KioskChild, KioskStep, KioskChore, KioskMedication } from "@/lib/kiosk/types";
@@ -21,7 +22,7 @@ import { dueDoses } from "@/lib/kiosk/medication";
 import { effectiveLevel, SUPPORT_LABELS } from "@/lib/kiosk/skill";
 import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
-import { runsToday, withinWindow, windowLabel } from "@/lib/kiosk/calendar";
+import { runsToday, withinWindow, windowLabel, windowCountdown, opensAtLabel, formatCountdown } from "@/lib/kiosk/calendar";
 import { trustedNow, tzOf, serviceDay } from "@/lib/kiosk/time";
 import { choreAssignee } from "@/lib/kiosk/chores";
 import { BedtimeCountdown } from "./BedtimeCountdown";
@@ -111,6 +112,30 @@ export function ChildView({
   // its window, measured in the family tz against trusted (tamper-resistant) time.
   const routineLocked = !!state && !!activeRoutine && !withinWindow(activeRoutine, trustedNow(state), tz);
   const lockLabel = activeRoutine ? windowLabel(activeRoutine) : null;
+  // No silent no-op (§5–§7): when a routine is time-locked, Harbor explains WHY — gently,
+  // with a live countdown — and offers the calm corner as a forward path. This recomputes
+  // on the 60s dayTick above, so the countdown stays honest without extra timers.
+  const lockCountdown =
+    routineLocked && activeRoutine ? windowCountdown(activeRoutine, trustedNow(state!), tz) : null;
+  const lockOpensAt = activeRoutine ? opensAtLabel(activeRoutine) : null;
+  // A short, warm spoken line for a blocked tap — voiced only if read-aloud is on.
+  const lockSpeech = (() => {
+    if (!activeRoutine) return "";
+    const name = activeRoutine.name;
+    if (lockCountdown?.untilOpenMin != null) {
+      return `${name} opens in ${formatCountdown(lockCountdown.untilOpenMin)}. Let's come back then!`;
+    }
+    if (lockOpensAt) return `${name} ${lockOpensAt}. Let's come back then!`;
+    return `${name} is resting right now. Let's come back later!`;
+  })();
+  // "Closing soon" heads-up (§7): when a routine IS open but the window is nearly up, a calm,
+  // non-pressuring nudge — never a stressful ticking clock. Recomputes on the 60s dayTick.
+  const CLOSING_SOON_MIN = 20;
+  const closeMin =
+    !routineLocked && activeRoutine && state
+      ? windowCountdown(activeRoutine, trustedNow(state), tz).untilCloseMin
+      : null;
+  const closingSoonMin = closeMin != null && closeMin > 0 && closeMin <= CLOSING_SOON_MIN ? closeMin : null;
 
   const steps = useMemo(() => {
     if (!state || !activeRoutine) return [];
@@ -204,9 +229,12 @@ export function ChildView({
 
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
-    // Time-locked routine: gently refuse outside its window (no completion, no points).
+    // Time-locked routine: never a silent no-op (§5). Gently refuse outside its window —
+    // no completion, no points — with a soft cue AND a spoken reason so the child always
+    // knows the tap registered and why nothing happened.
     if (routineLocked) {
       feedback("soft-error", fx);
+      if (settings!.readAloud && lockSpeech) speak(lockSpeech);
       return;
     }
     kiosk.completeStep(child!.id, step);
@@ -228,6 +256,18 @@ export function ChildView({
       setCelebrate({ points: step.reward_points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
     }
+  }
+
+  // First→Then order guard, made audible (§5): tapping "Then" before "First" is done is
+  // never a silent no-op — Harbor nudges the child back to First with a cue + a spoken hint.
+  function tapThen(firstStep: KioskStep, thenStep: KioskStep) {
+    if (prog.includes(thenStep.id)) return;
+    if (!prog.includes(firstStep.id)) {
+      feedback("soft-error", fx);
+      if (settings!.readAloud) speak(`Let's do "${firstStep.label}" first!`);
+      return;
+    }
+    complete(thenStep);
   }
 
   function doCompleteChore(chore: KioskChore) {
@@ -332,7 +372,7 @@ export function ChildView({
           </div>
         </div>
         <button
-          onClick={() => speak("What's next", settings.readAloud)}
+          onClick={() => speak(routineLocked && lockSpeech ? lockSpeech : "What's next", settings.readAloud)}
           className="mt-3.5 flex w-full items-center gap-4 text-left"
         >
           <span
@@ -538,11 +578,49 @@ export function ChildView({
         )}
         {activeRoutine ? (
           <>
-            {routineLocked && (
-              <div className="mb-4 flex items-center justify-center gap-2 rounded-2xl bg-amber-400/10 px-4 py-3 text-center font-semibold text-amber-200 ring-1 ring-amber-400/25">
-                <Lock className="h-5 w-5 shrink-0" />
+            {routineLocked && !allDone && (
+              // A resting state, not an error (§6): warm, explains WHY with a live countdown,
+              // and offers the calm corner as the forward path — never a dead end. (When the
+              // routine is both closed AND finished, the "all done" celebration owns the moment.)
+              <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl bg-amber-400/10 px-5 py-4 text-center ring-1 ring-amber-400/25 sm:flex-row sm:justify-between sm:text-left">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-400/15 text-amber-200">
+                    <Moon className="h-6 w-6" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-bold text-amber-100">
+                      {activeRoutine.name} is resting
+                    </p>
+                    <p className="text-sm font-semibold text-amber-200/90">
+                      {lockCountdown?.untilOpenMin != null
+                        ? `Opens in ${formatCountdown(lockCountdown.untilOpenMin)}`
+                        : lockOpensAt
+                          ? lockOpensAt.charAt(0).toUpperCase() + lockOpensAt.slice(1)
+                          : lockLabel
+                            ? `Available ${lockLabel}`
+                            : "Come back a little later"}
+                    </p>
+                  </div>
+                </div>
+                <Pressable
+                  haptics={settings.haptics}
+                  fx="break"
+                  sound={settings.sound}
+                  intensity={settings.intensity}
+                  onClick={() => setAnchorOpen(true)}
+                  className="flex shrink-0 items-center gap-2 rounded-full bg-amber-400/20 px-4 py-2 font-semibold text-amber-100 ring-1 ring-amber-400/30"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Take a calm break
+                </Pressable>
+              </div>
+            )}
+            {closingSoonMin != null && !allDone && (
+              // "Closing soon" heads-up (§7): calm and supportive, never a stressful clock.
+              <div className="mb-4 flex items-center justify-center gap-2.5 rounded-2xl bg-kwater/10 px-4 py-2.5 text-center text-sm font-semibold text-kwater ring-1 ring-kwater/25">
+                <TimerIcon className="h-4 w-4 shrink-0" />
                 <span>
-                  {activeRoutine.name} {lockLabel ? `opens ${lockLabel}` : "isn't available right now"}
+                  About {formatCountdown(closingSoonMin)} left for {activeRoutine.name} — no rush 🌊
                 </span>
               </div>
             )}
@@ -563,7 +641,7 @@ export function ChildView({
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
                 <StepCard step={firstStep} label="First" level={lvl(firstStep)} done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
-                <StepCard step={thenStep} label="Then" level={lvl(thenStep)} done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => { if (prog.includes(firstStep.id)) complete(thenStep); }} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
+                <StepCard step={thenStep} label="Then" level={lvl(thenStep)} done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => tapThen(firstStep, thenStep)} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : allDone ? (
               <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
@@ -927,7 +1005,10 @@ function StepCard({
       {/* The whole card is one big tap target — effortless to check off. */}
       <button
         onClick={onTap}
-        disabled={done || muted}
+        // Only a DONE step is truly inert. A `muted` (not-yet) step stays tappable so its
+        // handler can answer back (§5) — e.g. "Let's do First first!" — never a silent no-op.
+        disabled={done}
+        aria-disabled={muted || undefined}
         aria-label={`${step.label}${done ? " — done" : ""}`}
         {...press}
         className={cn(

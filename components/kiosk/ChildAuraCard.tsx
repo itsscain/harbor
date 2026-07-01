@@ -39,9 +39,11 @@ export function ChildAuraCard({
         ? "on a reset day"
         : status.state === "done"
           ? "all done 🎉"
-          : status.state === "active"
-            ? `${status.done} of ${status.total} done`
-            : "nothing today";
+          : status.state === "upcoming"
+            ? (status.routineName ?? "routine") + " is resting"
+            : status.state === "active"
+              ? `${status.done} of ${status.total} done`
+              : "nothing today";
 
   return (
     <Pressable
@@ -91,6 +93,9 @@ export function ChildAuraCard({
           <p className="mt-1 truncate text-sm text-kmute">
             next: <span className="text-ktext/85">{status.nextLabel}</span>
           </p>
+        )}
+        {status.state === "upcoming" && status.opensLabel && (
+          <p className="mt-1 truncate text-sm text-amber-300/90">{status.opensLabel}</p>
         )}
       </div>
     </Pressable>

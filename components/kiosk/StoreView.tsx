@@ -39,7 +39,16 @@ export function StoreView({
 
   function buy(item: KioskStoreItem) {
     if (item.kind === "goal") return;
-    if (item.cost_points > points) return;
+    if (bought === item.id) return;
+    // No silent no-op (§5): tapping a reward you can't afford yet still answers back —
+    // a soft cue + exactly how many more stars are needed — never a dead, unresponsive button.
+    if (item.cost_points > points) {
+      play("error", settings.sound);
+      haptic(HAPTIC.errorSoft, settings.haptics);
+      const need = item.cost_points - points;
+      speak(`${need} more ${need === 1 ? "star" : "stars"} and it's yours!`, settings.readAloud);
+      return;
+    }
     if (redeeming.current.has(item.id)) return; // double-tap guard — never spend twice
     redeeming.current.add(item.id);
     setTimeout(() => redeeming.current.delete(item.id), 2200);
@@ -51,6 +60,21 @@ export function StoreView({
     setTimeout(() => setBought(null), 1600);
     setRedeemed(item);
     setTimeout(() => setRedeemed(null), 2200);
+  }
+
+  // No silent no-op (§5): a goal tile isn't redeemable, but tapping it still answers back —
+  // celebrate when reached, otherwise a soft cue + how many stars remain.
+  function tapGoal(item: KioskStoreItem) {
+    if (points >= item.cost_points) {
+      play("reward", settings.sound);
+      haptic(HAPTIC.rewardRedeem, settings.haptics);
+      speak("Goal reached! Ask a grown-up to help you get it.", settings.readAloud);
+      return;
+    }
+    play("error", settings.sound);
+    haptic(HAPTIC.errorSoft, settings.haptics);
+    const need = item.cost_points - points;
+    speak(`${need} more ${need === 1 ? "star" : "stars"} to reach your goal!`, settings.readAloud);
   }
 
   return (
@@ -102,9 +126,13 @@ export function StoreView({
                     </div>
                   </div>
                   {isGoal ? (
-                    <div className="mt-4 flex flex-col items-center">
+                    <button
+                      onClick={() => tapGoal(item)}
+                      aria-disabled={!affordable}
+                      className="kiosk-tap mt-4 flex w-full flex-col items-center rounded-xl transition active:scale-[0.98]"
+                    >
                       <FillVessel pct={pct} reached={affordable} />
-                    </div>
+                    </button>
                   ) : (
                     <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-kraise">
                       <div className="h-full rounded-full bg-beacon transition-all" style={{ width: `${pct}%` }} />
@@ -113,7 +141,8 @@ export function StoreView({
                   {!isGoal && (
                     <button
                       onClick={() => buy(item)}
-                      disabled={!affordable || bought === item.id}
+                      disabled={bought === item.id}
+                      aria-disabled={!affordable}
                       className={cn(
                         "kiosk-tap mt-4 w-full rounded-xl py-3.5 text-lg font-bold transition active:scale-[0.98]",
                         bought === item.id

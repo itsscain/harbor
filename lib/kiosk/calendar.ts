@@ -110,6 +110,36 @@ export function windowLabel(routine: { start_time?: string | null; end_time?: st
   return `until ${formatClock(e as string)}`;
 }
 
+/** "opens at 7:00 AM" — the friendly opens-at phrase for an out-of-window routine. */
+export function opensAtLabel(routine: { start_time?: string | null }): string | null {
+  return routine.start_time ? `opens at ${formatClock(routine.start_time)}` : null;
+}
+
+/** Minutes until a routine's window opens / until it closes, in the family tz (§7). Either is
+ *  null when not applicable (already open, no start, already closed). Same-day windows. */
+export function windowCountdown(
+  routine: { start_time?: string | null; end_time?: string | null },
+  nowMs: number,
+  tz: string = DEFAULT_TZ,
+): { untilOpenMin: number | null; untilCloseMin: number | null } {
+  const cur = minutesIntoDayInTz(nowMs, tz);
+  const sm = routine.start_time ? toMin(routine.start_time) : null;
+  const em = routine.end_time ? toMin(routine.end_time) : null;
+  const untilOpenMin = sm != null && cur < sm ? sm - cur : null;
+  const open = (sm == null || cur >= sm) && (em == null || cur < em);
+  const untilCloseMin = open && em != null ? em - cur : null;
+  return { untilOpenMin, untilCloseMin };
+}
+
+/** "2h 15m" / "20m" / "now" — a friendly countdown from minutes (§7). */
+export function formatCountdown(min: number): string {
+  if (min <= 0) return "now";
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
 export function formatEventTime(event: KioskEvent, tz: string = DEFAULT_TZ): string {
   if (event.all_day) return "All day";
   return formatTimeInTz(new Date(event.starts_at), tz);

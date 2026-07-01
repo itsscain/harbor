@@ -4,7 +4,8 @@
 
 import type { KioskState } from "./types";
 import { todayKey } from "./db";
-import { runsToday } from "./calendar";
+import { runsToday, withinWindow, windowCountdown, formatCountdown, opensAtLabel } from "./calendar";
+import { trustedNow, tzOf } from "./time";
 import { choreAssignee } from "./chores";
 import { activeGroundingFor } from "./grounding";
 
@@ -15,9 +16,13 @@ export type ChildDayStatus = {
   /** Next undone step/chore label — the "next: brush teeth" hint. */
   nextLabel: string | null;
   routineName: string | null;
-  /** Glanceable state: in Anchor, on a Reset Day, done, mid-day, or nothing due. */
-  state: "anchor" | "reset" | "done" | "active" | "idle";
+  /** Glanceable state: in Anchor, on a Reset Day, done, mid-day, waiting for a routine
+   *  window to open ("upcoming"), or nothing due. */
+  state: "anchor" | "reset" | "done" | "active" | "upcoming" | "idle";
   hasTasks: boolean;
+  /** When the day's routine is time-locked and nothing else is doable yet, a friendly
+   *  "opens in 1h 20m" / "opens at 7:00 AM" hint for the hub card (§6.4). */
+  opensLabel: string | null;
 };
 
 /** Household-wide chore progress for today — the cooperative teamwork meter
@@ -64,23 +69,44 @@ export function childDayStatus(s: KioskState, childId: string): ChildDayStatus {
     .filter((c) => c.active && runsToday(c.days_of_week) && choreAssignee(c, ids) === childId)
     .sort((a, b) => a.sort_order - b.sort_order);
 
+  // Routine time-lock (§6.4): steps behind a closed window aren't doable yet. Chores have
+  // no window, so they stay available and keep the card "active".
+  const tz = tzOf(s);
+  const now = trustedNow(s);
+  const routineLocked = !!routine && !withinWindow(routine, now, tz);
+
   const items = [
-    ...stepList.map((st) => ({ id: st.id, label: st.label })),
-    ...chores.map((c) => ({ id: c.id, label: c.title })),
+    ...stepList.map((st) => ({ id: st.id, label: st.label, locked: routineLocked })),
+    ...chores.map((c) => ({ id: c.id, label: c.title, locked: false })),
   ];
   const total = items.length;
   const done = items.filter((it) => prog.includes(it.id)).length;
-  const next = items.find((it) => !prog.includes(it.id));
+  const undone = items.filter((it) => !prog.includes(it.id));
+  // Prefer an available-now next; fall back to any undone so the label stays meaningful.
+  const nextAvailable = undone.find((it) => !it.locked);
+  const next = nextAvailable ?? undone[0];
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const inAnchor = (snap.corners ?? []).some((c) => c.child_id === childId && c.status === "active");
   const onReset = !!activeGroundingFor(snap.groundings, childId);
+
+  // "Everything left is behind a closed window" → the day hasn't started yet, not idle.
+  const waiting = routineLocked && undone.length > 0 && !nextAvailable;
+  const cw = waiting && routine ? windowCountdown(routine, now, tz) : null;
+  const opensLabel = waiting
+    ? cw?.untilOpenMin != null
+      ? `opens in ${formatCountdown(cw.untilOpenMin)}`
+      : routine
+        ? opensAtLabel(routine)
+        : null
+    : null;
 
   let state: ChildDayStatus["state"];
   if (inAnchor) state = "anchor";
   else if (onReset) state = "reset";
   else if (total === 0) state = "idle";
   else if (done >= total) state = "done";
+  else if (waiting) state = "upcoming";
   else state = "active";
 
   return {
@@ -91,5 +117,6 @@ export function childDayStatus(s: KioskState, childId: string): ChildDayStatus {
     routineName: routine?.name ?? null,
     state,
     hasTasks: total > 0,
+    opensLabel,
   };
 }
