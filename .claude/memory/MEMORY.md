@@ -1,0 +1,24 @@
+# Memory index
+
+- [Harbor project](harbor-project.md) — wall-tablet family app; stack, Supabase ref, Vercel URL, accounts.
+- [Kiosk professional UI](kiosk-professional-ui.md) — what fixed the "childish" kiosk: proportionate sizing, 16px radii, neutral dark, photo avatars.
+- [AI companion](harbor-ai-companion.md) — BYO Anthropic key (Haiku), secure storage off the wall, meal-plan gen shipped, roadmap.
+- [ConfirmSubmit prod delete bug](confirmsubmit-prod-delete-bug.md) — deletes failed only in prod: a submit button unmounted by its own onClick; fixed with requestSubmit().
+- [Kiosk sync self-heal](kiosk-sync-selfheal.md) — delta sync is additive; full reconcile on boot/Refresh prunes orphaned cached rows (stale wall messages).
+- [Harbor v2 Lighthouse](harbor-v2-lighthouse.md) — premium/regulation redesign; A–F + all flagships SHIPPED. Spec in Downloads.
+- [Harbor brand identity](harbor-brand-identity.md) — brand bible; mark system + 12-color palette + illustration cast shipped 2026-06-25. Spec in Downloads.
+- [Harbor kiosk overhaul](harbor-kiosk-overhaul.md) — wall hub-and-spoke redesign; K2–K5 shipped 2026-06-26; K6 (delight) pending. Spec in Downloads.
+- [Harbor ChildView visual](harbor-childview-visual.md) — pixel redesign of the child wall screen; Voyage hero + now-card + accent suffusion shipped 2026-06-26; top-bar/footer/§15 features pending. Spec in Downloads.
+- [Harbor edge cases](harbor-edge-cases.md) — economy/time/exploit hardening; §1.1 ledger + §H1 PIN limit + §1.2 time-integrity (server guard + client trusted serviceDay/clock-suspect) shipped 2026-06-26; §C1/§B5/routine-windows pending. Spec in Downloads.
+- [Harbor Voice & TTS](harbor-voice-tts.md) — FREE on-device Kokoro (af_bella) in a Web Worker + bounded local cache; $0, no paid cloud; shipped + verified 2026-06-26. Spec in Downloads.
+- [Harbor Brand-True features](harbor-brand-true.md) — "parent in the boat" discipline pass; Steps 1–3 (Family/Together, Medication Station, Skill Levels) shipped 2026-06-27; Briefing/Care Circle (HIPAA) + social stories/SOS pending. Spec in Downloads.
+- [Harbor Helm declutter](harbor-helm-declutter.md) — parent-app calm redesign; Disclosure + RoutineCard; "lists = collapsed rows, edit behind the row"; child/medication/family done 2026-06-27; settings/store/calendar/rules/messages pending.
+- [Harbor realtime](harbor-realtime.md) — parent edits hit the wall in <1s (broadcast-from-DB nudge + private channel); staleTimes fix; the Supabase DB-broadcast-must-be-private gotcha. Shipped R1+R2 2026-06-27.
+- [Harbor kiosk Lumen](harbor-kiosk-lumen.md) — wall visual language "light not pigment"; foundation (one-light model + 7 materials + lit deep-water ground + KCard obsidian) shipped 2026-06-27; §10 signature moments pending.
+- [Harbor kiosk cache](harbor-kiosk-cache.md) — stale-tablet fix: self-updating SW (?v=BUILD_ID) + the big gotcha = Vercel Deployment Protection redirects the kiosk URL to an SSO login (user must disable it). 2026-06-28.
+- [Harbor device mgmt](harbor-device-mgmt.md) — /app/devices manager (name/icon/status/unpair + add) D1 shipped 2026-06-28; device_pairings extended + owner RLS; D2–D4 (settings, live status, remote refresh, rooms) pending; live-reassign needs snapshot to carry identity.
+- [Harbor AI voice](harbor-ai-voice.md) — AI-led child voice V1 (bounded keeper + allowlist + distress→parent) + V2 Anchor co-regulation + V2b parent "Ask Harbor" Copilot; the distress over/under-escalation lessons. V1+V2 shipped 2026-06-28; V3 (AAC, on-device STT, real push) pending.
+- [Harbor kiosk rework](harbor-kiosk-rework.md) — K1 Feedback System (feedback() bus + sounds/haptics) + K2 Voyage elevation (hybrid CSS-planes+SVG hero) + K2b resting Ambient (LivingAmbient → breathing deep-water: caustics+glow+horizon, daypart/intensity, fills home dead-space) shipped 2026-06-28/29; Anchor breathing + transitions = K3. Spec in Downloads.
+- [Harbor timezone + PWA](harbor-timezone-pwa.md) — family-tz fix (America/New_York default + setting; lib/tz.ts; two-pass DST) + routine time-lock enforcement (withinWindow) + PWA app-feel (/app manifest, viewport-fit, dvh, overscroll). Shipped 2026-06-28.
+- [Harbor Operator HQ](harbor-operator-hq.md) — /admin rework + public Founder Funnel; F1 funnel + O1 dashboard/CRM + O2 Device Fleet/Account Inspector + O3 procurement/Settings shipped; Stripe/F2/F3 pending. Brand-hidden funnel (sizes 10.1/12.1/13.1 only). Spec in Downloads.
+- [Harbor Routines & App](harbor-routines-app.md) — 4-ask spec; P1 no-silent-no-op + P2 family-wide scheduling (shared routines + schedule templates + per-child overrides + /app/schedule grid; routines.household_id anchor; lib/kiosk/schedule.ts resolution seam) shipped 2026-07-01; P3 builder + P4 senior /app pending. Spec in Downloads.
