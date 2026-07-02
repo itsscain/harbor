@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { HAIKU, aiErrorMessage } from "@/lib/ai/anthropic";
 import { captureError } from "@/lib/observability";
+import { notify } from "@/lib/notifications/dispatch";
 
 /** AI-Led Voice — CHILD-FACING (HARBOR_AI_VOICE_INTERACTIONS.md). A child speaks; Harbor
  *  understands and responds in the keeper's voice, BOUNDED to their routine, feelings, and
@@ -199,6 +200,17 @@ export async function POST(req: Request) {
       .from("check_ins")
       .insert({ child_id: child.id, feeling: feeling || "needs a grown-up", note: text.slice(0, 200) });
     if (ciErr) captureError(ciErr, { area: "voice-distress-checkin", child_id: child.id });
+    // Tier-1 (HARBOR_PUSH_NOTIFICATIONS §3): the single most important notification Harbor sends —
+    // reach the parent that their child needs them. notify() writes the durable in-app record + pushes
+    // to their devices, and never throws (a notification failure can't break the child's voice reply).
+    await notify({
+      householdId: household_id,
+      childId: child.id,
+      category: "distress",
+      title: `${child.name} may need you`,
+      body: "They're having a hard moment. Tap to check in.",
+      route: `/app/children/${child.id}`,
+    });
   } else if (action === "log_feeling" && feeling) {
     await admin.from("check_ins").insert({ child_id: child.id, feeling }).then(() => {}, () => {});
   }

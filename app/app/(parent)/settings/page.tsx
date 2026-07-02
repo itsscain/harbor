@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles, CalendarDays } from "lucide-react";
+import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles, CalendarDays, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { NotificationsCard } from "@/components/app/NotificationsCard";
+import { isPushConfigured, env } from "@/lib/env";
+import { mergePrefs } from "@/lib/notifications/prefs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -91,6 +94,20 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     /* no service-role key — the card shows a setup note */
   }
 
+  // Notification preferences for the signed-in parent (per profile).
+  let notifPrefsRaw: unknown = null;
+  try {
+    const { data } = await supabase
+      .from("notification_preferences")
+      .select("prefs")
+      .eq("parent_id", authUser?.id ?? "")
+      .maybeSingle();
+    notifPrefsRaw = data?.prefs ?? null;
+  } catch {
+    /* migration not applied yet */
+  }
+  const notifPrefs = mergePrefs(notifPrefsRaw);
+
   return (
     <>
       <PageHeader eyebrow="Account" icon={<SettingsIcon className="h-6 w-6" />} title="Settings" />
@@ -103,6 +120,23 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </Field>
           <SubmitButton variant="secondary">Save</SubmitButton>
         </form>
+      </Card>
+
+      <Card className="mb-4 p-0">
+        <Disclosure
+          bodyClassName="px-5 pb-5"
+          summary={
+            <span className="flex items-center gap-2 text-title text-harbor">
+              <Bell className="h-5 w-5 text-water" /> Notifications
+            </span>
+          }
+        >
+          <p className="mb-4 text-sm text-muted">
+            Calm, high-signal alerts on your phone — most importantly, when a child needs you. Turn them on for this
+            device, then choose what to hear about.
+          </p>
+          <NotificationsCard pushConfigured={isPushConfigured()} vapidPublicKey={env.vapidPublicKey} initialPrefs={notifPrefs} />
+        </Disclosure>
       </Card>
 
       <Card className="mb-4 p-0">

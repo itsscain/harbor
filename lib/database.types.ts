@@ -1388,6 +1388,99 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          parent_id: string
+          prefs: Json
+          updated_at: string
+        }
+        Insert: {
+          parent_id: string
+          prefs?: Json
+          updated_at?: string
+        }
+        Update: {
+          parent_id?: string
+          prefs?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          category: string
+          child_id: string | null
+          created_at: string
+          detail_level: string
+          household_id: string
+          id: string
+          parent_id: string
+          route: string | null
+          status: string
+          tier: number
+          title: string
+        }
+        Insert: {
+          body: string
+          category: string
+          child_id?: string | null
+          created_at?: string
+          detail_level?: string
+          household_id: string
+          id?: string
+          parent_id: string
+          route?: string | null
+          status?: string
+          tier?: number
+          title: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          child_id?: string | null
+          created_at?: string
+          detail_level?: string
+          household_id?: string
+          id?: string
+          parent_id?: string
+          route?: string | null
+          status?: string
+          tier?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pairing_requests: {
         Row: {
           child_id: string | null
@@ -1614,6 +1707,63 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          active: boolean
+          auth: string
+          created_at: string
+          device_label: string | null
+          endpoint: string
+          household_id: string
+          id: string
+          last_success_at: string | null
+          p256dh: string
+          parent_id: string
+          platform: string | null
+        }
+        Insert: {
+          active?: boolean
+          auth: string
+          created_at?: string
+          device_label?: string | null
+          endpoint: string
+          household_id: string
+          id?: string
+          last_success_at?: string | null
+          p256dh: string
+          parent_id: string
+          platform?: string | null
+        }
+        Update: {
+          active?: boolean
+          auth?: string
+          created_at?: string
+          device_label?: string | null
+          endpoint?: string
+          household_id?: string
+          id?: string
+          last_success_at?: string | null
+          p256dh?: string
+          parent_id?: string
+          platform?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referrals: {
         Row: {

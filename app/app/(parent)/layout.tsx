@@ -5,8 +5,12 @@ import { ParentRail } from "@/components/app/ParentRail";
 import { AccountMenu } from "@/components/app/AccountMenu";
 import { RouteTransition } from "@/components/app/RouteTransition";
 import { RealtimeRefresh } from "@/components/app/RealtimeRefresh";
+import { RegisterSWApp } from "@/components/app/RegisterSWApp";
+import { NotificationBell } from "@/components/app/NotificationBell";
+import { BadgeSync } from "@/components/app/BadgeSync";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
+import { createClient } from "@/lib/supabase/server";
 
 // /app gets its own standalone manifest so "Add to Home Screen" installs the parent app
 // (start_url/scope = /app) chrome-less, separate from the /kiosk wall app.
@@ -23,15 +27,33 @@ export default async function ParentLayout({
   await requireUser();
   const household = await getMyHousehold();
 
+  // Unread count drives the nav bell + the installed app-icon badge (RLS scopes to this parent).
+  let unread = 0;
+  try {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "unread");
+    unread = count ?? 0;
+  } catch {
+    /* tolerate the table not existing yet */
+  }
+
   return (
     <div className="min-h-dvh bg-seafog">
       {household?.id && <RealtimeRefresh householdId={household.id} />}
+      <RegisterSWApp />
+      <BadgeSync count={unread} />
       {/* Desktop: persistent command rail (The Helm). Mobile: bottom nav. */}
-      <ParentRail householdName={household?.name} />
+      <ParentRail householdName={household?.name} unread={unread} />
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-harbor-100 bg-white/85 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-lg lg:hidden">
           <Wordmark />
-          <AccountMenu householdName={household?.name} />
+          <div className="flex items-center gap-1">
+            <NotificationBell count={unread} />
+            <AccountMenu householdName={household?.name} />
+          </div>
         </header>
         <main className="mx-auto w-full max-w-2xl p-4 pb-24 sm:p-6 lg:max-w-5xl lg:px-10 lg:py-8 lg:pb-10">
           <RouteTransition>{children}</RouteTransition>

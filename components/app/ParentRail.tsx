@@ -18,6 +18,7 @@ import {
   Tablet,
   MessageCircleHeart,
   Settings,
+  Bell,
   LogOut,
 } from "lucide-react";
 import { Wordmark } from "@/components/brand/Logo";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/cn";
 
 const ITEMS = [
   { href: "/app", label: "Home", icon: Home, exact: true },
+  { href: "/app/notifications", label: "Notifications", icon: Bell },
   { href: "/app/ask", label: "Ask Harbor", icon: MessageCircleHeart },
   { href: "/app/children", label: "Children", icon: Users },
   { href: "/app/routines", label: "Routines", icon: ListChecks },
@@ -45,7 +47,7 @@ const ITEMS = [
 
 /** The Helm — the parent's persistent command rail on desktop (§8.1). On mobile
  *  it's hidden and ParentNav (bottom bar) takes over. */
-export function ParentRail({ householdName }: { householdName?: string | null }) {
+export function ParentRail({ householdName, unread = 0 }: { householdName?: string | null; unread?: number }) {
   const pathname = usePathname();
   const name = householdName?.trim() || "Your family";
   return (
@@ -68,7 +70,12 @@ export function ParentRail({ householdName }: { householdName?: string | null })
               )}
             >
               <Icon className={cn("h-5 w-5 shrink-0", active ? "text-water" : "text-muted")} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {href === "/app/notifications" && unread > 0 && (
+                <span className="min-w-[20px] rounded-full bg-beacon px-1.5 text-center text-[11px] font-extrabold leading-5 text-harbor">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
             </Link>
           );
         })}

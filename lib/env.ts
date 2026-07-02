@@ -14,6 +14,8 @@ export const env = {
     "http://localhost:3000"
   ).replace(/\/+$/, ""),
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
+  // VAPID public key — safe to expose; the client needs it to subscribe to web push.
+  vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
 };
 
 /** Server-only secrets. Never import into client components. */
@@ -42,7 +44,20 @@ export const serverEnv = {
   get setupSecret() {
     return process.env.SETUP_SECRET ?? "";
   },
+  // Web Push (VAPID). Private key stays server-side; subject is a mailto:/https: contact.
+  get vapidPrivateKey() {
+    return process.env.VAPID_PRIVATE_KEY ?? "";
+  },
+  get vapidSubject() {
+    return process.env.VAPID_SUBJECT ?? "";
+  },
 };
+
+/** True only when the VAPID keys needed to send web push are present. The app runs fine
+ *  without them — notifications degrade to the in-app center + badge (no push). */
+export function isPushConfigured(): boolean {
+  return Boolean(env.vapidPublicKey && serverEnv.vapidPrivateKey && serverEnv.vapidSubject);
+}
 
 /** True only when every Stripe key needed to run billing is present. */
 export function isStripeConfigured(): boolean {
