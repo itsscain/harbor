@@ -28,6 +28,7 @@ const ITEMS = [
   { href: "/app", label: "Home", icon: Home, exact: true },
   { href: "/app/ask", label: "Ask Harbor", icon: MessageCircleHeart },
   { href: "/app/children", label: "Children", icon: Users },
+  { href: "/app/routines", label: "Routines", icon: ListChecks },
   { href: "/app/family", label: "Family", icon: Heart },
   { href: "/app/schedule", label: "Family Schedule", icon: CalendarClock },
   { href: "/app/medication", label: "Medication", icon: Pill },

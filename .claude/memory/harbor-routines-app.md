@@ -52,7 +52,17 @@ NOT-YET-OPENED (`windowCountdown().untilOpenMin != null`, e.g. bedtime at noon).
 auto-selection** (open+unfinished > catch-up[most-recent] > soonest upcoming), PINNED on first completion
 so a minute-boundary never yanks a mid-task kid. **Why:** a care product for disorganized kids must guide
 + invite, never punish forgetfulness. User still wants the kid routine VIEW + builder even more visually
-pleasing / motivating — keep pushing into **P4 (senior /app redesign, §11-§15) = NEXT.**
+pleasing / motivating — keep pushing in P4.
+
+**Phase 4 STARTED 2026-07-02 (IA foundation, §12/§15).** New unified **Routines hub** `/app/routines`
+(`app/app/(parent)/routines/page.tsx` + `loading.tsx`): glance band (child routines · shared ·
+templates) → per-child cards into each builder → Family Schedule link → "Start from a template"
+(`TemplateApplyHub.tsx`: pick child once, apply any curated/saved template; server action
+`applyTemplate` in actions.ts wraps addRoutineFromLibraryTemplate). Nav: "Routines" now a first-class
+tab (ParentNav — Lists moved into MORE_ROUTES + /more hub) and prominent in ParentRail. Reused the
+design system verbatim (PageHeader/Card/SectionHeader/StatChip/EntityAvatar/EmptyState/Skeleton) — no
+new tokens. **P4 REMAINING:** the rest of §11-§15 — full component-library consolidation, all-states
+polish across every Helm page, optimistic/live everywhere, the builder as the fully-realized showcase.
 
 Composes with [[harbor-kiosk-rework]] (Feedback System), [[harbor-brand-true]] (anti-overload + Skill
 Levels + no-points-for-health), [[harbor-helm-declutter]] (P4 pattern), [[harbor-realtime]],

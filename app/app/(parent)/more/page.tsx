@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot, ScrollText, History, Users, Pill, Tablet, MessageCircleHeart, CalendarClock } from "lucide-react";
+import { MessageSquareHeart, Heart, BarChart3, CreditCard, Settings, ChevronRight, UtensilsCrossed, Gift, Carrot, ScrollText, History, Users, Pill, Tablet, MessageCircleHeart, CalendarClock, ListChecks } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/primitives";
 
@@ -11,6 +11,7 @@ const groups = [
     links: [
       { href: "/app/ask", label: "Ask Harbor", desc: "Talk or type — grounded help + drafts for your kids", icon: MessageCircleHeart },
       { href: "/app/schedule", label: "Family Schedule", desc: "Every routine × every child — set windows once", icon: CalendarClock },
+      { href: "/app/lists", label: "Lists", desc: "Grocery, to-dos & things to remember", icon: ListChecks },
       { href: "/app/family", label: "Family profiles", desc: "Parents in the boat + Together Time", icon: Users },
       { href: "/app/medication", label: "Medication", desc: "Calm med-taking + a record for the doctor", icon: Pill },
       { href: "/app/store", label: "Reward store", desc: "Points kids work toward", icon: Gift },

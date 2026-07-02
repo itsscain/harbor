@@ -590,6 +590,15 @@ export async function saveRoutineAsTemplate(routineId: string, childId: string) 
   revalidatePath("/app/schedule");
 }
 
+/** Hub variant (§12 Routines section): apply a template to a child picked in the form.
+ *  Reuses addRoutineFromLibraryTemplate (which validates + RLS-scopes the insert). */
+export async function applyTemplate(formData: FormData) {
+  const childId = str(formData.get("child_id"));
+  if (!childId) throw new Error("Pick a child for this template.");
+  await addRoutineFromLibraryTemplate(childId, formData);
+  revalidatePath("/app/routines");
+}
+
 /** Delete a household-saved template (never a curated one — RLS blocks that anyway). */
 export async function deleteRoutineTemplate(id: string, childId: string) {
   await requireUser();
