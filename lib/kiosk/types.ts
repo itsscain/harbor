@@ -56,6 +56,13 @@ export type KioskRoutine = {
   /** §2.2: when set, the window comes from the named template, not the fields above. */
   schedule_template_id?: string | null;
   household_id?: string | null;
+  /** Advanced builder (P3 §8.2): steps must be done in order — an out-of-order tap
+   *  gets the no-silent-no-op nudge (§5) instead of completing. */
+  strict_order?: boolean;
+  /** How the arrival moment plays: 'auto' | 'confetti' | 'calm' | 'voyage' (null = auto). */
+  celebration_style?: string | null;
+  /** Per-routine sensory intensity override: 'calm' | 'standard' | 'vivid' (null = inherit child). */
+  sensory_intensity?: string | null;
 };
 
 /** §2.2 — a reusable named window ("School Morning" 6:30–8:00 Mon–Fri). */
@@ -78,6 +85,9 @@ export type KioskRoutineOverride = {
   enabled: boolean;
 };
 
+/** A choice/sub-step option: an icon + label. */
+export type KioskStepOption = { label: string; icon?: string | null };
+
 export type KioskStep = {
   id: string;
   routine_id: string;
@@ -91,6 +101,21 @@ export type KioskStep = {
   duration_min: number | null;
   /** Skill Levels (§4.4): parent baseline scaffolding (1 full → 4 on your own). */
   support_level?: number;
+  /** Advanced builder (P3 §8.2) — the step's interaction kind. Orthogonal to step_type
+   *  (which is First/Then board position). 'standard' = a plain tap-to-complete. */
+  kind?: "standard" | "timed" | "approval" | "together" | "choice" | "substep";
+  /** Spoken instead of the label when read aloud (falls back to label). */
+  read_aloud?: string | null;
+  /** A gentle hint shown under the step on the wall. */
+  hint?: string | null;
+  /** Parent-facing "why this matters" — voiced on request, not shown by default. */
+  why_note?: string | null;
+  /** Parent-facing sensory note (not shown to the child). */
+  sensory_note?: string | null;
+  /** For kind='choice' — the options the child picks ONE of (autonomy, §8.2). */
+  choice_options?: KioskStepOption[] | null;
+  /** For kind='substep' — smaller parts the child ticks off; all done → step done. */
+  substeps?: KioskStepOption[] | null;
 };
 
 /** Earned independence per (child, step) — synced for the parent's growth view. */

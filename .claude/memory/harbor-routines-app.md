@@ -1,6 +1,6 @@
 ---
 name: harbor-routines-app
-description: Routines & Parent App spec (4 asks); Phase 1 (no-silent-no-op) + Phase 2 (family-wide scheduling) shipped; Phases 3-4 pending.
+description: Routines & Parent App spec (4 asks); P1 no-silent-no-op + P2 family-wide scheduling + P3 advanced builder shipped; P4 (senior /app) next. Routines = "catch-up not lockout".
 metadata: 
   node_type: memory
   type: project
@@ -30,4 +30,31 @@ Kiosk resolution seam = `lib/kiosk/schedule.ts`: `routineForChild()` (legacy row
 
 Helm: `/app/schedule` (Family Schedule day-timeline grid + shared-routine manager + template manager + bulk copy/apply-template), SharedRoutineCard, FamilyScheduleGrid, RoutineCard template picker; nav ×3 (ParentRail, ParentNav MORE_ROUTES, more hub). Review lessons: `int(null,fallback)` footgun (Number(null)=0 → guard v==null first); disclosure-collapse fix = version key on inner form not the card; requireUser + assertMine(household) on every schedule action.
 
-Deferred: Phase 3 advanced builder (rich step types, step/template library, live preview), Phase 4 senior /app redesign. Pause for user before Phase 3. Composes with [[harbor-kiosk-rework]] (Feedback System), [[harbor-brand-true]] (anti-overload + Skill Levels), [[harbor-realtime]], [[harbor-device-mgmt]].
+**Phase 3 SHIPPED 2026-07-02** (advanced builder + templates, §8-§10). Migration **0060** (additive):
+`routine_steps.kind` (standard|timed|approval|together|choice|substep — **ORTHOGONAL** to step_type
+task/first/then, so the enum is untouched) + read_aloud/hint/why_note/sensory_note/choice_options/
+substeps; `routines.strict_order/celebration_style/sensory_intensity`; new `routine_templates` +
+`step_library` tables (curated household_id=null + household-saved, RLS: curated readable by all
+signed-in, write only own household). Snapshot carries new COLUMNS free via `to_jsonb()` — NO
+snapshot/push rebuild; per-step completion already generic so new kinds award points unchanged.
+Builder: `StepRow` kind selector + choice/substep options editors + Advanced tray (read-aloud/hint/
+why/sensory) + "no stars" health toggle; `RoutineCard` routine options (advanced_present hidden marker
+so schedule/person editors don't clobber) + step-library tap-to-add + "See it on the wall" preview
+(`RoutinePreview`) + "Save as template". `TemplateGallery` (data-driven curated+saved). Kiosk kinds in
+`ChildView` + `NowCard`: choice (pick one), substep (mini checklist), approval (ParentGate), together
+badge, hint line, strict-order gate (spoken nudge), celebration_style, per-routine sensory_intensity.
+
+**THE CATCH-UP LAW (user feedback 2026-07-02 — routines are CORE, refine to a tee, get in the kid's
+head).** Incident: the wall LOCKED the kids out of their MORNING routine at 11am (window passed, they'd
+forgotten) → felt punishing/inefficient. Fix, now in `ChildView`: a PASSED window is **catch-up, NOT a
+lock** — steps stay tappable, warm framing ("Let's catch up on your morning! 💪"). The ONLY hard lock is
+NOT-YET-OPENED (`windowCountdown().untilOpenMin != null`, e.g. bedtime at noon). Plus **time-of-day
+auto-selection** (open+unfinished > catch-up[most-recent] > soonest upcoming), PINNED on first completion
+so a minute-boundary never yanks a mid-task kid. **Why:** a care product for disorganized kids must guide
++ invite, never punish forgetfulness. User still wants the kid routine VIEW + builder even more visually
+pleasing / motivating — keep pushing into **P4 (senior /app redesign, §11-§15) = NEXT.**
+
+Composes with [[harbor-kiosk-rework]] (Feedback System), [[harbor-brand-true]] (anti-overload + Skill
+Levels + no-points-for-health), [[harbor-helm-declutter]] (P4 pattern), [[harbor-realtime]],
+[[harbor-device-mgmt]]. GOTCHA: parent `/app` is auth-gated → agent preview can't screenshot it; verify
+via clean `npm run build` + review.

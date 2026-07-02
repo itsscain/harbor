@@ -17,9 +17,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { useKiosk } from "./useKiosk";
-import type { KioskChild, KioskStep, KioskChore, KioskMedication } from "@/lib/kiosk/types";
+import type { KioskChild, KioskStep, KioskChore, KioskMedication, KioskRoutine } from "@/lib/kiosk/types";
 import { dueDoses } from "@/lib/kiosk/medication";
-import { effectiveLevel, SUPPORT_LABELS } from "@/lib/kiosk/skill";
+import { effectiveLevel } from "@/lib/kiosk/skill";
 import { MedMoment } from "./MedMoment";
 import { todayKey } from "@/lib/kiosk/db";
 import { runsToday, withinWindow, windowLabel, windowCountdown, opensAtLabel, formatCountdown } from "@/lib/kiosk/calendar";
@@ -66,6 +66,26 @@ export function readChildSettings(child: KioskChild) {
   };
 }
 
+/** Spoken text for a step — the custom read-aloud if set, else the label (§8.2). */
+function spoken(step: KioskStep): string {
+  const r = step.read_aloud?.trim();
+  return r && r.length ? r : step.label;
+}
+/** "HH:MM[:SS]" → minutes since midnight (for time-of-day routine ranking). */
+function clockMin(t: string | null | undefined): number {
+  if (!t) return 0;
+  const [h, m] = t.split(":").map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+}
+/** Sanitize a jsonb choice/substep options blob into {icon,label} rows. */
+function stepOptions(v: unknown): { icon: string; label: string }[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((o) => {
+    const r = (o ?? {}) as Record<string, unknown>;
+    return { icon: r.icon ? String(r.icon) : "", label: r.label ? String(r.label) : "" };
+  });
+}
+
 export function ChildView({
   kiosk,
   childId,
@@ -90,9 +110,10 @@ export function ChildView({
   const child = state?.snapshot.children.find((c) => c.id === childId);
   const settings = child ? readChildSettings(child) : null;
 
-  // Re-render across midnight so "today" + day-of-week filtering stay correct
-  // on an always-on wall.
-  const [, setDayTick] = useState(0);
+  // Re-render across midnight so "today" + day-of-week filtering stay correct on an
+  // always-on wall. The tick also refreshes the time-of-day routine pick + window state
+  // each minute so the wall keeps guiding as the day moves.
+  const [dayTick, setDayTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setDayTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
@@ -114,20 +135,71 @@ export function ChildView({
       .sort((a, b) => a.sort_order - b.sort_order);
   }, [state, child, tz]);
 
+  // Time-of-day guidance (get in the kid's head): when the child hasn't picked a tab, open
+  // on the routine that matters NOW. Priority: an OPEN routine they haven't finished →
+  // one to CATCH UP on (window passed, still undone — pick the most recently missed) →
+  // the SOONEST upcoming. So the wall never sits on a finished morning at bedtime, nor a
+  // not-yet bedtime in the morning. Recomputes each minute via dayTick.
+  const smartRoutineId = useMemo(() => {
+    void dayTick;
+    if (!state || !child || routines.length === 0) return null;
+    const now = trustedNow(state);
+    const day = serviceDay(state);
+    const done = state.progress[child.id]?.date === day ? state.progress[child.id].completed : [];
+    const isDone = (r: KioskRoutine) => {
+      const st = state.snapshot.steps.filter((s) => s.routine_id === r.id);
+      if (r.type === "first_then") {
+        const th = st.find((s) => s.step_type === "then");
+        return !!th && done.includes(th.id);
+      }
+      const tasks = st.filter((s) => s.step_type === "task");
+      return tasks.length > 0 && tasks.every((s) => done.includes(s.id));
+    };
+    let best: { id: string; rank: number; key: number } | null = null;
+    for (const r of routines) {
+      const w = effectiveSchedule(r, child.id, state.snapshot);
+      const hasWin = !!(w.start_time || w.end_time);
+      const open = !hasWin || withinWindow(w, now, tz);
+      const wc = hasWin ? windowCountdown(w, now, tz) : { untilOpenMin: null, untilCloseMin: null };
+      const finished = isDone(r);
+      const startMin = clockMin(w.start_time);
+      let rank: number, key: number;
+      if (open && !finished && hasWin) { rank = 0; key = startMin; }                   // WINDOWED & open now — the thing to do
+      else if (!open && wc.untilOpenMin == null && !finished) { rank = 1; key = 1440 - startMin; } // catch-up (most recently missed)
+      else if (open && !finished) { rank = 2; key = startMin; }                        // windowless "anytime" — doable, lower priority than a timed one
+      else if (!open && wc.untilOpenMin != null) { rank = 3; key = wc.untilOpenMin; }  // upcoming (soonest)
+      else if (open && finished) { rank = 4; key = startMin; }                         // open but done
+      else { rank = 5; key = startMin; }                                              // past + done
+      if (!best || rank < best.rank || (rank === best.rank && key < best.key)) best = { id: r.id, rank, key };
+    }
+    return best?.id ?? null;
+  }, [state, child, routines, tz, dayTick]);
+
   const [routineId, setRoutineId] = useState<string | null>(null);
-  const activeRoutine = routines.find((r) => r.id === routineId) ?? routines[0];
-  // Time-lock (§ routine windows): a routine with a start/end can only be completed inside
-  // its window, measured in the family tz against trusted (tamper-resistant) time. The
-  // window is the PER-CHILD effective one (P2: override → template → own schedule).
+  // A manual tab pick wins; otherwise the time-of-day choice; otherwise the first routine.
+  const activeRoutine =
+    (routineId ? routines.find((r) => r.id === routineId) : undefined) ??
+    routines.find((r) => r.id === smartRoutineId) ??
+    routines[0];
+
+  // The PER-CHILD effective window (P2: override → template → own schedule), vs trusted
+  // (tamper-resistant) time in the family tz.
   const activeWindow =
     state && child && activeRoutine ? effectiveSchedule(activeRoutine, child.id, state.snapshot) : null;
-  const routineLocked = !!state && !!activeWindow && !withinWindow(activeWindow, trustedNow(state), tz);
+  const nowWc = state && activeWindow ? windowCountdown(activeWindow, trustedNow(state), tz) : null;
+  const hasWindow = !!activeWindow && !!(activeWindow.start_time || activeWindow.end_time);
+  const inWindow = !state || !activeWindow || withinWindow(activeWindow, trustedNow(state), tz);
+  // The ONLY hard lock is a routine that hasn't OPENED yet (e.g. bedtime at noon) — it's
+  // genuinely "not time." A routine whose window has PASSED is NOT locked: the child simply
+  // forgot, so Harbor lets them CATCH UP and finish it (the 11am-missed-morning fix) rather
+  // than punishing a forgetful kid — routines exist to HELP them do the thing, not gate it.
+  const notYetOpen = !!state && hasWindow && !inWindow && !!nowWc && nowWc.untilOpenMin != null;
+  const catchUp = !!state && hasWindow && !inWindow && (!nowWc || nowWc.untilOpenMin == null);
+  const routineLocked = notYetOpen;
   const lockLabel = activeWindow ? windowLabel(activeWindow) : null;
-  // No silent no-op (§5–§7): when a routine is time-locked, Harbor explains WHY — gently,
-  // with a live countdown — and offers the calm corner as a forward path. This recomputes
-  // on the 60s dayTick above, so the countdown stays honest without extra timers.
-  const lockCountdown =
-    routineLocked && activeWindow ? windowCountdown(activeWindow, trustedNow(state!), tz) : null;
+  // No silent no-op (§5–§7): when not-yet-open, Harbor explains WHY — gently, with a live
+  // countdown — and offers the calm corner. Recomputes on the 60s dayTick above.
+  const lockCountdown = notYetOpen ? nowWc : null;
   const lockOpensAt = activeWindow ? opensAtLabel(activeWindow) : null;
   // A short, warm spoken line for a blocked tap — voiced only if read-aloud is on.
   const lockSpeech = (() => {
@@ -139,13 +211,9 @@ export function ChildView({
     if (lockOpensAt) return `${name} ${lockOpensAt}. Let's come back then!`;
     return `${name} is resting right now. Let's come back later!`;
   })();
-  // "Closing soon" heads-up (§7): when a routine IS open but the window is nearly up, a calm,
-  // non-pressuring nudge — never a stressful ticking clock. Recomputes on the 60s dayTick.
+  // "Closing soon" heads-up (§7): only meaningful while genuinely open.
   const CLOSING_SOON_MIN = 20;
-  const closeMin =
-    !routineLocked && activeWindow && state
-      ? windowCountdown(activeWindow, trustedNow(state), tz).untilCloseMin
-      : null;
+  const closeMin = inWindow && hasWindow && nowWc ? nowWc.untilCloseMin : null;
   const closingSoonMin = closeMin != null && closeMin > 0 && closeMin <= CLOSING_SOON_MIN ? closeMin : null;
 
   const steps = useMemo(() => {
@@ -157,6 +225,10 @@ export function ChildView({
 
   const [celebrate, setCelebrate] = useState<{ points: number; n: number } | null>(null);
   const [approvingChore, setApprovingChore] = useState<KioskChore | null>(null);
+  // Advanced steps (§8.2): a step awaiting a grown-up's PIN, and local (unsynced)
+  // sub-step ticks keyed by step id — completing all of them finishes the parent step.
+  const [approvingStep, setApprovingStep] = useState<KioskStep | null>(null);
+  const [subProgress, setSubProgress] = useState<Record<string, number[]>>({});
   const [bigCelebrate, setBigCelebrate] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
   const [anchorOpen, setAnchorOpen] = useState(autoAnchor);
@@ -228,7 +300,11 @@ export function ChildView({
   const corner = (state.snapshot.corners ?? []).find((c) => c.child_id === child.id && c.status === "active") ?? null;
   // Auto-soften (§9.1.3): after a rough Anchor today, run gentler celebration.
   const softenedToday = state.autoSoften?.[child.id] === today;
-  const fxIntensity = softenedToday ? 0.6 : settings.intensity;
+  // A routine can override the child's sensory intensity for just this routine (§8.2).
+  const baseIntensity = activeRoutine?.sensory_intensity
+    ? intensityOf(activeRoutine.sensory_intensity)
+    : settings.intensity;
+  const fxIntensity = softenedToday ? Math.min(0.6, baseIntensity) : baseIntensity;
   const streak = activeStreak(state.streaks, child.id);
   // Personalized encouragement from the child's AI profile (offline; rotates daily).
   const encLines = child.ai_profile?.encouragement ?? [];
@@ -238,6 +314,8 @@ export function ChildView({
   // gated by the child's settings and scaled by today's sensory intensity.
   const fx = { sound: settings!.sound, haptics: settings!.haptics, intensity: fxIntensity };
 
+  // Gate a tap, then complete. Advanced kinds (§8.2) add gentle, ALWAYS-explained gates
+  // (§5, never a silent no-op); choice/substep call doComplete once their control resolves.
   function complete(step: KioskStep) {
     if (prog.includes(step.id)) return;
     // Time-locked routine: never a silent no-op (§5). Gently refuse outside its window —
@@ -248,24 +326,78 @@ export function ChildView({
       if (settings!.readAloud && lockSpeech) speak(lockSpeech);
       return;
     }
+    // Strict order (§8.2): only the current step completes; tapping ahead is answered
+    // with a soft cue + a spoken nudge back to the right step — not silently eaten.
+    if (activeRoutine?.strict_order && !isFirstThen) {
+      const expected = scheduleSteps.find((s) => !prog.includes(s.id));
+      if (expected && expected.id !== step.id) {
+        feedback("soft-error", fx);
+        if (settings!.readAloud) speak(`Let's do "${spoken(expected)}" first!`);
+        return;
+      }
+    }
+    // Approval (§8.2): needs a grown-up's OK before the stars. Only gate when a PIN
+    // actually exists (else verifyPin auto-passes = a fake gate).
+    if (step.kind === "approval" && kiosk.state?.pinHash) {
+      setApprovingStep(step);
+      return;
+    }
+    doComplete(step);
+  }
+
+  function doComplete(step: KioskStep) {
+    if (prog.includes(step.id)) return;
+    // Pin the routine the moment they start doing it, so the minute-by-minute time-of-day
+    // pick can never yank a mid-task child onto a different routine (a fresh open re-picks).
+    if (!routineId && activeRoutine) setRoutineId(activeRoutine.id);
     kiosk.completeStep(child!.id, step);
     // Does this tap finish the whole routine? → the big "you're home" arrival moment.
     const finishes = isFirstThen
       ? !!thenStep && step.id === thenStep.id
       : scheduleSteps.length > 0 && scheduleSteps.every((s) => s.id === step.id || prog.includes(s.id));
+    // celebration_style (§8.2): 'calm'/'voyage' keep the finish quiet (the Voyage arrival
+    // flare owns the moment); 'confetti'/'auto'/unset play the full-screen cheer.
+    const celeb = activeRoutine?.celebration_style;
+    const bigOverlay = celeb !== "calm" && celeb !== "voyage";
     // One beat per completion: a finishing step plays ONLY the arrival bell (not the
     // step chime + bell on top of each other, nor two voice lines).
     if (finishes) {
-      setBigCelebrate(true);
+      if (bigOverlay) setBigCelebrate(true);
       feedback("arrival", { ...fx, say: settings!.readAloud ? doneLine() : undefined });
       kiosk.bumpStreak(child!.id); // finishing the routine keeps the streak alive
-      setTimeout(() => setBigCelebrate(false), 4200);
+      if (bigOverlay) setTimeout(() => setBigCelebrate(false), 4200);
     } else {
       feedback("step-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
     }
     if (step.reward_points > 0) {
       setCelebrate({ points: step.reward_points, n: Date.now() });
       setTimeout(() => setCelebrate(null), 1300);
+    }
+    setSubProgress((p) => (p[step.id] ? { ...p, [step.id]: [] } : p));
+  }
+
+  // Sub-stepped step (§8.2): tick a small part; all ticked → the parent step completes.
+  // Ticks are local-only (not synced) — the step completion is what syncs. Every tap gets
+  // a light beat, so it's never a silent no-op.
+  function toggleSub(step: KioskStep, i: number) {
+    const opts = stepOptions(step.substeps);
+    if (opts.length === 0) return;
+    // A not-yet-open routine gates completion (§6.3). Route the tap through complete() so it
+    // gets the explained "resting" feedback + spoken reason, and never optimistically ticks —
+    // otherwise the sub-steps would show a stuck "all done 🎉" while the step stays incomplete.
+    if (routineLocked) {
+      complete(step);
+      return;
+    }
+    const cur = subProgress[step.id] ?? [];
+    const adding = !cur.includes(i);
+    const next = adding ? [...cur, i] : cur.filter((x) => x !== i);
+    if (adding && next.length >= opts.length) {
+      setSubProgress((p) => ({ ...p, [step.id]: next }));
+      complete(step); // runs the approval/strict gates, then doComplete
+    } else {
+      if (adding) feedback("step-complete", { sound: settings!.sound, haptics: settings!.haptics, intensity: fxIntensity });
+      setSubProgress((p) => ({ ...p, [step.id]: next }));
     }
   }
 
@@ -275,7 +407,7 @@ export function ChildView({
     if (prog.includes(thenStep.id)) return;
     if (!prog.includes(firstStep.id)) {
       feedback("soft-error", fx);
-      if (settings!.readAloud) speak(`Let's do "${firstStep.label}" first!`);
+      if (settings!.readAloud) speak(`Let's do "${spoken(firstStep)}" first!`);
       return;
     }
     complete(thenStep);
@@ -626,6 +758,25 @@ export function ChildView({
                 </Pressable>
               </div>
             )}
+            {catchUp && !allDone && (
+              // Catch-up (the missed-morning fix): the window passed but the child forgot —
+              // so this is a warm invitation to finish, NOT a lock. Steps stay fully tappable.
+              <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl bg-kwater/10 px-5 py-4 text-center ring-1 ring-kwater/25 sm:flex-row sm:justify-between sm:text-left">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-kwater/15 text-kwater">
+                    <Sparkles className="h-6 w-6" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-bold text-ktext">Let&apos;s catch up on {activeRoutine.name}!</p>
+                    <p className="text-sm font-semibold text-kwater">
+                      {progressDone > 0
+                        ? `${progressTotal - progressDone} to go — you've got this 💪`
+                        : "You can still finish it — start right here 💪"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {closingSoonMin != null && !allDone && (
               // "Closing soon" heads-up (§7): calm and supportive, never a stressful clock.
               <div className="mb-4 flex items-center justify-center gap-2.5 rounded-2xl bg-kwater/10 px-4 py-2.5 text-center text-sm font-semibold text-kwater ring-1 ring-kwater/25">
@@ -650,9 +801,9 @@ export function ChildView({
 
             {activeRoutine.type === "first_then" && firstStep && thenStep ? (
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-                <StepCard step={firstStep} label="First" level={lvl(firstStep)} done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => complete(firstStep)} onSpeak={() => speak(firstStep.label, settings.readAloud)} big />
+                <StepCard step={firstStep} label="First" level={lvl(firstStep)} done={prog.includes(firstStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => complete(firstStep)} onSpeak={() => speak(spoken(firstStep), settings.readAloud)} big />
                 <ArrowRight className="mx-auto h-10 w-10 rotate-90 text-kmute sm:rotate-0" />
-                <StepCard step={thenStep} label="Then" level={lvl(thenStep)} done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => tapThen(firstStep, thenStep)} onSpeak={() => speak(thenStep.label, settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
+                <StepCard step={thenStep} label="Then" level={lvl(thenStep)} done={prog.includes(thenStep.id)} reducedMotion={settings.reducedMotion} haptics={settings.haptics} accent={color} onTap={() => tapThen(firstStep, thenStep)} onSpeak={() => speak(spoken(thenStep), settings.readAloud)} big muted={!prog.includes(firstStep.id)} />
               </div>
             ) : allDone ? (
               <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-center font-display text-xl font-bold text-emerald-300">
@@ -672,7 +823,9 @@ export function ChildView({
                         level={lvl(current)}
                         reducedMotion={settings.reducedMotion}
                         onTap={() => complete(current)}
-                        onSpeak={() => speak(current.label, settings.readAloud)}
+                        onSpeak={() => speak(spoken(current), settings.readAloud)}
+                        subDone={subProgress[current.id] ?? []}
+                        onToggleSub={(i) => toggleSub(current, i)}
                       />
                     )}
                     {others.length > 0 && (
@@ -687,7 +840,7 @@ export function ChildView({
                             haptics={settings.haptics}
                             accent={color}
                             onTap={() => complete(s)}
-                            onSpeak={() => speak(s.label, settings.readAloud)}
+                            onSpeak={() => speak(spoken(s), settings.readAloud)}
                           />
                         ))}
                       </div>
@@ -852,6 +1005,20 @@ export function ChildView({
         />
       )}
 
+      {approvingStep && (
+        <ParentGate
+          verify={kiosk.verifyPin}
+          title="A grown-up's OK?"
+          subtitle={`Enter your PIN to finish "${approvingStep.label}".`}
+          onSuccess={() => {
+            const s = approvingStep;
+            setApprovingStep(null);
+            doComplete(s);
+          }}
+          onCancel={() => setApprovingStep(null)}
+        />
+      )}
+
       {celebrate && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
           {!settings.reducedMotion && <Confetti key={celebrate.n} count={scaleCount(24, fxIntensity)} accent={ramp.accent} />}
@@ -898,30 +1065,50 @@ export function ChildView({
 
 /** The now-card (Visual Spec §8) — the single, unmistakable "do this now": large,
  *  accent-bordered, gently breathing, accent-suffused (reads --accent-* from the
- *  ChildView root). A div (not a button) so the read-aloud control can nest. */
+ *  ChildView root). Renders the step's kind (§8.2): a plain tap, a Choice ("pick one"),
+ *  or Sub-steps (tick each). A div (not a button) so nested controls can nest. */
 function NowCard({
   step,
   onTap,
   onSpeak,
   reducedMotion,
   level = 1,
+  subDone = [],
+  onToggleSub,
 }: {
   step: KioskStep;
   onTap: () => void;
   onSpeak: () => void;
   reducedMotion: boolean;
   level?: number;
+  /** For a sub-stepped step: which sub-step indices are ticked. */
+  subDone?: number[];
+  onToggleSub?: (i: number) => void;
 }) {
+  const choices = step.kind === "choice" ? stepOptions(step.choice_options) : [];
+  const subs = step.kind === "substep" ? stepOptions(step.substeps) : [];
+  const isChoice = choices.length > 0;
+  const isSub = subs.length > 0;
+  // With inner controls, the WHOLE card no longer completes on tap — the child must pick
+  // an option / tick the parts. Keeps a stray tap from skipping the choice.
+  const wholeTap = !isChoice && !isSub;
+  const together = step.kind === "together";
+
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onTap}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onTap();
-      }}
+      role={wholeTap ? "button" : undefined}
+      tabIndex={wholeTap ? 0 : undefined}
+      onClick={wholeTap ? onTap : undefined}
+      onKeyDown={
+        wholeTap
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") onTap();
+            }
+          : undefined
+      }
       className={cn(
-        "relative mb-3 flex w-full cursor-pointer items-center gap-5 overflow-hidden rounded-[24px] p-5 text-left transition active:scale-[0.985] sm:gap-7 sm:p-6",
+        "relative mb-3 flex w-full items-start gap-5 overflow-hidden rounded-[24px] p-5 text-left transition sm:gap-7 sm:p-6",
+        wholeTap && "cursor-pointer active:scale-[0.985]",
         !reducedMotion && "now-breathe",
       )}
       style={{
@@ -937,10 +1124,14 @@ function NowCard({
         className="absolute right-4 top-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em]"
         style={{ color: "var(--accent-text)" }}
       >
-        {level >= 4 ? (
+        {together ? (
+          <>🤝 Together</>
+        ) : level >= 4 ? (
           <>🧭 On your own</>
         ) : level === 3 ? (
           <>Just a reminder</>
+        ) : isChoice ? (
+          <>Your choice</>
         ) : (
           <>
             <span className={cn("h-1.5 w-1.5 rounded-full", !reducedMotion && "k-glow")} style={{ background: "var(--accent)" }} /> Do this now
@@ -957,17 +1148,84 @@ function NowCard({
         {step.icon ?? "✅"}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-display text-[clamp(26px,5.5vw,52px)] font-extrabold leading-none tracking-tight text-white">{step.label}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          {step.reward_points > 0 && (
-            <span className="inline-flex items-center gap-1.5 font-semibold tabular-nums text-beacon">
-              <Star className="h-5 w-5 fill-beacon text-beacon" /> {step.reward_points}
+        <p className="font-display text-[clamp(24px,5.2vw,48px)] font-extrabold leading-none tracking-tight text-white">{step.label}</p>
+        {step.hint && (
+          <p className="mt-2.5 flex items-start gap-1.5 text-sm font-medium text-white/75 sm:text-base">
+            <span aria-hidden>💡</span>
+            <span>{step.hint}</span>
+          </p>
+        )}
+
+        {isChoice ? (
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            {choices.map((o, i) => (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTap();
+                }}
+                className="kiosk-tap flex flex-col items-center justify-center gap-1.5 rounded-2xl px-3 py-4 text-center ring-1 transition hover:brightness-110 active:scale-95"
+                style={{ background: "var(--accent-soft)", borderColor: "var(--accent-glow)", boxShadow: "0 0 0 1px var(--accent-line)" }}
+              >
+                <span className="text-4xl leading-none">{o.icon || "•"}</span>
+                <span className="font-display text-base font-bold text-white">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : isSub ? (
+          <div className="mt-4 space-y-2">
+            <p className="text-sm font-semibold" style={{ color: "var(--accent-text)" }}>
+              {subDone.length} of {subs.length} done{subDone.length === subs.length ? " 🎉" : ""}
+            </p>
+            {subs.map((o, i) => {
+              const d = subDone.includes(i);
+              return (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSub?.(i);
+                  }}
+                  className={cn(
+                    "kiosk-tap flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left ring-1 transition active:scale-[0.99]",
+                    d ? "bg-emerald-500/15 ring-emerald-500/40" : "bg-white/5 ring-white/10 hover:bg-white/10",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-2",
+                      d ? "bg-emerald-500 text-white ring-emerald-400/40" : "ring-white/25",
+                    )}
+                  >
+                    {d && <Check className="h-4 w-4" strokeWidth={3} />}
+                  </span>
+                  <span className="text-2xl leading-none">{o.icon || "•"}</span>
+                  <span className={cn("font-display text-lg font-bold", d ? "text-emerald-200/80 line-through" : "text-white")}>{o.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            {step.reward_points > 0 && (
+              <span className="inline-flex items-center gap-1.5 font-semibold tabular-nums text-beacon">
+                <Star className="h-5 w-5 fill-beacon text-beacon" /> {step.reward_points}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--accent-text)" }}>
+              {step.kind === "approval" ? (
+                <>
+                  <ShieldCheck className="h-4 w-4" /> Tap — a grown-up says OK
+                </>
+              ) : (
+                <>
+                  Tap when you&apos;re done <ArrowRight className={cn("h-4 w-4", !reducedMotion && "nudge-x")} />
+                </>
+              )}
             </span>
-          )}
-          <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--accent-text)" }}>
-            Tap when you&apos;re done <ArrowRight className={cn("h-4 w-4", !reducedMotion && "nudge-x")} />
-          </span>
-        </div>
+          </div>
+        )}
       </div>
       {level <= 2 && (
         <button
@@ -1061,6 +1319,9 @@ function StepCard({
         >
           {step.label}
         </span>
+        {step.kind === "together" && !done && (
+          <span className="text-xs font-semibold text-ktext/70">🤝 Together</span>
+        )}
         {step.reward_points > 0 && !done && (
           <span className="flex items-center gap-1 text-sm font-semibold text-beacon">
             <Star className="h-4 w-4 fill-beacon" /> {step.reward_points}

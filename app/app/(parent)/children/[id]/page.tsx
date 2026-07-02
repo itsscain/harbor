@@ -8,6 +8,7 @@ import { EntityAvatar } from "@/components/ui/EntityAvatar";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { RoutineCard } from "@/components/app/RoutineCard";
+import { TemplateGallery } from "@/components/app/TemplateGallery";
 import { Disclosure } from "@/components/app/Disclosure";
 import { GroundingCard } from "@/components/app/GroundingCard";
 import { CornerCard, type CornerRow } from "@/components/app/CornerCard";
@@ -21,7 +22,6 @@ import {
   deleteChild,
   deleteChildPermanently,
   addRoutine,
-  addRoutineFromTemplate,
   addGradeRoutines,
   createChore,
   updateChore,
@@ -73,6 +73,22 @@ export default async function ChildDetail({
     .contains("assigned_child_ids", [id])
     .is("deleted_at", null)
     .order("sort_order");
+
+  // P3 §9 — the routine template gallery + step library (curated + this household's saved).
+  // RLS returns curated (null household) + our own rows; curated sorts first.
+  const [{ data: routineTemplates }, { data: stepLibrary }] = await Promise.all([
+    supabase
+      .from("routine_templates")
+      .select("id, name, emoji, description, need_tags, household_id, content")
+      .is("deleted_at", null)
+      .order("household_id", { nullsFirst: true })
+      .order("sort_order"),
+    supabase
+      .from("step_library")
+      .select("id, label, icon, default_points, kind, category")
+      .is("deleted_at", null)
+      .order("sort_order"),
+  ]);
 
   const routineIds = (routines ?? []).map((r) => r.id);
   const { data: steps } = routineIds.length
@@ -227,6 +243,7 @@ export default async function ChildDetail({
             childId={child.id}
             color={color}
             templates={templates ?? []}
+            library={stepLibrary ?? []}
           />
         ))}
       </div>
@@ -252,38 +269,9 @@ export default async function ChildDetail({
             </form>
           ))}
         </div>
-        <p className="mt-4 text-sm text-muted">Or add a single routine from a template:</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[
-            ["morning", "🌅 Morning"],
-            ["midday", "☀️ Summer day"],
-            ["bedtime", "🌙 Bedtime"],
-            ["afterschool", "🍎 After school"],
-            ["firstthen", "🔁 First / Then"],
-          ].map(([key, label]) => (
-            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
-              <input type="hidden" name="template" value={key} />
-              <SubmitButton size="sm" variant="secondary" savedText="Added">
-                {label}
-              </SubmitButton>
-            </form>
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-muted">Designed around needs — a calm, expert starting point:</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[
-            ["adhd_morning", "⚡ ADHD morning"],
-            ["autism_bedtime", "🧩 Autism bedtime"],
-            ["anxiety_winddown", "🫧 Anxiety wind-down"],
-            ["low_demand", "💛 Low-demand day"],
-          ].map(([key, label]) => (
-            <form key={key} action={addRoutineFromTemplate.bind(null, child.id)}>
-              <input type="hidden" name="template" value={key} />
-              <SubmitButton size="sm" variant="secondary" savedText="Added">
-                {label}
-              </SubmitButton>
-            </form>
-          ))}
+        <p className="mt-4 text-sm text-muted">Or start from a template — pick one, then tweak. Designed around real needs:</p>
+        <div className="mt-2.5">
+          <TemplateGallery templates={routineTemplates ?? []} childId={child.id} />
         </div>
         <p className="mt-4 text-sm font-semibold text-harbor">…or build your own:</p>
         <form action={addRoutine.bind(null, child.id)} className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto_auto]">

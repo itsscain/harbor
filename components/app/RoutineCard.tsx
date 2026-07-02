@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Card, Badge, Field, Input, Select, Switch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { Disclosure } from "./Disclosure";
 import { StepRow } from "./StepRow";
+import { RoutinePreview } from "./RoutinePreview";
 import { ListRow } from "@/components/ui/ListRow";
-import { Trash2, Clock } from "lucide-react";
-import { updateRoutine, addStep, deleteRoutine } from "@/app/app/(parent)/actions";
+import { Trash2, Clock, Eye, BookmarkPlus } from "lucide-react";
+import { updateRoutine, addStep, deleteRoutine, saveRoutineAsTemplate } from "@/app/app/(parent)/actions";
 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function dayLabel(days: number[] | null): string | null {
@@ -27,6 +29,13 @@ type Step = {
   duration_min: number | null;
   reward_points: number;
   support_level?: number | null;
+  kind?: string | null;
+  read_aloud?: string | null;
+  hint?: string | null;
+  why_note?: string | null;
+  sensory_note?: string | null;
+  choice_options?: unknown;
+  substeps?: unknown;
 };
 
 type Routine = {
@@ -39,9 +48,13 @@ type Routine = {
   sort_order: number;
   days_of_week: number[] | null;
   schedule_template_id?: string | null;
+  strict_order?: boolean | null;
+  celebration_style?: string | null;
+  sensory_intensity?: string | null;
 };
 
 type Template = { id: string; name: string; start_time: string | null; end_time: string | null };
+type LibraryStep = { id: string; label: string; icon: string | null; default_points: number; kind: string; category: string | null };
 
 function routineEmoji(r: Routine): string {
   const n = r.name.toLowerCase();
@@ -64,6 +77,7 @@ export function RoutineCard({
   childId,
   color = "#18606f",
   templates = [],
+  library = [],
 }: {
   routine: Routine;
   steps: Step[];
@@ -71,7 +85,10 @@ export function RoutineCard({
   color?: string;
   /** Household schedule templates (P2 §2.2) — a routine can point at a named window. */
   templates?: Template[];
+  /** Curated + household step library (P3 §9) — tap-to-add common steps. */
+  library?: LibraryStep[];
 }) {
+  const [showPreview, setShowPreview] = useState(false);
   const count = steps.length;
   const peek = steps.slice(0, 5);
   const when = r.start_time ? r.start_time.slice(0, 5) : null;
@@ -123,6 +140,9 @@ export function RoutineCard({
         <div className="space-y-4 px-4 pb-4 pt-1">
           {/* name + active + schedule */}
           <form action={updateRoutine.bind(null, r.id, childId)} className="space-y-3">
+            {/* Marks this as the advanced builder form so updateRoutine writes the
+                routine-level options (an unchecked toggle is absent from FormData). */}
+            <input type="hidden" name="advanced_present" value="1" />
             <div className="flex flex-wrap items-center gap-3">
               <input
                 name="name"
@@ -177,6 +197,37 @@ export function RoutineCard({
                 </Field>
               </div>
             </details>
+
+            {/* Routine-level power (§8.2), revealed on demand — order, celebration, sensory. */}
+            <details className="rounded-xl bg-surface-sunken px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-water">Routine options</summary>
+              <div className="mt-3 space-y-3">
+                <Switch
+                  name="strict_order"
+                  label="Do steps in order"
+                  hint="Tapping ahead gently nudges back to the current step (never a silent no-op)."
+                  defaultChecked={r.strict_order ?? false}
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Celebration" hint="How the finish moment plays on the wall.">
+                    <Select name="celebration_style" defaultValue={r.celebration_style ?? ""}>
+                      <option value="">Auto (match the child)</option>
+                      <option value="confetti">Confetti &amp; cheer</option>
+                      <option value="voyage">Calm voyage arrival</option>
+                      <option value="calm">Quiet &amp; gentle</option>
+                    </Select>
+                  </Field>
+                  <Field label="Sensory intensity" hint="Overrides the child's setting for this routine only.">
+                    <Select name="sensory_intensity" defaultValue={r.sensory_intensity ?? ""}>
+                      <option value="">Inherit from child</option>
+                      <option value="calm">Calm — gentle &amp; minimal</option>
+                      <option value="standard">Standard</option>
+                      <option value="vivid">Vivid — big &amp; bright</option>
+                    </Select>
+                  </Field>
+                </div>
+              </div>
+            </details>
           </form>
 
           {/* steps */}
@@ -187,9 +238,30 @@ export function RoutineCard({
               </p>
             )}
             {steps.map((s, i) => (
-              <StepRow key={s.id} step={s} childId={childId} isFirst={i === 0} isLast={i === count - 1} />
+              <StepRow key={s.id} step={s} childId={childId} isFirst={i === 0} isLast={i === count - 1} routineType={r.type} />
             ))}
           </div>
+
+          {/* step library — tap to add a common step (§9). Assembling, not typing. */}
+          {library.length > 0 && (
+            <details className="rounded-xl bg-surface-sunken px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-water">From the step library</summary>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {library.map((lib) => (
+                  <form key={lib.id} action={addStep.bind(null, r.id, childId)}>
+                    <input type="hidden" name="label" value={lib.label} />
+                    <input type="hidden" name="icon" value={lib.icon ?? ""} />
+                    <input type="hidden" name="reward_points" value={lib.default_points} />
+                    <input type="hidden" name="kind" value={lib.kind} />
+                    <input type="hidden" name="step_type" value="task" />
+                    <SubmitButton size="sm" variant="secondary" savedText="Added ✓">
+                      <span className="text-base">{lib.icon ?? "•"}</span> {lib.label}
+                    </SubmitButton>
+                  </form>
+                ))}
+              </div>
+            </details>
+          )}
 
           {/* add step */}
           <form action={addStep.bind(null, r.id, childId)} className="flex items-center gap-2 border-t border-harbor-100 pt-3">
@@ -206,7 +278,22 @@ export function RoutineCard({
             <SubmitButton size="sm">Add</SubmitButton>
           </form>
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-harbor-100 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPreview(true)}
+                disabled={count === 0}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-harbor-100 bg-white px-3 py-1.5 text-sm font-semibold text-harbor transition hover:border-water/40 hover:shadow-card disabled:opacity-50"
+              >
+                <Eye className="h-4 w-4 text-water" /> See it on the wall
+              </button>
+              <form action={saveRoutineAsTemplate.bind(null, r.id, childId)}>
+                <SubmitButton size="sm" variant="ghost" savedText="Saved ✓">
+                  <BookmarkPlus className="h-4 w-4" /> Save as template
+                </SubmitButton>
+              </form>
+            </div>
             <form action={deleteRoutine.bind(null, r.id, childId)}>
               <ConfirmSubmit message={`Delete the "${r.name}" routine and its steps?`}>
                 <Trash2 className="h-4 w-4" /> Delete routine
@@ -215,6 +302,24 @@ export function RoutineCard({
           </div>
         </div>
       </Disclosure>
+      {showPreview && (
+        <RoutinePreview
+          routine={{ name: r.name, type: r.type, strict_order: r.strict_order }}
+          steps={steps.map((s) => ({
+            id: s.id,
+            label: s.label,
+            icon: s.icon,
+            reward_points: s.reward_points,
+            kind: s.kind,
+            step_type: s.step_type,
+            hint: s.hint,
+            choice_options: s.choice_options,
+            substeps: s.substeps,
+          }))}
+          accent={color}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </Card>
   );
 }

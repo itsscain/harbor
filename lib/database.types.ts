@@ -1789,52 +1789,73 @@ export type Database = {
       }
       routine_steps: {
         Row: {
+          choice_options: Json | null
           created_at: string
           deleted_at: string | null
           duration_min: number | null
+          hint: string | null
           icon: string | null
           id: string
+          kind: string
           label: string
           order_index: number
           photo_url: string | null
+          read_aloud: string | null
           reward_points: number
           routine_id: string
+          sensory_note: string | null
           start_time: string | null
           step_type: Database["public"]["Enums"]["step_type"]
+          substeps: Json | null
           support_level: number
           updated_at: string
+          why_note: string | null
         }
         Insert: {
+          choice_options?: Json | null
           created_at?: string
           deleted_at?: string | null
           duration_min?: number | null
+          hint?: string | null
           icon?: string | null
           id?: string
+          kind?: string
           label: string
           order_index?: number
           photo_url?: string | null
+          read_aloud?: string | null
           reward_points?: number
           routine_id: string
+          sensory_note?: string | null
           start_time?: string | null
           step_type?: Database["public"]["Enums"]["step_type"]
+          substeps?: Json | null
           support_level?: number
           updated_at?: string
+          why_note?: string | null
         }
         Update: {
+          choice_options?: Json | null
           created_at?: string
           deleted_at?: string | null
           duration_min?: number | null
+          hint?: string | null
           icon?: string | null
           id?: string
+          kind?: string
           label?: string
           order_index?: number
           photo_url?: string | null
+          read_aloud?: string | null
           reward_points?: number
           routine_id?: string
+          sensory_note?: string | null
           start_time?: string | null
           step_type?: Database["public"]["Enums"]["step_type"]
+          substeps?: Json | null
           support_level?: number
           updated_at?: string
+          why_note?: string | null
         }
         Relationships: [
           {
@@ -1846,10 +1867,61 @@ export type Database = {
           },
         ]
       }
+      routine_templates: {
+        Row: {
+          content: Json
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          emoji: string | null
+          household_id: string | null
+          id: string
+          name: string
+          need_tags: string[] | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          household_id?: string | null
+          id?: string
+          name: string
+          need_tags?: string[] | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          household_id?: string | null
+          id?: string
+          name?: string
+          need_tags?: string[] | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_templates_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routines: {
         Row: {
           active: boolean
           assigned_child_ids: string[] | null
+          celebration_style: string | null
           child_id: string | null
           created_at: string
           days_of_week: number[] | null
@@ -1861,8 +1933,10 @@ export type Database = {
           person_id: string | null
           schedule_template_id: string | null
           scope: string
+          sensory_intensity: string | null
           sort_order: number
           start_time: string | null
+          strict_order: boolean
           together: boolean
           type: Database["public"]["Enums"]["routine_type"]
           updated_at: string
@@ -1871,6 +1945,7 @@ export type Database = {
         Insert: {
           active?: boolean
           assigned_child_ids?: string[] | null
+          celebration_style?: string | null
           child_id?: string | null
           created_at?: string
           days_of_week?: number[] | null
@@ -1882,8 +1957,10 @@ export type Database = {
           person_id?: string | null
           schedule_template_id?: string | null
           scope?: string
+          sensory_intensity?: string | null
           sort_order?: number
           start_time?: string | null
+          strict_order?: boolean
           together?: boolean
           type?: Database["public"]["Enums"]["routine_type"]
           updated_at?: string
@@ -1892,6 +1969,7 @@ export type Database = {
         Update: {
           active?: boolean
           assigned_child_ids?: string[] | null
+          celebration_style?: string | null
           child_id?: string | null
           created_at?: string
           days_of_week?: number[] | null
@@ -1903,8 +1981,10 @@ export type Database = {
           person_id?: string | null
           schedule_template_id?: string | null
           scope?: string
+          sensory_intensity?: string | null
           sort_order?: number
           start_time?: string | null
+          strict_order?: boolean
           together?: boolean
           type?: Database["public"]["Enums"]["routine_type"]
           updated_at?: string
@@ -2049,6 +2129,56 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      step_library: {
+        Row: {
+          category: string | null
+          created_at: string
+          default_points: number
+          deleted_at: string | null
+          household_id: string | null
+          icon: string | null
+          id: string
+          kind: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          default_points?: number
+          deleted_at?: string | null
+          household_id?: string | null
+          icon?: string | null
+          id?: string
+          kind?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          default_points?: number
+          deleted_at?: string | null
+          household_id?: string | null
+          icon?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "step_library_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
             referencedColumns: ["id"]
           },
         ]

@@ -19,6 +19,35 @@ function int(v: FormDataEntryValue | null, fb = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? Math.trunc(n) : fb;
 }
+/** Keep only an allowed value; anything else (incl. blank) → null. */
+function pick(v: FormDataEntryValue | null, allowed: readonly string[]): string | null {
+  const s = String(v ?? "").trim();
+  return allowed.includes(s) ? s : null;
+}
+const STEP_KINDS = ["standard", "timed", "approval", "together", "choice", "substep"] as const;
+/** Parse a builder options blob (choice_options / substeps) — a JSON array of
+ *  {icon,label}. Bounded + sanitized; empty → null so the column stays clean. */
+function optionsJson(v: FormDataEntryValue | null): { label: string; icon: string | null }[] | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  try {
+    const arr: unknown = JSON.parse(s);
+    if (!Array.isArray(arr)) return null;
+    const clean = arr
+      .map((o) => {
+        const rec = (o ?? {}) as Record<string, unknown>;
+        return {
+          label: String(rec.label ?? "").trim().slice(0, 60),
+          icon: rec.icon ? String(rec.icon).slice(0, 8) : null,
+        };
+      })
+      .filter((o) => o.label.length > 0)
+      .slice(0, 8);
+    return clean.length ? clean : null;
+  } catch {
+    return null;
+  }
+}
 
 // ── Children ─────────────────────────────────────────────────────────────────
 async function nextOrder(
@@ -284,6 +313,17 @@ export async function updateRoutine(id: string, childId: string, formData: FormD
       start_time: str(formData.get("start_time")),
       end_time: str(formData.get("end_time")),
       days_of_week: days.length ? days : null,
+      // Advanced builder (P3 §8.2) — routine-level power. Gated on a hidden marker the
+      // builder form always sends (an unchecked checkbox is ABSENT from FormData, so we
+      // can't detect the toggle by its own key). A form without the marker never touches
+      // these — no clobbering from the schedule/person editors.
+      ...(formData.get("advanced_present") === "1"
+        ? {
+            strict_order: formData.get("strict_order") === "on",
+            celebration_style: pick(formData.get("celebration_style"), ["auto", "confetti", "calm", "voyage"]),
+            sensory_intensity: pick(formData.get("sensory_intensity"), ["calm", "standard", "vivid"]),
+          }
+        : {}),
       // P2 §2.2: a routine may point at a household schedule template. Only write the
       // link when the form actually rendered the field — a save from a form without it
       // must not silently clear an existing template reference.
@@ -444,6 +484,127 @@ export async function addRoutineFromTemplate(childId: string, formData: FormData
   revalidatePath(`/app/children/${childId}`);
 }
 
+// ── Template & step library (P3 §9) — data-driven, curated + save-your-own ────
+type TplStep = { icon?: string; label?: string; points?: number; kind?: string; step_type?: string };
+type TplContent = { type?: string; strict_order?: boolean; sensory_intensity?: string; celebration_style?: string; steps?: TplStep[] };
+
+/** Create a routine from a library template (curated or a household-saved one). RLS on
+ *  routine_templates returns curated (null household) + this household's own rows only. */
+export async function addRoutineFromLibraryTemplate(childId: string, formData: FormData) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const templateId = str(formData.get("template_id"));
+  if (!templateId) throw new Error("Pick a template.");
+  const supabase = await createClient();
+  const { data: tpl } = await supabase
+    .from("routine_templates")
+    .select("id, name, content")
+    .eq("id", templateId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!tpl) throw new Error("That template isn't available.");
+  const content = (tpl.content ?? {}) as TplContent;
+  const steps = Array.isArray(content.steps) ? content.steps : [];
+  const order = await nextOrder("routines", "sort_order", "child_id", childId);
+  const { data: routine, error } = await supabase
+    .from("routines")
+    .insert({
+      child_id: childId,
+      name: tpl.name,
+      type: content.type === "first_then" ? "first_then" : "schedule",
+      strict_order: content.strict_order === true,
+      sensory_intensity: pick(content.sensory_intensity ?? null, ["calm", "standard", "vivid"]),
+      celebration_style: pick(content.celebration_style ?? null, ["auto", "confetti", "calm", "voyage"]),
+      sort_order: order,
+    })
+    .select("id")
+    .single();
+  if (error || !routine) throw new Error(error?.message ?? "Could not create the routine.");
+  if (steps.length) {
+    const rows = steps.slice(0, 30).map((s, i) => ({
+      routine_id: routine.id,
+      label: String(s.label ?? "Step").slice(0, 80),
+      icon: s.icon ? String(s.icon).slice(0, 8) : null,
+      step_type: (s.step_type === "first" || s.step_type === "then" ? s.step_type : "task") as "task" | "first" | "then",
+      kind: (STEP_KINDS as readonly string[]).includes(String(s.kind)) ? String(s.kind) : "standard",
+      reward_points: Math.max(0, Math.trunc(Number(s.points ?? 0)) || 0),
+      order_index: i,
+    }));
+    const { error: e2 } = await supabase.from("routine_steps").insert(rows);
+    if (e2) throw new Error(e2.message);
+  }
+  revalidatePath(`/app/children/${childId}`);
+}
+
+/** Save a child routine (and its steps) as a reusable household template (§9). */
+export async function saveRoutineAsTemplate(routineId: string, childId: string) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("routines")
+    .select("id, name, type, strict_order, sensory_intensity, celebration_style, child_id")
+    .eq("id", routineId)
+    .eq("child_id", childId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!r) throw new Error("Routine not found in your household.");
+  const { data: steps } = await supabase
+    .from("routine_steps")
+    .select("label, icon, reward_points, kind, step_type, order_index")
+    .eq("routine_id", routineId)
+    .is("deleted_at", null)
+    .order("order_index");
+  const content = {
+    type: r.type,
+    strict_order: r.strict_order ?? false,
+    sensory_intensity: r.sensory_intensity ?? undefined,
+    celebration_style: r.celebration_style ?? undefined,
+    steps: (steps ?? []).map((s) => ({
+      icon: s.icon ?? undefined,
+      label: s.label,
+      points: s.reward_points,
+      kind: s.kind ?? "standard",
+      step_type: s.step_type,
+    })),
+  };
+  const { data: last } = await supabase
+    .from("routine_templates")
+    .select("sort_order")
+    .eq("household_id", household.id)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase.from("routine_templates").insert({
+    household_id: household.id,
+    name: r.name,
+    emoji: "⭐",
+    description: "Saved from your routines",
+    content: content as unknown as Json,
+    sort_order: ((last?.sort_order as number) ?? -1) + 1,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+  revalidatePath("/app/schedule");
+}
+
+/** Delete a household-saved template (never a curated one — RLS blocks that anyway). */
+export async function deleteRoutineTemplate(id: string, childId: string) {
+  await requireUser();
+  const household = await getMyHousehold();
+  if (!household) throw new Error("No household found.");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("routine_templates")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("household_id", household.id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/children/${childId}`);
+}
+
 // ── Grade bundles: a full age-tuned routine set in one tap ───────────────────
 type GradeRoutine = { name: string; type: "schedule" | "first_then"; steps: TemplateStep[] };
 const GRADE_BUNDLES: Record<string, { label: string; routines: GradeRoutine[] }> = {
@@ -559,6 +720,9 @@ export async function deleteRoutine(id: string, childId: string) {
 export async function addStep(routineId: string, childId: string, formData: FormData) {
   await requireUser();
   const supabase = await createClient();
+  const kind = pick(formData.get("kind"), STEP_KINDS) ?? "standard";
+  // The health rule (§4.3/§8.2): a self-care/health step carries NO stars.
+  const noPoints = formData.get("no_points") === "on";
   const { error } = await supabase.from("routine_steps").insert({
     routine_id: routineId,
     label: String(formData.get("label") || "New step"),
@@ -567,7 +731,10 @@ export async function addStep(routineId: string, childId: string, formData: Form
       | "task"
       | "first"
       | "then",
-    reward_points: int(formData.get("reward_points"), 0),
+    kind,
+    reward_points: noPoints ? 0 : Math.max(0, int(formData.get("reward_points"), 0)),
+    choice_options: kind === "choice" ? optionsJson(formData.get("choice_options")) : null,
+    substeps: kind === "substep" ? optionsJson(formData.get("substeps")) : null,
     order_index: await nextOrder("routine_steps", "order_index", "routine_id", routineId),
   });
   if (error) throw new Error(error.message);
@@ -578,6 +745,8 @@ export async function updateStep(id: string, childId: string, formData: FormData
   await requireUser();
   const supabase = await createClient();
   const durationRaw = formData.get("duration_min");
+  const kind = pick(formData.get("kind"), STEP_KINDS) ?? "standard";
+  const noPoints = formData.get("no_points") === "on";
   const { error } = await supabase
     .from("routine_steps")
     .update({
@@ -587,9 +756,18 @@ export async function updateStep(id: string, childId: string, formData: FormData
         | "task"
         | "first"
         | "then",
-      reward_points: int(formData.get("reward_points"), 0),
+      kind,
+      reward_points: noPoints ? 0 : Math.max(0, int(formData.get("reward_points"), 0)),
       start_time: str(formData.get("start_time")),
       duration_min: durationRaw ? int(durationRaw) : null,
+      // Advanced per-step fields (§8.2). choice_options/substeps are cleared unless the
+      // step is that kind, so switching kind never leaves orphaned data behind.
+      read_aloud: str(formData.get("read_aloud")),
+      hint: str(formData.get("hint")),
+      why_note: str(formData.get("why_note")),
+      sensory_note: str(formData.get("sensory_note")),
+      choice_options: kind === "choice" ? optionsJson(formData.get("choice_options")) : null,
+      substeps: kind === "substep" ? optionsJson(formData.get("substeps")) : null,
       ...(formData.has("support_level")
         ? { support_level: Math.min(4, Math.max(1, int(formData.get("support_level"), 1))) }
         : {}),
