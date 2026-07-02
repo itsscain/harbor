@@ -204,13 +204,10 @@ export function LanternRoutineView({
         </p>
       </div>
 
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-       {/* m-auto centers when there's room; when a tall card exceeds a short/landscape screen the
-           auto-margins collapse and main scrolls instead of clipping the complete button (§ fit-any-screen). */}
-       <div className="m-auto w-full">
-        {/* not-yet-open — warm resting, not a lock (§6) */}
-        {notYetOpen && !allDone && (
-          <div className="mx-auto max-w-md rounded-[26px] bg-white p-6 text-center shadow-sm ring-1 ring-harbor-100">
+      <main className="relative flex min-h-0 flex-1 flex-col">
+        {notYetOpen && !allDone ? (
+          /* not-yet-open — warm resting, not a lock (§6). m-auto centers it in the free space. */
+          <div className="m-auto max-w-md rounded-[26px] bg-white p-6 text-center shadow-sm ring-1 ring-harbor-100">
             <LanternBuddy mood="sleepy" accent={accent} size={92} reducedMotion={settings.reducedMotion} />
             <p className="mt-2 font-display text-2xl font-extrabold text-harbor">{routine.name} is resting</p>
             <p className="mt-1 text-base font-semibold" style={{ color: t.fg }}>
@@ -220,19 +217,8 @@ export function LanternRoutineView({
               <Sparkles className="h-4 w-4" /> Take a calm break
             </Pressable>
           </div>
-        )}
-
-        {catchUp && !allDone && (
-          <div className="mx-auto mb-2 flex max-w-md shrink-0 items-center gap-3 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-harbor-100">
-            <span className="text-2xl">💪</span>
-            <p className="text-sm font-bold" style={{ color: t.fg }}>
-              Let&apos;s catch up on {routine.name}! {doneCount > 0 ? `${rp.total - doneCount} to go.` : "You can still finish it."}
-            </p>
-          </div>
-        )}
-
-        {allDone ? (
-          <div className="mx-auto max-w-md rounded-[28px] bg-white p-7 text-center shadow-sm ring-1 ring-harbor-100">
+        ) : allDone ? (
+          <div className="m-auto max-w-md rounded-[28px] bg-white p-7 text-center shadow-sm ring-1 ring-harbor-100">
             <LanternBuddy mood="cheer" accent={accent} size={112} reducedMotion={settings.reducedMotion} cheerKey={cheerN} />
             <p className="mt-2 font-display text-3xl font-extrabold text-harbor">You did it, {child.name}!</p>
             <p className="mt-1 text-base font-semibold" style={{ color: t.fg }}>{routine.name} — all done.</p>
@@ -240,8 +226,8 @@ export function LanternRoutineView({
               Back home <ArrowRight className="h-5 w-5" />
             </Pressable>
           </div>
-        ) : notYetOpen ? null : flowSteps.length === 0 ? (
-          <div className="mx-auto max-w-md rounded-[26px] bg-white p-8 text-center shadow-sm ring-1 ring-harbor-100">
+        ) : flowSteps.length === 0 ? (
+          <div className="m-auto max-w-md rounded-[26px] bg-white p-8 text-center shadow-sm ring-1 ring-harbor-100">
             <span className="text-5xl">🗓️</span>
             <p className="mt-3 font-display text-2xl font-extrabold text-harbor">Nothing here yet</p>
             <p className="mt-1 text-muted">A grown-up can add steps in the Harbor app.</p>
@@ -251,16 +237,28 @@ export function LanternRoutineView({
           </div>
         ) : (
           <>
-            {/* the buttery swipe carousel — native scroll-snap, momentum, peek of neighbors */}
+            {catchUp && (
+              <div className="mx-auto mb-1.5 flex max-w-md shrink-0 items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-sm ring-1 ring-harbor-100">
+                <span className="text-2xl">💪</span>
+                <p className="text-sm font-bold" style={{ color: t.fg }}>
+                  Let&apos;s catch up on {routine.name}! {doneCount > 0 ? `${rp.total - doneCount} to go.` : "You can still finish it."}
+                </p>
+              </div>
+            )}
+
+            {/* the buttery swipe carousel — native scroll-snap, momentum, peek of neighbors. It fills the
+                available height (flex-1) and each card is bounded to it (h-full + fitted, vh-clamped content),
+                so a card can never grow past the screen and get clipped. max-w keeps cards a sane size on a
+                wide tablet instead of one giant card. */}
             <div
               ref={carouselRef}
-              className="flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto overflow-y-hidden px-[7%] py-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex min-h-0 flex-1 snap-x snap-mandatory items-stretch gap-4 overflow-x-auto overflow-y-hidden px-[7%] py-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {flowSteps.map((step) => (
                 <div
                   key={step.id}
                   ref={(el) => { cardRefs.current[step.id] = el; }}
-                  className="flex w-[86%] shrink-0 snap-center items-center justify-center"
+                  className="flex h-full w-[86%] max-w-[380px] shrink-0 snap-center py-1"
                 >
                   <StepCard
                     step={step}
@@ -292,7 +290,6 @@ export function LanternRoutineView({
             )}
           </>
         )}
-       </div>
       </main>
 
       {/* points burst */}
