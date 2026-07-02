@@ -24,10 +24,21 @@ It is **the Outpost, commercialized** — reuse the existing single-child kiosk 
   `LanternSetup` persists {code,nonce} to localStorage (resume across reload), polls every 3s.
 - **`useKiosk.adopt(result)`** — device-initiated claim result → paired KioskState (shares
   `applyPairResult` with `pair()`). Exported `PairResult` type.
-- **`LanternShell`** = reuse **`OutpostShell`** (child world: ChildView + Voyage + Anchor) + **VoiceButton**
-  (private tap-to-talk, §6.2) + a **bedside resting clock/nightlight** (`LanternClock`, dims at night via
-  quiet hours; idle → rest, never mid-Anchor). Added an optional `onAnchorActive` prop to OutpostShell so
-  the Lantern suppresses resting during co-regulation.
+- **BESPOKE LIGHT UI (2026-07-02, user override):** the first cut reused the DARK kiosk (OutpostShell/
+  ChildView/Voyage) — user rejected it: "it just looked like the kiosk version." The Lantern must have a
+  **completely different, LIGHT, Skylight-Buddy-style UI** built in Harbor's brand (a kid's-room device, not
+  the wall). Rebuilt `LanternShell` to orchestrate light views (home ⇄ routine ⇄ chores) + Anchor + voice +
+  a light resting clock. New: `lib/lantern/day.ts` (PURE logic over lib/kiosk helpers — childRoutinesToday,
+  routineWindow[open/catchup/upcoming], routineProgress, doneToday, childChoresToday, pickNowRoutineId,
+  childSettings) + `lib/lantern/theme.ts` (pastel routine themes); `components/lantern/` LanternHome (light
+  hub: **child's own avatar as the face** [user pick], routine tiles with window-aware status, star balance,
+  chores + break tiles), LanternRoutineView (one **focused task card** + big satisfying complete + Skip-for-
+  now; PORTS ChildView's window/catch-up/strict-order/First-Then/approval/choice/substep/skill logic in a
+  LIGHT card), LanternChores (pastel grid), LanternClock (light flip-clock, dims at night). Brand: seafog/
+  white bg tinted by the child accent, harbor ink text, beacon-gold stars, Bricolage+DM Sans, big rounded
+  tiles. **RULE: reuse the DATA/LOGIC (useKiosk + lib/kiosk + lib/lantern/day), NEW light PRESENTATION.**
+  VoiceButton gated to voiceChat-on only. Confirmed direction with the user via a show_widget mock first
+  (they're visual — do this for big Lantern visual changes).
 - **Parent claim UI**: `claimLantern` action + `LanternClaimForm` (useActionState, inline error + warm
   "Welcome — this is Cade's Lantern!") in a "🏮 Set up a Lantern" card on `/app/devices`.
 
