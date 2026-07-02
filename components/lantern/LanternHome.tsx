@@ -18,6 +18,7 @@ import {
   childSettings,
 } from "@/lib/lantern/day";
 import { routineTheme, greetingFor } from "@/lib/lantern/theme";
+import { LanternBuddy, buddyLine } from "./LanternBuddy";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -59,6 +60,15 @@ export function LanternHome({
   const chores = childChoresToday(state, childId, tz);
   const choresDone = chores.filter((c) => done.includes(c.id)).length;
 
+  // Beam's mood + line come from the whole day's progress.
+  const progresses = routines.map((r) => routineProgress(state, r, done));
+  const totalSteps = progresses.reduce((n, p) => n + p.total, 0);
+  const totalDone = progresses.reduce((n, p) => n + p.done, 0);
+  const dayDone =
+    routines.length > 0 &&
+    progresses.every((p) => p.complete) &&
+    (chores.length === 0 || choresDone >= chores.length);
+
   const h = now.getHours();
   const m = now.getMinutes();
   const time = `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
@@ -94,19 +104,18 @@ export function LanternHome({
         </Pressable>
       </header>
 
-      {/* hero — the child, big and friendly */}
-      <div className="mt-3 flex shrink-0 items-center gap-4">
-        <span
-          className={cn("shrink-0 rounded-[26px]", !settings.reducedMotion && "k-float")}
-          style={{ boxShadow: `0 0 0 3px #fff, 0 0 0 6px ${accent}, 0 16px 30px -14px ${accent}80` }}
-        >
-          <ChildAvatar child={child} size={76} rounded="rounded-[22px]" />
-        </span>
+      {/* hero — Beam the buddy greets the child */}
+      <div className="mt-1 flex shrink-0 items-center gap-3">
+        <div className="shrink-0">
+          <LanternBuddy mood={dayDone ? "cheer" : "happy"} accent={accent} size={100} reducedMotion={settings.reducedMotion} cheerKey={totalDone} />
+        </div>
         <div className="min-w-0">
-          <h1 className="font-display text-[clamp(22px,5vw,32px)] font-extrabold leading-tight text-harbor">
+          <h1 className="font-display text-[clamp(20px,4.6vw,28px)] font-extrabold leading-tight text-harbor">
             {greetingFor(child.name, now)}
           </h1>
-          <p className="mt-0.5 text-sm font-medium text-muted">What would you like to do?</p>
+          <p className="mt-1 text-sm font-semibold leading-snug" style={{ color: accent }}>
+            {buddyLine(totalDone, totalSteps, child.name)}
+          </p>
         </div>
       </div>
 
