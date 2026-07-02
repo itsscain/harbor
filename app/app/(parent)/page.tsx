@@ -5,6 +5,7 @@ import { getMyHousehold, plusActive } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, Badge, SectionHeader } from "@/components/ui/primitives";
 import { formatPairingCode } from "@/lib/pairing-format";
+import { tzFromSettings, formatInTz } from "@/lib/tz";
 import { titleCase } from "@/lib/format";
 import { ChildCard } from "@/components/app/ChildCard";
 import { WallMirror, type MirrorChild } from "@/components/app/WallMirror";
@@ -111,13 +112,14 @@ export default async function ParentHome() {
       : totalDone > 0
         ? `${totalDone} ${totalDone === 1 ? "task" : "tasks"} done today`
         : "All calm on the wall";
+  const tz = tzFromSettings(household.settings as Record<string, unknown> | null);
   const nextEvent = nextEv
     ? {
         title: nextEv.title,
         emoji: nextEv.emoji,
         time: nextEv.all_day
-          ? new Date(nextEv.starts_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-          : new Date(nextEv.starts_at).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" }),
+          ? formatInTz(new Date(nextEv.starts_at), tz, { weekday: "short", month: "short", day: "numeric" })
+          : formatInTz(new Date(nextEv.starts_at), tz, { weekday: "short", hour: "numeric", minute: "2-digit" }),
       }
     : null;
 

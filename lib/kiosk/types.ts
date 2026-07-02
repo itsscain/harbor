@@ -327,6 +327,10 @@ export type KioskSnapshot = {
   meals: KioskMeal[];
   groundings?: KioskGrounding[];
   corners?: KioskCorner[];
+  /** Cross-device done-state: recent step/chore completions from ANY device, union-merged
+   *  into local progress by the family-tz service day — so a completion on the Lantern checks
+   *  off on the wall (and vice versa). `ref` is the step_id or chore_id. */
+  completions?: { child_id: string; ref: string; kind: string; at: string }[];
   /** Hard-deletion tombstones since the cursor — the wall removes these ids. */
   deletions?: { entity: string; entity_id: string }[];
   server_time: string;
@@ -394,6 +398,9 @@ export type KioskState = {
   points: Record<string, number>;
   /** Per-child completion for the current day; resets when the date rolls over. */
   progress: Record<string, DayProgress>;
+  /** Per-child trusted-ms of the last local "reset today's checkmarks" — cross-device
+   *  completion merges skip any completion at-or-before it, so a reset isn't undone by sync. */
+  resetAt?: Record<string, number>;
   /** Per-person (parent/caregiver) completion for the current day — NO points. */
   personProgress?: Record<string, DayProgress>;
   /** Doses taken today, per child: childId → { date, completed: ["<medId>:<time>"] }. */

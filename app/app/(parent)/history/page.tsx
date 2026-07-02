@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { tzFromSettings, formatTimeInTz, dayKeyInTz, formatInTz } from "@/lib/tz";
 
 export const metadata = { title: "Activity" };
 export const dynamic = "force-dynamic";
@@ -23,15 +24,15 @@ type Entry = {
   tone: "earn" | "spend" | "reset" | "feeling";
 };
 
-function dayLabel(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const yest = new Date();
-  yest.setDate(today.getDate() - 1);
-  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  if (same(d, today)) return "Today";
-  if (same(d, yest)) return "Yesterday";
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+/** Day bucket label, computed in the FAMILY timezone (not the server's UTC) so "Today"
+ *  and each time below reflect Eastern, wherever the page renders. */
+function dayLabel(iso: string, tz: string): string {
+  const key = dayKeyInTz(new Date(iso), tz);
+  const today = dayKeyInTz(Date.now(), tz);
+  const yest = dayKeyInTz(Date.now() - 86_400_000, tz);
+  if (key === today) return "Today";
+  if (key === yest) return "Yesterday";
+  return formatInTz(new Date(iso), tz, { weekday: "long", month: "short", day: "numeric" });
 }
 
 export default async function HistoryPage() {
@@ -40,6 +41,7 @@ export default async function HistoryPage() {
     return <EmptyState title="No household yet" body="Your family's activity will show here once your household is set up." />;
   }
   const supabase = await createClient();
+  const tz = tzFromSettings(household.settings as Record<string, unknown> | null);
 
   const [{ data: log }, { data: checkins }, { data: chores }, { data: steps }, { data: storeItems }] = await Promise.all([
     supabase
@@ -118,7 +120,7 @@ export default async function HistoryPage() {
   // Group into day buckets, preserving order.
   const groups: { day: string; items: Entry[] }[] = [];
   for (const e of entries) {
-    const day = dayLabel(e.created_at);
+    const day = dayLabel(e.created_at, tz);
     const last = groups[groups.length - 1];
     if (last && last.day === day) last.items.push(e);
     else groups.push({ day, items: [e] });
@@ -165,7 +167,7 @@ export default async function HistoryPage() {
                             {e.kid.name} ·{" "}
                           </>
                         )}
-                        {new Date(e.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        {formatTimeInTz(new Date(e.created_at), tz)}
                       </p>
                     </div>
                     {e.delta != null && e.delta !== 0 && (

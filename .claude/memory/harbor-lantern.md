@@ -50,6 +50,24 @@ served for a 5-min adopt window then poll deletes it (was: served forever → se
 DELETEs expired rows (bounds anon flooding); `LanternSetup` retries `request_code` when offline and adopts
 BEFORE burning the guard/localStorage token (transient IndexedDB failure retries, doesn't strand a consumed claim).
 
+**UPDATES 2026-07-02 (user asks):**
+- **Cross-device done-state (Lantern ↔ wall REALTIME):** the snapshot synced POINTS but not WHICH
+  steps/chores were checked off, so a completion on one device didn't check off on another. Migration
+  **0064** rebuilds `kiosk_snapshot` to add a `completions` array (last-2-days step/chore completions from
+  reward_log: {child_id, ref, kind, at}); `sync.ts applyPull` UNION-merges them into local `progress` by
+  the **family-tz service day** (today only); `useKiosk.runSync` now UNIONS `synced.progress` (cross-device)
+  with `prev.progress` (during-await) instead of discarding the former. Points still come from `rewards`
+  (no double-count — the merge only mirrors the CHECKMARK). Broadcast on reward_log already nudges pulls.
+  **Requires Plus** (sync is Plus-gated; both test households have it). KioskSnapshot.completions added.
+- **TZ bug:** server-rendered pages (`/app/history` activity, home next-event, child voice log) formatted
+  times in **UTC** (Vercel) not Eastern. Fixed to `formatTimeInTz`/`formatInTz`/`dayKeyInTz` with the family
+  tz (America/New_York default). GOTCHA: those helpers take **Date|number, NOT string** — wrap ISO in
+  `new Date(...)`. Calendar page was already correct (reference). Remaining minor UTC displays: settings
+  gcal, billing, meals, insights (lower priority).
+- **Responsive Lantern:** home/routine/chores now `h-dvh flex` + auto-fit grids
+  (`[grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]`) + internal `overflow-y-auto` so they FIT
+  any tablet (landscape/portrait) instead of `min-h-dvh` overflowing.
+
 **GOTCHAS / KNOWN GAPS:**
 - The paired snapshot is the WHOLE household (`kiosk_snapshot(household)`) — the pre-existing Outpost model.
   The Lantern **UI** shows only the bound child, but local storage holds household data. True per-child

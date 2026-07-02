@@ -13,7 +13,7 @@ import { subscribeHousehold } from "@/lib/kiosk/realtime";
 import { fetchDeviceState, nukeAndReload, wipeEverythingAndReload } from "@/lib/kiosk/deviceState";
 import { captureError } from "@/lib/observability";
 import { nextStreak } from "@/lib/kiosk/streak";
-import { serviceDay, clockJumpedBack } from "@/lib/kiosk/time";
+import { serviceDay, clockJumpedBack, trustedNow } from "@/lib/kiosk/time";
 import { SKILL_THRESHOLD } from "@/lib/kiosk/skill";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -154,10 +154,25 @@ export function useKiosk() {
         }
       }
 
+      // Union the pull's cross-device done-state (synced.progress, merged in applyPull) with
+      // anything completed DURING the network await (prev.progress) — neither is lost. Same
+      // service day → union the checkmarks; a rolled-over day → keep the local (newer) day.
+      const progress: KioskState["progress"] = { ...synced.progress };
+      for (const [cid, p] of Object.entries(prev.progress)) {
+        const s = progress[cid];
+        progress[cid] =
+          s && s.date === p.date
+            ? { date: p.date, completed: Array.from(new Set([...s.completed, ...p.completed])) }
+            : p;
+      }
+
       const merged: KioskState = {
         ...synced,
         outbox: newEntries,
-        progress: prev.progress, // keep completions enqueued during the await
+        progress,
+        // Preserve local reset stamps (prev is authoritative — a reset may have happened
+        // during the network await) so a "reset today" is never lost across a sync.
+        resetAt: { ...(synced.resetAt ?? {}), ...(prev.resetAt ?? {}) },
         points,
         snapshot: { ...synced.snapshot, list_items: listItems },
       };
@@ -541,6 +556,9 @@ export function useKiosk() {
       update((s) => ({
         ...s,
         progress: { ...s.progress, [childId]: { date: serviceDay(s), completed: [] } },
+        // Stamp the reset so a cross-device completions pull can't re-add today's checkmarks
+        // that this reset just cleared (only completions made AFTER the reset re-appear).
+        resetAt: { ...(s.resetAt ?? {}), [childId]: trustedNow(s) },
       }));
     },
     [update],

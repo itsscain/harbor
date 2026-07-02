@@ -42,8 +42,8 @@ export function LanternChores({ kiosk, childId, onBack }: { kiosk: Kiosk; childI
   }
 
   return (
-    <div className="min-h-dvh px-4 py-4 text-harbor sm:px-6" style={{ background: `radial-gradient(130% 72% at 50% -10%, #fbeaf022, #fbfdfc 60%)` }}>
-      <header className="flex items-center justify-between gap-3">
+    <div className="flex h-dvh flex-col overflow-hidden px-4 py-3 text-harbor sm:px-6" style={{ background: `radial-gradient(130% 72% at 50% -10%, #fbeaf022, #fbfdfc 60%)` }}>
+      <header className="flex shrink-0 items-center justify-between gap-3">
         <Pressable
           haptics={settings.haptics}
           sound={settings.sound}
@@ -61,9 +61,10 @@ export function LanternChores({ kiosk, childId, onBack }: { kiosk: Kiosk; childI
         </span>
       </header>
 
-      <p className="mt-2 text-center text-sm font-semibold text-muted">{doneCount} of {chores.length} done</p>
+      <p className="mt-2 shrink-0 text-center text-sm font-semibold text-muted">{doneCount} of {chores.length} done</p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+      <div className="grid content-start gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
         {chores.map((ch) => {
           const d = done.includes(ch.id);
           return (
@@ -105,6 +106,7 @@ export function LanternChores({ kiosk, childId, onBack }: { kiosk: Kiosk; childI
       {chores.length === 0 && (
         <p className="mt-16 text-center text-base font-semibold text-muted">No chores today — enjoy! 🎈</p>
       )}
+      </div>
 
       {approving && (
         <ParentGate

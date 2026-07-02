@@ -66,11 +66,11 @@ export function LanternHome({
 
   return (
     <div
-      className="min-h-dvh px-4 py-4 text-harbor sm:px-6"
+      className="flex h-dvh flex-col overflow-hidden px-4 py-3 text-harbor sm:px-6"
       style={{ background: `radial-gradient(130% 72% at 50% -10%, ${accent}1f, #fbfdfc 60%)` }}
     >
       {/* top bar */}
-      <header className="flex items-center justify-between gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span
             className="shrink-0 rounded-2xl"
@@ -95,23 +95,25 @@ export function LanternHome({
       </header>
 
       {/* hero — the child, big and friendly */}
-      <div className="mt-4 flex items-center gap-4">
+      <div className="mt-3 flex shrink-0 items-center gap-4">
         <span
           className={cn("shrink-0 rounded-[26px]", !settings.reducedMotion && "k-float")}
           style={{ boxShadow: `0 0 0 3px #fff, 0 0 0 6px ${accent}, 0 16px 30px -14px ${accent}80` }}
         >
-          <ChildAvatar child={child} size={92} rounded="rounded-[26px]" />
+          <ChildAvatar child={child} size={76} rounded="rounded-[22px]" />
         </span>
         <div className="min-w-0">
-          <h1 className="font-display text-[clamp(24px,6vw,34px)] font-extrabold leading-tight text-harbor">
+          <h1 className="font-display text-[clamp(22px,5vw,32px)] font-extrabold leading-tight text-harbor">
             {greetingFor(child.name, now)}
           </h1>
           <p className="mt-0.5 text-sm font-medium text-muted">What would you like to do?</p>
         </div>
       </div>
 
-      {/* tiles */}
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      {/* tiles — fill the rest of the screen; responsive columns so it fits any tablet, with a
+          gentle scroll only if a big crew has many routines. */}
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+      <div className="grid content-start gap-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         {routines.map((r) => {
           const w = routineWindow(state, r, childId, tz);
           const p = routineProgress(state, r, done);
@@ -197,20 +199,18 @@ export function LanternHome({
           intensity={settings.intensity}
           fx="break"
           onClick={onBreak}
-          className={cn(
-            "kiosk-tap flex min-h-[92px] items-center gap-3 rounded-[22px] p-4 text-left transition active:scale-[0.98]",
-            (routines.length + (chores.length > 0 ? 1 : 0)) % 2 === 0 ? "col-span-2" : "",
-          )}
+          className="kiosk-tap flex min-h-[92px] flex-col justify-center gap-2 rounded-[22px] p-4 text-left transition active:scale-[0.98]"
           style={{ background: "#eef1fb", color: "#3c3489" }}
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/70">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70">
             <Wind className="h-6 w-6 text-[#534ab7]" />
           </span>
           <div>
             <p className="font-display text-lg font-extrabold text-[#3c3489]">I need a break</p>
-            <p className="text-sm font-medium text-[#534ab7]">A calm moment, anytime you need</p>
+            <p className="text-sm font-medium text-[#534ab7]">Anytime you need</p>
           </div>
         </Pressable>
+      </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { normalizePairingCode } from "@/lib/pairing-format";
+import { tzFromSettings, dayKeyInTz } from "@/lib/tz";
 import type { Json } from "@/lib/database.types";
 import type { KioskSnapshot, KioskState, Mutation } from "./types";
 
@@ -170,6 +171,34 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
   for (const rw of snap.rewards ?? []) points[rw.child_id] = rw.points_total;
   for (const id of childDeletions) delete points[id];
   next.points = points;
+
+  // Cross-device done-state (Lantern ↔ wall realtime): union today's step/chore completions
+  // from ANY device into local progress, bucketed by the FAMILY-tz service day. Additive only
+  // (local unpushed completions are never dropped); points still come from `rewards` above, so
+  // this only mirrors the CHECKMARK — never a double-award. Idempotent across repeated pulls.
+  if (Array.isArray(snap.completions) && snap.completions.length) {
+    const tz = tzFromSettings(next.snapshot.household.settings as Record<string, unknown> | null);
+    const today = snap.server_time ? dayKeyInTz(new Date(snap.server_time), tz) : null;
+    if (today) {
+      const progress = { ...next.progress };
+      const resetAt = next.resetAt ?? {};
+      for (const comp of snap.completions) {
+        if (!comp?.child_id || !comp?.ref) continue;
+        if (childDeletions.has(comp.child_id)) continue;
+        if (dayKeyInTz(new Date(comp.at), tz) !== today) continue; // only today's checkmarks
+        // Don't resurrect checkmarks a local "reset today" just cleared (§ reset-day).
+        const ra = resetAt[comp.child_id];
+        if (ra && new Date(comp.at).getTime() <= ra) continue;
+        const cur = progress[comp.child_id]?.date === today ? progress[comp.child_id] : { date: today, completed: [] };
+        if (!cur.completed.includes(comp.ref)) {
+          progress[comp.child_id] = { date: today, completed: [...cur.completed, comp.ref] };
+        } else if (progress[comp.child_id] !== cur) {
+          progress[comp.child_id] = cur;
+        }
+      }
+      next.progress = progress;
+    }
+  }
 
   // Adopt an account-level PIN set remotely; keep the local PIN if none.
   if (snap.household?.parent_pin_hash) next.pinHash = snap.household.parent_pin_hash;

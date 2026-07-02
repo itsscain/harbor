@@ -170,9 +170,9 @@ export function LanternRoutineView({
   const doneCount = flowSteps.filter((s) => prog.includes(s.id)).length;
 
   return (
-    <div className="flex min-h-dvh flex-col px-4 py-4 text-harbor sm:px-6" style={{ background: `radial-gradient(130% 72% at 50% -10%, ${t.soft}, #fbfdfc 60%)` }}>
+    <div className="flex h-dvh flex-col overflow-hidden px-4 py-3 text-harbor sm:px-6" style={{ background: `radial-gradient(130% 72% at 50% -10%, ${t.soft}, #fbfdfc 60%)` }}>
       {/* top bar */}
-      <header className="flex items-center justify-between gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-3">
         <Pressable
           haptics={settings.haptics}
           sound={settings.sound}
@@ -198,11 +198,11 @@ export function LanternRoutineView({
         </span>
       </header>
 
-      <p className="mt-3 text-center font-display text-lg font-extrabold" style={{ color: t.fg }}>
+      <p className="mt-2 shrink-0 text-center font-display text-lg font-extrabold" style={{ color: t.fg }}>
         {t.emoji} {routine.name}
       </p>
 
-      <main className="flex flex-1 flex-col justify-center">
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto py-2">
         {/* not-yet-open — a warm resting state, not a lock (§6). */}
         {notYetOpen && !allDone && (
           <div className="mx-auto max-w-md rounded-[26px] bg-white p-6 text-center shadow-sm ring-1 ring-harbor-100">

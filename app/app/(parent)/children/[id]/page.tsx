@@ -29,6 +29,7 @@ import {
 } from "../../actions";
 import { updateChildSettings } from "../../hub-actions";
 import { CHILD_PALETTE, childColor } from "@/lib/kiosk/colors";
+import { DEFAULT_TZ, formatInTz } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -575,7 +576,7 @@ export default async function ChildDetail({
                     )}
                     <p className="text-sm text-ink">&ldquo;{v.transcript}&rdquo;</p>
                     <p className="mt-1 text-sm text-muted">Harbor: {v.reply}</p>
-                    <p className="mt-1 text-xs text-muted/70">{new Date(v.created_at).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-muted/70">{formatInTz(new Date(v.created_at), DEFAULT_TZ, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                   </li>
                 ))}
               </ul>
