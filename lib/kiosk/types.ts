@@ -421,6 +421,10 @@ export type KioskState = {
   lastTrustedDay?: string;
   lastSeenWall?: number;
   clockSuspect?: boolean;
+  /** Skipper's AI thought-bubble lines, cached per child for offline use. Fetched at most once
+   *  per family day from /api/ai/skipper (Plus + AI configured); merged with the built-in curated
+   *  pool by the Lantern. `day` is the family-tz service day the batch was fetched. */
+  skipperLines?: Record<string, { day: string; lines: { text: string; category: string }[] }>;
   /** Pending mutations to push when online + Plus active. */
   outbox: Mutation[];
 };

@@ -18,7 +18,8 @@ import {
   childSettings,
 } from "@/lib/lantern/day";
 import { routineTheme, greetingFor } from "@/lib/lantern/theme";
-import { LanternBuddy, buddyLine } from "./LanternBuddy";
+import { LanternBuddy } from "./LanternBuddy";
+import { SkipperSays } from "./SkipperBubble";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -41,12 +42,16 @@ export function LanternHome({
   onBreak: () => void;
   onOpenStore: () => void;
 }) {
-  const { state } = kiosk;
+  const { state, refreshSkipperLines } = kiosk;
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 20_000);
     return () => window.clearInterval(id);
   }, []);
+  // Warm Skipper's AI thought-bubble batch for the day (Plus + AI; guarded + offline-safe).
+  useEffect(() => {
+    refreshSkipperLines(childId);
+  }, [childId, refreshSkipperLines]);
 
   const child = state?.snapshot.children.find((c) => c.id === childId);
   if (!state || !child) return null;
@@ -104,7 +109,7 @@ export function LanternHome({
         </Pressable>
       </header>
 
-      {/* hero — Beam the buddy greets the child */}
+      {/* hero — Skipper greets the child and shares a thought */}
       <div className="mt-1 flex shrink-0 items-center gap-3">
         <div className="shrink-0">
           <LanternBuddy mood={dayDone ? "cheer" : "happy"} accent={accent} size={100} reducedMotion={settings.reducedMotion} cheerKey={totalDone} />
@@ -113,9 +118,16 @@ export function LanternHome({
           <h1 className="font-display text-[clamp(20px,4.6vw,28px)] font-extrabold leading-tight text-harbor">
             {greetingFor(child.name, now)}
           </h1>
-          <p className="mt-1 text-sm font-semibold leading-snug" style={{ color: accent }}>
-            {buddyLine(totalDone, totalSteps, child.name)}
-          </p>
+          <SkipperSays
+            name={child.name}
+            hour={now.getHours()}
+            done={totalDone}
+            total={totalSteps}
+            night={now.getHours() >= 20 || now.getHours() < 6}
+            aiLines={state.skipperLines?.[childId]?.lines}
+            reducedMotion={settings.reducedMotion}
+            className="mt-1.5"
+          />
         </div>
       </div>
 

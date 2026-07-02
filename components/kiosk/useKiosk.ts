@@ -550,6 +550,41 @@ export function useKiosk() {
     [update],
   );
 
+  // Skipper's AI thought bubbles: fetch a fresh, kid-safe, personalized batch at most once per
+  // family day and cache it in IndexedDB for offline display. Plus-gated + graceful (any failure
+  // just leaves the built-in curated pool in place). The device secret authenticates (like voice).
+  const refreshSkipperLines = useCallback(
+    async (childId: string) => {
+      const st = stateRef.current;
+      if (!st || !childId) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      if (!st.snapshot.household.plus_active) return; // the AI companion is Plus-only, like sync
+      const day = serviceDay(st);
+      if (st.skipperLines?.[childId]?.day === day) return; // already have today's batch
+      let lines: { text: string; category: string }[] = [];
+      try {
+        const res = await fetch("/api/ai/skipper", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_secret: st.deviceSecret, child_id: childId, date: day }),
+        });
+        if (!res.ok) return; // auth/transient — retry next mount, keep the curated pool
+        const j = (await res.json()) as { lines?: unknown };
+        if (Array.isArray(j.lines)) {
+          lines = j.lines
+            .filter((l): l is { text: string; category?: string } => !!l && typeof (l as { text?: unknown }).text === "string")
+            .map((l) => ({ text: String(l.text).slice(0, 140), category: String((l as { category?: string }).category ?? "cheer") }))
+            .slice(0, 40);
+        }
+      } catch {
+        return; // offline/transient — curated pool covers it, retry next mount
+      }
+      // Stamp the day even when empty (AI off) so we don't re-POST all day; it retries tomorrow.
+      update((s) => ({ ...s, skipperLines: { ...(s.skipperLines ?? {}), [childId]: { day, lines } } }));
+    },
+    [update],
+  );
+
   // ── Parent actions ──────────────────────────────────────────────────────────
   const resetDay = useCallback(
     (childId: string) => {
@@ -723,6 +758,7 @@ export function useKiosk() {
     checkIn,
     softenChild,
     bumpStreak,
+    refreshSkipperLines,
     resetDay,
     resetPoints,
     redeem,

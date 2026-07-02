@@ -113,6 +113,33 @@ through cards like Skylight Buddy… feedback for the child… a million times b
   card never sticks at "N of N done"; (4) header Beam now flips to a short-lived `justCheered` mood (950ms)
   so the bounce fires on EVERY completion, not just the last. Shipped commit c826871.
 
+**DELIGHT PASS 2 — 2026-07-02 (user, on a real paired device):**
+- **Card "cut off" REAL fix:** on a short/landscape tablet the complete button clipped at the card bottom.
+  Root cause: `StepCard` was `flex-col items-center` (top-aligned) with high size floors, so content exceeded
+  the h-full card and `overflow-hidden` cut the bottom. FIX: StepCard is now `flex h-full flex-col
+  justify-center` with **every element `shrink-0`**, **low-floor vh clamps** (icon `w-[clamp(48px,12.5vh,100px)]`,
+  button `w-[clamp(50px,11.5vh,88px)]`), the **title `w-full` + 2-line clamp** (long titles were overflowing
+  horizontally), and **secondary bits hide on short viewports** (`[@media(max-height:540px)]:hidden` hint,
+  600px timer, 520px caption, 560px read-aloud) so icon/title/reward/button ALWAYS fit. Substep list scrolls
+  inside. **VERIFIED in a browser**: built a Tailwind-CDN replica of the routine screen, `preview_resize` to
+  390–470px landscape, measured `button.bottom <= card.bottom` (fully inside). LESSON: for the fit-any-screen
+  Lantern, RENDER the layout at a short landscape viewport and measure — don't eyeball clamps.
+- **Skipper's AI thought bubbles** (user: "give the sailboat thought bubbles… useful, meaningful, helpful,
+  motivational, jokes… using the AI"). Pieces:
+  - `lib/lantern/skipper-lines.ts` — a rich CURATED, kid-safe, nautical pool (greet/cheer/tip/joke/mindful/
+    celebrate) + `skipperLine(ctx, seed, extra?)` a PURE context picker (by time/progress/routine/event; no
+    Math.random — rotates by a seed). Always the offline fallback.
+  - `components/lantern/SkipperBubble.tsx` — `SkipperBubble` (thought-bubble UI w/ tail dots + `sk-pop`),
+    `useSkipperTalk` (rotates every 9s + `bump(event)` for step/allDone), `SkipperSays` (self-contained for
+    the Home hero). Category-tinted text.
+  - `/api/ai/skipper/route.ts` — device-secret auth **mirroring `/api/ai/voice`** (paired device_pairings →
+    household; child must belong; **Plus + ai_config gated**), `haikuJson` batch of ~18 lines personalized to
+    the child + their routine names, + an `UNSAFE_RE` post-filter floor before anything reaches a kid's screen.
+  - Cache: `KioskState.skipperLines: Record<childId, {day, lines}>` (IndexedDB) + `useKiosk.refreshSkipperLines`
+    (fetch ≤ once per family day, Plus-gated, graceful offline; stamps the day even when empty so it doesn't
+    hammer). Home hero shows `SkipperSays`; RoutineView shows a bubble row **hidden ≤600px height** (never
+    squeezes the card) and `talk.bump`s on completion. **VERIFIED bubble visually** in the preview.
+
 **GOTCHAS / KNOWN GAPS:**
 - The paired snapshot is the WHOLE household (`kiosk_snapshot(household)`) — the pre-existing Outpost model.
   The Lantern **UI** shows only the bound child, but local storage holds household data. True per-child

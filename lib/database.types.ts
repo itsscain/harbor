@@ -105,6 +105,30 @@ export type Database = {
           },
         ]
       }
+      ai_skipper_batches: {
+        Row: {
+          child_id: string
+          created_at: string
+          date: string
+          household_id: string
+          lines: Json
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          date: string
+          household_id: string
+          lines?: Json
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          date?: string
+          household_id?: string
+          lines?: Json
+        }
+        Relationships: []
+      }
       build_supplies: {
         Row: {
           build_id: string

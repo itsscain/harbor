@@ -16,6 +16,7 @@ import { feedback, speak, cheer, doneLine } from "@/lib/kiosk/feedback";
 import { routineWindow, routineProgress, doneToday, childSettings } from "@/lib/lantern/day";
 import { routineTheme } from "@/lib/lantern/theme";
 import { LanternBuddy } from "./LanternBuddy";
+import { SkipperBubble, useSkipperTalk } from "./SkipperBubble";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -48,7 +49,7 @@ export function LanternRoutineView({
   onBack: () => void;
   onBreak: () => void;
 }) {
-  const { state } = kiosk;
+  const { state, refreshSkipperLines } = kiosk;
   const [subProgress, setSubProgress] = useState<Record<string, number[]>>({});
   const [approvingStep, setApprovingStep] = useState<KioskStep | null>(null);
   const [celebrate, setCelebrate] = useState<{ points: number; n: number } | null>(null);
@@ -76,6 +77,17 @@ export function LanternRoutineView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doneCount, routineId]);
 
+  // Skipper's thought bubble — a relevant tip when you land here, cheer as you finish steps.
+  const [hour, setHour] = useState(12);
+  useEffect(() => setHour(new Date().getHours()), []);
+  useEffect(() => {
+    refreshSkipperLines(childId);
+  }, [childId, refreshSkipperLines]);
+  const talk = useSkipperTalk(
+    { name: child?.name ?? "", hour, done: rp?.done ?? 0, total: rp?.total ?? 0, routine: routine?.name, night: hour >= 20 || hour < 6 },
+    state?.skipperLines?.[childId]?.lines,
+  );
+
   if (!state || !child || !routine || !settings || !rp) return null;
 
   const accent = childColor(child);
@@ -100,6 +112,7 @@ export function LanternRoutineView({
     window.setTimeout(() => setJustCheered(false), 950);
     // This tap finishes the routine when every step is now done (this one + the rest already were).
     const finishes = flowSteps.length > 0 && flowSteps.every((s) => s.id === step.id || prog.includes(s.id));
+    talk.bump(finishes ? "allDone" : "step"); // Skipper reacts — a proud line, or a cheer with one to go
     if (finishes) {
       setFinished(true);
       kiosk.bumpStreak(child!.id);
@@ -202,6 +215,11 @@ export function LanternRoutineView({
         <p className="font-display text-lg font-extrabold" style={{ color: t.fg }}>
           {t.emoji} {routine.name}
         </p>
+      </div>
+
+      {/* Skipper's thought — hidden on short screens so it never squeezes the card. */}
+      <div className="mt-1.5 flex shrink-0 justify-center px-2 [@media(max-height:600px)]:hidden">
+        <SkipperBubble text={talk.line.text} category={talk.line.category} reducedMotion={settings.reducedMotion} onTap={() => talk.bump("idle")} />
       </div>
 
       <main className="relative flex min-h-0 flex-1 flex-col">
@@ -354,66 +372,72 @@ function StepCard({
   const isChoice = choices.length > 0;
   const isSub = subs.length > 0;
 
+  // Full-height flex column, content vertically centered, everything shrink-0 with viewport-clamped
+  // sizes (low floors) so the essentials — icon, title, reward, the big complete button — ALWAYS fit
+  // and never clip on a short/landscape screen. Secondary bits (hint, timer, caption, read-aloud) hide
+  // when the screen is too short to hold them. Sub-step lists scroll inside the card.
   return (
-    <div className={cn("relative flex w-full flex-col items-center overflow-hidden rounded-[28px] bg-white p-4 text-center ring-1 ring-harbor-100 transition", done ? "opacity-95 ring-emerald-200" : "shadow-[0_18px_40px_-24px_rgba(12,59,71,.5)]")}>
+    <div className={cn("relative flex h-full w-full flex-col items-center justify-center gap-[clamp(3px,1.2vh,9px)] overflow-hidden rounded-[28px] bg-white px-4 py-[clamp(8px,2vh,16px)] text-center ring-1 ring-harbor-100 transition", done ? "opacity-95 ring-emerald-200" : "shadow-[0_18px_40px_-24px_rgba(12,59,71,.5)]")}>
       {bloom && !reducedMotion && (
         <span aria-hidden className="animate-radial-fill pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: `radial-gradient(circle, ${t.fg}, transparent 70%)` }} />
       )}
-      <span className={cn("relative flex aspect-square w-[clamp(64px,13vh,104px)] items-center justify-center rounded-[26px] text-[clamp(38px,8vh,60px)] leading-none", done && "opacity-60", level >= 4 && !done && "opacity-70")} style={{ background: done ? "#e9f8f0" : t.bg, color: done ? "#0f6e56" : t.fg }}>
+      <span className={cn("relative flex aspect-square w-[clamp(48px,12.5vh,100px)] shrink-0 items-center justify-center rounded-[22px] text-[clamp(28px,7.6vh,54px)] leading-none", done && "opacity-60", level >= 4 && !done && "opacity-70")} style={{ background: done ? "#e9f8f0" : t.bg, color: done ? "#0f6e56" : t.fg }}>
         {done ? <Check className="h-[52%] w-[52%]" strokeWidth={3} /> : (step.icon ?? "✅")}
       </span>
-      <p className={cn("relative mt-2.5 font-display text-[clamp(22px,5vw,31px)] font-extrabold leading-tight", done ? "text-emerald-700/70 line-through" : "text-harbor")}>{step.label}</p>
+      <p className={cn("relative w-full shrink-0 font-display text-[clamp(18px,4.2vh,29px)] font-extrabold leading-tight [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden", done ? "text-emerald-700/70 line-through" : "text-harbor")}>{step.label}</p>
 
       {done ? (
-        <p className="relative mt-2 font-display text-lg font-bold text-emerald-600">Nice work! 🎉</p>
+        <p className="relative shrink-0 font-display text-lg font-bold text-emerald-600">Nice work! 🎉</p>
       ) : (
         <>
-          {step.hint && <p className="relative mt-2 text-base font-medium text-muted">💡 {step.hint}</p>}
+          {step.hint && <p className="relative w-full shrink-0 text-[clamp(12px,1.9vh,15px)] font-medium text-muted [@media(max-height:540px)]:hidden">💡 {step.hint}</p>}
           {step.duration_min ? (
-            <span className="relative mt-3 inline-flex items-center gap-1.5 rounded-full bg-harbor-50 px-3 py-1 text-sm font-semibold text-water">⏱ {step.duration_min} min</span>
+            <span className="relative inline-flex shrink-0 items-center gap-1.5 rounded-full bg-harbor-50 px-3 py-1 text-[clamp(11px,1.7vh,14px)] font-semibold text-water [@media(max-height:600px)]:hidden">⏱ {step.duration_min} min</span>
           ) : null}
 
           {isChoice ? (
-            <div className="relative mt-4 grid w-full grid-cols-2 gap-2.5">
+            <div className="relative grid w-full shrink-0 grid-cols-2 gap-2.5">
               {choices.map((o, i) => (
-                <button key={i} onClick={onComplete} className="flex flex-col items-center gap-1.5 rounded-2xl px-3 py-4 ring-1 transition active:scale-95" style={{ background: t.bg, borderColor: t.soft, color: t.fg }}>
-                  <span className="text-4xl">{o.icon || "•"}</span>
-                  <span className="font-display text-base font-bold" style={{ color: t.fg }}>{o.label}</span>
+                <button key={i} onClick={onComplete} className="flex flex-col items-center gap-1 rounded-2xl px-3 py-[clamp(8px,1.8vh,16px)] ring-1 transition active:scale-95" style={{ background: t.bg, borderColor: t.soft, color: t.fg }}>
+                  <span className="text-[clamp(24px,5vh,36px)]">{o.icon || "•"}</span>
+                  <span className="font-display text-[clamp(13px,1.9vh,16px)] font-bold" style={{ color: t.fg }}>{o.label}</span>
                 </button>
               ))}
             </div>
           ) : isSub ? (
-            <div className="relative mt-4 w-full space-y-2">
-              <p className="text-sm font-bold" style={{ color: t.fg }}>{subDone.length} of {subs.length} done</p>
-              {subs.map((o, i) => {
-                const d = subDone.includes(i);
-                return (
-                  <button key={i} onClick={() => onToggleSub(i)} className={cn("flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left ring-1 transition", d ? "bg-emerald-50 ring-emerald-200" : "bg-harbor-50 ring-harbor-100")}>
-                    <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-2", d ? "bg-emerald-500 text-white ring-emerald-300" : "ring-harbor-200")}>{d && <Check className="h-4 w-4" strokeWidth={3} />}</span>
-                    <span className="text-2xl">{o.icon || "•"}</span>
-                    <span className={cn("font-display text-lg font-bold", d ? "text-emerald-700/70 line-through" : "text-harbor")}>{o.label}</span>
-                  </button>
-                );
-              })}
+            <div className="relative flex min-h-0 w-full flex-1 flex-col gap-1.5">
+              <p className="shrink-0 text-sm font-bold" style={{ color: t.fg }}>{subDone.length} of {subs.length} done</p>
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {subs.map((o, i) => {
+                  const d = subDone.includes(i);
+                  return (
+                    <button key={i} onClick={() => onToggleSub(i)} className={cn("flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left ring-1 transition", d ? "bg-emerald-50 ring-emerald-200" : "bg-harbor-50 ring-harbor-100")}>
+                      <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-2", d ? "bg-emerald-500 text-white ring-emerald-300" : "ring-harbor-200")}>{d && <Check className="h-4 w-4" strokeWidth={3} />}</span>
+                      <span className="text-2xl">{o.icon || "•"}</span>
+                      <span className={cn("font-display text-lg font-bold", d ? "text-emerald-700/70 line-through" : "text-harbor")}>{o.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <>
               {step.reward_points > 0 && (
-                <span className="relative mt-3 inline-flex items-center gap-1.5 font-display text-base font-extrabold text-harbor">
-                  <Star className="h-5 w-5 fill-beacon text-beacon" /> {step.reward_points}
+                <span className="relative inline-flex shrink-0 items-center gap-1.5 font-display text-[clamp(13px,2vh,16px)] font-extrabold text-harbor">
+                  <Star className="h-[1.1em] w-[1.1em] fill-beacon text-beacon" /> {step.reward_points}
                 </span>
               )}
-              <Pressable haptics={!reducedMotion} onClick={onComplete} aria-label={`Done: ${step.label}`} className="relative mt-[clamp(8px,2vh,16px)] flex aspect-square w-[clamp(64px,11vh,92px)] items-center justify-center rounded-full text-white transition active:scale-90" style={{ background: t.fg, boxShadow: `0 12px 26px -8px ${t.fg}` }}>
+              <Pressable haptics={!reducedMotion} onClick={onComplete} aria-label={`Done: ${step.label}`} className="relative flex aspect-square w-[clamp(50px,11.5vh,88px)] shrink-0 items-center justify-center rounded-full text-white transition active:scale-90" style={{ background: t.fg, boxShadow: `0 12px 26px -8px ${t.fg}` }}>
                 <Check className="h-[52%] w-[52%]" strokeWidth={3} />
               </Pressable>
-              <p className="relative mt-2.5 text-sm font-semibold" style={{ color: t.fg }}>
+              <p className="relative shrink-0 text-[clamp(11px,1.7vh,14px)] font-semibold [@media(max-height:520px)]:hidden" style={{ color: t.fg }}>
                 {step.kind === "approval" ? "Tap — a grown-up says OK" : level >= 4 ? "🧭 You've got this!" : "Tap when you're done"}
               </p>
             </>
           )}
 
           {level <= 2 && !isSub && (
-            <button onClick={onSpeak} aria-label="Read aloud" className="relative mt-3 flex h-9 w-9 items-center justify-center rounded-full bg-harbor-50 text-water ring-1 ring-harbor-100">
+            <button onClick={onSpeak} aria-label="Read aloud" className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-harbor-50 text-water ring-1 ring-harbor-100 [@media(max-height:560px)]:hidden">
               <Volume2 className="h-4 w-4" />
             </button>
           )}
