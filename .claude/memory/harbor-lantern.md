@@ -1,0 +1,55 @@
+---
+name: harbor-lantern
+description: The Harbor Lantern (/lantern) — per-child bedside device = the Outpost, commercialized. Device-initiated pairing + bedside layer.
+metadata:
+  type: project
+---
+
+Spec: `C:\Users\tj.pendarvis\Downloads\HARBOR_LANTERN_DEVICE.md`. The **Lantern** is the per-child
+bedside device that beats Skylight Buddy on co-regulation, voice, neurodivergent fit, and the Voyage.
+It is **the Outpost, commercialized** — reuse the existing single-child kiosk experience, don't rebuild
+(the doc is emphatic: compose, don't fork). Phasing: **L1** pairing-to-a-child + single-child experience
++ satisfying complete → **L2** bedside layer + Anchor + voice → **L3** polish + management.
+
+**SHIPPED 2026-07-02 (L1 + a bedside-layer start):**
+- **Device-initiated pairing** (the signature UX; the doc §3 wants device-shows-code, parent-enters-and-
+  picks-child — the INVERSE of the pre-existing parent-initiated flow). Migration **0062**:
+  `pairing_requests` (pre-auth staging, RLS **deny-all** + revoked grants → reachable only via definer
+  RPCs) + `rpc_lantern_request_code` (anon: mint code+nonce) + `rpc_lantern_poll` (anon, **nonce-gated** —
+  knowing the code ≠ getting the secret) + `rpc_lantern_claim` (authenticated, **child_is_mine** — binds
+  only to the caller's own child; mints device_secret, creates an `outpost` device_pairings row, fills the
+  request so the device's poll adopts secret+snapshot). Codes 6-char unambiguous, expire 15 min.
+- **`/lantern`** route + `manifest-lantern.webmanifest` (its own PWA). `components/kiosk/LanternApp.tsx`
+  (parallels KioskApp: unpaired → `LanternSetup` [shows code, polls]; paired+outpost → `LanternShell`).
+  `LanternSetup` persists {code,nonce} to localStorage (resume across reload), polls every 3s.
+- **`useKiosk.adopt(result)`** — device-initiated claim result → paired KioskState (shares
+  `applyPairResult` with `pair()`). Exported `PairResult` type.
+- **`LanternShell`** = reuse **`OutpostShell`** (child world: ChildView + Voyage + Anchor) + **VoiceButton**
+  (private tap-to-talk, §6.2) + a **bedside resting clock/nightlight** (`LanternClock`, dims at night via
+  quiet hours; idle → rest, never mid-Anchor). Added an optional `onAnchorActive` prop to OutpostShell so
+  the Lantern suppresses resting during co-regulation.
+- **Parent claim UI**: `claimLantern` action + `LanternClaimForm` (useActionState, inline error + warm
+  "Welcome — this is Cade's Lantern!") in a "🏮 Set up a Lantern" card on `/app/devices`.
+
+**SECURITY (adversarial review caught + fixed pre-ship, migration 0063 + client):** the Lantern voice
+button is gated on the child's OWN `voiceChat` being on → routes ONLY to the bounded child-scoped
+`/api/ai/voice`; it must NEVER fall back to `/api/ai/command` (childId=null) which reads/mutates the WHOLE
+household (sibling data) — that would break §7 isolation. Pairing: a claimed `pairing_requests` row is
+served for a 5-min adopt window then poll deletes it (was: served forever → secret leak); `request_code`
+DELETEs expired rows (bounds anon flooding); `LanternSetup` retries `request_code` when offline and adopts
+BEFORE burning the guard/localStorage token (transient IndexedDB failure retries, doesn't strand a consumed claim).
+
+**GOTCHAS / KNOWN GAPS:**
+- The paired snapshot is the WHOLE household (`kiosk_snapshot(household)`) — the pre-existing Outpost model.
+  The Lantern **UI** shows only the bound child, but local storage holds household data. True per-child
+  cryptographic snapshot scoping (§7 "can't see other children even compromised") is a **future hardening**,
+  NOT done — don't claim full data isolation.
+- **L2/L3 REMAINING:** sound-machine + gentle wake-alarm→Morning-Voyage (§5), full nightlight config from the
+  app, re-assign-to-a-sibling flow (§3.3), fleet/remote-refresh polish. Anchor + voice + the Voyage already
+  work via the reused ChildView.
+- Verify: parent `/app` + the paired kiosk/Lantern are auth/pairing-gated → agent preview can't screenshot;
+  verify via clean build + adversarial review + a real paired device.
+
+Related: [[harbor-device-mgmt]] (Outpost + device_pairings + pairing), [[harbor-routines-app]] (the child
+routines it runs), [[harbor-kiosk-overhaul]] / [[harbor-childview-visual]] (ChildView/Voyage), [[harbor-ai-voice]]
+(the voice it exposes), [[harbor-project]].

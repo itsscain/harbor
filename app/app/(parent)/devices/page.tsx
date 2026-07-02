@@ -7,6 +7,7 @@ import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { Disclosure } from "@/components/app/Disclosure";
 import { ListRow } from "@/components/ui/ListRow";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { LanternClaimForm } from "@/components/app/LanternClaimForm";
 import { formatPairingCode } from "@/lib/codes";
 import { addDevice, updateDevice, unpairDevice, deviceCommand, updateDeviceSettings } from "../actions";
 
@@ -210,11 +211,27 @@ export default async function DevicesPage() {
         })}
       </div>
 
+      {/* The Lantern (HARBOR_LANTERN_DEVICE.md) — the per-child bedside device shows a code
+          the parent claims here. A friendlier, device-first flow than "Add a device". */}
+      <Card className="mt-5 p-0">
+        <Disclosure
+          bodyClassName="px-5 pb-5"
+          summary={
+            <span className="flex items-center gap-2 text-sm font-semibold text-harbor">
+              🏮 Set up a Lantern
+              <span className="font-normal text-muted">— a child&apos;s own bedside device</span>
+            </span>
+          }
+        >
+          <LanternClaimForm kids={kids.map((c) => ({ id: c.id, name: c.name }))} />
+        </Disclosure>
+      </Card>
+
       <Card className="mt-3 p-0">
         <Disclosure
           defaultOpen={devices.length === 0}
           bodyClassName="px-5 pb-5"
-          summary={<span className="text-sm font-semibold text-harbor">➕ Add a device</span>}
+          summary={<span className="text-sm font-semibold text-harbor">➕ Add a device (wall or room screen)</span>}
         >
           <form action={addDevice} className="mt-1 space-y-3">
             <div className="flex flex-wrap items-end gap-3">

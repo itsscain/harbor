@@ -20,12 +20,26 @@ type Kiosk = ReturnType<typeof useKiosk>;
 /** Outpost mode (HARBOR_V2 §9.1.4) — a spare tablet as a per-child room device:
  *  just that child's routine, chores, Anchor, Calm Tools, and bedtime. No family
  *  Home, no other children, no parent chrome — gated parent access for managing it. */
-export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string }) {
+export function OutpostShell({
+  kiosk,
+  childId,
+  onAnchorActive,
+}: {
+  kiosk: Kiosk;
+  childId: string;
+  /** Bubbles Anchor open/close up to a wrapper (the Lantern uses it to never rest to the
+   *  bedside clock mid-co-regulation). */
+  onAnchorActive?: (active: boolean) => void;
+}) {
   const { state } = kiosk;
   const [calmOpen, setCalmOpen] = useState(false);
   const [gate, setGate] = useState(false);
   const [menu, setMenu] = useState(false);
   const [anchorActive, setAnchorActive] = useState(false);
+  const handleAnchorActive = (a: boolean) => {
+    setAnchorActive(a);
+    onAnchorActive?.(a);
+  };
   if (!state) return null;
 
   const child = state.snapshot.children.find((c) => c.id === childId);
@@ -71,7 +85,7 @@ export function OutpostShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
           hideHome
           onHome={() => setGate(true)}
           onOpenCalm={() => setCalmOpen(true)}
-          onAnchorActive={setAnchorActive}
+          onAnchorActive={handleAnchorActive}
         />
 
         {/* discreet parent access for managing / unpairing the room device */}

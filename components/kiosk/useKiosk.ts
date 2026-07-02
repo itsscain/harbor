@@ -18,12 +18,23 @@ import { SKILL_THRESHOLD } from "@/lib/kiosk/skill";
 import { createClient } from "@/lib/supabase/client";
 import type {
   KioskState,
+  KioskSnapshot,
   KioskStep,
   KioskChore,
   KioskMedication,
   KioskStoreItem,
   KioskListItem,
 } from "@/lib/kiosk/types";
+
+/** The shape both pairing paths yield: the parent-initiated rpc_kiosk_pair result AND the
+ *  Lantern's device-initiated claim (rpc_lantern_poll → 'claimed'). */
+export type PairResult = {
+  device_secret: string;
+  household_id: string;
+  kind?: string | null;
+  child_id?: string | null;
+  snapshot: KioskSnapshot;
+};
 
 export type KioskStatus = "loading" | "unpaired" | "ready" | "error";
 export type SyncStatus = "idle" | "syncing" | "ok" | "error" | "offline" | "no-plus";
@@ -258,8 +269,9 @@ export function useKiosk() {
   }, [deviceSecret]);
 
   // ── Setup / pairing ─────────────────────────────────────────────────────────
-  const pair = useCallback(async (code: string) => {
-    const res = await pairDevice(code);
+  // Build + persist the initial paired state from a pairing result. Shared by the
+  // parent-initiated code path (pair) and the Lantern's device-initiated claim (adopt).
+  const applyPairResult = useCallback(async (res: PairResult) => {
     const points: Record<string, number> = {};
     for (const rw of res.snapshot.rewards) points[rw.child_id] = rw.points_total;
     const fresh: KioskState = {
@@ -280,6 +292,16 @@ export function useKiosk() {
     setState(fresh);
     setStatus("ready");
   }, []);
+
+  const pair = useCallback(async (code: string) => {
+    await applyPairResult(await pairDevice(code));
+  }, [applyPairResult]);
+
+  // The Lantern's device-initiated flow (HARBOR_LANTERN_DEVICE.md §3): the device already
+  // holds its claim result from rpc_lantern_poll, so it adopts it directly (no code entry).
+  const adopt = useCallback(async (res: PairResult) => {
+    await applyPairResult(res);
+  }, [applyPairResult]);
 
   const setPin = useCallback(
     async (pin: string) => {
@@ -672,6 +694,7 @@ export function useKiosk() {
     paused,
     deviceSettings,
     pair,
+    adopt,
     setPin,
     verifyPin,
     unpair,

@@ -1310,6 +1310,43 @@ export async function unpairDevice(id: string) {
   revalidatePath("/app/devices");
 }
 
+// ── The Lantern (HARBOR_LANTERN_DEVICE.md §3) — claim a device-shown code to a child ──
+// The per-child bedside Lantern SHOWS a code; the parent enters it here and picks the child.
+// rpc_lantern_claim (SECURITY DEFINER) authorizes via child_is_mine + binds only to our own
+// child, then creates the outpost device_pairings row the Lantern adopts on its next poll.
+export type ClaimLanternState = { ok?: boolean; error?: string; childName?: string };
+
+export async function claimLantern(
+  _prev: ClaimLanternState,
+  formData: FormData,
+): Promise<ClaimLanternState> {
+  await requireUser();
+  const code = String(formData.get("code") || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+  const childId = str(formData.get("child_id"));
+  const nickname = str(formData.get("nickname"));
+  if (code.length < 6) return { error: "Enter the 6-character code shown on the Lantern." };
+  if (!childId) return { error: "Pick which child this Lantern is for." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("rpc_lantern_claim", {
+    p_code: code,
+    p_child_id: childId,
+    p_nickname: nickname ?? "",
+  });
+  if (error) {
+    const m = error.message || "";
+    if (m.includes("invalid_or_expired_code"))
+      return { error: "That code didn't work — check it matches the Lantern's screen (codes expire after 15 minutes)." };
+    if (m.includes("not_your_child")) return { error: "Please pick one of your own children." };
+    return { error: "Couldn't set up the Lantern — try again in a moment." };
+  }
+  const d = (data ?? {}) as { child_name?: string };
+  revalidatePath("/app/devices");
+  return { ok: true, childName: d.child_name };
+}
+
 // ── Ask Harbor — the parent voice Copilot (AI-Led Voice §3.4) ─────────────────
 // A parent asks naturally about their kids or for gentle, practical help. Grounded in
 // their REAL household data (request-scoped → RLS-confined to their household); warm +

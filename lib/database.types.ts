@@ -1364,6 +1364,63 @@ export type Database = {
           },
         ]
       }
+      pairing_requests: {
+        Row: {
+          child_id: string | null
+          claimed_at: string | null
+          code: string
+          created_at: string
+          device_nonce: string
+          device_secret: string | null
+          expires_at: string
+          household_id: string | null
+          id: string
+          nickname: string | null
+          status: string
+        }
+        Insert: {
+          child_id?: string | null
+          claimed_at?: string | null
+          code: string
+          created_at?: string
+          device_nonce?: string
+          device_secret?: string | null
+          expires_at?: string
+          household_id?: string | null
+          id?: string
+          nickname?: string | null
+          status?: string
+        }
+        Update: {
+          child_id?: string | null
+          claimed_at?: string | null
+          code?: string
+          created_at?: string
+          device_nonce?: string
+          device_secret?: string | null
+          expires_at?: string
+          household_id?: string | null
+          id?: string
+          nickname?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairing_requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_requests_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           avatar: string | null
@@ -2442,6 +2499,7 @@ export type Database = {
     Functions: {
       child_is_mine: { Args: { c: string }; Returns: boolean }
       founder_active_count: { Args: never; Returns: number }
+      gen_lantern_code: { Args: never; Returns: string }
       hard_delete_child: { Args: { p_child: string }; Returns: undefined }
       household_is_mine: { Args: { hh: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
@@ -2466,6 +2524,12 @@ export type Database = {
         Returns: Json
       }
       rpc_kiosk_reset_points: { Args: { p_secret: string }; Returns: Json }
+      rpc_lantern_claim: {
+        Args: { p_child_id: string; p_code: string; p_nickname: string }
+        Returns: Json
+      }
+      rpc_lantern_poll: { Args: { p_nonce: string }; Returns: Json }
+      rpc_lantern_request_code: { Args: never; Returns: Json }
       rpc_public_builds: {
         Args: never
         Returns: {

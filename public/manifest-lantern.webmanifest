@@ -1,0 +1,25 @@
+{
+  "name": "Harbor Lantern",
+  "short_name": "Lantern",
+  "description": "Your child's own Harbor — their day as a voyage, a calm-down corner, and a gentle bedside light.",
+  "start_url": "/lantern",
+  "scope": "/lantern",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1424",
+  "theme_color": "#0C3B47",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
