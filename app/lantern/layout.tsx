@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { RegisterSW } from "@/components/kiosk/RegisterSW";
+import { AutoFullscreen } from "@/components/kiosk/AutoFullscreen";
 
 // The Lantern (HARBOR_LANTERN_DEVICE.md) — a per-child bedside PWA. Its own manifest so
 // "Add to Home Screen" installs the single-child Lantern (start_url/scope = /lantern),
@@ -15,6 +16,8 @@ export default function LanternLayout({ children }: { children: React.ReactNode 
     <div className="fixed inset-0 overflow-hidden overscroll-none select-none">
       <div className="h-full w-full overflow-y-auto">{children}</div>
       <RegisterSW />
+      {/* Bedside device → chromeless: request fullscreen on first touch (§ Lantern). */}
+      <AutoFullscreen />
     </div>
   );
 }
