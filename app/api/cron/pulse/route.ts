@@ -44,7 +44,7 @@ const toMin = (hm: string): number => {
   return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
 };
 
-export async function GET(req: Request) {
+async function handle(req: Request) {
   if (!authorized(req)) return new Response("Unauthorized", { status: 401 });
 
   const admin = createAdminClient();
@@ -131,3 +131,7 @@ export async function GET(req: Request) {
 
   return Response.json({ ok: true, households: (households ?? []).length, events, reminders, meds });
 }
+
+// Supabase pg_cron calls this via net.http_post (POST); a manual/browser check uses GET.
+export const GET = handle;
+export const POST = handle;
