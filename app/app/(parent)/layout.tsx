@@ -6,6 +6,7 @@ import { AccountMenu } from "@/components/app/AccountMenu";
 import { RouteTransition } from "@/components/app/RouteTransition";
 import { RealtimeRefresh } from "@/components/app/RealtimeRefresh";
 import { RegisterSWApp } from "@/components/app/RegisterSWApp";
+import { NotificationPrompt } from "@/components/app/NotificationPrompt";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { BadgeSync } from "@/components/app/BadgeSync";
 import { cookies } from "next/headers";
@@ -48,6 +49,7 @@ export default async function ParentLayout({
     <div data-theme={theme} data-app-theme-root className="min-h-dvh bg-bg text-fg">
       {household?.id && <RealtimeRefresh householdId={household.id} />}
       <RegisterSWApp vapidKey={env.vapidPublicKey} />
+      <NotificationPrompt vapidKey={env.vapidPublicKey} />
       <BadgeSync count={unread} />
       {/* Desktop: persistent command rail (The Helm). Mobile: bottom nav. */}
       <ParentRail householdName={household?.name} unread={unread} />

@@ -1388,6 +1388,41 @@ export type Database = {
           },
         ]
       }
+      notification_dispatch_log: {
+        Row: {
+          created_at: string
+          dose_key: string
+          entity_id: string
+          household_id: string
+          id: string
+          kind: string
+        }
+        Insert: {
+          created_at?: string
+          dose_key: string
+          entity_id: string
+          household_id: string
+          id?: string
+          kind: string
+        }
+        Update: {
+          created_at?: string
+          dose_key?: string
+          entity_id?: string
+          household_id?: string
+          id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_dispatch_log_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           parent_id: string
