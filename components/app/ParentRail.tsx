@@ -2,83 +2,73 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  Users,
-  Heart,
-  Pill,
-  CalendarClock,
-  CalendarDays,
-  ListChecks,
-  UtensilsCrossed,
-  Gift,
-  ScrollText,
-  Sparkles,
-  History,
-  Tablet,
-  MessageCircleHeart,
-  Settings,
-  Bell,
-  LogOut,
-} from "lucide-react";
+import { Home, Users, LogOut } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Wordmark } from "@/components/brand/Logo";
 import { signOut } from "@/lib/actions/auth";
+import { PLAN_GROUP, MORE_GROUPS, type NavItem } from "@/lib/app-nav";
 import { cn } from "@/lib/cn";
 
-const ITEMS = [
-  { href: "/app", label: "Home", icon: Home, exact: true },
-  { href: "/app/notifications", label: "Notifications", icon: Bell },
-  { href: "/app/ask", label: "Ask Harbor", icon: MessageCircleHeart },
-  { href: "/app/children", label: "Children", icon: Users },
-  { href: "/app/routines", label: "Routines", icon: ListChecks },
-  { href: "/app/family", label: "Family", icon: Heart },
-  { href: "/app/schedule", label: "Family Schedule", icon: CalendarClock },
-  { href: "/app/medication", label: "Medication", icon: Pill },
-  { href: "/app/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/app/lists", label: "Lists", icon: ListChecks },
-  { href: "/app/meals", label: "Meals", icon: UtensilsCrossed },
-  { href: "/app/store", label: "Reward store", icon: Gift },
-  { href: "/app/rules", label: "House rules", icon: ScrollText },
-  { href: "/app/insights", label: "Insights", icon: Sparkles },
-  { href: "/app/history", label: "History", icon: History },
-  { href: "/app/devices", label: "Devices", icon: Tablet },
-  { href: "/app/settings", label: "Settings", icon: Settings },
+// The Helm — the parent's persistent command rail on desktop. Mobile hides it and
+// ParentNav (bottom bar) takes over. Grouped by the same taxonomy the mobile hubs use:
+// Today · Kids, then Plan, Your family, Look back, Harbor helps, Account.
+const TOP: NavItem[] = [
+  { href: "/app", label: "Today", desc: "", icon: Home },
+  { href: "/app/children", label: "Kids", desc: "", icon: Users },
 ];
+const GROUPS = [PLAN_GROUP, ...MORE_GROUPS];
 
-/** The Helm — the parent's persistent command rail on desktop (§8.1). On mobile
- *  it's hidden and ParentNav (bottom bar) takes over. */
+function isActive(pathname: string, href: string): boolean {
+  if (href === "/app") return pathname === "/app";
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
 export function ParentRail({ householdName, unread = 0 }: { householdName?: string | null; unread?: number }) {
   const pathname = usePathname();
   const name = householdName?.trim() || "Your family";
+
+  const Row = ({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) => {
+    const active = isActive(pathname, href);
+    return (
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition active:scale-[0.98]",
+          active ? "bg-water/12 text-harbor" : "text-muted hover:bg-harbor-50 hover:text-ink",
+        )}
+      >
+        <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-water" : "text-muted")} />
+        <span className="flex-1 truncate">{label}</span>
+        {href === "/app/notifications" && unread > 0 && (
+          <span className="min-w-[20px] rounded-full bg-beacon px-1.5 text-center text-[11px] font-extrabold leading-5 text-harbor">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-harbor-100 bg-white/85 backdrop-blur-lg lg:flex">
       <div className="px-5 pb-4 pt-5">
         <Wordmark />
         <p className="mt-2 truncate text-sm font-medium text-muted">{name}</p>
       </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
-        {ITEMS.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact ? pathname === href : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition active:scale-[0.98]",
-                active ? "bg-water/12 text-harbor" : "text-muted hover:bg-harbor-50 hover:text-ink",
-              )}
-            >
-              <Icon className={cn("h-5 w-5 shrink-0", active ? "text-water" : "text-muted")} />
-              <span className="flex-1">{label}</span>
-              {href === "/app/notifications" && unread > 0 && (
-                <span className="min-w-[20px] rounded-full bg-beacon px-1.5 text-center text-[11px] font-extrabold leading-5 text-harbor">
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
+        <div className="space-y-0.5">
+          {TOP.map((i) => (
+            <Row key={i.href} {...i} />
+          ))}
+        </div>
+        {GROUPS.map((g) => (
+          <div key={g.heading} className="space-y-0.5">
+            <p className="text-eyebrow px-3 pb-1 pt-1 text-muted/80">{g.heading}</p>
+            {g.items.map((i) => (
+              <Row key={i.href} {...i} />
+            ))}
+          </div>
+        ))}
       </nav>
       <form action={signOut} className="border-t border-harbor-100 p-3">
         <button

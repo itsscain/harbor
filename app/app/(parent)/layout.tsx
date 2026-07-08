@@ -60,7 +60,7 @@ export default async function ParentLayout({
         </main>
       </div>
       <div className="lg:hidden">
-        <ParentNav />
+        <ParentNav unread={unread} />
       </div>
     </div>
   );
