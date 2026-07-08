@@ -9,10 +9,10 @@ import {
   saveNotificationPrefs,
   sendTestNotification,
 } from "@/app/app/(parent)/notification-actions";
-import { CATEGORY_LABEL, type NotifCategory, type NotifPrefs, type DetailLevel } from "@/lib/notifications/prefs";
+import { CATEGORY_LABEL, CATEGORY_DESC, CATEGORY_ORDER, type NotifPrefs, type DetailLevel } from "@/lib/notifications/prefs";
 import { cn } from "@/lib/cn";
 
-const CATS: NotifCategory[] = ["distress", "approvals", "moments", "reminders", "digest"];
+const CATS = CATEGORY_ORDER;
 
 function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -150,20 +150,25 @@ export function NotificationsCard({
 
       {/* Preferences */}
       <div className="border-t border-harbor-100 pt-4">
-        <p className="mb-2 text-sm font-semibold text-harbor">What to tell you about</p>
-        <div className="space-y-2.5">
+        <p className="mb-3 text-sm font-semibold text-harbor">What to tell you about</p>
+        <div className="space-y-3">
           {CATS.map((c) => (
-            <div key={c} className="flex items-center justify-between gap-3">
-              <span className="text-sm text-ink">{CATEGORY_LABEL[c]}</span>
+            <div key={c} className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink">{CATEGORY_LABEL[c]}</p>
+                <p className="text-xs text-muted">{CATEGORY_DESC[c]}</p>
+              </div>
               {c === "distress" ? (
                 // Safety: a "your child needs you" alert always reaches you — it can't be turned off.
-                <span className="inline-flex items-center gap-1 rounded-full bg-seafoam px-2.5 py-1 text-xs font-semibold text-harbor">Always on</span>
+                <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-seafoam px-2.5 py-1 text-xs font-semibold text-harbor">Always on</span>
               ) : (
-                <Toggle
-                  label={CATEGORY_LABEL[c]}
-                  on={prefs.categories[c]}
-                  onChange={(v) => patch({ categories: { ...prefs.categories, [c]: v } })}
-                />
+                <div className="mt-0.5">
+                  <Toggle
+                    label={CATEGORY_LABEL[c]}
+                    on={prefs.categories[c]}
+                    onChange={(v) => patch({ categories: { ...prefs.categories, [c]: v } })}
+                  />
+                </div>
               )}
             </div>
           ))}

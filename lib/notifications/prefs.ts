@@ -1,7 +1,20 @@
 // Notification preferences — shared types + defaults + the calm delivery logic (categories, quiet
 // hours, lock-screen detail level). Pure/isomorphic so the Settings UI and the server dispatch agree.
 
-export type NotifCategory = "distress" | "approvals" | "moments" | "reminders" | "digest";
+// Granular, per-type categories so a parent can pick exactly what reaches their phone
+// (event reminders vs. the daily AI summary vs. routines, etc.). `notifications.category`
+// is a plain text column and `mergePrefs` tolerates unknown/legacy keys, so adding a
+// category needs no migration and existing parents keep their saved toggles.
+export type NotifCategory =
+  | "distress" // tier 1 — a child needs you (SOS / calm corner); always on
+  | "approvals" // tier 2 — a chore/reward is waiting for your OK
+  | "routines" // tier 3 — a routine finished, or was missed
+  | "moments" // tier 3 — celebrations & milestones
+  | "medication" // tier 3 — a dose is due or was missed
+  | "messages" // tier 3 — a note posted to the wall for you
+  | "events" // tier 4 — an upcoming calendar event
+  | "briefing" // tier 4 — the daily summary from Harbor
+  | "digest"; // tier 5 — the weekly wrap-up
 export type DetailLevel = "full" | "names" | "discreet";
 
 export type NotifPrefs = {
@@ -10,31 +23,75 @@ export type NotifPrefs = {
   detailLevel: DetailLevel;
 };
 
-/** Urgency tier per category (HARBOR_PUSH_NOTIFICATIONS.md §3). Tier 1 = "your child needs you". */
+/** Urgency tier per category (lower = more urgent). Tier 1 = "your child needs you". */
 export const CATEGORY_TIER: Record<NotifCategory, number> = {
   distress: 1,
   approvals: 2,
+  routines: 3,
   moments: 3,
-  reminders: 4,
+  medication: 3,
+  messages: 3,
+  events: 4,
+  briefing: 4,
   digest: 5,
 };
 
 export const CATEGORY_LABEL: Record<NotifCategory, string> = {
   distress: "When your child needs you",
   approvals: "Approvals & requests",
+  routines: "Routines — finished or missed",
   moments: "Moments & celebrations",
-  reminders: "Reminders",
+  medication: "Medication reminders",
+  messages: "Messages from the wall",
+  events: "Event reminders",
+  briefing: "Daily summary from Harbor",
   digest: "Weekly digest",
 };
 
+/** One-line helper shown under each toggle in Settings. */
+export const CATEGORY_DESC: Record<NotifCategory, string> = {
+  distress: "SOS and calm-corner alerts. Always on.",
+  approvals: "A chore or reward is waiting for your OK.",
+  routines: "When a child finishes their day — or a window closes unfinished.",
+  moments: "Streaks, big wins, and points milestones.",
+  medication: "A dose is coming up, or was missed.",
+  messages: "A note posted to the wall for you.",
+  events: "A heads-up before a calendar event.",
+  briefing: "A short morning rundown of everyone's day.",
+  digest: "A gentle weekly recap of patterns and wins.",
+};
+
+/** Display order for the Settings list — most urgent first. */
+export const CATEGORY_ORDER: NotifCategory[] = [
+  "distress",
+  "approvals",
+  "routines",
+  "medication",
+  "messages",
+  "moments",
+  "events",
+  "briefing",
+  "digest",
+];
+
 /** Conservative, high-signal defaults: everything on, quiet hours off, full detail. */
 export const DEFAULT_PREFS: NotifPrefs = {
-  categories: { distress: true, approvals: true, moments: true, reminders: true, digest: true },
+  categories: {
+    distress: true,
+    approvals: true,
+    routines: true,
+    moments: true,
+    medication: true,
+    messages: true,
+    events: true,
+    briefing: true,
+    digest: true,
+  },
   quietHours: { enabled: false, start: "21:00", end: "07:00", allowCritical: true },
   detailLevel: "full",
 };
 
-const CATS: NotifCategory[] = ["distress", "approvals", "moments", "reminders", "digest"];
+const CATS: NotifCategory[] = CATEGORY_ORDER;
 
 /** Merge stored prefs over the defaults, tolerating partial/legacy shapes. */
 export function mergePrefs(raw: unknown): NotifPrefs {
