@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { RefreshCw, RotateCcw, LogOut, Star, ArrowLeft, Heart, Clock, Wrench } from "lucide-react";
 import { VoiceDebug } from "./VoiceDebug";
 import { IdentifyFlash } from "./IdentifyFlash";
+import { HouseModeLayer } from "./HouseModeLayer";
+import { WallCommandLayer } from "./WallCommandLayer";
 import type { useKiosk } from "./useKiosk";
 import { FamilyView } from "./FamilyView";
 import { ChildView } from "./ChildView";
@@ -152,6 +154,9 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   return (
     <div className="min-h-full">
       <IdentifyFlash at={kiosk.identifyAt} name={kiosk.deviceLabel} />
+      {/* Parent Power — House Modes + live command pops from the phone. */}
+      <HouseModeLayer settings={settings} />
+      <WallCommandLayer kiosk={kiosk} onStartCalm={() => setCalmOpen(true)} />
       {/* Harbor Depth — fixed material layers behind all content (§3). Duck during
           Anchor so the world quiets while a child co-regulates (§9.1). */}
       <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>

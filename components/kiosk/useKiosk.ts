@@ -527,6 +527,30 @@ export function useKiosk() {
     [update],
   );
 
+  // Command §3 — a kid asks a grown-up for something. Points-free; queued for push and
+  // synced promptly so the parent gets the notification fast (a DB trigger fans it out).
+  const requestSomething = useCallback(
+    (childId: string, kind: string, opts?: { amount?: number | null; body?: string | null }) => {
+      update((s) => ({
+        ...s,
+        outbox: [
+          ...s.outbox,
+          {
+            kind: "request",
+            op_id: crypto.randomUUID(),
+            child_id: childId,
+            request_kind: kind,
+            amount: opts?.amount ?? null,
+            body: opts?.body ?? null,
+            created_at: new Date().toISOString(),
+          },
+        ],
+      }));
+      void runSync();
+    },
+    [update, runSync],
+  );
+
   // Auto-soften (§9.1.3): after a rough Anchor, run this child at calm intensity
   // for the rest of today (date-stamped; auto-restores tomorrow). Local + offline.
   const softenChild = useCallback(
@@ -758,6 +782,7 @@ export function useKiosk() {
     checkIn,
     softenChild,
     bumpStreak,
+    requestSomething,
     refreshSkipperLines,
     resetDay,
     resetPoints,

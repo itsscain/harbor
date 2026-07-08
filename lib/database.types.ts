@@ -1895,6 +1895,69 @@ export type Database = {
           },
         ]
       }
+      requests: {
+        Row: {
+          amount: number | null
+          body: string | null
+          child_id: string
+          client_op_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          household_id: string
+          id: string
+          kind: string
+          response_note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          body?: string | null
+          child_id: string
+          client_op_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          household_id: string
+          id?: string
+          kind: string
+          response_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          body?: string | null
+          child_id?: string
+          client_op_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          household_id?: string
+          id?: string
+          kind?: string
+          response_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reward_log: {
         Row: {
           child_id: string
@@ -2641,6 +2704,60 @@ export type Database = {
         }
         Relationships: []
       }
+      wall_commands: {
+        Row: {
+          body: string | null
+          child_id: string | null
+          created_at: string
+          created_by: string | null
+          emoji: string | null
+          expires_at: string
+          household_id: string
+          id: string
+          kind: string
+          payload: Json
+        }
+        Insert: {
+          body?: string | null
+          child_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          expires_at?: string
+          household_id: string
+          id?: string
+          kind: string
+          payload?: Json
+        }
+        Update: {
+          body?: string | null
+          child_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          expires_at?: string
+          household_id?: string
+          id?: string
+          kind?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_commands_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wall_commands_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wall_messages: {
         Row: {
           author_label: string | null
@@ -2739,6 +2856,10 @@ export type Database = {
       }
       rpc_lantern_poll: { Args: { p_nonce: string }; Returns: Json }
       rpc_lantern_request_code: { Args: never; Returns: Json }
+      rpc_parent_adjust_points: {
+        Args: { p_child: string; p_delta: number; p_reason?: string }
+        Returns: number
+      }
       rpc_public_builds: {
         Args: never
         Returns: {

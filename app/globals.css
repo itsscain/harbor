@@ -923,7 +923,11 @@ h4,
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--color-surface-2, var(--color-harbor-100));
+  /* Use the RUNTIME themed vars (--c-*), not the @theme-inline aliases (--color-*):
+     Tailwind inlines the latter into utilities and never emits them as CSS custom
+     properties, so var(--color-surface-2) is undefined here and falls back to the LIGHT
+     brand tint — which showed white skeletons on the dark Helm during route loads. */
+  background: var(--c-surface-2, var(--color-harbor-100));
   border-radius: 0.75rem;
 }
 .skeleton::after {
@@ -934,7 +938,7 @@ h4,
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--color-fg, #fff) 10%, transparent),
+    color-mix(in srgb, var(--c-fg, #fff) 10%, transparent),
     transparent
   );
   animation: shimmer 1.6s infinite;

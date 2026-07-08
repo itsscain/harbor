@@ -41,6 +41,7 @@ import { activeGroundingFor } from "@/lib/kiosk/grounding";
 import { speak, cheer, greetLine, doneLine, feedback } from "@/lib/kiosk/feedback";
 import { activeStreak } from "@/lib/kiosk/streak";
 import { StreakBadge } from "./StreakBadge";
+import { AskGrownup } from "./AskGrownup";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
@@ -502,6 +503,7 @@ export function ChildView({
             </Pressable>
           )}
           <div className="flex items-center gap-2">
+            <AskGrownup kiosk={kiosk} childId={child.id} childName={child.name} haptics={settings.haptics} sound={settings.sound} />
             <StreakBadge count={streak} />
             <span className="flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-2">
               <Star className="h-5 w-5 fill-beacon text-beacon" />

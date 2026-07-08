@@ -241,6 +241,34 @@ export type KioskWallMessage = {
   created_at: string;
 };
 
+/** Command (Parent Power): an ephemeral "pop" the parent fired at this wall — a note,
+ *  a praise burst, a gentle attention nudge, or a start-a-calm-moment. Expires ~90s
+ *  after it's sent; the wall shows it once. */
+export type KioskWallCommand = {
+  id: string;
+  child_id: string | null; // null = the whole house
+  kind: string; // 'attention' | 'note' | 'praise' | 'calm'
+  body: string | null;
+  emoji: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+  expires_at: string;
+};
+
+/** Command §3: a kid's ask to a grown-up (screen time, help, a treat…). The wall shows
+ *  its outcome once the parent approves/denies from their phone. */
+export type KioskRequest = {
+  id: string;
+  child_id: string;
+  kind: string;
+  amount: number | null;
+  body: string | null;
+  status: string; // 'pending' | 'approved' | 'denied' | 'cancelled'
+  response_note: string | null;
+  created_at: string;
+  decided_at: string | null;
+};
+
 export type KioskHouseRule = {
   id: string;
   kind: "rule" | "consequence";
@@ -323,6 +351,9 @@ export type KioskSnapshot = {
   store_items: KioskStoreItem[];
   list_items: KioskListItem[];
   wall_messages: KioskWallMessage[];
+  /** Command (Parent Power) — live parent→wall pops + kid→parent asks. */
+  wall_commands?: KioskWallCommand[];
+  requests?: KioskRequest[];
   reminders: KioskReminder[];
   meals: KioskMeal[];
   groundings?: KioskGrounding[];
@@ -379,7 +410,16 @@ export type Mutation =
       added_by_label: string | null;
       created_at: string;
     }
-  | { kind: "list_check"; id: string; checked: boolean; created_at: string };
+  | { kind: "list_check"; id: string; checked: boolean; created_at: string }
+  | {
+      kind: "request";
+      op_id: string;
+      child_id: string;
+      request_kind: string;
+      amount: number | null;
+      body: string | null;
+      created_at: string;
+    };
 
 export type DayProgress = { date: string; completed: string[] };
 

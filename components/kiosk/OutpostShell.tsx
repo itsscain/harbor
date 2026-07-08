@@ -9,6 +9,8 @@ import { ParentGate } from "./ParentGate";
 import { LivingAmbient } from "./LivingAmbient";
 import { BeaconLight } from "./BeaconLight";
 import { IdentifyFlash } from "./IdentifyFlash";
+import { HouseModeLayer } from "./HouseModeLayer";
+import { WallCommandLayer } from "./WallCommandLayer";
 import { KButton, KCard } from "./ui";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { childColor } from "@/lib/kiosk/colors";
@@ -65,6 +67,10 @@ export function OutpostShell({
   return (
     <div className="min-h-full">
       <IdentifyFlash at={kiosk.identifyAt} name={kiosk.deviceLabel} />
+      {/* Parent Power — this room device honors house modes (for its own child) and shows
+          the live pops + request outcomes, same as the family wall. */}
+      <HouseModeLayer settings={state.snapshot.household.settings} childId={childId} />
+      <WallCommandLayer kiosk={kiosk} onStartCalm={() => setCalmOpen(true)} />
       {/* Duck the lit world during Anchor so the room quiets while the child regulates (§9.1). */}
       <div className={cn("transition-opacity duration-700 ease-[var(--ease-harbor-calm)]", anchorActive && "opacity-30")}>
         <LivingAmbient />

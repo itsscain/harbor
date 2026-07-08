@@ -486,7 +486,7 @@ export default async function ChildDetail({
                     className="peer sr-only"
                   />
                   <span
-                    className="block h-7 w-7 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-[var(--color-surface)] transition-transform peer-checked:scale-110 peer-checked:ring-accent"
+                    className="block h-7 w-7 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-[var(--c-surface)] transition-transform peer-checked:scale-110 peer-checked:ring-accent"
                     style={{ backgroundColor: p.value }}
                   />
                 </label>

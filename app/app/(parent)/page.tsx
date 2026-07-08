@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Tablet, Sparkles, Plus } from "lucide-react";
+import { ChevronRight, Tablet, Sparkles, Plus, Radio } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold, plusActive } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -128,6 +128,12 @@ export default async function ParentHome({
       }
     : null;
 
+  const { count: pendingReq } = await supabase
+    .from("requests")
+    .select("id", { count: "exact", head: true })
+    .eq("household_id", household.id)
+    .eq("status", "pending");
+
   const settings = (household.settings ?? {}) as Record<string, unknown>;
   const steps = [
     { label: "Add a child", hint: "Name, avatar, and color", done: childIds.length > 0, href: "/app/children#add" },
@@ -151,6 +157,20 @@ export default async function ParentHome({
       <div className="mb-6">
         <WallMirror children={mirrorChildren} pulse={pulse} nextEvent={nextEvent} dinner={dinnerRow} />
       </div>
+
+      <Link href="/app/command" className="mb-6 block">
+        <Card interactive className="flex items-center gap-3 border-accent/30 bg-accent/[0.06]">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+            <Radio className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-fg">Command the house</p>
+            <p className="text-sm text-fg-muted">Grant a star, nudge a wall, or set a house mode — live.</p>
+          </div>
+          {(pendingReq ?? 0) > 0 && <Badge tone="amber">{pendingReq} waiting</Badge>}
+          <ChevronRight className="h-5 w-5 shrink-0 text-fg-muted" />
+        </Card>
+      </Link>
 
       {showChecklist && <SetupChecklist steps={steps} dismiss={dismissOnboarding} />}
 

@@ -24,6 +24,7 @@ import {
   CreditCard,
   LayoutGrid,
   Compass,
+  Radio,
 } from "lucide-react";
 
 // Single source of truth for the parent-app (Helm) navigation taxonomy. The mobile
@@ -33,6 +34,14 @@ import {
 
 export type NavItem = { href: string; label: string; desc: string; icon: LucideIcon };
 export type NavGroup = { heading: string; items: NavItem[] };
+
+/** COMMAND — the live remote: reach the wall right now. */
+export const COMMAND_GROUP: NavGroup = {
+  heading: "Right now",
+  items: [
+    { href: "/app/command", label: "Command", desc: "Grant stars, nudge the wall, set a house mode", icon: Radio },
+  ],
+};
 
 /** PLAN — everything time / scheduling / planning shaped. */
 export const PLAN_GROUP: NavGroup = {
@@ -92,7 +101,7 @@ export const ACCOUNT_GROUP: NavGroup = {
 /** The Plan hub page renders this. */
 export const PLAN_GROUPS: NavGroup[] = [PLAN_GROUP];
 /** The More hub page renders these. */
-export const MORE_GROUPS: NavGroup[] = [FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP];
+export const MORE_GROUPS: NavGroup[] = [COMMAND_GROUP, FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP];
 
 /** All routes that light up the "Plan" / "More" primary tabs. */
 export const PLAN_ROUTES = ["/app/plan", ...PLAN_GROUP.items.map((i) => i.href)];

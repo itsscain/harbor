@@ -27,6 +27,7 @@ function buildPayload(outbox: Mutation[]): Json {
   const skill_progress: Json[] = [];
   const redemptions: Json[] = [];
   const list_ops: Json[] = [];
+  const requests: Json[] = [];
   for (const m of outbox) {
     if (m.kind === "check_in")
       check_ins.push({ child_id: m.child_id, feeling: m.feeling, note: m.note, created_at: m.created_at });
@@ -93,8 +94,17 @@ function buildPayload(outbox: Mutation[]): Json {
       });
     else if (m.kind === "list_check")
       list_ops.push({ op: "check", id: m.id, checked: m.checked, created_at: m.created_at });
+    else if (m.kind === "request")
+      requests.push({
+        op_id: m.op_id,
+        child_id: m.child_id,
+        kind: m.request_kind,
+        amount: m.amount,
+        body: m.body,
+        created_at: m.created_at,
+      });
   }
-  return { check_ins, completions, chore_dones, person_completions, med_logs, skill_progress, redemptions, list_ops };
+  return { check_ins, completions, chore_dones, person_completions, med_logs, skill_progress, redemptions, list_ops, requests };
 }
 
 function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): KioskState {
@@ -126,6 +136,8 @@ function applyPull(state: KioskState, snap: KioskSnapshot, replace = false): Kio
       store_items: pull(state.snapshot.store_items ?? [], snap.store_items),
       list_items: pull(state.snapshot.list_items ?? [], snap.list_items),
       wall_messages: pull(state.snapshot.wall_messages ?? [], snap.wall_messages),
+      wall_commands: pull(state.snapshot.wall_commands ?? [], snap.wall_commands),
+      requests: pull(state.snapshot.requests ?? [], snap.requests),
       reminders: pull(state.snapshot.reminders ?? [], snap.reminders),
       meals: pull(state.snapshot.meals ?? [], snap.meals),
       groundings: pull(state.snapshot.groundings ?? [], snap.groundings),
