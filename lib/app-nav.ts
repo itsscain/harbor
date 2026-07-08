@@ -23,6 +23,7 @@ import {
   Settings,
   CreditCard,
   LayoutGrid,
+  Compass,
 } from "lucide-react";
 
 // Single source of truth for the parent-app (Helm) navigation taxonomy. The mobile
@@ -74,6 +75,7 @@ export const ASSISTANT_GROUP: NavGroup = {
   items: [
     { href: "/app/ask", label: "Ask Harbor", desc: "Talk or type — grounded help & drafts", icon: MessageCircleHeart },
     { href: "/app/notifications", label: "Notifications", desc: "Everything Harbor flagged for you", icon: Bell },
+    { href: "/app?setup=1", label: "Getting started", desc: "Reopen your setup checklist", icon: Compass },
   ],
 };
 

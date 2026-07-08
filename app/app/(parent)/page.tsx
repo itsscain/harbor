@@ -17,9 +17,14 @@ import { dismissOnboarding } from "./hub-actions";
 export const metadata = { title: "Home" };
 export const dynamic = "force-dynamic";
 
-export default async function ParentHome() {
+export default async function ParentHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ setup?: string }>;
+}) {
   const household = await getMyHousehold();
   const supabase = await createClient();
+  const forceSetup = (await searchParams).setup === "1";
 
   if (!household) {
     return (
@@ -128,9 +133,11 @@ export default async function ParentHome() {
     { label: "Add a child", hint: "Name, avatar, and color", done: childIds.length > 0, href: "/app/children#add" },
     { label: "Build a routine", hint: "Use a one-tap template", done: routineCount > 0, href: childIds[0] ? `/app/children/${childIds[0]}` : "/app/children#add" },
     { label: "Add a reward", hint: "Something to work toward", done: (storeCount ?? 0) > 0, href: "/app/store" },
+    { label: "Set a wall PIN", hint: "Keeps kids out of settings on the tablet", done: !!household.parent_pin_hash, href: "/app/settings#pin" },
     { label: "Pair your wall", hint: "Open the setup link on the tablet", done: (pairings ?? []).some((p) => p.status === "paired"), href: "#devices" },
   ];
-  const showChecklist = settings.onboardingDismissed !== true && !steps.every((s) => s.done);
+  // Dismiss hides it, but it's never a dead end — More → "Getting started" reopens it via ?setup=1.
+  const showChecklist = (settings.onboardingDismissed !== true || forceSetup) && !steps.every((s) => s.done);
 
   return (
     <>

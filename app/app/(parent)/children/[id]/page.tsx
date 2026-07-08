@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2, RefreshCw, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Badge, Input, Field, Select, Switch, SectionHeader, StatChip } from "@/components/ui/primitives";
 import { PageHero } from "@/components/ui/PageHero";
+import { InlineTip } from "@/components/ui/InlineTip";
 import { EntityAvatar } from "@/components/ui/EntityAvatar";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
@@ -209,6 +210,11 @@ export default async function ChildDetail({
           ) : undefined
         }
       />
+
+      <InlineTip id="child-detail">
+        Build {child.name}&apos;s day from a template or add steps one at a time. Steps and chores here earn{" "}
+        <span className="font-semibold">stars</span> they spend in the Reward Store — and everything syncs to the wall.
+      </InlineTip>
 
       <SectionHeader
         rule

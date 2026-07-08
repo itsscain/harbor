@@ -310,8 +310,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </Disclosure>
       </Card>
 
-      <Card className="mb-4 p-0">
-        <Disclosure bodyClassName="px-5 pb-5" summary={
+      <Card id="pin" className="mb-4 scroll-mt-20 p-0">
+        <Disclosure defaultOpen bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
           <KeyRound className="h-5 w-5 text-accent" />
           <span className="text-title text-fg">Wall PIN</span>

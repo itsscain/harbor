@@ -7,6 +7,7 @@ import { effectiveSchedule } from "@/lib/kiosk/schedule";
 import type { KioskRoutine } from "@/lib/kiosk/types";
 import { formatClock } from "@/lib/kiosk/calendar";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { InlineTip } from "@/components/ui/InlineTip";
 import { Card, SectionHeader, Field, Input, Select, Badge } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
@@ -133,6 +134,11 @@ export default async function SchedulePage({
         title="Family Schedule"
         subtitle="Every routine, every child, one place. Set a window once — it applies to everyone."
       />
+
+      <InlineTip id="schedule">
+        Make a <span className="font-semibold">shared routine</span> and set its window once — it applies to every
+        child you assign. Tweak one kid&apos;s timing with a per-child override without duplicating anything.
+      </InlineTip>
 
       {/* ── The day at a glance (§3) ── */}
       <Card>

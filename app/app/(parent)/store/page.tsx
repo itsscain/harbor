@@ -6,6 +6,7 @@ import { Card, Input, Field, Select, Badge, Switch } from "@/components/ui/primi
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InlineTip } from "@/components/ui/InlineTip";
 import { Disclosure } from "@/components/app/Disclosure";
 import { ListRow } from "@/components/ui/ListRow";
 import { FamilyGoalCard } from "@/components/app/FamilyGoalCard";
@@ -36,6 +37,11 @@ export default async function StorePage() {
         title="Reward Store"
         subtitle="What kids can spend their stars on. Shows on each child's wall."
       />
+
+      <InlineTip id="store">
+        Rewards are what kids spend their earned stars on. Add one they&apos;ll actually want — screen time, a
+        treat, a special outing — and set its star price.
+      </InlineTip>
 
       <div className="mb-6">
         <FamilyGoalCard
