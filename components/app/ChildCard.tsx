@@ -29,10 +29,10 @@ export function ChildCard({
       >
         <EntityAvatar photoUrl={child.photo_url} fallback={child.avatar ?? "🙂"} accent={color} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-xl font-extrabold tracking-[-0.02em] text-harbor">{child.name}</p>
-          {meta && <p className="mt-0.5 truncate text-sm text-muted">{meta}</p>}
+          <p className="truncate font-display text-xl font-extrabold tracking-[-0.02em] text-fg">{child.name}</p>
+          {meta && <p className="mt-0.5 truncate text-sm text-fg-muted">{meta}</p>}
         </div>
-        <ChevronRight className="ml-auto h-5 w-5 text-harbor-100 transition group-hover/disc:translate-x-0.5 group-hover/disc:text-water" />
+        <ChevronRight className="ml-auto h-5 w-5 text-fg-subtle transition group-hover/disc:translate-x-0.5 group-hover/disc:text-accent" />
       </Card>
     </Link>
   );

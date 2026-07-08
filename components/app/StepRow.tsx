@@ -94,13 +94,13 @@ export function StepRow({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-harbor-100 bg-white transition focus-within:border-water/50 focus-within:shadow-card">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface transition focus-within:border-accent/50 focus-within:shadow-card">
       <div className="flex items-start gap-1.5 p-2">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={`${open ? "Collapse" : "Edit"} ${step.label}`}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-harbor-50 text-2xl ring-1 ring-harbor-100 transition hover:bg-harbor-100 active:scale-95"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-2 text-2xl ring-1 ring-line transition hover:bg-surface-2 active:scale-95"
         >
           {step.icon ?? "•"}
         </button>
@@ -118,7 +118,7 @@ export function StepRow({
               name="label"
               defaultValue={step.label}
               aria-label="Step label"
-              className="min-w-0 flex-1 rounded-md bg-transparent px-1 py-1 text-base font-semibold text-ink outline-none focus:bg-surface-sunken"
+              className="min-w-0 flex-1 rounded-md bg-transparent px-1 py-1 text-base font-semibold text-fg outline-none focus:bg-surface-2"
             />
             {!open && !dirty && (
               <div className="hidden items-center gap-1.5 sm:flex">
@@ -137,7 +137,7 @@ export function StepRow({
               type="button"
               onClick={() => setOpen((o) => !o)}
               aria-label={open ? "Collapse" : "Expand"}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-harbor-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-surface-2"
             >
               <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
             </button>
@@ -145,7 +145,7 @@ export function StepRow({
 
           {/* Detail tray — kept in the DOM (hidden when collapsed) so a save never wipes fields */}
           <div className={cn("mt-2 space-y-3", !open && "hidden")}>
-            <div className="grid gap-3 rounded-xl bg-surface-sunken p-3 sm:grid-cols-2">
+            <div className="grid gap-3 rounded-xl bg-surface-2 p-3 sm:grid-cols-2">
               <Field label="Emoji"><Input name="icon" defaultValue={step.icon ?? ""} className="text-center text-xl" /></Field>
               <Field label="What kind of step?">
                 <Select name="kind" value={kind} onChange={(e) => { setKind(e.target.value); markDirty(); }}>
@@ -169,8 +169,8 @@ export function StepRow({
               )}
 
               {/* Kind-specific helper + editors */}
-              <p className="sm:col-span-2 -mt-1 flex items-center gap-1.5 text-xs text-muted">
-                <Sparkles className="h-3.5 w-3.5 text-water" />
+              <p className="sm:col-span-2 -mt-1 flex items-center gap-1.5 text-xs text-fg-muted">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
                 {KINDS.find((k) => k.value === kind)?.blurb}
               </p>
 
@@ -212,21 +212,21 @@ export function StepRow({
                 </Select>
               </Field>
 
-              <label className="sm:col-span-2 flex items-center gap-2 text-xs font-medium text-ink">
+              <label className="sm:col-span-2 flex items-center gap-2 text-xs font-medium text-fg">
                 <input
                   type="checkbox"
                   name="no_points"
                   checked={noPoints}
                   onChange={(e) => { setNoPoints(e.target.checked); markDirty(); }}
-                  className="h-4 w-4 rounded border-harbor-200 text-water focus:ring-water"
+                  className="h-4 w-4 rounded border-line-strong text-accent focus:ring-accent"
                 />
                 Health / self-care step — no stars (medication, teeth, meds are never gamified)
               </label>
             </div>
 
             {/* Advanced, revealed on demand (§8.2) — read-aloud, a hint, why it matters, sensory. */}
-            <details className="rounded-xl border border-harbor-100 px-3 py-2">
-              <summary className="cursor-pointer select-none text-sm font-semibold text-water">Advanced · voice, hint &amp; notes</summary>
+            <details className="rounded-xl border border-line px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-accent">Advanced · voice, hint &amp; notes</summary>
               <div className="mt-3 grid gap-3">
                 <Field label="Read-aloud text" hint="Spoken instead of the label when the wall reads it out.">
                   <Input name="read_aloud" defaultValue={step.read_aloud ?? ""} placeholder={step.label} />
@@ -257,7 +257,7 @@ export function StepRow({
 
       {/* Delete lives in the expanded footer so collapsed rows stay clean */}
       {open && (
-        <div className="flex justify-end border-t border-harbor-100 px-3 py-2">
+        <div className="flex justify-end border-t border-line px-3 py-2">
           <form action={deleteStep.bind(null, step.id, childId)}>
             <ConfirmSubmit message={`Delete "${step.label}"?`} aria-label={`Delete ${step.label}`} className="px-2.5 py-1.5 text-xs">
               <Trash2 className="h-3.5 w-3.5" /> Delete step
@@ -286,11 +286,11 @@ function OptionsEditor({
   const add = () => onChange([...options, { icon: "", label: "" }]);
 
   return (
-    <div className="rounded-xl border border-harbor-100 bg-white p-3">
-      <p className="mb-2 text-sm font-medium text-ink">{legend}</p>
+    <div className="rounded-xl border border-line bg-surface p-3">
+      <p className="mb-2 text-sm font-medium text-fg">{legend}</p>
       <div className="space-y-2">
         {options.length === 0 && (
-          <p className="text-xs text-muted">No options yet — add a couple below.</p>
+          <p className="text-xs text-fg-muted">No options yet — add a couple below.</p>
         )}
         {options.map((o, i) => (
           <div key={i} className="flex items-center gap-2">
@@ -312,7 +312,7 @@ function OptionsEditor({
               type="button"
               onClick={() => remove(i)}
               aria-label="Remove option"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-red-50 hover:text-red-600"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition hover:bg-error/10 hover:text-error"
             >
               <X className="h-4 w-4" />
             </button>
@@ -322,7 +322,7 @@ function OptionsEditor({
       <button
         type="button"
         onClick={add}
-        className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-water transition hover:bg-harbor-50"
+        className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-accent transition hover:bg-surface-2"
       >
         <Plus className="h-4 w-4" /> Add option
       </button>
@@ -350,7 +350,7 @@ function MoveButton({ dir, disabled, label }: { dir: "up" | "down"; disabled: bo
         }
         submitting.current = true;
       }}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-harbor-100 text-harbor transition hover:bg-harbor-50 disabled:opacity-30"
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-fg transition hover:bg-surface-2 disabled:opacity-30"
     >
       {dir === "up" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
     </button>
@@ -374,5 +374,5 @@ function SaveStatus() {
     }
   }, [pending]);
   if (!pending && !saved) return null;
-  return <span className="shrink-0 text-xs font-medium text-muted">{pending ? "Saving…" : "Saved ✓"}</span>;
+  return <span className="shrink-0 text-xs font-medium text-fg-muted">{pending ? "Saving…" : "Saved ✓"}</span>;
 }

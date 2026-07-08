@@ -29,11 +29,11 @@ export function GoogleSyncButton() {
         type="button"
         onClick={sync}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl border border-harbor-200 px-3.5 py-2 text-sm font-semibold text-harbor transition hover:bg-harbor-50 disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl border border-line-strong px-3.5 py-2 text-sm font-semibold text-fg transition hover:bg-surface-2 disabled:opacity-60"
       >
         <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} /> {busy ? "Syncing…" : "Sync now"}
       </button>
-      {msg && <span className="text-sm text-muted">{msg}</span>}
+      {msg && <span className="text-sm text-fg-muted">{msg}</span>}
     </div>
   );
 }

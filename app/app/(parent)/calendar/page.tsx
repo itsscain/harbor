@@ -39,16 +39,16 @@ export default async function CalendarPage() {
         subtitle="Events show on the wall's Today view and agenda."
       />
 
-      <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-harbor-100 bg-harbor-50/40 p-4">
+      <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface-2/40 p-4">
         <div>
-          <p className="font-semibold text-ink">Got a flyer, email, or invite?</p>
-          <p className="text-sm text-muted">Snap or paste it — Harbor adds the events for you.</p>
+          <p className="font-semibold text-fg">Got a flyer, email, or invite?</p>
+          <p className="text-sm text-fg-muted">Snap or paste it — Harbor adds the events for you.</p>
         </div>
         <QuickCapture />
       </div>
 
       <Card className="mb-6 p-0">
-        <Disclosure bodyClassName="px-5 pb-5" summary={<span className="text-title text-harbor">Add an event</span>}>
+        <Disclosure bodyClassName="px-5 pb-5" summary={<span className="text-title text-fg">Add an event</span>}>
         <form action={addEvent} className="grid gap-3 pt-1 sm:grid-cols-2">
           <Field label="Title" className="sm:col-span-2">
             <Input name="title" required placeholder="Soccer practice" />
@@ -81,10 +81,10 @@ export default async function CalendarPage() {
               ))}
             </Select>
           </Field>
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch name="all_day" label="All day" />
           </div>
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch name="is_countdown" label="Countdown" hint="Birthday, vacation…" />
           </div>
           <div className="sm:col-span-2"><SubmitButton>Add event</SubmitButton></div>
@@ -96,7 +96,7 @@ export default async function CalendarPage() {
       {(children ?? []).length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           {(children ?? []).map((c) => (
-            <span key={c.id} className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
+            <span key={c.id} className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: childColor(c) }} /> {c.name}
             </span>
           ))}
@@ -115,8 +115,8 @@ export default async function CalendarPage() {
                 {e.emoji ?? "📅"}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-title text-harbor">{e.title}</p>
-                <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
+                <p className="text-title text-fg">{e.title}</p>
+                <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-fg-muted">
                   <span>
                     {e.all_day
                       ? "All day"
@@ -146,10 +146,10 @@ export default async function CalendarPage() {
         </SectionHeader>
         <div className="space-y-2">
           {(reminders ?? []).map((r) => (
-            <div key={r.id} className="flex items-center justify-between rounded-xl bg-surface-sunken px-3 py-2.5">
+            <div key={r.id} className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5">
               <span className="text-sm">
-                <span className="font-semibold text-ink">{r.title}</span>
-                <span className="ml-2 text-muted">due {r.due_date}</span>
+                <span className="font-semibold text-fg">{r.title}</span>
+                <span className="ml-2 text-fg-muted">due {r.due_date}</span>
               </span>
               <form action={deleteReminder.bind(null, r.id)}>
                 <ConfirmSubmit message={`Delete "${r.title}"?`} aria-label={`Delete ${r.title}`} className="h-9 w-9 px-0 py-0">
@@ -158,13 +158,13 @@ export default async function CalendarPage() {
               </form>
             </div>
           ))}
-          {(reminders ?? []).length === 0 && <p className="rounded-xl bg-surface-sunken px-3 py-3 text-sm text-muted">No reminders yet.</p>}
+          {(reminders ?? []).length === 0 && <p className="rounded-xl bg-surface-2 px-3 py-3 text-sm text-fg-muted">No reminders yet.</p>}
         </div>
         <Disclosure
-          className="mt-3 border-t border-harbor-100"
+          className="mt-3 border-t border-line"
           defaultOpen={(reminders ?? []).length === 0}
           bodyClassName="px-1 pb-1"
-          summary={<span className="text-sm font-semibold text-harbor">Add a reminder</span>}
+          summary={<span className="text-sm font-semibold text-fg">Add a reminder</span>}
         >
           <form action={addReminder} className="grid gap-3 pt-2 sm:grid-cols-[1fr_auto_auto]">
             <Field label="Reminder"><Input name="title" required placeholder="Library books due" /></Field>

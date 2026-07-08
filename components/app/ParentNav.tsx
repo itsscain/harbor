@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 export function ParentNav({ unread = 0 }: { unread?: number }) {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-harbor-100 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
       <div className="mx-auto flex max-w-2xl items-stretch justify-around">
         {PRIMARY_TABS.map(({ href, label, icon: Icon, exact, match, badge }) => {
           const active = exact
@@ -25,22 +25,24 @@ export function ParentNav({ unread = 0 }: { unread?: number }) {
             >
               <span
                 className={cn(
-                  "relative flex h-9 w-16 items-center justify-center rounded-2xl transition-all duration-200",
-                  active ? "bg-water/12" : "group-hover:bg-harbor-50",
+                  "relative flex h-9 w-16 items-center justify-center rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+                  active ? "scale-105 bg-accent/15" : "group-hover:bg-surface-2",
                 )}
               >
+                {/* Keyed on active so the spring pop replays when a tab becomes selected. */}
                 <Icon
+                  key={active ? "on" : "off"}
                   className={cn(
                     "h-[22px] w-[22px] transition-colors",
-                    active ? "text-water" : "text-muted",
-                    active && "fill-water/15",
+                    active ? "nav-pop text-accent" : "text-fg-muted",
+                    active && "fill-accent/15",
                   )}
                 />
                 {badge && unread > 0 && (
-                  <span className="absolute right-2 top-1 h-2 w-2 rounded-full bg-beacon ring-2 ring-white" aria-hidden />
+                  <span className="absolute right-2 top-1 h-2 w-2 rounded-full bg-beacon ring-2 ring-surface" aria-hidden />
                 )}
               </span>
-              <span className={cn("transition-colors", active ? "text-harbor" : "text-muted")}>{label}</span>
+              <span className={cn("transition-colors", active ? "text-fg" : "text-fg-muted")}>{label}</span>
             </Link>
           );
         })}

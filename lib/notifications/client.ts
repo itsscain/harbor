@@ -27,6 +27,17 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return out;
 }
 
+/** A subscription minted with a DIFFERENT VAPID key can never receive our pushes — the push
+ *  service silently drops them. Detect that so we can replace the stale subscription. */
+function subMatchesKey(sub: PushSubscription, key: Uint8Array): boolean {
+  const existing = sub.options?.applicationServerKey;
+  if (!existing) return true; // can't verify (old browser) → don't churn a working sub
+  const a = new Uint8Array(existing);
+  if (a.length !== key.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== key[i]) return false;
+  return true;
+}
+
 /** Register the /app-scoped push service worker (idempotent). */
 export async function registerAppSW(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register("/sw-app.js", { scope: "/app" });
@@ -54,13 +65,23 @@ export async function enablePush(vapidPublicKey: string): Promise<{ ok: true; su
     if (perm !== "granted") return { ok: false, reason: "denied" };
     const reg = await registerAppSW();
     await navigator.serviceWorker.ready;
-    const existing = await reg.pushManager.getSubscription();
-    const sub =
-      existing ??
-      (await reg.pushManager.subscribe({
+    const key = urlBase64ToUint8Array(vapidPublicKey);
+    let sub = await reg.pushManager.getSubscription();
+    // Replace a subscription tied to a stale/rotated VAPID key — otherwise pushes never arrive.
+    if (sub && !subMatchesKey(sub, key)) {
+      try {
+        await sub.unsubscribe();
+      } catch {
+        /* ignore — we resubscribe below regardless */
+      }
+      sub = null;
+    }
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
-      }));
+        applicationServerKey: key as BufferSource,
+      });
+    }
     const json = toJSON(sub);
     return json ? { ok: true, sub: json } : { ok: false, reason: "error" };
   } catch {

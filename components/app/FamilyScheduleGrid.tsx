@@ -54,7 +54,7 @@ export function FamilyScheduleGrid({ rows }: { rows: GridRow[] }) {
         {ticks.map((m) => (
           <span
             key={m}
-            className="absolute -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold tabular-nums text-muted"
+            className="absolute -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold tabular-nums text-fg-muted"
             style={{ left: `${pct(m)}%` }}
           >
             {formatClock(`${String(Math.floor(m / 60) % 24).padStart(2, "0")}:00`).replace(":00", "")}
@@ -70,13 +70,13 @@ export function FamilyScheduleGrid({ rows }: { rows: GridRow[] }) {
           <div key={child.id} className="flex items-start gap-2">
             <div className="flex w-22 shrink-0 items-center gap-1.5 pt-3 sm:w-26">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
-              <span className="truncate text-sm font-semibold text-harbor">{child.name}</span>
+              <span className="truncate text-sm font-semibold text-fg">{child.name}</span>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="relative h-11 overflow-hidden rounded-xl bg-surface-sunken">
+              <div className="relative h-11 overflow-hidden rounded-xl bg-surface-2">
                 {/* tick gridlines */}
                 {ticks.map((m) => (
-                  <span key={m} className="absolute inset-y-0 w-px bg-harbor-100/60" style={{ left: `${pct(m)}%` }} />
+                  <span key={m} className="absolute inset-y-0 w-px bg-surface-2/60" style={{ left: `${pct(m)}%` }} />
                 ))}
                 {timed.map((b) => {
                   const s = b.start ? toMin(b.start) : Math.max(rangeStart, toMin(b.end!) - 30);
@@ -100,7 +100,7 @@ export function FamilyScheduleGrid({ rows }: { rows: GridRow[] }) {
                   );
                 })}
                 {timed.length === 0 && (
-                  <span className="absolute inset-0 flex items-center justify-center text-xs text-muted">
+                  <span className="absolute inset-0 flex items-center justify-center text-xs text-fg-muted">
                     No timed routines this day
                   </span>
                 )}
@@ -110,7 +110,7 @@ export function FamilyScheduleGrid({ rows }: { rows: GridRow[] }) {
                   {anytime.map((b) => (
                     <span
                       key={b.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-harbor-100 px-2 py-0.5 text-[11px] font-semibold text-muted"
+                      className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold text-fg-muted"
                     >
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: color, opacity: b.disabled ? 0.3 : 1 }} />
                       {b.name} · anytime

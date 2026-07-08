@@ -13,12 +13,12 @@ export function LanternClaimForm({ kids }: { kids: { id: string; name: string }[
 
   if (state.ok) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-center">
+      <div className="rounded-xl border border-good/30 bg-good/10 p-4 text-center">
         <p className="text-2xl">🏮</p>
-        <p className="mt-1 font-display text-lg font-bold text-harbor">
+        <p className="mt-1 font-display text-lg font-bold text-fg">
           Welcome — this is {state.childName ?? "your child"}&apos;s Lantern!
         </p>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-fg-muted">
           It&apos;s lighting up now and will show only their world. You can rename it below.
         </p>
       </div>
@@ -26,12 +26,12 @@ export function LanternClaimForm({ kids }: { kids: { id: string; name: string }[
   }
 
   if (kids.length === 0) {
-    return <p className="text-sm text-muted">Add a child first — then you can set up their Lantern.</p>;
+    return <p className="text-sm text-fg-muted">Add a child first — then you can set up their Lantern.</p>;
   }
 
   return (
     <form action={action} className="space-y-3">
-      <p className="text-sm text-muted">
+      <p className="text-sm text-fg-muted">
         Power on the Lantern and open it — it shows a 6-character code. Enter that code here and choose whose it is.
       </p>
       <div className="flex flex-wrap items-end gap-3">
@@ -64,7 +64,7 @@ export function LanternClaimForm({ kids }: { kids: { id: string; name: string }[
         <Input name="nickname" placeholder="Cade's Lantern" />
       </Field>
       {state.error && (
-        <p role="alert" className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700 ring-1 ring-red-200">
+        <p role="alert" className="rounded-xl bg-error/10 px-3.5 py-2.5 text-sm font-medium text-error ring-1 ring-error/30">
           {state.error}
         </p>
       )}

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles, CalendarDays, Bell } from "lucide-react";
+import { cookies } from "next/headers";
+import { KeyRound, Tablet, Settings as SettingsIcon, Sparkles, CalendarDays, Bell, Palette } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { ThemeToggle } from "@/components/app/ThemeToggle";
 import { NotificationsCard } from "@/components/app/NotificationsCard";
 import { isPushConfigured, env } from "@/lib/env";
 import { mergePrefs } from "@/lib/notifications/prefs";
@@ -23,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
   const household = await getMyHousehold();
-  if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
+  if (!household) return <Card><p className="text-fg-muted">No household yet.</p></Card>;
 
   const googleStatus = (await searchParams).google;
   const supabase = await createClient();
@@ -107,13 +109,25 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     /* migration not applied yet */
   }
   const notifPrefs = mergePrefs(notifPrefsRaw);
+  const theme = (await cookies()).get("harbor-theme")?.value === "light" ? "light" : "dark";
 
   return (
     <>
       <PageHeader eyebrow="Account" icon={<SettingsIcon className="h-6 w-6" />} title="Settings" />
 
       <Card className="mb-4">
-        <h2 className="text-title text-harbor">Household</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <Palette className="h-5 w-5 text-accent" />
+          <h2 className="text-title text-fg">Appearance</h2>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-fg-muted">Harbor runs dark by default. Switch to light whenever you like.</p>
+          <ThemeToggle initial={theme} />
+        </div>
+      </Card>
+
+      <Card className="mb-4">
+        <h2 className="text-title text-fg">Household</h2>
         <form action={updateHouseholdName} className="mt-3 flex items-end gap-3">
           <Field label="Name" className="flex-1">
             <Input name="name" defaultValue={household.name} />
@@ -126,12 +140,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <Disclosure
           bodyClassName="px-5 pb-5"
           summary={
-            <span className="flex items-center gap-2 text-title text-harbor">
-              <Bell className="h-5 w-5 text-water" /> Notifications
+            <span className="flex items-center gap-2 text-title text-fg">
+              <Bell className="h-5 w-5 text-accent" /> Notifications
             </span>
           }
         >
-          <p className="mb-4 text-sm text-muted">
+          <p className="mb-4 text-sm text-fg-muted">
             Calm, high-signal alerts on your phone — most importantly, when a child needs you. Turn them on for this
             device, then choose what to hear about.
           </p>
@@ -141,9 +155,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
-          <span className="text-title text-harbor">Wall display</span>
+          <span className="text-title text-fg">Wall display</span>
         }>
-        <p className="text-sm text-muted">How the wall behaves when idle.</p>
+        <p className="text-sm text-fg-muted">How the wall behaves when idle.</p>
         {(() => {
           const s = (household.settings ?? {}) as Record<string, unknown>;
           return (
@@ -186,7 +200,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   className="font-mono text-xs"
                 />
               </Field>
-              <div className="rounded-xl border border-harbor-100 px-3.5 py-3 sm:col-span-2">
+              <div className="rounded-xl border border-line px-3.5 py-3 sm:col-span-2">
                 <Switch
                   name="screensaver"
                   label="Show screensaver when idle"
@@ -206,12 +220,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-water" />
-          <span className="text-title text-harbor">AI Companion</span>
+          <Sparkles className="h-5 w-5 text-accent" />
+          <span className="text-title text-fg">AI Companion</span>
           {aiEnabled && aiKeySet ? <Badge tone="green">On</Badge> : <Badge tone="gray">Off</Badge>}
         </div>
         }>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-fg-muted">
           Bring your own Anthropic API key to power AI features — meal-plan generation now, with daily
           briefs, chore ideas and more coming. It runs on Claude Haiku to keep costs low. Your key is
           stored securely server-side and is <strong>never</strong> sent to the wall tablet.
@@ -228,7 +242,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               placeholder={aiKeySet ? "•••••••••••• (saved)" : "sk-ant-…"}
             />
           </Field>
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch
               name="ai_enabled"
               label="Enable the AI companion"
@@ -239,7 +253,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <div className="flex items-center justify-between gap-3">
             <SubmitButton variant="secondary">Save AI settings</SubmitButton>
             {aiKeySet && (
-              <label className="flex items-center gap-1.5 text-xs text-muted">
+              <label className="flex items-center gap-1.5 text-xs text-fg-muted">
                 <input type="checkbox" name="clear_key" className="h-3.5 w-3.5" /> Remove saved key
               </label>
             )}
@@ -251,32 +265,32 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-water" />
-          <span className="text-title text-harbor">Google Calendar</span>
+          <CalendarDays className="h-5 w-5 text-accent" />
+          <span className="text-title text-fg">Google Calendar</span>
           {googleConnected ? <Badge tone="green">Connected</Badge> : <Badge tone="gray">Not connected</Badge>}
         </div>
         }>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-fg-muted">
           Two-way sync with your Google Calendar — events you add in Harbor appear in Google, and Google
           events show on the wall. Tokens are stored securely server-side and <strong>never</strong> reach the wall tablet.
         </p>
         {googleStatus === "connected" && (
-          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Google Calendar connected and synced.</p>
+          <p className="mt-3 rounded-lg bg-good/10 px-3 py-2 text-sm text-good">Google Calendar connected and synced.</p>
         )}
         {googleStatus === "error" && (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Couldn&apos;t connect — please try again.</p>
+          <p className="mt-3 rounded-lg bg-error/10 px-3 py-2 text-sm text-error">Couldn&apos;t connect — please try again.</p>
         )}
         {googleStatus === "unconfigured" && (
-          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Google sync isn&apos;t configured on the server yet.</p>
+          <p className="mt-3 rounded-lg bg-beacon/10 px-3 py-2 text-sm text-beacon">Google sync isn&apos;t configured on the server yet.</p>
         )}
         {googleStatus === "denied" && (
-          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">You didn&apos;t grant access — you can reconnect anytime.</p>
+          <p className="mt-3 rounded-lg bg-beacon/10 px-3 py-2 text-sm text-beacon">You didn&apos;t grant access — you can reconnect anytime.</p>
         )}
         {googleConnected ? (
           <div className="mt-3 space-y-3">
-            <p className="text-sm text-ink">
+            <p className="text-sm text-fg">
               Connected as <strong>{gcal?.connected_email}</strong>
-              {gcal?.last_synced_at ? <span className="text-muted"> · last synced {new Date(gcal.last_synced_at).toLocaleString()}</span> : null}
+              {gcal?.last_synced_at ? <span className="text-fg-muted"> · last synced {new Date(gcal.last_synced_at).toLocaleString()}</span> : null}
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <GoogleSyncButton />
@@ -288,7 +302,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ) : (
           <a
             href="/api/google/connect"
-            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-harbor px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-harbor-700"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg transition hover:brightness-110"
           >
             <CalendarDays className="h-4 w-4" /> Connect Google Calendar
           </a>
@@ -299,8 +313,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
-          <KeyRound className="h-5 w-5 text-water" />
-          <span className="text-title text-harbor">Wall PIN</span>
+          <KeyRound className="h-5 w-5 text-accent" />
+          <span className="text-title text-fg">Wall PIN</span>
           {household.parent_pin_hash ? (
             <Badge tone="green">Set</Badge>
           ) : (
@@ -308,7 +322,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           )}
         </div>
         }>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-fg-muted">
           Gates settings and editing on the wall tablet. Syncs to the wall with
           Harbor Plus; otherwise set it on the device itself.
         </p>
@@ -329,31 +343,31 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
-          <Tablet className="h-5 w-5 text-water" />
-          <span className="text-title text-harbor">Devices</span>
+          <Tablet className="h-5 w-5 text-accent" />
+          <span className="text-title text-fg">Devices</span>
         </div>
         }>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-fg-muted">
           The wall is your hub. Turn any spare tablet into a per-child <strong>room device</strong> — their
           routine, Anchor, and a bedtime nightlight — at no extra cost.
         </p>
         <ul className="mt-3 space-y-2">
           {(pairings ?? []).map((p) => (
-            <li key={p.code} className="flex items-center justify-between gap-3 rounded-lg bg-harbor-50 px-3 py-2">
+            <li key={p.code} className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
               <div className="min-w-0">
-                <span className="font-mono font-bold tracking-wider text-harbor">{formatPairingCode(p.code)}</span>
-                <span className="ml-2 text-xs font-semibold text-muted">
+                <span className="font-mono font-bold tracking-wider text-fg">{formatPairingCode(p.code)}</span>
+                <span className="ml-2 text-xs font-semibold text-fg-muted">
                   {p.kind === "outpost" ? `Room device · ${childName(p.child_id)}` : "Wall"}
                 </span>
               </div>
               <Badge tone={p.status === "paired" ? "green" : "amber"}>{titleCase(p.status)}</Badge>
             </li>
           ))}
-          {(pairings ?? []).length === 0 && <li className="text-sm text-muted">No devices paired yet.</li>}
+          {(pairings ?? []).length === 0 && <li className="text-sm text-fg-muted">No devices paired yet.</li>}
         </ul>
 
-        <div className="mt-4 border-t border-harbor-100 pt-4">
-          <p className="text-eyebrow text-muted">Add a device</p>
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="text-eyebrow text-fg-muted">Add a device</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <form action={createPairingCode}>
               <input type="hidden" name="kind" value="wall" />
@@ -367,7 +381,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               </form>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted">A new code appears above — open Harbor on the spare tablet and enter it.</p>
+          <p className="mt-2 text-xs text-fg-muted">A new code appears above — open Harbor on the spare tablet and enter it.</p>
         </div>
         </Disclosure>
       </Card>
@@ -378,7 +392,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <Card className="p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
-          <span className="text-title text-harbor">Account</span>
+          <span className="text-title text-fg">Account</span>
         }>
         <Link href="/account/password" className="mt-2 inline-block">
           <Button variant="secondary" size="sm">Change password</Button>

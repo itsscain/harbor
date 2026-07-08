@@ -27,21 +27,21 @@ export function GuardiansCard({
   return (
     <Card className="space-y-5">
       <div className="flex items-center gap-2">
-        <Users className="h-5 w-5 text-water" />
-        <h2 className="font-display text-lg font-semibold text-ink">Guardians</h2>
+        <Users className="h-5 w-5 text-accent" />
+        <h2 className="font-display text-lg font-semibold text-fg">Guardians</h2>
       </div>
-      <p className="text-sm text-muted">
+      <p className="text-sm text-fg-muted">
         Everyone who helps run the home. A co-parent gets their own sign-in and sees the same
         household — calendar, kids, routines, all of it. One Harbor, shared.
       </p>
 
-      <ul className="divide-y divide-harbor-100 overflow-hidden rounded-xl ring-1 ring-harbor-100">
+      <ul className="divide-y divide-line overflow-hidden rounded-xl ring-1 ring-line">
         {guardians.length === 0 && (
-          <li className="px-4 py-3 text-sm text-muted">Just you so far.</li>
+          <li className="px-4 py-3 text-sm text-fg-muted">Just you so far.</li>
         )}
         {guardians.map((g) => (
           <li key={g.profile_id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <p className="min-w-0 truncate text-sm font-medium text-ink">{g.email}</p>
+            <p className="min-w-0 truncate text-sm font-medium text-fg">{g.email}</p>
             <div className="flex shrink-0 items-center gap-2">
               <Badge tone={g.isOwner ? "beacon" : "neutral"}>{g.isOwner ? "Owner" : "Guardian"}</Badge>
               {isOwner && !g.isOwner && (
@@ -49,7 +49,7 @@ export function GuardiansCard({
                   <button
                     type="submit"
                     aria-label={`Remove ${g.email}`}
-                    className="rounded-full p-1.5 text-muted transition hover:bg-error-soft hover:text-error-ink"
+                    className="rounded-full p-1.5 text-fg-muted transition hover:bg-error/10 hover:text-error"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -61,9 +61,9 @@ export function GuardiansCard({
       </ul>
 
       {!isOwner ? (
-        <p className="text-sm text-muted">Only the household owner can add or remove guardians.</p>
+        <p className="text-sm text-fg-muted">Only the household owner can add or remove guardians.</p>
       ) : !available ? (
-        <p className="rounded-xl bg-harbor-50 px-4 py-3 text-sm text-muted">
+        <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-fg-muted">
           Inviting co-parents needs the service-role key configured. It&apos;s set in production, so
           invites work on the live site.
         </p>
@@ -72,8 +72,8 @@ export function GuardiansCard({
           <Field label="Invite a co-parent by email">
             <Input name="email" type="email" required placeholder="partner@example.com" autoComplete="off" />
           </Field>
-          {state.error && <p className="text-sm text-error-ink">{state.error}</p>}
-          {state.success && <p className="text-sm text-emerald-600">{state.success}</p>}
+          {state.error && <p className="text-sm text-error">{state.error}</p>}
+          {state.success && <p className="text-sm text-good">{state.success}</p>}
           <SubmitButton variant="primary" size="sm" pendingText="Sending…" savedText="Invited" confirmSaved={false}>
             <UserPlus className="h-4 w-4" /> Send invite
           </SubmitButton>

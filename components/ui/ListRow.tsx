@@ -21,15 +21,15 @@ export function ListRow({
     <div className="flex items-center gap-4">
       <span
         className={cn(
-          "grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface-sunken text-2xl ring-1 ring-harbor-100 transition group-hover/disc:bg-harbor-50",
+          "grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface-2 text-2xl ring-1 ring-line transition group-hover/disc:bg-raised",
           dim && "opacity-60",
         )}
       >
         {tile}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 truncate text-title text-harbor">{title}</div>
-        {subtitle && <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">{subtitle}</div>}
+        <div className="flex items-center gap-2 truncate text-title text-fg">{title}</div>
+        {subtitle && <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-fg-muted">{subtitle}</div>}
       </div>
       {trailing}
     </div>

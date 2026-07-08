@@ -30,12 +30,12 @@ export default async function InsightsPage() {
     return (
       <>
         <PageHeader title="Gentle insights" />
-        <Card className="border-beacon/40 bg-beacon-soft/40">
+        <Card className="border-beacon/40 bg-beacon/10">
           <Sparkles className="h-8 w-8 text-beacon" />
-          <h2 className="mt-3 text-display-sm text-harbor">
+          <h2 className="mt-3 text-display-sm text-fg">
             Insights come with Harbor Plus
           </h2>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-fg-muted">
             See completion trends and when the day tends to get bumpy — framed as
             rhythm and structure, never labels or diagnosis. Your wall keeps
             working free either way.
@@ -118,8 +118,8 @@ export default async function InsightsPage() {
 
       <Card className="mb-4">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-water" />
-          <h2 className="text-title text-harbor">Steps finished this week</h2>
+          <TrendingUp className="h-5 w-5 text-accent" />
+          <h2 className="text-title text-fg">Steps finished this week</h2>
         </div>
         <div className="mt-4 flex items-end justify-between gap-2">
           {days.map((d, i) => (
@@ -130,17 +130,17 @@ export default async function InsightsPage() {
                   style={{ height: `${Math.max(d.count > 0 ? 6 : 0, (d.count / maxDay) * 100)}%` }}
                 />
               </div>
-              <span className="text-xs font-bold text-ink">{d.count}</span>
-              <span className="text-xs text-muted">{d.label}</span>
+              <span className="text-xs font-bold text-fg">{d.count}</span>
+              <span className="text-xs text-fg-muted">{d.label}</span>
             </div>
           ))}
         </div>
       </Card>
 
       <Card className="mb-4">
-        <h2 className="text-title text-harbor">How they&apos;ve been feeling</h2>
+        <h2 className="text-title text-fg">How they&apos;ve been feeling</h2>
         {feelings.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-fg-muted">
             No feelings check-ins yet. They&apos;ll show here as your kids use the
             calm corner.
           </p>
@@ -148,28 +148,28 @@ export default async function InsightsPage() {
           <ul className="mt-3 space-y-2">
             {feelings.map(([feeling, n]) => (
               <li key={feeling} className="flex items-center gap-3">
-                <span className="w-20 text-sm font-medium capitalize text-ink">
+                <span className="w-20 text-sm font-medium capitalize text-fg">
                   {feeling}
                 </span>
-                <div className="h-3 flex-1 overflow-hidden rounded-full bg-harbor-50">
+                <div className="h-3 flex-1 overflow-hidden rounded-full bg-surface-2">
                   <div
                     className="h-full rounded-full bg-[linear-gradient(90deg,#18606f,#2f8f86)] transition-all duration-500"
                     style={{ width: `${(n / maxFeel) * 100}%` }}
                   />
                 </div>
-                <span className="w-6 text-right text-sm text-muted">{n}</span>
+                <span className="w-6 text-right text-sm text-fg-muted">{n}</span>
               </li>
             ))}
           </ul>
         )}
       </Card>
 
-      <Card className="border-beacon/30 bg-beacon-soft/30">
+      <Card className="border-beacon/30 bg-beacon/10">
         <div className="flex items-center gap-2">
           <HeartHandshake className="h-5 w-5 text-beacon" />
-          <h2 className="text-title text-harbor">A gentle pattern</h2>
+          <h2 className="text-title text-fg">A gentle pattern</h2>
         </div>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-fg-muted">
           {hasTough
             ? `Tougher feelings tend to cluster around ${peakLabel}. That's a great window for a calmer transition — maybe a timer and the calm corner before the next activity. This is about rhythm, not labels.`
             : "Not enough data yet to spot a rhythm. As the calm corner gets used, gentle patterns will appear here — always framed as structure, never diagnosis."}

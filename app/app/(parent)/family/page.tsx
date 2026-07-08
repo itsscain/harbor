@@ -28,7 +28,7 @@ export default async function FamilyPage() {
   if (!household) {
     return (
       <Card>
-        <p className="text-muted">No household yet.</p>
+        <p className="text-fg-muted">No household yet.</p>
       </Card>
     );
   }
@@ -81,8 +81,8 @@ export default async function FamilyPage() {
                   <div className="flex items-center gap-3">
                     <EntityAvatar photoUrl={p.photo_url} fallback={p.avatar || "💙"} accent={p.color || "#6b8aa6"} size="sm" />
                     <div className="min-w-0">
-                      <span className="block font-display text-lg font-extrabold tracking-[-0.01em] text-harbor">{p.name}</span>
-                      <span className="block text-xs capitalize text-muted">
+                      <span className="block font-display text-lg font-extrabold tracking-[-0.01em] text-fg">{p.name}</span>
+                      <span className="block text-xs capitalize text-fg-muted">
                         {p.role} · {myRoutines.length} {myRoutines.length === 1 ? "routine" : "routines"}
                       </span>
                     </div>
@@ -109,7 +109,7 @@ export default async function FamilyPage() {
                     <label key={c.value} className="cursor-pointer" title={c.name}>
                       <input type="radio" name="color" value={c.value} defaultChecked={p.color === c.value} className="peer sr-only" />
                       <span
-                        className="block h-7 w-7 rounded-full ring-2 ring-transparent peer-checked:ring-ink"
+                        className="block h-7 w-7 rounded-full ring-2 ring-transparent peer-checked:ring-fg"
                         style={{ background: c.value }}
                       />
                     </label>
@@ -123,13 +123,13 @@ export default async function FamilyPage() {
               {/* routines for this person */}
               <div className="mt-5 space-y-3 border-t border-line/60 pt-4">
                 {myRoutines.length === 0 && (
-                  <p className="text-sm text-muted">No routine yet — add one below to put {p.name} on the wall.</p>
+                  <p className="text-sm text-fg-muted">No routine yet — add one below to put {p.name} on the wall.</p>
                 )}
                 {myRoutines.map((r) => {
                   const rSteps = (steps ?? []).filter((s) => s.routine_id === r.id);
                   const days: number[] = Array.isArray(r.days_of_week) ? (r.days_of_week as number[]) : [];
                   return (
-                    <div key={r.id as string} className="rounded-xl bg-fog/60 p-3">
+                    <div key={r.id as string} className="rounded-xl bg-surface-2 p-3">
                       <form action={updatePersonRoutine.bind(null, r.id as string)} className="space-y-2.5">
                         <div className="flex flex-wrap items-end gap-3">
                           <Field label="Routine" className="min-w-40 flex-1">
@@ -154,12 +154,12 @@ export default async function FamilyPage() {
                           {DAYS.map((d, i) => (
                             <label key={i} className="cursor-pointer">
                               <input type="checkbox" name="days" value={i} defaultChecked={days.includes(i)} className="peer sr-only" />
-                              <span className="block rounded-lg px-2.5 py-1 text-xs font-semibold text-muted ring-1 ring-line/60 peer-checked:bg-harbor peer-checked:text-white">
+                              <span className="block rounded-lg px-2.5 py-1 text-xs font-semibold text-fg-muted ring-1 ring-line/60 peer-checked:bg-accent peer-checked:text-accent-fg">
                                 {d}
                               </span>
                             </label>
                           ))}
-                          <span className="self-center text-xs text-muted">(none = every day)</span>
+                          <span className="self-center text-xs text-fg-muted">(none = every day)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <SubmitButton size="sm" variant="secondary" savedText="Saved">
@@ -173,9 +173,9 @@ export default async function FamilyPage() {
                         {rSteps.map((s) => (
                           <li key={s.id as string} className="flex items-center gap-2">
                             <span className="w-6 text-center">{(s.icon as string) || "•"}</span>
-                            <span className="flex-1 text-sm text-ink">{s.label as string}</span>
+                            <span className="flex-1 text-sm text-fg">{s.label as string}</span>
                             <form action={deletePersonStep.bind(null, s.id as string)}>
-                              <button className="text-xs text-muted hover:text-red-500" type="submit">
+                              <button className="text-xs text-fg-muted hover:text-error" type="submit">
                                 Remove
                               </button>
                             </form>
@@ -234,8 +234,8 @@ export default async function FamilyPage() {
           bodyClassName="px-5 pb-5"
           summary={
             <div>
-              <span className="text-title text-harbor">Add someone to the boat</span>
-              <span className="mt-0.5 block text-sm text-muted">Parents, caregivers, or older siblings</span>
+              <span className="text-title text-fg">Add someone to the boat</span>
+              <span className="mt-0.5 block text-sm text-fg-muted">Parents, caregivers, or older siblings</span>
             </div>
           }
         >

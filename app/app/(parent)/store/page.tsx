@@ -51,7 +51,7 @@ export default async function StorePage() {
         <Disclosure
           defaultOpen={(items ?? []).length === 0}
           bodyClassName="px-5 pb-5"
-          summary={<span className="text-title text-harbor">Add a reward</span>}
+          summary={<span className="text-title text-fg">Add a reward</span>}
         >
         <form action={addStoreItem} className="grid gap-3 pt-1 sm:grid-cols-2">
           <Field label="Reward" className="sm:col-span-2"><Input name="label" required placeholder="Ice cream trip" /></Field>
@@ -90,7 +90,7 @@ export default async function StorePage() {
                   title={item.label}
                   subtitle={
                     <>
-                      <span className="font-semibold text-harbor">{item.cost_points} ★</span>
+                      <span className="font-semibold text-fg">{item.cost_points} ★</span>
                       <Badge tone="neutral">{childName(item.child_id)} · {titleCase(item.kind)}</Badge>
                       {!item.enabled && <Badge tone="neutral">Off</Badge>}
                     </>
@@ -119,7 +119,7 @@ export default async function StorePage() {
               <div className="col-span-12 flex items-center justify-between gap-3 sm:col-span-2 sm:pb-1">
                 <Switch name="enabled" label="On" defaultChecked={item.enabled} />
               </div>
-              <div className="col-span-12 flex items-center justify-between border-t border-harbor-100 pt-3">
+              <div className="col-span-12 flex items-center justify-between border-t border-line pt-3">
                 <Badge tone="neutral">{childName(item.child_id)} · {titleCase(item.kind)}</Badge>
                 <div className="flex items-center gap-2">
                   <SubmitButton size="sm" variant="secondary">Save</SubmitButton>

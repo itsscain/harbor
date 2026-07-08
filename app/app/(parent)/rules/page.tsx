@@ -81,12 +81,12 @@ function RuleSection({
 }) {
   return (
     <Card className="mt-6">
-      <h2 className="text-title text-harbor">{title}</h2>
-      <p className="mt-0.5 text-sm text-muted">{hint}</p>
+      <h2 className="text-title text-fg">{title}</h2>
+      <p className="mt-0.5 text-sm text-fg-muted">{hint}</p>
 
       <div className="mt-3 space-y-2">
         {rows.map((r, i) => (
-          <div key={r.id} className="group/disc rounded-xl border border-harbor-100">
+          <div key={r.id} className="group/disc rounded-xl border border-line">
             <Disclosure
               bodyClassName="px-3 pb-3"
               summary={
@@ -95,7 +95,7 @@ function RuleSection({
                   title={
                     <>
                       {numbered && (
-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-100 text-xs font-bold text-amber-800">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-beacon/15 text-xs font-bold text-beacon">
                           {i + 1}
                         </span>
                       )}
@@ -118,7 +118,7 @@ function RuleSection({
                   <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
                 </div>
               </form>
-              <div className="mt-2 flex items-center justify-end gap-1 border-t border-harbor-100 pt-2">
+              <div className="mt-2 flex items-center justify-end gap-1 border-t border-line pt-2">
                 <form action={moveHouseRule.bind(null, r.id, "up")}>
                   <SubmitButton size="sm" variant="ghost" confirmSaved={false} className="h-8 w-8 px-0 py-0">
                     <ChevronUp className="h-4 w-4" />
@@ -143,10 +143,10 @@ function RuleSection({
       </div>
 
       <Disclosure
-        className="mt-3 border-t border-harbor-100"
+        className="mt-3 border-t border-line"
         defaultOpen={rows.length === 0}
         bodyClassName="px-1 pb-1"
-        summary={<span className="text-sm font-semibold text-harbor">Add {numbered ? "a step" : "a rule"}</span>}
+        summary={<span className="text-sm font-semibold text-fg">Add {numbered ? "a step" : "a rule"}</span>}
       >
         <form action={addHouseRule.bind(null, kind)} className="flex items-end gap-2 pt-2">
           <Field label="Emoji" className="w-16">

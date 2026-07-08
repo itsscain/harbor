@@ -75,6 +75,72 @@
   --shadow-bloom-lg: 0 0 52px -4px var(--bloom-color, rgba(60, 188, 217, 0.45));
 }
 
+/* ── Parent app (Helm) semantic theme ─────────────────────────────────────────
+   Dark by default (a GitHub/Linear-calm night skin), with a light option. Every
+   /app surface uses these SEMANTIC utilities (bg-bg / bg-surface / border-line /
+   text-fg / …) instead of hardcoded brand tints, so one attribute on the app
+   wrapper (`data-theme`) reskins the whole thing. `@theme inline` resolves each
+   utility to the runtime var at the element, so it picks up the themed value. */
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-raised: var(--c-raised);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-fg: var(--c-fg);
+  --color-fg-muted: var(--c-fg-muted);
+  --color-fg-subtle: var(--c-fg-subtle);
+  --color-accent: var(--c-accent);
+  --color-accent-fg: var(--c-accent-fg);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-fog: var(--c-surface-2); /* alias — retires the previously-undefined bg-fog */
+}
+
+/* Default (:root) = LIGHT, so shared primitives used outside /app (marketing, admin)
+   stay light. The /app wrapper opts into dark via data-theme="dark" (the cookie default),
+   so the Helm is dark-by-default while the rest of the product is unaffected. */
+:root,
+[data-theme="light"] {
+  --c-bg: #eef3f4;
+  --c-surface: #ffffff;
+  --c-surface-2: #f2f7f7;
+  --c-raised: #f6fafa;
+  --c-line: #dceaed;
+  --c-line-strong: #c6d7db;
+  --c-fg: #10272f;
+  --c-fg-muted: #5c7178;
+  --c-fg-subtle: #8496a0;
+  --c-accent: #17606f;
+  --c-accent-fg: #ffffff;
+  --c-accent-soft: #dceaed;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Dark skin — a GitHub/Linear-calm night palette, the default for the Helm. */
+[data-theme="dark"] {
+  --c-bg: #0b0e13; /* page — deep neutral, faint blue */
+  --c-surface: #14181f; /* cards / panels */
+  --c-surface-2: #1a1f28; /* sunken / subtle fills */
+  --c-raised: #212934; /* hover / elevated */
+  --c-line: #272e39; /* hairline borders */
+  --c-line-strong: #343d49; /* stronger dividers / inputs */
+  --c-fg: #eceff3; /* primary text */
+  --c-fg-muted: #9aa4b1; /* secondary text */
+  --c-fg-subtle: #6b7480; /* tertiary / placeholders */
+  --c-accent: #56c7e0; /* refined water — the one accent */
+  --c-accent-fg: #052731; /* text ON the accent */
+  --c-accent-soft: color-mix(in srgb, #56c7e0 15%, transparent);
+  color-scheme: dark;
+  /* On dark, harbor-ink shadows disappear — use deeper, cheaper shadows + rely on borders. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px -10px rgba(0, 0, 0, 0.55);
+  --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.42), 0 18px 44px -14px rgba(0, 0, 0, 0.65);
+  --shadow-pop: 0 12px 28px -8px rgba(0, 0, 0, 0.5), 0 32px 64px -16px rgba(0, 0, 0, 0.7);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
 :root {
   --background: var(--color-seafog);
   --foreground: var(--color-ink);
@@ -715,6 +781,48 @@ h4,
   animation: pop-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ── Helm mobile polish ─────────────────────────────────────────────────────
+   Native-app feel for /app: a smooth spring page transition on navigation, a
+   universal tactile press on anything tappable, and a springy bottom-nav.
+   All degrade to nothing under prefers-reduced-motion (global rule + guards). */
+@keyframes app-route {
+  from { opacity: 0; transform: translateY(10px) scale(0.994); }
+  to { opacity: 1; transform: none; }
+}
+.app-route-enter {
+  animation: app-route 360ms var(--ease-harbor-out) both;
+}
+
+/* Tactile press — put `tap` on any interactive surface (cards, rows, nav, chips). */
+.tap {
+  transition: transform 220ms var(--ease-harbor-emphasis);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.tap:active {
+  transform: scale(0.965);
+  transition-duration: 80ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-route-enter { animation: none; }
+  .tap:active { transform: none; }
+}
+
+/* Bottom-nav active icon: a gentle spring pop when a tab becomes active. */
+@keyframes nav-pop {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.nav-pop { animation: nav-pop 380ms var(--ease-harbor-emphasis); }
+
+/* Bottom sheet — slides up from the bottom (the mobile modal pattern). */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-sheet-up { animation: sheet-up 340ms var(--ease-harbor-out) both; }
+
 /* ── Kiosk show-stopper: cascade entrance + ambient depth ──────────────────── */
 /* Dashboard cards rise in as a gentle cascade when a view mounts. */
 .k-stagger > * {
@@ -815,7 +923,7 @@ h4,
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--color-harbor-100);
+  background: var(--color-surface-2, var(--color-harbor-100));
   border-radius: 0.75rem;
 }
 .skeleton::after {
@@ -826,7 +934,7 @@ h4,
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.55),
+    color-mix(in srgb, var(--color-fg, #fff) 10%, transparent),
     transparent
   );
   animation: shimmer 1.6s infinite;

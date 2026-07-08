@@ -8,9 +8,11 @@ import { RealtimeRefresh } from "@/components/app/RealtimeRefresh";
 import { RegisterSWApp } from "@/components/app/RegisterSWApp";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { BadgeSync } from "@/components/app/BadgeSync";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { createClient } from "@/lib/supabase/server";
+import { env } from "@/lib/env";
 
 // /app gets its own standalone manifest so "Add to Home Screen" installs the parent app
 // (start_url/scope = /app) chrome-less, separate from the /kiosk wall app.
@@ -26,6 +28,8 @@ export default async function ParentLayout({
 }) {
   await requireUser();
   const household = await getMyHousehold();
+  // Dark is the default Helm skin; the Settings toggle writes this cookie.
+  const theme = (await cookies()).get("harbor-theme")?.value === "light" ? "light" : "dark";
 
   // Unread count drives the nav bell + the installed app-icon badge (RLS scopes to this parent).
   let unread = 0;
@@ -41,14 +45,14 @@ export default async function ParentLayout({
   }
 
   return (
-    <div className="min-h-dvh bg-seafog">
+    <div data-theme={theme} data-app-theme-root className="min-h-dvh bg-bg text-fg">
       {household?.id && <RealtimeRefresh householdId={household.id} />}
-      <RegisterSWApp />
+      <RegisterSWApp vapidKey={env.vapidPublicKey} />
       <BadgeSync count={unread} />
       {/* Desktop: persistent command rail (The Helm). Mobile: bottom nav. */}
       <ParentRail householdName={household?.name} unread={unread} />
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-harbor-100 bg-white/85 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-lg lg:hidden">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-surface/85 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-lg lg:hidden">
           <Wordmark />
           <div className="flex items-center gap-1">
             <NotificationBell count={unread} />

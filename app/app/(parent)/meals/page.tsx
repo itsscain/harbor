@@ -46,9 +46,9 @@ export default async function MealsPage() {
         subtitle="Tonight's dinner shows on the wall. Plan the week in a minute."
       />
 
-      <Card className="mb-4 border-water/30 bg-water/[0.04]">
-        <h2 className="text-title text-harbor">Plan the week with AI</h2>
-        <p className="mb-3 mt-1 text-sm text-muted">
+      <Card className="mb-4 border-accent/30 bg-accent/[0.04]">
+        <h2 className="text-title text-fg">Plan the week with AI</h2>
+        <p className="mb-3 mt-1 text-sm text-fg-muted">
           Let Harbor fill any open dinner slots for the next 7 days with kid-friendly ideas. Needs your
           Anthropic key (Settings → AI Companion).
         </p>
@@ -56,7 +56,7 @@ export default async function MealsPage() {
       </Card>
 
       <Card className="mb-6">
-        <h2 className="text-title text-harbor">Add a meal</h2>
+        <h2 className="text-title text-fg">Add a meal</h2>
         <form action={addMeal} className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Day"><Input name="date" type="date" defaultValue={today} required /></Field>
           <Field label="Meal">
@@ -76,7 +76,7 @@ export default async function MealsPage() {
       <div className="space-y-4">
         {[...byDate.entries()].map(([date, list]) => (
           <div key={date}>
-            <p className="mb-1.5 text-sm font-semibold text-muted">
+            <p className="mb-1.5 text-sm font-semibold text-fg-muted">
               {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
             </p>
             <div className="space-y-2">
@@ -84,9 +84,9 @@ export default async function MealsPage() {
                 <Card key={m.id} className="flex items-start gap-3 py-3">
                   <span className="text-2xl">{m.emoji ?? "🍽️"}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-ink">{m.title}</p>
-                    <p className="text-xs text-muted">{titleCase(m.meal_type)}</p>
-                    {m.notes && <p className="mt-1 text-xs text-water">{m.notes}</p>}
+                    <p className="font-semibold text-fg">{m.title}</p>
+                    <p className="text-xs text-fg-muted">{titleCase(m.meal_type)}</p>
+                    {m.notes && <p className="mt-1 text-xs text-accent">{m.notes}</p>}
                   </div>
                   <form action={deleteMeal.bind(null, m.id)}>
                     <ConfirmSubmit message={`Delete "${m.title}"?`} aria-label={`Delete ${m.title}`} className="h-9 w-9 px-0 py-0">

@@ -29,10 +29,10 @@ export function Disclosure({
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="group/disc flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition hover:bg-harbor-50/60"
+        className="group/disc flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition hover:bg-surface-2 active:scale-[0.99] active:duration-75"
       >
         <div className="min-w-0 flex-1">{summary}</div>
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-muted transition group-hover/disc:bg-harbor-50">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-muted transition group-hover/disc:bg-raised">
           <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", open && "rotate-180")} />
         </span>
       </button>

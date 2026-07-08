@@ -117,7 +117,7 @@ export function RoutineCard({
                   {count} {count === 1 ? "step" : "steps"}
                 </span>
                 {(when || (days && days !== "Daily")) && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-harbor-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-water">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold tabular-nums text-accent">
                     <Clock className="h-3 w-3" />
                     {[when, days && days !== "Daily" ? days : null].filter(Boolean).join(" · ")}
                   </span>
@@ -125,11 +125,11 @@ export function RoutineCard({
                 {peek.length > 0 && (
                   <span className="hidden items-center gap-1 sm:flex">
                     {peek.map((s) => (
-                      <span key={s.id} className="grid h-6 w-6 place-items-center rounded-md bg-surface-sunken text-sm">
+                      <span key={s.id} className="grid h-6 w-6 place-items-center rounded-md bg-surface-2 text-sm">
                         {s.icon ?? "•"}
                       </span>
                     ))}
-                    {count > peek.length && <span className="text-xs font-semibold text-muted">+{count - peek.length}</span>}
+                    {count > peek.length && <span className="text-xs font-semibold text-fg-muted">+{count - peek.length}</span>}
                   </span>
                 )}
               </>
@@ -148,15 +148,15 @@ export function RoutineCard({
                 name="name"
                 defaultValue={r.name}
                 aria-label="Routine name"
-                className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-title text-harbor outline-none focus:bg-surface-sunken"
+                className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-title text-fg outline-none focus:bg-surface-2"
               />
               <Switch name="active" label="Active" defaultChecked={r.active} />
               <SubmitButton size="sm" variant="secondary">
                 Save
               </SubmitButton>
             </div>
-            <details className="rounded-xl bg-surface-sunken px-3 py-2">
-              <summary className="cursor-pointer select-none text-sm font-semibold text-water">Schedule &amp; days</summary>
+            <details className="rounded-xl bg-surface-2 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-accent">Schedule &amp; days</summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {templates.length > 0 && (
                   <Field
@@ -188,7 +188,7 @@ export function RoutineCard({
                     {DOW.map((d, i) => (
                       <label key={i} className="cursor-pointer">
                         <input type="checkbox" name="days" value={i} defaultChecked={(r.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                           {d}
                         </span>
                       </label>
@@ -199,8 +199,8 @@ export function RoutineCard({
             </details>
 
             {/* Routine-level power (§8.2), revealed on demand — order, celebration, sensory. */}
-            <details className="rounded-xl bg-surface-sunken px-3 py-2">
-              <summary className="cursor-pointer select-none text-sm font-semibold text-water">Routine options</summary>
+            <details className="rounded-xl bg-surface-2 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-accent">Routine options</summary>
               <div className="mt-3 space-y-3">
                 <Switch
                   name="strict_order"
@@ -233,7 +233,7 @@ export function RoutineCard({
           {/* steps */}
           <div className="space-y-2">
             {count === 0 && (
-              <p className="rounded-xl bg-surface-sunken px-3 py-4 text-center text-sm text-muted">
+              <p className="rounded-xl bg-surface-2 px-3 py-4 text-center text-sm text-fg-muted">
                 No steps yet — add the first one below.
               </p>
             )}
@@ -244,8 +244,8 @@ export function RoutineCard({
 
           {/* step library — tap to add a common step (§9). Assembling, not typing. */}
           {library.length > 0 && (
-            <details className="rounded-xl bg-surface-sunken px-3 py-2">
-              <summary className="cursor-pointer select-none text-sm font-semibold text-water">From the step library</summary>
+            <details className="rounded-xl bg-surface-2 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-accent">From the step library</summary>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {library.map((lib) => (
                   <form key={lib.id} action={addStep.bind(null, r.id, childId)}>
@@ -264,7 +264,7 @@ export function RoutineCard({
           )}
 
           {/* add step */}
-          <form action={addStep.bind(null, r.id, childId)} className="flex items-center gap-2 border-t border-harbor-100 pt-3">
+          <form action={addStep.bind(null, r.id, childId)} className="flex items-center gap-2 border-t border-line pt-3">
             <Input name="icon" placeholder="➕" aria-label="Emoji" className="w-14 shrink-0 text-center text-xl" />
             <Input name="label" placeholder="Add a step…" required className="flex-1" />
             {r.type === "first_then" ? (
@@ -278,15 +278,15 @@ export function RoutineCard({
             <SubmitButton size="sm">Add</SubmitButton>
           </form>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-harbor-100 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowPreview(true)}
                 disabled={count === 0}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-harbor-100 bg-white px-3 py-1.5 text-sm font-semibold text-harbor transition hover:border-water/40 hover:shadow-card disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-fg transition hover:border-accent/40 hover:shadow-card disabled:opacity-50"
               >
-                <Eye className="h-4 w-4 text-water" /> See it on the wall
+                <Eye className="h-4 w-4 text-accent" /> See it on the wall
               </button>
               <form action={saveRoutineAsTemplate.bind(null, r.id, childId)}>
                 <SubmitButton size="sm" variant="ghost" savedText="Saved ✓">

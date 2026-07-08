@@ -9,8 +9,8 @@ type Goal = { label?: string; emoji?: string; target?: number; reward?: string |
 export function FamilyGoalCard({ goal }: { goal: Goal | null }) {
   return (
     <Card>
-      <h2 className="text-title text-harbor">Family goal</h2>
-      <p className="mt-1 text-sm text-muted">
+      <h2 className="text-title text-fg">Family goal</h2>
+      <p className="mt-1 text-sm text-fg-muted">
         A shared reward the whole family&apos;s stars fill together — cooperative, not a competition.
         It shows as a filling bar on the wall&apos;s home screen.
       </p>
@@ -29,7 +29,7 @@ export function FamilyGoalCard({ goal }: { goal: Goal | null }) {
         <Field label="Reward (optional)" hint="What the family earns together.">
           <Input name="reward" defaultValue={goal?.reward ?? ""} placeholder="Pizza & a movie" />
         </Field>
-        <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+        <div className="rounded-xl border border-line px-3.5 py-3">
           <Switch name="active" label="Show on the wall" hint="Turn the goal on for the family." defaultChecked={goal?.active ?? false} />
         </div>
         <SubmitButton variant="secondary">Save family goal</SubmitButton>

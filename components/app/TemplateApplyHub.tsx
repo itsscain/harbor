@@ -24,12 +24,12 @@ export function TemplateApplyHub({
   const [childId, setChildId] = useState(children[0]?.id ?? "");
 
   if (children.length === 0) {
-    return <p className="text-sm text-muted">Add a child first — then you can start them from a template.</p>;
+    return <p className="text-sm text-fg-muted">Add a child first — then you can start them from a template.</p>;
   }
 
   return (
     <div>
-      <label className="mb-3 flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+      <label className="mb-3 flex flex-wrap items-center gap-2 text-sm font-medium text-fg">
         Add a template to
         <Select value={childId} onChange={(e) => setChildId(e.target.value)} className="w-auto min-w-40 py-2">
           {children.map((c) => (
@@ -42,24 +42,24 @@ export function TemplateApplyHub({
           const n = stepCount(t.content);
           const saved = t.household_id != null;
           return (
-            <div key={t.id} className="flex flex-col rounded-xl border border-harbor-100 bg-white p-3.5 transition hover:border-water/40 hover:shadow-card">
+            <div key={t.id} className="flex flex-col rounded-xl border border-line bg-surface p-3.5 transition hover:border-accent/40 hover:shadow-card">
               <div className="flex items-start gap-3">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-harbor-50 text-2xl">{t.emoji ?? "📋"}</span>
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-2xl">{t.emoji ?? "📋"}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="truncate font-bold text-harbor">{t.name}</h4>
+                    <h4 className="truncate font-bold text-fg">{t.name}</h4>
                     {saved && <Badge tone="beacon">Yours</Badge>}
                   </div>
-                  {t.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{t.description}</p>}
+                  {t.description && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{t.description}</p>}
                 </div>
               </div>
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-semibold text-muted">{n} {n === 1 ? "step" : "steps"}</span>
+                <span className="text-xs font-semibold text-fg-muted">{n} {n === 1 ? "step" : "steps"}</span>
                 {(t.need_tags ?? []).slice(0, 2).map((tag) => (
                   <Badge key={tag} tone="neutral">{tag}</Badge>
                 ))}
               </div>
-              <form action={applyTemplate} className="mt-3 border-t border-harbor-50 pt-2.5">
+              <form action={applyTemplate} className="mt-3 border-t border-line pt-2.5">
                 <input type="hidden" name="child_id" value={childId} />
                 <input type="hidden" name="template_id" value={t.id} />
                 <SubmitButton size="sm" variant="beacon" savedText="Added ✓">

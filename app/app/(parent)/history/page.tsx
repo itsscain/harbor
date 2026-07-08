@@ -145,19 +145,19 @@ export default async function HistoryPage() {
         <div className="space-y-6">
           {groups.map((g) => (
             <section key={g.day}>
-              <p className="text-eyebrow mb-2 text-muted">{g.day}</p>
-              <div className="overflow-hidden rounded-2xl border border-harbor-100 bg-white">
+              <p className="text-eyebrow mb-2 text-fg-muted">{g.day}</p>
+              <div className="overflow-hidden rounded-2xl border border-line bg-surface">
                 {g.items.map((e, i) => (
                   <div
                     key={e.id}
-                    className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-harbor-50" : ""}`}
+                    className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-line" : ""}`}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-harbor-50 text-lg">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-lg">
                       {e.icon}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-ink">{e.text}</p>
-                      <p className="flex items-center gap-1.5 text-xs text-muted">
+                      <p className="truncate font-semibold text-fg">{e.text}</p>
+                      <p className="flex items-center gap-1.5 text-xs text-fg-muted">
                         {e.kid && (
                           <>
                             <span
@@ -174,10 +174,10 @@ export default async function HistoryPage() {
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${
                           e.tone === "earn"
-                            ? "bg-emerald-50 text-emerald-700"
+                            ? "bg-good/10 text-good"
                             : e.tone === "reset"
-                              ? "bg-harbor-50 text-muted"
-                              : "bg-amber-50 text-amber-700"
+                              ? "bg-surface-2 text-fg-muted"
+                              : "bg-beacon/10 text-beacon"
                         }`}
                       >
                         {e.delta > 0 ? `+${e.delta}` : e.delta}

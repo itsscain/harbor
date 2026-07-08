@@ -24,8 +24,8 @@ export default async function ParentHome() {
   if (!household) {
     return (
       <Card>
-        <h1 className="text-display-sm text-harbor">No household yet</h1>
-        <p className="mt-2 text-sm text-muted">
+        <h1 className="text-display-sm text-fg">No household yet</h1>
+        <p className="mt-2 text-sm text-fg-muted">
           Your Harbor household will appear here once it&apos;s set up. If you just got an invite,
           check your email to finish creating your account.
         </p>
@@ -149,13 +149,13 @@ export default async function ParentHome() {
 
       {!isPlus && (
         <Link href="/app/billing" className="block">
-          <Card interactive className="mb-6 flex items-center gap-3 border-beacon/40 bg-beacon-soft/40">
+          <Card interactive className="mb-6 flex items-center gap-3 border-beacon/40 bg-beacon/10">
             <Sparkles className="h-6 w-6 shrink-0 text-beacon" />
             <div className="flex-1">
-              <p className="font-semibold text-harbor">Your wall works free, forever.</p>
-              <p className="text-sm text-muted">Harbor Plus adds cloud backup, edit-from-here sync, and insights.</p>
+              <p className="font-semibold text-fg">Your wall works free, forever.</p>
+              <p className="text-sm text-fg-muted">Harbor Plus adds cloud backup, edit-from-here sync, and insights.</p>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted" />
+            <ChevronRight className="h-5 w-5 text-fg-muted" />
           </Card>
         </Link>
       )}
@@ -163,7 +163,7 @@ export default async function ParentHome() {
       <SectionHeader
         eyebrow="Your crew"
         action={
-          <Link href="/app/children#add" className="inline-flex items-center gap-1 text-sm font-semibold text-water hover:text-harbor">
+          <Link href="/app/children#add" className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:text-fg">
             <Plus className="h-4 w-4" /> Add child
           </Link>
         }
@@ -187,18 +187,18 @@ function DevicesCard({ pairings }: { pairings: { code: string; status: string }[
   return (
     <Card id="devices" className="scroll-mt-20">
       <div className="flex items-center gap-2">
-        <Tablet className="h-5 w-5 text-water" />
-        <h3 className="text-title text-harbor">Wall devices</h3>
+        <Tablet className="h-5 w-5 text-accent" />
+        <h3 className="text-title text-fg">Wall devices</h3>
       </div>
       <ul className="mt-3 space-y-2">
         {pairings.map((p) => (
-          <li key={p.code} className="flex items-center justify-between rounded-xl bg-surface-sunken px-3 py-2.5">
-            <span className="font-mono font-bold tracking-wider text-harbor">{formatPairingCode(p.code)}</span>
+          <li key={p.code} className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5">
+            <span className="font-mono font-bold tracking-wider text-fg">{formatPairingCode(p.code)}</span>
             <Badge tone={p.status === "paired" ? "green" : "amber"}>{titleCase(p.status)}</Badge>
           </li>
         ))}
         {pairings.length === 0 && (
-          <li className="text-sm text-muted">No devices yet. Pair one from Settings or your setup link.</li>
+          <li className="text-sm text-fg-muted">No devices yet. Pair one from Settings or your setup link.</li>
         )}
       </ul>
     </Card>

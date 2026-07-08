@@ -15,7 +15,7 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default async function MedicationPage() {
   const household = await getMyHousehold();
-  if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
+  if (!household) return <Card><p className="text-fg-muted">No household yet.</p></Card>;
 
   const supabase = await createClient();
   const { data: children } = await supabase
@@ -37,14 +37,14 @@ export default async function MedicationPage() {
         subtitle="A calm, dignified way to take medicine — and a quiet record for the doctor. No stars: health isn't a prize."
       />
 
-      <Card className="mb-5 bg-harbor-50/60">
-        <p className="text-sm text-ink">
+      <Card className="mb-5 bg-surface-2/60">
+        <p className="text-sm text-fg">
           <b>Harbor tracks and gently reminds — it does not dispense or dose.</b> A grown-up is always in charge of
           giving medicine. This is support, not medical advice.
         </p>
       </Card>
 
-      {(children ?? []).length === 0 && <Card><p className="text-muted">Add a child first.</p></Card>}
+      {(children ?? []).length === 0 && <Card><p className="text-fg-muted">Add a child first.</p></Card>}
 
       <div className="space-y-6">
         {(children ?? []).map((child) => {
@@ -53,7 +53,7 @@ export default async function MedicationPage() {
             <section key={child.id}>
               <div className="mb-2 flex items-center gap-2 px-1">
                 <span className="h-3 w-3 rounded-full" style={{ background: child.color ?? "#6b8aa6" }} />
-                <h2 className="text-title text-harbor">{child.name}</h2>
+                <h2 className="text-title text-fg">{child.name}</h2>
               </div>
 
               <div className="space-y-3">
@@ -98,12 +98,12 @@ export default async function MedicationPage() {
                           {DAYS.map((d, i) => (
                             <label key={i} className="cursor-pointer">
                               <input type="checkbox" name="days" value={i} defaultChecked={days.includes(i)} className="peer sr-only" />
-                              <span className="block rounded-lg px-2.5 py-1 text-xs font-semibold text-muted ring-1 ring-line/60 peer-checked:bg-harbor peer-checked:text-white">
+                              <span className="block rounded-lg px-2.5 py-1 text-xs font-semibold text-fg-muted ring-1 ring-line/60 peer-checked:bg-accent peer-checked:text-accent-fg">
                                 {d}
                               </span>
                             </label>
                           ))}
-                          <span className="self-center text-xs text-muted">(none = every day)</span>
+                          <span className="self-center text-xs text-fg-muted">(none = every day)</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-4">
                           <Switch name="with_food" label="Take with food" defaultChecked={!!m.with_food} />
@@ -127,7 +127,7 @@ export default async function MedicationPage() {
                 <Disclosure
                   defaultOpen={childMeds.length === 0}
                   bodyClassName="px-5 pb-5"
-                  summary={<span className="text-sm font-semibold text-harbor">➕ Add a medication for {child.name}</span>}
+                  summary={<span className="text-sm font-semibold text-fg">➕ Add a medication for {child.name}</span>}
                 >
                 <form action={addMedication.bind(null, child.id)} className="mt-1 space-y-3">
                   <div className="flex flex-wrap items-end gap-3">

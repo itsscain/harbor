@@ -26,13 +26,13 @@ export function GenerateMealsButton() {
       <button
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-xl bg-harbor px-4 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-harbor-700 active:scale-[0.98] disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg shadow-button transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {pending ? "Planning the week…" : "Generate dinners with AI"}
       </button>
       {msg && (
-        <span className={msg.ok ? "text-sm font-medium text-emerald-700" : "text-sm text-error-ink"}>{msg.text}</span>
+        <span className={msg.ok ? "text-sm font-medium text-good" : "text-sm text-error"}>{msg.text}</span>
       )}
     </div>
   );

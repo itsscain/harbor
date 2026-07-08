@@ -36,7 +36,7 @@ export default async function MessagesPage() {
         <Disclosure
           defaultOpen={(messages ?? []).length === 0}
           bodyClassName="px-5 pb-5"
-          summary={<span className="text-title text-harbor">Post a note</span>}
+          summary={<span className="text-title text-fg">Post a note</span>}
         >
         <form action={addMessage} className="grid gap-3 pt-1 sm:grid-cols-2">
           <Field label="Message" className="sm:col-span-2">
@@ -55,7 +55,7 @@ export default async function MessagesPage() {
           <Field label="Bonus stars (optional)" hint="Awarded to the chosen child when posted.">
             <Input name="bonus_points" type="number" min={0} defaultValue={0} />
           </Field>
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3 sm:col-span-2">
+          <div className="rounded-xl border border-line px-3.5 py-3 sm:col-span-2">
             <Switch name="pinned" label="Pin to top" hint="Keeps it at the top of the wall." />
           </div>
           <div className="sm:col-span-2"><SubmitButton>Post to the wall</SubmitButton></div>
@@ -68,9 +68,9 @@ export default async function MessagesPage() {
           <Card key={m.id} className="flex items-start gap-3">
             <span className="text-2xl">{m.emoji ?? "💬"}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-ink">{m.body}</p>
+              <p className="text-fg">{m.body}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                {m.author_label && <span className="text-xs font-semibold text-muted">— {m.author_label}</span>}
+                {m.author_label && <span className="text-xs font-semibold text-fg-muted">— {m.author_label}</span>}
                 {m.pinned && <Badge tone="beacon"><Pin className="mr-1 h-3 w-3" />Pinned</Badge>}
                 {m.bonus_points > 0 && (
                   <Badge tone="green"><Star className="mr-1 h-3 w-3" />+{m.bonus_points} awarded</Badge>

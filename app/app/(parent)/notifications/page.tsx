@@ -39,7 +39,7 @@ export default async function NotificationsPage() {
 
       {hasUnread && (
         <form action={markAllNotificationsRead} className="mb-3 flex justify-end">
-          <SubmitButton className="rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-harbor ring-1 ring-harbor-100 hover:bg-harbor-50">
+          <SubmitButton className="rounded-full bg-surface px-3.5 py-1.5 text-sm font-semibold text-fg ring-1 ring-line hover:bg-surface-2">
             Mark all read
           </SubmitButton>
         </form>
@@ -47,9 +47,9 @@ export default async function NotificationsPage() {
 
       {list.length === 0 ? (
         <Card className="flex flex-col items-center py-12 text-center">
-          <Bell className="h-8 w-8 text-harbor-200" />
-          <p className="mt-3 font-display text-lg font-bold text-harbor">You&apos;re all caught up</p>
-          <p className="mt-1 max-w-sm text-sm text-muted">
+          <Bell className="h-8 w-8 text-fg-subtle" />
+          <p className="mt-3 font-display text-lg font-bold text-fg">You&apos;re all caught up</p>
+          <p className="mt-1 max-w-sm text-sm text-fg-muted">
             Harbor will let you know here when something needs you — a child having a hard moment, a chore to approve, or a milestone to celebrate.
           </p>
         </Card>

@@ -19,7 +19,7 @@ export function CalmToolFields({ toolType, config }: { toolType: string; config:
       <textarea
         name="config"
         defaultValue={JSON.stringify(config, null, 2)}
-        className="w-full rounded-xl border border-harbor-100 bg-white px-3.5 py-2.5 font-mono text-sm outline-none focus:border-water focus:ring-4 focus:ring-water/15"
+        className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 font-mono text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
       />
     </Field>
   );
@@ -75,16 +75,16 @@ function Feelings({ config }: { config: Config }) {
   return (
     <div>
       <Hidden value={{ options }} />
-      <p className="mb-1.5 block text-sm font-medium text-ink">Feelings kids can tap</p>
+      <p className="mb-1.5 block text-sm font-medium text-fg">Feelings kids can tap</p>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
-          <span key={o} className="inline-flex items-center gap-1 rounded-full bg-harbor-50 px-3 py-1.5 text-sm font-semibold text-harbor">
+          <span key={o} className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-3 py-1.5 text-sm font-semibold text-fg">
             {o}
             <button
               type="button"
               onClick={() => setOptions(options.filter((x) => x !== o))}
               aria-label={`Remove ${o}`}
-              className="rounded-full p-0.5 text-muted hover:text-error-ink"
+              className="rounded-full p-0.5 text-fg-muted hover:text-error"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -99,7 +99,7 @@ function Feelings({ config }: { config: Config }) {
           placeholder="Add a feeling…"
           className="max-w-xs"
         />
-        <button type="button" onClick={add} className="inline-flex items-center gap-1 rounded-xl bg-harbor-50 px-3 text-sm font-semibold text-harbor hover:bg-harbor-100">
+        <button type="button" onClick={add} className="inline-flex items-center gap-1 rounded-xl bg-surface-2 px-3 text-sm font-semibold text-fg hover:bg-surface-2">
           <Plus className="h-4 w-4" /> Add
         </button>
       </div>
@@ -118,21 +118,21 @@ function SocialStory({ config }: { config: Config }) {
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Going to the store" />
       </Field>
       <div className="space-y-2">
-        <p className="block text-sm font-medium text-ink">Pages</p>
+        <p className="block text-sm font-medium text-fg">Pages</p>
         {pages.map((p, i) => (
           <div key={i} className="flex gap-2">
             <textarea
               value={p}
               onChange={(e) => setPage(i, e.target.value)}
               placeholder={`Page ${i + 1}…`}
-              className="min-h-16 w-full rounded-xl border border-harbor-100 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-water focus:ring-4 focus:ring-water/15"
+              className="min-h-16 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
             />
             {pages.length > 1 && (
               <button
                 type="button"
                 onClick={() => setPages(pages.filter((_, idx) => idx !== i))}
                 aria-label={`Remove page ${i + 1}`}
-                className="shrink-0 self-start rounded-lg border border-error/30 p-2 text-error-ink hover:bg-error-soft"
+                className="shrink-0 self-start rounded-lg border border-error/30 p-2 text-error hover:bg-error/10"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -142,7 +142,7 @@ function SocialStory({ config }: { config: Config }) {
         <button
           type="button"
           onClick={() => setPages([...pages, ""])}
-          className="inline-flex items-center gap-1 rounded-xl bg-harbor-50 px-3 py-2 text-sm font-semibold text-harbor hover:bg-harbor-100"
+          className="inline-flex items-center gap-1 rounded-xl bg-surface-2 px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2"
         >
           <Plus className="h-4 w-4" /> Add page
         </button>

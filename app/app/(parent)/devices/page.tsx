@@ -57,7 +57,7 @@ const KIND_ICON: Record<string, string> = { wall: "🖥️", outpost: "🛏️",
 
 export default async function DevicesPage() {
   const household = await getMyHousehold();
-  if (!household) return <Card><p className="text-muted">No household yet.</p></Card>;
+  if (!household) return <Card><p className="text-fg-muted">No household yet.</p></Card>;
 
   const supabase = await createClient();
   const { data: children } = await supabase
@@ -126,15 +126,15 @@ export default async function DevicesPage() {
                 }
               >
                 {d.status === "pending" ? (
-                  <div className="mb-4 rounded-xl bg-harbor-50 p-4 text-center">
-                    <p className="text-sm text-muted">On the new device, open Harbor and enter:</p>
-                    <p className="mt-1 font-display text-3xl font-bold tracking-[0.2em] text-harbor">
+                  <div className="mb-4 rounded-xl bg-surface-2 p-4 text-center">
+                    <p className="text-sm text-fg-muted">On the new device, open Harbor and enter:</p>
+                    <p className="mt-1 font-display text-3xl font-bold tracking-[0.2em] text-fg">
                       {formatPairingCode(d.code)}
                     </p>
-                    <p className="mt-1 text-xs text-muted">It pairs the moment the code is entered.</p>
+                    <p className="mt-1 text-xs text-fg-muted">It pairs the moment the code is entered.</p>
                   </div>
                 ) : (
-                  <p className="mb-3 text-sm text-muted">
+                  <p className="mb-3 text-sm text-fg-muted">
                     {typeLabel(d)} · {st.label}
                     {d.paired_at ? ` · paired ${relTime(d.paired_at)}` : ""}
                   </p>
@@ -152,7 +152,7 @@ export default async function DevicesPage() {
                         {stale ? "Update to latest" : "Refresh app"}
                       </SubmitButton>
                     </form>
-                    {stale && <span className="text-xs font-medium text-amber-600">⚠️ Running an old build</span>}
+                    {stale && <span className="text-xs font-medium text-beacon">⚠️ Running an old build</span>}
                   </div>
                 )}
 
@@ -172,8 +172,8 @@ export default async function DevicesPage() {
                 </form>
 
                 {d.status === "paired" && (
-                  <div className="mt-4 border-t border-harbor-100 pt-3">
-                    <p className="text-eyebrow mb-2 text-muted">Sleep &amp; quiet hours</p>
+                  <div className="mt-4 border-t border-line pt-3">
+                    <p className="text-eyebrow mb-2 text-fg-muted">Sleep &amp; quiet hours</p>
                     <form action={updateDeviceSettings.bind(null, d.id)} className="space-y-3">
                       <Switch name="screensaver" label="Screensaver when idle" defaultChecked={ds.screensaver !== false} />
                       <div className="flex flex-wrap items-end gap-3">
@@ -217,9 +217,9 @@ export default async function DevicesPage() {
         <Disclosure
           bodyClassName="px-5 pb-5"
           summary={
-            <span className="flex items-center gap-2 text-sm font-semibold text-harbor">
+            <span className="flex items-center gap-2 text-sm font-semibold text-fg">
               🏮 Set up a Lantern
-              <span className="font-normal text-muted">— a child&apos;s own bedside device</span>
+              <span className="font-normal text-fg-muted">— a child&apos;s own bedside device</span>
             </span>
           }
         >
@@ -231,7 +231,7 @@ export default async function DevicesPage() {
         <Disclosure
           defaultOpen={devices.length === 0}
           bodyClassName="px-5 pb-5"
-          summary={<span className="text-sm font-semibold text-harbor">➕ Add a device (wall or room screen)</span>}
+          summary={<span className="text-sm font-semibold text-fg">➕ Add a device (wall or room screen)</span>}
         >
           <form action={addDevice} className="mt-1 space-y-3">
             <div className="flex flex-wrap items-end gap-3">
@@ -261,7 +261,7 @@ export default async function DevicesPage() {
               )}
             </div>
             <SubmitButton size="sm">Create pairing code</SubmitButton>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-fg-muted">
               A code appears here — open Harbor on the new device and enter it. A room device shows only its
               child&apos;s world; a wall shows the whole family.
             </p>

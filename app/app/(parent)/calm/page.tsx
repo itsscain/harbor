@@ -52,7 +52,7 @@ export default async function CalmPage() {
             </div>
             <form action={updateCalmTool.bind(null, t.id)} className="space-y-4">
               <CalmToolFields toolType={t.tool_type} config={(t.config ?? {}) as Record<string, unknown>} />
-              <div className="flex items-center justify-between gap-3 border-t border-harbor-100 pt-3">
+              <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
                 <Switch name="enabled" label="Enabled on the wall" defaultChecked={t.enabled} className="flex-1" />
                 <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
               </div>
@@ -74,7 +74,7 @@ export default async function CalmPage() {
       </div>
 
       <Card className="mt-6">
-        <h3 className="text-title text-harbor">Add a calm tool</h3>
+        <h3 className="text-title text-fg">Add a calm tool</h3>
         <form action={addCalmTool} className="mt-3 flex items-end gap-3">
           <Field label="Tool" className="flex-1">
             <Select name="tool_type" defaultValue="breathing">

@@ -43,25 +43,25 @@ export default async function BillingPage() {
 
       <Card className="mb-4">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="text-display-sm text-harbor">
-            $3.99<span className="text-base font-medium text-muted">/mo</span>
+          <p className="text-display-sm text-fg">
+            $3.99<span className="text-base font-medium text-fg-muted">/mo</span>
           </p>
-          <span className="text-muted">or</span>
-          <p className="text-display-sm text-harbor">
-            $39<span className="text-base font-medium text-muted">/yr</span>
+          <span className="text-fg-muted">or</span>
+          <p className="text-display-sm text-fg">
+            $39<span className="text-base font-medium text-fg-muted">/yr</span>
           </p>
           <Badge tone="green">Save 18% yearly</Badge>
         </div>
         {isActive && sub?.current_period_end && (
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-fg-muted">
             {sub.plan ? `${sub.plan} plan · ` : ""}renews{" "}
             {new Date(sub.current_period_end).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </p>
         )}
         <ul className="mt-4 space-y-2">
           {PLUS_FEATURES.map((f) => (
-            <li key={f} className="flex items-start gap-2 text-sm text-ink">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <li key={f} className="flex items-start gap-2 text-sm text-fg">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-good" />
               {f}
             </li>
           ))}
@@ -71,9 +71,9 @@ export default async function BillingPage() {
         </div>
       </Card>
 
-      <Card className="border-harbor-100 bg-harbor-50">
-        <p className="text-sm text-muted">
-          <strong className="text-harbor">Cancel anytime.</strong> If you stop
+      <Card className="border-line bg-surface-2">
+        <p className="text-sm text-fg-muted">
+          <strong className="text-fg">Cancel anytime.</strong> If you stop
           Plus, your wall keeps running exactly as-is from the tablet&apos;s own
           data — you only lose cloud backup, remote editing, and new content.
           Nothing on the wall breaks.

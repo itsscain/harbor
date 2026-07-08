@@ -55,7 +55,7 @@ export default async function ListsPage() {
         {(items ?? []).map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-3 rounded-xl border border-harbor-100 bg-white p-2.5 pr-3 shadow-card transition hover:border-water/40"
+            className="flex items-center gap-3 rounded-xl border border-line bg-surface p-2.5 pr-3 shadow-card transition hover:border-accent/40"
           >
             <form action={toggleListItem.bind(null, item.id, !item.checked)}>
               <button
@@ -67,15 +67,15 @@ export default async function ListsPage() {
                     <Check className="h-4 w-4" />
                   </span>
                 ) : (
-                  <Circle className="h-7 w-7 text-harbor-100" />
+                  <Circle className="h-7 w-7 text-fg-subtle" />
                 )}
               </button>
             </form>
-            <span className={item.checked ? "flex-1 text-muted line-through" : "flex-1 font-medium text-ink"}>
+            <span className={item.checked ? "flex-1 text-fg-muted line-through" : "flex-1 font-medium text-fg"}>
               {item.name}
-              {item.category && <span className="ml-2 text-sm text-muted">{item.category}</span>}
+              {item.category && <span className="ml-2 text-sm text-fg-muted">{item.category}</span>}
             </span>
-            {item.added_by_label && <span className="text-xs text-muted">{item.added_by_label}</span>}
+            {item.added_by_label && <span className="text-xs text-fg-muted">{item.added_by_label}</span>}
           </div>
         ))}
         {(items ?? []).length === 0 && (

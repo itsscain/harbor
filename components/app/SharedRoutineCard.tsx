@@ -100,7 +100,7 @@ export function SharedRoutineCard({
                   {assignedKids.length ? assignedKids.map((k) => k.name).join(", ") : "No one yet"}
                 </span>
                 {(windowChip || tpl) && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-harbor-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-water">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold tabular-nums text-accent">
                     <Clock className="h-3 w-3" />
                     {tpl ? `${tpl.name}${windowChip ? ` · ${windowChip}` : ""}` : windowChip}
                     {dayLabel(winDays ?? null) !== "Daily" ? ` · ${dayLabel(winDays ?? null)}` : ""}
@@ -122,7 +122,7 @@ export function SharedRoutineCard({
                 name="name"
                 defaultValue={r.name}
                 aria-label="Routine name"
-                className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-title text-harbor outline-none focus:bg-surface-sunken"
+                className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-title text-fg outline-none focus:bg-surface-2"
               />
               <Switch name="active" label="Active" defaultChecked={r.active} />
               <SubmitButton size="sm" variant="secondary">
@@ -135,7 +135,7 @@ export function SharedRoutineCard({
                 {kids.map((k) => (
                   <label key={k.id} className="cursor-pointer">
                     <input type="checkbox" name="assigned" value={k.id} defaultChecked={assigned.has(k.id)} className="peer sr-only" />
-                    <span className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-harbor-100 bg-white px-3 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                    <span className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ background: childColor(k) }} aria-hidden />
                       {k.name}
                     </span>
@@ -144,8 +144,8 @@ export function SharedRoutineCard({
               </div>
             </Field>
 
-            <details className="rounded-xl bg-surface-sunken px-3 py-2" open={false}>
-              <summary className="cursor-pointer select-none text-sm font-semibold text-water">Schedule &amp; days</summary>
+            <details className="rounded-xl bg-surface-2 px-3 py-2" open={false}>
+              <summary className="cursor-pointer select-none text-sm font-semibold text-accent">Schedule &amp; days</summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 <Field label="Schedule template" hint="Edit the template once — every routine using it follows." className="sm:col-span-3">
                   <Select name="schedule_template_id" defaultValue={r.schedule_template_id ?? ""}>
@@ -172,7 +172,7 @@ export function SharedRoutineCard({
                     {DOW.map((d, i) => (
                       <label key={i} className="cursor-pointer">
                         <input type="checkbox" name="days" value={i} defaultChecked={(r.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                           {d}
                         </span>
                       </label>
@@ -186,14 +186,14 @@ export function SharedRoutineCard({
           {/* steps */}
           <div className="space-y-2">
             {steps.length === 0 && (
-              <p className="rounded-xl bg-surface-sunken px-3 py-4 text-center text-sm text-muted">
+              <p className="rounded-xl bg-surface-2 px-3 py-4 text-center text-sm text-fg-muted">
                 No steps yet — add the first one below.
               </p>
             )}
             {steps.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-xl border border-harbor-100 px-3 py-2">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface-sunken text-lg">{s.icon ?? "•"}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-harbor">{s.label}</span>
+              <div key={s.id} className="flex items-center gap-3 rounded-xl border border-line px-3 py-2">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface-2 text-lg">{s.icon ?? "•"}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-fg">{s.label}</span>
                 {s.reward_points > 0 && <Badge tone="beacon">★ {s.reward_points}</Badge>}
                 <form action={deleteSharedStep.bind(null, s.id)}>
                   <ConfirmSubmit message={`Remove "${s.label}"?`} aria-label={`Remove ${s.label}`}>
@@ -205,7 +205,7 @@ export function SharedRoutineCard({
           </div>
 
           {/* add step */}
-          <form action={addSharedStep.bind(null, r.id)} className="flex items-center gap-2 border-t border-harbor-100 pt-3">
+          <form action={addSharedStep.bind(null, r.id)} className="flex items-center gap-2 border-t border-line pt-3">
             <Input name="icon" placeholder="➕" aria-label="Emoji" className="w-14 shrink-0 text-center text-xl" />
             <Input name="label" placeholder="Add a step…" required className="flex-1" />
             <Input
@@ -231,8 +231,8 @@ export function SharedRoutineCard({
 
           {/* per-child fine-tuning (§2.3) — a small diff, never a duplicate */}
           {assignedKids.length > 0 && (
-            <details className="rounded-xl bg-surface-sunken px-3 py-2">
-              <summary className="cursor-pointer select-none text-sm font-semibold text-water">
+            <details className="rounded-xl bg-surface-2 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-accent">
                 Fine-tune per child
               </summary>
               <div className="mt-3 space-y-2">
@@ -241,13 +241,13 @@ export function SharedRoutineCard({
                   return (
                     <div
                       key={`${k.id}:${ov ? `${ov.time_offset_min}:${ov.enabled}` : "none"}`}
-                      className="flex flex-wrap items-center gap-3 rounded-xl border border-harbor-100 bg-white px-3 py-2"
+                      className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
                     >
                       <form
                         action={upsertOverride.bind(null, r.id, k.id)}
                         className="flex min-w-0 flex-1 flex-wrap items-center gap-3"
                       >
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-harbor">
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: childColor(k) }} />
                           {k.name}
                         </span>
@@ -280,7 +280,7 @@ export function SharedRoutineCard({
                     </div>
                   );
                 })}
-                <p className="text-xs text-muted">
+                <p className="text-xs text-fg-muted">
                   Shift moves the whole window earlier (−) or later (+) for that child only.
                 </p>
               </div>

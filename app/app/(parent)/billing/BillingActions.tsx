@@ -35,7 +35,7 @@ export function BillingActions({
 
   if (!configured) {
     return (
-      <p className="rounded-xl bg-harbor-50 px-4 py-3 text-sm text-muted">
+      <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-fg-muted">
         Harbor Plus checkout isn&apos;t switched on yet. Your wall keeps working
         free in the meantime.
       </p>
@@ -45,7 +45,7 @@ export function BillingActions({
   return (
     <div className="space-y-3">
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-lg bg-error/10 px-3 py-2 text-sm text-error">{error}</p>
       )}
       {isActive ? (
         <Button

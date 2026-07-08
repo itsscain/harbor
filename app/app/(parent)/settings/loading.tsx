@@ -10,7 +10,7 @@ export default function SettingsLoading() {
         <Skeleton className="h-8 w-40" />
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 rounded-2xl border border-harbor-100 bg-white p-5 shadow-card">
+        <div key={i} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 shadow-card">
           <Skeleton className="h-10 w-10 rounded-xl" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-32" />

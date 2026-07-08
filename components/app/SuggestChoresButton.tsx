@@ -24,12 +24,12 @@ export function SuggestChoresButton({ childId }: { childId: string }) {
         type="button"
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-xl border border-water/40 bg-water/[0.06] px-3.5 py-2 text-sm font-semibold text-water transition hover:bg-water/10 active:scale-[0.98] disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/[0.06] px-3.5 py-2 text-sm font-semibold text-accent transition hover:bg-accent/10 active:scale-[0.98] disabled:opacity-60"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {pending ? "Thinking…" : "Suggest chores with AI"}
       </button>
-      {msg && <span className={msg.ok ? "text-sm font-medium text-emerald-700" : "text-sm text-error-ink"}>{msg.text}</span>}
+      {msg && <span className={msg.ok ? "text-sm font-medium text-good" : "text-sm text-error"}>{msg.text}</span>}
     </div>
   );
 }

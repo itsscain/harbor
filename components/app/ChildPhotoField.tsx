@@ -77,8 +77,8 @@ export function ChildPhotoField({
           </span>
         )}
         {busy && (
-          <span className="absolute inset-0 grid place-items-center bg-white/70">
-            <Loader2 className="h-6 w-6 animate-spin text-harbor" />
+          <span className="absolute inset-0 grid place-items-center bg-surface/70">
+            <Loader2 className="h-6 w-6 animate-spin text-fg" />
           </span>
         )}
       </div>
@@ -90,7 +90,7 @@ export function ChildPhotoField({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-xl border border-harbor-100 bg-white px-3.5 py-2 text-sm font-semibold text-harbor shadow-button transition hover:border-water/40 hover:bg-harbor-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-fg shadow-button transition hover:border-accent/40 hover:bg-surface-2 disabled:opacity-50"
           >
             {url ? <Camera className="h-4 w-4" /> : <ImagePlus className="h-4 w-4" />}
             {url ? "Change photo" : "Upload photo"}
@@ -100,14 +100,14 @@ export function ChildPhotoField({
               type="button"
               onClick={remove}
               disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted transition hover:text-error-ink disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-fg-muted transition hover:text-error disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" /> Remove
             </button>
           )}
         </div>
-        <p className="mt-1.5 text-xs text-muted">
-          {err ? <span className="text-error-ink">{err}</span> : "Shows on the wall as their avatar. JPG or PNG, up to 5 MB."}
+        <p className="mt-1.5 text-xs text-fg-muted">
+          {err ? <span className="text-error">{err}</span> : "Shows on the wall as their avatar. JPG or PNG, up to 5 MB."}
         </p>
       </div>
     </div>

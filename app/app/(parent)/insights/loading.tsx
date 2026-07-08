@@ -14,7 +14,7 @@ export default function InsightsLoading() {
         <Skeleton className="h-20 rounded-2xl" />
         <Skeleton className="h-20 rounded-2xl" />
       </div>
-      <div className="rounded-2xl border border-harbor-100 bg-white p-5 shadow-card">
+      <div className="rounded-2xl border border-line bg-surface p-5 shadow-card">
         <Skeleton className="mb-4 h-4 w-32" />
         <Skeleton className="h-48 w-full rounded-xl" />
       </div>

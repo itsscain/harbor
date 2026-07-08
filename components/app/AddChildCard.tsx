@@ -56,7 +56,7 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
     <Card id="add" className="scroll-mt-24 overflow-hidden p-0">
       <form action={action}>
         {/* Live preview banner */}
-        <div className="flex items-center gap-4 border-b border-harbor-100 bg-surface-sunken px-5 py-5">
+        <div className="flex items-center gap-4 border-b border-line bg-surface-2 px-5 py-5">
           <span
             className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full text-4xl"
             style={{ background: color + "26", boxShadow: `inset 0 0 0 3px ${color}` }}
@@ -64,15 +64,15 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
             {emoji}
           </span>
           <div className="min-w-0">
-            <p className="text-eyebrow text-muted">Live preview · how they appear on the wall</p>
-            <p className="truncate text-display-sm text-harbor">{name.trim() || "Your child"}</p>
+            <p className="text-eyebrow text-fg-muted">Live preview · how they appear on the wall</p>
+            <p className="truncate text-display-sm text-fg">{name.trim() || "Your child"}</p>
           </div>
         </div>
 
         <div className="space-y-5 p-5">
           {/* Name */}
           <div className="space-y-1.5">
-            <label htmlFor="child-name" className="block text-sm font-medium text-ink">
+            <label htmlFor="child-name" className="block text-sm font-medium text-fg">
               What&apos;s their name?
             </label>
             <input
@@ -83,13 +83,13 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Mia"
-              className="w-full rounded-xl border border-harbor-100 bg-white px-3.5 py-3 text-lg text-ink outline-none transition placeholder:text-muted/60 focus:border-water focus:ring-4 focus:ring-water/15"
+              className="w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-lg text-fg outline-none transition placeholder:text-fg-subtle focus:border-accent focus:ring-4 focus:ring-accent/15"
             />
           </div>
 
           {/* Avatar picker */}
           <div className="space-y-1.5">
-            <p className="block text-sm font-medium text-ink">Pick an avatar</p>
+            <p className="block text-sm font-medium text-fg">Pick an avatar</p>
             <input type="hidden" name="avatar" value={emoji} />
             <div className="flex flex-wrap gap-2">
               {AVATARS.map((a) => (
@@ -101,8 +101,8 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
                   className={cn(
                     "flex h-11 w-11 items-center justify-center rounded-xl text-2xl transition-transform duration-150 hover:scale-105",
                     !custom && emoji === a
-                      ? "bg-water/10 ring-2 ring-water"
-                      : "bg-harbor-50 ring-1 ring-transparent hover:ring-harbor-100",
+                      ? "bg-accent/10 ring-2 ring-accent"
+                      : "bg-surface-2 ring-1 ring-transparent hover:ring-line",
                   )}
                 >
                   {a}
@@ -114,7 +114,7 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
                 aria-pressed={custom}
                 className={cn(
                   "flex h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition",
-                  custom ? "bg-water/10 text-harbor ring-2 ring-water" : "bg-harbor-50 text-muted hover:text-harbor",
+                  custom ? "bg-accent/10 text-fg ring-2 ring-accent" : "bg-surface-2 text-fg-muted hover:text-fg",
                 )}
               >
                 <Plus className="h-4 w-4" /> Own
@@ -126,14 +126,14 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
                 value={emoji}
                 onChange={(e) => setEmoji(firstGrapheme(e.target.value))}
                 placeholder="🎈"
-                className="mt-2 w-24 rounded-xl border border-harbor-100 bg-white px-3 py-2 text-center text-2xl outline-none focus:border-water focus:ring-4 focus:ring-water/15"
+                className="mt-2 w-24 rounded-xl border border-line bg-surface px-3 py-2 text-center text-2xl outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
               />
             )}
           </div>
 
           {/* Color picker */}
           <div className="space-y-1.5">
-            <p className="block text-sm font-medium text-ink">Their color</p>
+            <p className="block text-sm font-medium text-fg">Their color</p>
             <input type="hidden" name="color" value={color} />
             <div className="flex flex-wrap gap-1">
               {CHILD_PALETTE.map((p) => (
@@ -148,7 +148,7 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
                   <span
                     className={cn(
                       "h-7 w-7 rounded-full transition-transform",
-                      color === p.value && "scale-110 ring-2 ring-harbor ring-offset-2",
+                      color === p.value && "scale-110 ring-2 ring-fg ring-offset-2 ring-offset-surface",
                     )}
                     style={{ backgroundColor: p.value }}
                   />
@@ -159,20 +159,20 @@ function ChildForm({ defaultColor, onDone }: { defaultColor: string; onDone: (c:
 
           {/* Birthday (optional) */}
           <div className="space-y-1.5">
-            <label htmlFor="child-bday" className="block text-sm font-medium text-ink">
-              Birthday <span className="font-normal text-muted">(optional)</span>
+            <label htmlFor="child-bday" className="block text-sm font-medium text-fg">
+              Birthday <span className="font-normal text-fg-muted">(optional)</span>
             </label>
             <input
               id="child-bday"
               name="birthday"
               type="date"
-              className="rounded-xl border border-harbor-100 bg-white px-3.5 py-2.5 text-ink outline-none transition focus:border-water focus:ring-4 focus:ring-water/15"
+              className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-fg outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15"
             />
-            <p className="text-xs text-muted">Adds a “N sleeps until their birthday” countdown on the wall.</p>
+            <p className="text-xs text-fg-muted">Adds a “N sleeps until their birthday” countdown on the wall.</p>
           </div>
 
           {state.error && (
-            <p className="rounded-lg bg-error-soft px-3 py-2 text-sm text-error-ink">{state.error}</p>
+            <p className="rounded-lg bg-error/10 px-3 py-2 text-sm text-error">{state.error}</p>
           )}
 
           <SubmitButton size="lg" className="w-full" pendingText="Adding…" confirmSaved={false}>
@@ -188,7 +188,7 @@ function Celebration({ child, onAddAnother }: { child: Child; onAddAnother: () =
   const color = child.color;
   return (
     <Card className="overflow-hidden p-0 text-center">
-      <div className="relative flex flex-col items-center gap-3 border-b border-harbor-100 bg-surface-sunken px-6 py-8">
+      <div className="relative flex flex-col items-center gap-3 border-b border-line bg-surface-2 px-6 py-8">
         <span className="absolute inset-x-0 top-0 mx-auto h-40 w-40 beacon-ring" aria-hidden />
         <span
           className="animate-pop relative flex h-20 w-20 items-center justify-center rounded-full text-4xl"
@@ -197,8 +197,8 @@ function Celebration({ child, onAddAnother }: { child: Child; onAddAnother: () =
           {child.avatar ?? "🙂"}
         </span>
         <div className="relative">
-          <p className="text-display-sm text-harbor">{child.name} is aboard! 🎉</p>
-          <p className="mt-1 text-sm text-muted">Want a head start? Add a ready-made routine.</p>
+          <p className="text-display-sm text-fg">{child.name} is aboard! 🎉</p>
+          <p className="mt-1 text-sm text-fg-muted">Want a head start? Add a ready-made routine.</p>
         </div>
       </div>
 
@@ -220,7 +220,7 @@ function Celebration({ child, onAddAnother }: { child: Child; onAddAnother: () =
           <button
             type="button"
             onClick={onAddAnother}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-harbor-100 px-4 py-3 font-semibold text-harbor transition hover:bg-harbor-50 active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-line px-4 py-3 font-semibold text-fg transition hover:bg-surface-2 active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" /> Add another
           </button>
@@ -262,19 +262,19 @@ function TemplateRow({ emoji, name, preview }: { emoji: string; name: string; pr
       className={cn(
         "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition disabled:cursor-default",
         added
-          ? "border-emerald-200 bg-emerald-50/50"
-          : "border-harbor-100 bg-white hover:-translate-y-0.5 hover:border-water/40 hover:shadow-card-hover",
+          ? "border-good/30 bg-good/10"
+          : "border-line bg-surface hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card-hover",
       )}
     >
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-harbor-50 text-2xl">{emoji}</span>
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-2 text-2xl">{emoji}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-title text-harbor">{name}</span>
-        <span className="block truncate text-xs text-muted">{preview}</span>
+        <span className="block text-title text-fg">{name}</span>
+        <span className="block truncate text-xs text-fg-muted">{preview}</span>
       </span>
       <span
         className={cn(
           "text-eyebrow inline-flex items-center gap-1 rounded-full px-2 py-1",
-          added ? "bg-emerald-100 text-emerald-700" : "bg-water/10 text-water",
+          added ? "bg-good/15 text-good" : "bg-accent/10 text-accent",
         )}
       >
         {pending ? "Adding…" : added ? <><Check className="h-3.5 w-3.5" /> Added</> : "Add"}

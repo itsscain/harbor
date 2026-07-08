@@ -36,12 +36,12 @@ export function CornerCard({
 }) {
   const past = recent.filter((r) => r.id !== active?.id);
   return (
-    <Card className="border-violet-200 bg-violet-50/30">
-      <div className="flex items-center gap-2 text-harbor">
-        <Heart className="h-5 w-5 text-violet-500" />
+    <Card className="border-violet-500/30 bg-violet-500/[0.06]">
+      <div className="flex items-center gap-2 text-fg">
+        <Heart className="h-5 w-5 text-violet-400" />
         <h2 className="text-title">Anchor</h2>
       </div>
-      <p className="mt-1 text-sm text-muted">
+      <p className="mt-1 text-sm text-fg-muted">
         A short, supportive reset — a calm moment to steady. Harbor shows a gentle timer and steps on the
         wall, talks {childName} through it, and helps you reflect afterward.
       </p>
@@ -71,7 +71,7 @@ function StartCorner({ childId, childName }: { childId: string; childName: strin
           <Input name="minutes" type="number" min={1} max={30} placeholder="auto" />
         </Field>
       </div>
-      <SubmitButton variant="secondary" className="border-violet-300 text-violet-800" confirmSaved={false}>
+      <SubmitButton variant="secondary" className="border-violet-500/50 text-violet-300" confirmSaved={false}>
         <Heart className="h-4 w-4" /> Start an Anchor for {childName}
       </SubmitButton>
     </form>
@@ -96,35 +96,35 @@ function ActiveCorner({ childId, childName, c }: { childId: string; childName: s
   const pct = Math.min(100, Math.max(0, Math.round((1 - msLeft / totalMs) * 100)));
 
   return (
-    <div className="mt-4 rounded-xl border border-violet-200 bg-white/70 p-4">
+    <div className="mt-4 rounded-xl border border-violet-500/25 bg-surface/70 p-4">
       <div className="flex items-center justify-between gap-3">
-        <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700">
+        <span className="rounded-full bg-violet-500/15 px-3 py-1 text-sm font-semibold text-violet-300">
           {childName} is in Anchor
         </span>
-        <span className="font-display text-2xl font-bold tabular-nums text-violet-700">
+        <span className="font-display text-2xl font-bold tabular-nums text-violet-300">
           {done ? "All done 💚" : `${mm}:${String(ss).padStart(2, "0")}`}
         </span>
       </div>
 
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-violet-100">
+      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-violet-500/15">
         <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
-      {c.reason && <p className="mt-2 text-sm text-muted">About: {c.reason}</p>}
+      {c.reason && <p className="mt-2 text-sm text-fg-muted">About: {c.reason}</p>}
 
       {c.plan && (
         <div className="mt-3 space-y-2 text-sm">
           {(c.plan.steps ?? []).length > 0 && (
             <ul className="space-y-1">
               {(c.plan.steps ?? []).map((s, i) => (
-                <li key={i} className="flex gap-2 text-ink">
+                <li key={i} className="flex gap-2 text-fg">
                   <span className="text-violet-400">•</span>
                   <span>{s}</span>
                 </li>
               ))}
             </ul>
           )}
-          {c.plan.reminder && <p className="rounded-lg bg-violet-50 p-2 text-violet-800">💡 {c.plan.reminder}</p>}
-          {c.plan.encouragement && <p className="italic text-muted">{c.plan.encouragement}</p>}
+          {c.plan.reminder && <p className="rounded-lg bg-violet-500/10 p-2 text-violet-200">💡 {c.plan.reminder}</p>}
+          {c.plan.encouragement && <p className="italic text-fg-muted">{c.plan.encouragement}</p>}
         </div>
       )}
 
@@ -167,13 +167,13 @@ function ReportButton({ id, childId, existing }: { id: string; childId: string; 
         type="button"
         onClick={gen}
         disabled={loading}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-violet-300 px-3.5 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-50 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-violet-500/40 px-3.5 py-2 text-sm font-semibold text-violet-300 transition hover:bg-violet-500/10 disabled:opacity-60"
       >
         <Sparkles className="h-4 w-4" /> {loading ? "Reflecting…" : text ? "Refresh reflection" : "AI reflection for you"}
       </button>
-      {err && <p className="mt-1 text-sm text-error-ink">{err}</p>}
+      {err && <p className="mt-1 text-sm text-error">{err}</p>}
       {text && (
-        <p className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white p-3 text-sm text-ink ring-1 ring-violet-100">
+        <p className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface p-3 text-sm text-fg ring-1 ring-violet-500/20">
           {text}
         </p>
       )}
@@ -183,14 +183,14 @@ function ReportButton({ id, childId, existing }: { id: string; childId: string; 
 
 function RecentCorners({ childId, recent }: { childId: string; recent: CornerRow[] }) {
   return (
-    <div className="mt-5 border-t border-violet-200/60 pt-4">
-      <h3 className="text-sm font-semibold text-harbor">Recent Anchors</h3>
+    <div className="mt-5 border-t border-violet-500/20 pt-4">
+      <h3 className="text-sm font-semibold text-fg">Recent Anchors</h3>
       <div className="mt-2 space-y-2">
         {recent.map((c) => (
-          <details key={c.id} className="rounded-xl border border-harbor-100 p-3">
+          <details key={c.id} className="rounded-xl border border-line p-3">
             <summary className="cursor-pointer list-none text-sm">
-              <span className="font-medium text-ink">{prettyDateTime(c.started_at)}</span>
-              <span className="text-muted">
+              <span className="font-medium text-fg">{prettyDateTime(c.started_at)}</span>
+              <span className="text-fg-muted">
                 {" · "}
                 {c.duration_minutes} min{c.reason ? ` · ${c.reason}` : ""}
               </span>

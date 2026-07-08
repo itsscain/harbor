@@ -10,19 +10,19 @@ export function NavHub({ groups }: { groups: NavGroup[] }) {
     <div className="space-y-7">
       {groups.map((g) => (
         <section key={g.heading}>
-          <p className="text-eyebrow mb-2 text-muted">{g.heading}</p>
+          <p className="text-eyebrow mb-2 text-fg-subtle">{g.heading}</p>
           <div className="space-y-2.5">
             {g.items.map(({ href, label, desc, icon: Icon }) => (
               <Link key={href} href={href} className="block">
                 <Card interactive className="flex items-center gap-3.5 py-3.5">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-harbor-50 text-harbor">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-accent ring-1 ring-line">
                     <Icon className="h-[22px] w-[22px]" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-title text-harbor">{label}</p>
-                    <p className="truncate text-sm text-muted">{desc}</p>
+                    <p className="text-title text-fg">{label}</p>
+                    <p className="truncate text-sm text-fg-muted">{desc}</p>
                   </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+                  <ChevronRight className="h-5 w-5 shrink-0 text-fg-subtle" />
                 </Card>
               </Link>
             ))}

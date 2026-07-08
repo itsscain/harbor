@@ -11,7 +11,7 @@ export default function HistoryLoading() {
       </div>
       <div className="space-y-2.5">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-2xl border border-harbor-100 bg-white p-3.5 shadow-card">
+          <div key={i} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card">
             <Skeleton className="h-9 w-9 rounded-xl" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-2/5" />

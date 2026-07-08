@@ -70,7 +70,7 @@ export function AskHarbor() {
               onClick={() => talk.start()}
               disabled={talk.listening || busy}
               aria-label="Talk to Harbor"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-harbor-50 text-harbor transition hover:bg-harbor-100 disabled:opacity-50"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg transition hover:bg-surface-2 disabled:opacity-50"
             >
               <Mic className={"h-5 w-5 " + (talk.listening ? "text-beacon" : "")} />
             </button>
@@ -87,7 +87,7 @@ export function AskHarbor() {
             <button
               key={s}
               onClick={() => void ask(s)}
-              className="rounded-full border border-harbor-100 bg-white px-3.5 py-1.5 text-sm text-harbor shadow-card transition hover:bg-harbor-50"
+              className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-fg shadow-card transition hover:bg-surface-2"
             >
               {s}
             </button>
@@ -97,15 +97,15 @@ export function AskHarbor() {
 
       {asked && (
         <Card>
-          <p className="text-sm font-semibold text-muted">You asked</p>
-          <p className="mt-0.5 text-ink">{asked}</p>
-          <div className="my-4 h-px bg-harbor-100" />
+          <p className="text-sm font-semibold text-fg-muted">You asked</p>
+          <p className="mt-0.5 text-fg">{asked}</p>
+          <div className="my-4 h-px bg-surface-2" />
           {busy ? (
-            <p className="flex items-center gap-2 text-muted">
+            <p className="flex items-center gap-2 text-fg-muted">
               <Loader2 className="h-4 w-4 animate-spin" /> Harbor is thinking…
             </p>
           ) : (
-            <p className="whitespace-pre-wrap text-pretty leading-relaxed text-ink">{answer}</p>
+            <p className="whitespace-pre-wrap text-pretty leading-relaxed text-fg">{answer}</p>
           )}
         </Card>
       )}

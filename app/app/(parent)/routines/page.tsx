@@ -19,7 +19,7 @@ export default async function RoutinesPage() {
       <>
         <PageHeader eyebrow="Build" icon={<ListChecks className="h-6 w-6" />} title="Routines" />
         <Card>
-          <p className="py-6 text-center text-sm text-muted">Once your Harbor is set up, build your routines here.</p>
+          <p className="py-6 text-center text-sm text-fg-muted">Once your Harbor is set up, build your routines here.</p>
         </Card>
       </>
     );
@@ -86,7 +86,7 @@ export default async function RoutinesPage() {
       ) : (
         <>
           {/* glance band */}
-          <Card className="mb-6 grid grid-cols-3 divide-x divide-harbor-100 p-0">
+          <Card className="mb-6 grid grid-cols-3 divide-x divide-line p-0">
             <StatChip value={totalChildRoutines} label="child routines" hint={`across ${children.length} ${children.length === 1 ? "child" : "kids"}`} />
             <StatChip value={sharedCount} label="shared routines" hint="one def, many kids" accent={sharedCount > 0} />
             <StatChip value={tpls.length} label="templates" hint="ready to use" />
@@ -107,14 +107,14 @@ export default async function RoutinesPage() {
                   >
                     <EntityAvatar photoUrl={c.photo_url} fallback={c.avatar ?? "🙂"} accent={color} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-title text-harbor">{c.name}</p>
-                      <p className="text-sm text-muted">
+                      <p className="text-title text-fg">{c.name}</p>
+                      <p className="text-sm text-fg-muted">
                         {m.total === 0
                           ? "No routines yet — tap to build"
                           : `${m.total} ${m.total === 1 ? "routine" : "routines"} · ${m.active} active`}
                       </p>
                     </div>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+                    <ChevronRight className="h-5 w-5 shrink-0 text-fg-muted" />
                   </Card>
                 </Link>
               );
@@ -125,21 +125,21 @@ export default async function RoutinesPage() {
           <SectionHeader rule eyebrow="Across the family" className="mt-8">Plan the whole day</SectionHeader>
           <Link href="/app/schedule" className="block">
             <Card interactive className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-harbor-50 text-harbor">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
                 <CalendarClock className="h-6 w-6" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-title text-harbor">Family Schedule</p>
-                <p className="text-sm text-muted">
+                <p className="text-title text-fg">Family Schedule</p>
+                <p className="text-sm text-fg-muted">
                   Every routine × every child on one timeline. Set a window once — shared routines, templates &amp; per-child tweaks.
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+              <ChevronRight className="h-5 w-5 shrink-0 text-fg-muted" />
             </Card>
           </Link>
 
           {/* template library */}
-          <SectionHeader rule eyebrow="Start fast" className="mt-8" action={<span className="hidden items-center gap-1.5 text-xs text-muted sm:inline-flex"><Sparkles className="h-3.5 w-3.5" /> pre-filled &amp; tweakable</span>}>
+          <SectionHeader rule eyebrow="Start fast" className="mt-8" action={<span className="hidden items-center gap-1.5 text-xs text-fg-muted sm:inline-flex"><Sparkles className="h-3.5 w-3.5" /> pre-filled &amp; tweakable</span>}>
             Start from a template
           </SectionHeader>
           <TemplateApplyHub templates={tpls} children={children.map((c) => ({ id: c.id, name: c.name }))} />

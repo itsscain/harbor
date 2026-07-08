@@ -45,7 +45,7 @@ function PrivilegesPicker({ defaultValue }: { defaultValue?: string[] | null }) 
               key={p}
               type="button"
               onClick={() => remove(p)}
-              className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 transition hover:bg-amber-200"
+              className="inline-flex items-center gap-1 rounded-full bg-beacon/15 px-3 py-1 text-sm font-medium text-beacon transition hover:bg-beacon/25"
             >
               {p} <X className="h-3.5 w-3.5" />
             </button>
@@ -59,7 +59,7 @@ function PrivilegesPicker({ defaultValue }: { defaultValue?: string[] | null }) 
               key={p}
               type="button"
               onClick={() => add(p)}
-              className="rounded-full border border-harbor-100 px-3 py-1 text-sm text-muted transition hover:border-amber-300 hover:text-amber-700"
+              className="rounded-full border border-line px-3 py-1 text-sm text-fg-muted transition hover:border-beacon/50 hover:text-beacon"
             >
               + {p}
             </button>
@@ -85,7 +85,7 @@ function PrivilegesPicker({ defaultValue }: { defaultValue?: string[] | null }) 
             add(draft);
             setDraft("");
           }}
-          className="shrink-0 rounded-xl bg-harbor px-4 text-sm font-semibold text-white transition hover:bg-harbor-700 active:scale-[0.98]"
+          className="shrink-0 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition hover:brightness-110 active:scale-[0.98]"
         >
           Add
         </button>
@@ -118,19 +118,19 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
   const pct = Math.round((Math.min(dayNum, total) / total) * 100);
 
   return (
-    <Card className="border-amber-300/70 bg-amber-50/40">
+    <Card className="border-beacon/40 bg-beacon/10">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 text-amber-700">
+        <div className="flex items-center gap-2 text-beacon">
           <ShieldAlert className="h-5 w-5" />
           <h2 className="text-title">{childName} is on a Reset Day</h2>
         </div>
         <Badge tone="amber">Day {dayNum} of {total}</Badge>
       </div>
 
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-amber-200/70">
-        <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
+      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-beacon/15">
+        <div className="h-full rounded-full bg-beacon transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-fg-muted">
         {daysLeft <= 1 ? "Last day — wraps up today." : `${daysLeft} days left · ends ${pretty(g.ends_on)}`}
         {g.reason ? ` · ${g.reason}` : ""}
       </p>
@@ -163,15 +163,15 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
       </div>
 
       {/* Edit the plan + what's paused */}
-      <form action={updateGrounding.bind(null, g.id, childId)} className="mt-4 space-y-3 border-t border-amber-200/60 pt-4">
+      <form action={updateGrounding.bind(null, g.id, childId)} className="mt-4 space-y-3 border-t border-beacon/30 pt-4">
         <Field label="The plan to get through it" hint="Shows on the wall so they know exactly what to do.">
           <Input name="note" defaultValue={g.note ?? ""} placeholder="Finish every routine and a kind day — then we're done." />
         </Field>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch name="pause_rewards" label="Pause the reward store" defaultChecked={g.pause_rewards} />
           </div>
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch name="pause_screen_time" label="Pause screen-time rewards" defaultChecked={g.pause_screen_time} />
           </div>
         </div>
@@ -185,11 +185,11 @@ function Active({ childId, childName, g }: { childId: string; childName: string;
 function Start({ childId, childName }: { childId: string; childName: string }) {
   return (
     <Card>
-      <div className="flex items-center gap-2 text-harbor">
-        <ShieldAlert className="h-5 w-5 text-amber-600" />
+      <div className="flex items-center gap-2 text-fg">
+        <ShieldAlert className="h-5 w-5 text-beacon" />
         <h2 className="text-title">Start a Reset Day</h2>
       </div>
-      <p className="mt-1 text-sm text-muted">
+      <p className="mt-1 text-sm text-fg-muted">
         A structured, restorative reset that keeps dignity intact. Give {childName} a calm countdown on the wall and a clear path to finish strong.
       </p>
       <form action={startGrounding.bind(null, childId)} className="mt-4 space-y-3">
@@ -206,15 +206,15 @@ function Start({ childId, childName }: { childId: string; childName: string }) {
           <Input name="note" placeholder="Finish every routine and a kind day — then we're done." />
         </Field>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch name="pause_rewards" label="Pause the reward store" defaultChecked />
           </div>
-          <div className="rounded-xl border border-harbor-100 px-3.5 py-3">
+          <div className="rounded-xl border border-line px-3.5 py-3">
             <Switch name="pause_screen_time" label="Pause screen-time rewards" />
           </div>
         </div>
         <PrivilegesPicker />
-        <SubmitButton variant="secondary" className={cn("border-amber-300 text-amber-800")} confirmSaved={false}>
+        <SubmitButton variant="secondary" className={cn("border-beacon/50 text-beacon")} confirmSaved={false}>
           Start the Reset Day
         </SubmitButton>
       </form>

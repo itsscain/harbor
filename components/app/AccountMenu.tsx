@@ -32,28 +32,28 @@ export function AccountMenu({ householdName }: { householdName?: string | null }
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="true"
         aria-expanded={open}
-        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition hover:bg-harbor-50 active:scale-95"
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition hover:bg-surface-2 active:scale-95"
       >
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(180deg,#16586a,#0c3b47)] text-xs font-bold text-white">
           {initials}
         </span>
-        <ChevronDown className={cn("h-4 w-4 text-muted transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 text-fg-muted transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
-        <div className="animate-pop absolute right-0 top-12 z-40 w-56 overflow-hidden rounded-2xl border border-harbor-100 bg-white p-1.5 shadow-pop">
+        <div className="animate-pop absolute right-0 top-12 z-40 w-56 overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
           <p className="px-3 py-2">
-            <span className="text-eyebrow block text-muted">Signed in</span>
-            <span className="block truncate font-semibold text-harbor">{name}</span>
+            <span className="text-eyebrow block text-fg-muted">Signed in</span>
+            <span className="block truncate font-semibold text-fg">{name}</span>
           </p>
-          <div className="my-1 h-px bg-harbor-100" />
+          <div className="my-1 h-px bg-surface-2" />
           <MenuLink href="/app/settings" icon={Settings} label="Settings" onClick={() => setOpen(false)} />
           <MenuLink href="/app/billing" icon={CreditCard} label="Harbor Plus" onClick={() => setOpen(false)} />
-          <div className="my-1 h-px bg-harbor-100" />
+          <div className="my-1 h-px bg-surface-2" />
           <form action={signOut}>
             <button
               type="submit"
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-error-ink transition hover:bg-error-soft"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-error transition hover:bg-error/10"
             >
               <LogOut className="h-4 w-4" /> Sign out
             </button>
@@ -79,9 +79,9 @@ function MenuLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-harbor transition hover:bg-harbor-50"
+      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-fg transition hover:bg-surface-2"
     >
-      <Icon className="h-4 w-4 text-muted" /> {label}
+      <Icon className="h-4 w-4 text-fg-muted" /> {label}
     </Link>
   );
 }

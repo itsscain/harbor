@@ -8,11 +8,11 @@ export function NotificationBell({ count, className }: { count: number; classNam
     <Link
       href="/app/notifications"
       aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-      className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-harbor transition hover:bg-harbor-50", className)}
+      className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-fg transition hover:bg-surface-2", className)}
     >
       <Bell className="h-5 w-5" />
       {count > 0 && (
-        <span className="absolute right-0.5 top-0.5 min-w-[18px] rounded-full bg-beacon px-1 text-center text-[11px] font-extrabold leading-[18px] text-harbor">
+        <span className="absolute right-0.5 top-0.5 min-w-[18px] rounded-full bg-beacon px-1 text-center text-[11px] font-extrabold leading-[18px] text-fg">
           {count > 99 ? "99+" : count}
         </span>
       )}

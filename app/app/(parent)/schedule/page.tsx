@@ -42,7 +42,7 @@ export default async function SchedulePage({
   if (!household) {
     return (
       <Card>
-        <p className="py-6 text-center text-sm text-muted">
+        <p className="py-6 text-center text-sm text-fg-muted">
           No household yet — once your Harbor is set up, the Family Schedule lives here.
         </p>
       </Card>
@@ -137,7 +137,7 @@ export default async function SchedulePage({
       {/* ── The day at a glance (§3) ── */}
       <Card>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-title text-harbor">{DAY_FULL[day]}</h2>
+          <h2 className="text-title text-fg">{DAY_FULL[day]}</h2>
           <div className="flex gap-1">
             {DOW.map((d, i) => (
               <Link
@@ -146,8 +146,8 @@ export default async function SchedulePage({
                 aria-current={i === day ? "date" : undefined}
                 className={cn(
                   "inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold transition",
-                  i === day ? "bg-water text-white shadow-button" : "text-muted hover:bg-harbor-50",
-                  i === today && i !== day && "ring-1 ring-water/40",
+                  i === day ? "bg-accent text-accent-fg shadow-button" : "text-fg-muted hover:bg-surface-2",
+                  i === today && i !== day && "ring-1 ring-accent/40",
                 )}
               >
                 {d}
@@ -156,13 +156,13 @@ export default async function SchedulePage({
           </div>
         </div>
         {children.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">
-            No children yet — add your first in <Link href="/app/children" className="font-semibold text-water underline">Children</Link>.
+          <p className="py-6 text-center text-sm text-fg-muted">
+            No children yet — add your first in <Link href="/app/children" className="font-semibold text-accent underline">Children</Link>.
           </p>
         ) : (
           <FamilyScheduleGrid rows={gridRows} />
         )}
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 text-xs text-fg-muted">
           Solid blocks are shared routines; lighter ones belong to one child. Faded = turned off for that child.
         </p>
       </Card>
@@ -174,7 +174,7 @@ export default async function SchedulePage({
       <div className="space-y-3">
         {shared.length === 0 && (
           <Card>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-fg-muted">
               No shared routines yet. Create one below — set the window once and assign it to
               everyone who does it. Editing it later updates every child at the same time.
             </p>
@@ -206,7 +206,7 @@ export default async function SchedulePage({
         <Card className="p-0">
           <Disclosure
             summary={
-              <span className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-water">
+              <span className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-accent">
                 <Plus className="h-4 w-4" /> New shared routine
               </span>
             }
@@ -227,7 +227,7 @@ export default async function SchedulePage({
                   {children.map((k) => (
                     <label key={k.id} className="cursor-pointer">
                       <input type="checkbox" name="assigned" value={k.id} defaultChecked className="peer sr-only" />
-                      <span className="inline-flex h-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-3 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                      <span className="inline-flex h-11 items-center justify-center rounded-lg border border-line bg-surface px-3 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                         {k.name}
                       </span>
                     </label>
@@ -255,7 +255,7 @@ export default async function SchedulePage({
                   {DOW.map((d, i) => (
                     <label key={i} className="cursor-pointer">
                       <input type="checkbox" name="days" value={i} className="peer sr-only" />
-                      <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                      <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                         {d}
                       </span>
                     </label>
@@ -280,7 +280,7 @@ export default async function SchedulePage({
             <Disclosure
               summary={
                 <div className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="min-w-0 truncate text-sm font-semibold text-harbor">{t.name}</span>
+                  <span className="min-w-0 truncate text-sm font-semibold text-fg">{t.name}</span>
                   <span className="flex shrink-0 items-center gap-2">
                     <Badge tone="blue">
                       {t.start_time ? formatClock(t.start_time) : "—"}
@@ -306,7 +306,7 @@ export default async function SchedulePage({
                     {DOW.map((d, i) => (
                       <label key={i} className="cursor-pointer">
                         <input type="checkbox" name="days" value={i} defaultChecked={(t.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                           {d}
                         </span>
                       </label>
@@ -333,7 +333,7 @@ export default async function SchedulePage({
         <Card className="p-0">
           <Disclosure
             summary={
-              <span className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-water">
+              <span className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-accent">
                 <Plus className="h-4 w-4" /> New template
               </span>
             }
@@ -354,7 +354,7 @@ export default async function SchedulePage({
                   {DOW.map((d, i) => (
                     <label key={i} className="cursor-pointer">
                       <input type="checkbox" name="days" value={i} className="peer sr-only" />
-                      <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-harbor-100 bg-white px-2 text-sm font-semibold text-muted transition peer-checked:border-water peer-checked:bg-water peer-checked:text-white">
+                      <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
                         {d}
                       </span>
                     </label>
@@ -378,10 +378,10 @@ export default async function SchedulePage({
           <div className="grid gap-3 sm:grid-cols-2">
             <Card>
               <div className="mb-2 flex items-center gap-2">
-                <Copy className="h-4 w-4 text-water" />
-                <h3 className="text-sm font-bold text-harbor">Copy routines between kids</h3>
+                <Copy className="h-4 w-4 text-accent" />
+                <h3 className="text-sm font-bold text-fg">Copy routines between kids</h3>
               </div>
-              <p className="mb-3 text-xs text-muted">Clone a sibling&apos;s whole setup (routines + steps), then tweak.</p>
+              <p className="mb-3 text-xs text-fg-muted">Clone a sibling&apos;s whole setup (routines + steps), then tweak.</p>
               <form action={copyChildRoutines} className="flex flex-wrap items-end gap-2">
                 <Field label="From" className="min-w-28 flex-1">
                   <Select name="from_child" defaultValue="">
@@ -414,10 +414,10 @@ export default async function SchedulePage({
             </Card>
             <Card>
               <div className="mb-2 flex items-center gap-2">
-                <Wand2 className="h-4 w-4 text-water" />
-                <h3 className="text-sm font-bold text-harbor">Apply a template to a child</h3>
+                <Wand2 className="h-4 w-4 text-accent" />
+                <h3 className="text-sm font-bold text-fg">Apply a template to a child</h3>
               </div>
-              <p className="mb-3 text-xs text-muted">Point all of one child&apos;s routines at a named window in one go.</p>
+              <p className="mb-3 text-xs text-fg-muted">Point all of one child&apos;s routines at a named window in one go.</p>
               <form action={applyTemplateToChild} className="flex flex-wrap items-end gap-2">
                 <Field label="Child" className="min-w-28 flex-1">
                   <Select name="child_id" defaultValue="">
