@@ -127,7 +127,7 @@ export function NotificationsCard({
           <div className="flex items-start gap-2.5 rounded-xl bg-beacon/10 p-3.5 text-sm">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-beacon" />
             <p className="text-fg">
-              Notifications are blocked. {caps.ios ? "On iPhone, remove Harbor from your Home Screen and add it again to re-enable." : "Turn them back on in your browser's site settings."} You&apos;ll still see everything in your notification center.
+              Notifications are blocked. {caps.ios ? "On iPhone, remove Harbor from your Home Screen and add it again to re-enable." : "Turn them back on in your browser's site settings."} You’ll still see everything in your notification center.
             </p>
           </div>
         ) : subscribed ? (

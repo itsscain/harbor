@@ -181,8 +181,8 @@ export function MiniAvatar({ kid, tint, size = 32 }: { kid: ChipChild; tint?: st
   return (
     <span
       aria-hidden
-      className="grid shrink-0 place-items-center rounded-full text-base font-bold text-white"
-      style={{ width: size, height: size, background: color }}
+      className="grid shrink-0 place-items-center rounded-full font-bold leading-none text-white"
+      style={{ width: size, height: size, background: color, fontSize: Math.max(14, Math.round(size * 0.5)) }}
     >
       {kid.avatar || kid.name.slice(0, 1).toUpperCase()}
     </span>

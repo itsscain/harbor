@@ -25,6 +25,8 @@ const TITLES = new Map<string, string>([
 const PLAN_SET = new Set(PLAN_GROUPS.flatMap((g) => g.items.map((i) => i.href)));
 
 function parentOf(path: string): string {
+  const routine = path.match(/^\/app\/children\/([^/]+)\/routines\//);
+  if (routine) return `/app/children/${routine[1]}?tab=routines`;
   if (path.startsWith("/app/children/")) return "/app/children";
   if (PLAN_SET.has(path)) return "/app/plan";
   if (path === "/app/notifications") return "/app";
@@ -56,7 +58,7 @@ export function AppTopBarProvider({
   children: React.ReactNode;
 }) {
   const [override, setOverride] = useState<string | null>(null);
-  const ctx = useRef({ set: (t: string | null) => setOverride(t) }).current;
+  const [ctx] = useState(() => ({ set: (t: string | null) => setOverride(t) }));
   return (
     <TitleContext.Provider value={ctx}>
       <AppTopBar unread={unread} householdName={householdName} override={override} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -25,6 +25,7 @@ const FOCUSABLE =
 // answers Escape and traps Tab, so closing the picker never closes the form underneath it.
 const openStack: symbol[] = [];
 const isTop = (token: symbol) => openStack[openStack.length - 1] === token;
+const noopSubscribe = () => () => {};
 
 export function Sheet({
   open,
@@ -45,9 +46,11 @@ export function Sheet({
   const descId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  // The portal needs the DOM: false during SSR/hydration, true on the client after that.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   useEffect(() => {
     if (!open) return;

@@ -15,14 +15,16 @@ export function useQuickAction() {
   const toast = useToast();
   const [pending, start] = useTransition();
 
-  function run(
-    fn: () => Promise<Result>,
+  function run<R extends Result>(
+    fn: () => Promise<R>,
     opts?: {
       /** Called synchronously inside the transition (e.g. a useOptimistic update). */
       optimistic?: () => void;
       undo?: () => Promise<Result>;
-      success?: string;
-      onDone?: () => void;
+      /** Toast copy; `false` = no toast (e.g. when navigating away). */
+      success?: string | false;
+      /** Receives the successful result (e.g. a new row's id to navigate to). */
+      onDone?: (result: Extract<R, { ok: true }>) => void;
     },
   ) {
     start(async () => {
@@ -34,8 +36,9 @@ export function useQuickAction() {
           return;
         }
         const undo = opts?.undo;
-        toast.success(
-          opts?.success ?? r.message ?? "Done",
+        const copy = opts?.success === false ? null : (opts?.success ?? r.message ?? "Done");
+        if (copy) toast.success(
+          copy,
           undo
             ? {
                 action: {
@@ -52,7 +55,7 @@ export function useQuickAction() {
               }
             : undefined,
         );
-        opts?.onDone?.();
+        opts?.onDone?.(r as Extract<R, { ok: true }>);
       } catch (e) {
         unstable_rethrow(e);
         toast.error("That didn't work. Check your connection and try again.");

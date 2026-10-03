@@ -1,7 +1,7 @@
 import { HarborScene } from "@/components/brand/illustrations";
-import { AddChildCard } from "./AddChildCard";
+import { AddChildForm } from "./kids/AddChildSheet";
 
-/** The brand-new, empty-household moment: a warm hero + the add-child flow inline. */
+/** The brand-new, empty-household moment: a warm hero + the add-child form inline. */
 export function FirstRunWelcome({ defaultColor }: { defaultColor: string }) {
   return (
     <div className="animate-enter">
@@ -10,11 +10,14 @@ export function FirstRunWelcome({ defaultColor }: { defaultColor: string }) {
         <HarborScene className="relative h-28 w-auto text-fg" />
         <h1 className="relative mt-5 text-display text-fg">Welcome aboard.</h1>
         <p className="relative mt-2 max-w-md text-fg-muted">
-          Harbor keeps your family&apos;s days calm and predictable. Let&apos;s start by adding
-          your crew — each child gets their own color, avatar, and routines on the wall.
+          Harbor keeps your family&apos;s days calm and predictable. Start by adding a child — they get their own color, face and routines on the
+          wall.
         </p>
       </div>
-      <AddChildCard defaultColor={defaultColor} />
+      <section className="mx-auto max-w-lg rounded-2xl border border-line bg-surface p-5 shadow-card">
+        <h2 className="mb-4 text-title text-fg">Add your first child</h2>
+        <AddChildForm nextColor={defaultColor} autoFocus={false} />
+      </section>
     </div>
   );
 }

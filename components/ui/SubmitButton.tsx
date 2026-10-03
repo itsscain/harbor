@@ -36,14 +36,14 @@ export function SubmitButton({
   const legacy = useFormStatus();
   const pending = af ? af.pending : legacy.pending;
   const latched = useRef(false);
-  const [saved, setSaved] = useState(false);
 
-  // Honest "Saved": only when the enclosing ActionForm reports a success.
+  // Honest "Saved": only when the enclosing ActionForm reports a success, for ~1.6s.
   const okAt = af?.status.kind === "ok" ? af.status.at : 0;
+  const [shownUntil, setShownUntil] = useState(0);
+  const saved = confirmSaved && okAt > 0 && okAt !== shownUntil;
   useEffect(() => {
     if (!okAt || !confirmSaved) return;
-    setSaved(true);
-    const t = window.setTimeout(() => setSaved(false), 1600);
+    const t = window.setTimeout(() => setShownUntil(okAt), 1600);
     return () => window.clearTimeout(t);
   }, [okAt, confirmSaved]);
 
