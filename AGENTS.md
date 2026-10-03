@@ -50,5 +50,14 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   the real outcome in a toast, and never wipes the page. Actions **return**
   `{ ok: false, error: "plain words" }` for expected problems (thrown messages are hidden in
   production). Add/edit flows open a `Sheet`; pick values with `ChipGroup`/`ChildChips`,
-  `Stepper`, `DayPicker`, `TimeList`, `EmojiPicker`, `ColorPicker` (all in `components/ui`).
+  `Stepper`, `DayPicker`, `TimeList`, `EmojiPicker`, `ColorPicker`, `DateChips`/`TimeChips`
+  (all in `components/ui`). One-tap buttons use `useQuickAction` (toast + Undo + optimistic).
+- Each `/app` area keeps its result-returning actions next to its page
+  (`children/kid-actions.ts`, `plan/plan-actions.ts`, `medication/med-actions.ts`,
+  `devices/device-actions.ts`, `settings/settings-actions.ts`, `quick-actions.ts` for Today and
+  the "+"), and its view model in `lib/` (`today.ts`, `kid.ts`, `plan.ts`, `meds.ts`) computed in
+  the family time zone with the wall's own helpers (`lib/kiosk/schedule.ts`, `calendar.ts`).
+  Deletes are soft so the toast can offer Undo.
+- `/app` is auth-gated, so check UI with the dev-only mock pages (`/dev/today`, `/dev/kid`,
+  `/dev/plan`, `/dev/settings`, `/dev/ui` — they 404 in production).
 - Run `get_advisors` after schema changes; keep `npm run build` clean.
