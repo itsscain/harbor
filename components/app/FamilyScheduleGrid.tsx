@@ -18,6 +18,14 @@ export type GridRow = {
   blocks: GridBlock[];
 };
 
+/** Dark text on light kid colors, white on dark ones (a light-yellow block with white text is unreadable). */
+function readableOn(hex: string): string {
+  const m = hex.replace("#", "").match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i);
+  if (!m) return "#fff";
+  const [r, g, b] = m.slice(1).map((x) => parseInt(x, 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? "#0b0e13" : "#fff";
+}
+
 function toMin(t: string): number {
   const [h, m] = t.split(":").map((n) => Number(n));
   return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
@@ -76,7 +84,7 @@ export function FamilyScheduleGrid({ rows }: { rows: GridRow[] }) {
               <div className="relative h-11 overflow-hidden rounded-xl bg-surface-2">
                 {/* tick gridlines */}
                 {ticks.map((m) => (
-                  <span key={m} className="absolute inset-y-0 w-px bg-surface-2/60" style={{ left: `${pct(m)}%` }} />
+                  <span key={m} className="absolute inset-y-0 w-px bg-line" style={{ left: `${pct(m)}%` }} />
                 ))}
                 {timed.map((b) => {
                   const s = b.start ? toMin(b.start) : Math.max(rangeStart, toMin(b.end!) - 30);
@@ -87,11 +95,12 @@ export function FamilyScheduleGrid({ rows }: { rows: GridRow[] }) {
                     <span
                       key={b.id}
                       title={`${b.name}${b.start ? ` · ${formatClock(b.start)}` : ""}${b.end ? ` – ${formatClock(b.end)}` : ""}${b.disabled ? " (off for them)" : ""}`}
-                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-lg px-2 text-xs font-bold text-white"
+                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-lg px-2 text-xs font-bold"
                       style={{
                         left: `${left}%`,
                         width: `${width}%`,
                         background: color,
+                        color: readableOn(color),
                         opacity: b.disabled ? 0.3 : b.shared ? 0.95 : 0.75,
                       }}
                     >

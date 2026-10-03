@@ -367,7 +367,7 @@ export type EditorStep = {
 };
 
 export async function loadRoutineEditor(supabase: Db, household: Household, routineId: string) {
-  const [{ data: r }, { data: steps }, { data: kids }, { data: library }, { data: slots }] = await Promise.all([
+  const [{ data: r }, { data: steps }, { data: kids }, { data: library }, { data: slots }, { data: overrides }] = await Promise.all([
     supabase
       .from("routines")
       .select("id, child_id, person_id, scope, assigned_child_ids, name, type, active, start_time, end_time, days_of_week, strict_order, schedule_template_id")
@@ -382,7 +382,8 @@ export async function loadRoutineEditor(supabase: Db, household: Household, rout
       .order("order_index"),
     supabase.from("children").select("id, name, avatar, photo_url, color").eq("household_id", household.id).is("deleted_at", null).order("sort_order"),
     supabase.from("step_library").select("id, label, icon, default_points, category").is("deleted_at", null).order("sort_order").limit(40),
-    supabase.from("schedule_templates").select("id, name, start_time, end_time").eq("household_id", household.id).is("deleted_at", null),
+    supabase.from("schedule_templates").select("id, name, start_time, end_time, days_of_week").eq("household_id", household.id).is("deleted_at", null).order("sort_order"),
+    supabase.from("routine_child_overrides").select("child_id, time_offset_min, enabled").eq("routine_id", routineId).is("deleted_at", null),
   ]);
   if (!r || r.person_id) return null;
   // Options round-trip as "🍎 Apple" so editing never drops a picture the wall shows.
@@ -401,11 +402,16 @@ export async function loadRoutineEditor(supabase: Db, household: Household, rout
       active: r.active,
       start: slot ? slot.start_time : r.start_time,
       end: slot ? slot.end_time : r.end_time,
-      days: r.days_of_week as number[] | null,
+      days: (slot ? slot.days_of_week : r.days_of_week) as number[] | null,
       strict: r.strict_order === true,
       kidIds: r.scope === "shared" ? (r.assigned_child_ids ?? []) : r.child_id ? [r.child_id] : [],
       slotName: slot?.name ?? null,
+      slotId: slot?.id ?? null,
     },
+    /** The family's shared time slots ("family times") a routine can follow. */
+    slots: (slots ?? []).map((t) => ({ id: t.id, name: t.name, start: t.start_time, end: t.end_time, days: t.days_of_week as number[] | null })),
+    /** Per-kid tweaks on a shared routine (a later start, or skipping it). */
+    overrides: (overrides ?? []).map((o) => ({ childId: o.child_id, offset: o.time_offset_min, enabled: o.enabled })),
     steps: (steps ?? []).map((s) => ({
       id: s.id,
       label: s.label,

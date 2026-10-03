@@ -378,6 +378,54 @@ export async function setRoutineWindow(routineId: string, start: string | null, 
   return { ok: true, message: "Time saved" };
 }
 
+/** Follow one of the family's shared times ("School morning 7:00–7:45") — or stop (null).
+ *  While it follows a family time, that time owns the window and days. */
+export async function setRoutineSlot(routineId: string, slotId: string | null): Promise<KidResult> {
+  const { household, supabase } = await ctx();
+  const r = await routineRow(supabase, routineId);
+  if (!r) return { ok: false, error: "That routine isn't available." };
+  let name = "";
+  if (slotId) {
+    const { data: t } = await supabase.from("schedule_templates").select("name").eq("id", slotId).eq("household_id", household.id).is("deleted_at", null).maybeSingle();
+    if (!t) return { ok: false, error: "That family time isn't available." };
+    name = t.name;
+  }
+  const { error } = await supabase.from("routines").update({ schedule_template_id: slotId }).eq("id", routineId);
+  if (error) return { ok: false, error: "Couldn't save the time." };
+  touch(kidsOf(r), routineId);
+  return { ok: true, message: slotId ? `Follows “${name}” now` : "Time saved" };
+}
+
+/** On a shared routine, one kid can start a bit earlier/later — or skip it. Same time + doing
+ *  it removes the tweak. */
+export async function setKidTiming(routineId: string, childId: string, offsetMin: number, enabled: boolean): Promise<KidResult> {
+  const { household, supabase } = await ctx();
+  const r = await routineRow(supabase, routineId);
+  if (!r) return { ok: false, error: "That routine isn't available." };
+  const { data: kid } = await supabase.from("children").select("name").eq("id", childId).eq("household_id", household.id).is("deleted_at", null).maybeSingle();
+  if (!kid) return { ok: false, error: "That child isn't in your family." };
+  const offset = clampInt(offsetMin, -180, 180);
+  const { error } =
+    offset === 0 && enabled
+      ? await supabase
+          .from("routine_child_overrides")
+          .update({ deleted_at: new Date().toISOString(), time_offset_min: 0, enabled: true })
+          .eq("routine_id", routineId)
+          .eq("child_id", childId)
+      : await supabase
+          .from("routine_child_overrides")
+          .upsert(
+            { household_id: household.id, routine_id: routineId, child_id: childId, time_offset_min: offset, enabled, deleted_at: null },
+            { onConflict: "routine_id,child_id" },
+          );
+  if (error) return { ok: false, error: "Couldn't save that." };
+  touch([childId], routineId);
+  return {
+    ok: true,
+    message: !enabled ? `${kid.name} skips this one` : offset === 0 ? `${kid.name} is back to the same time` : `${kid.name} starts ${Math.abs(offset)} min ${offset > 0 ? "later" : "earlier"}`,
+  };
+}
+
 export async function setRoutineDays(routineId: string, days: number[]): Promise<KidResult> {
   const { supabase } = await ctx();
   const r = await routineRow(supabase, routineId);

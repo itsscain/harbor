@@ -93,6 +93,7 @@ export function ChildChips({
   multiple = false,
   everyone = false,
   everyoneLabel = "Everyone",
+  everyoneEmoji = "👨‍👩‍👧",
   defaultValue,
   value,
   onChange,
@@ -104,6 +105,8 @@ export function ChildChips({
   multiple?: boolean;
   everyone?: boolean;
   everyoneLabel?: string;
+  /** The picture on the "everyone" chip (e.g. 🙋 for "Just me"). */
+  everyoneEmoji?: string;
   defaultValue?: string | string[] | null;
   value?: string | string[] | null;
   onChange?: (value: string[]) => void;
@@ -136,7 +139,7 @@ export function ChildChips({
           className={cn(chipBase, selected.includes("") ? chipOn : chipOff)}
         >
           <span aria-hidden className="text-base leading-none">
-            👨‍👩‍👧
+            {everyoneEmoji}
           </span>
           {everyoneLabel}
         </button>

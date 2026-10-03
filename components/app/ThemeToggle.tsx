@@ -7,13 +7,18 @@ import { cn } from "@/lib/cn";
 /** Dark / light skin toggle for the Helm. Writes the `harbor-theme` cookie (read by the
  *  /app layout on the server for a no-flash SSR skin) and flips the app wrapper's
  *  data-theme live, so the change is instant without a reload. Dark is the default. */
+/** Remember the skin (cookie for no-flash SSR) and flip the live wrapper right away. */
+function persistTheme(t: "dark" | "light") {
+  document.cookie = `harbor-theme=${t};path=/;max-age=31536000;samesite=lax`;
+  document.querySelector("[data-app-theme-root]")?.setAttribute("data-theme", t);
+}
+
 export function ThemeToggle({ initial }: { initial: "dark" | "light" }) {
   const [theme, setTheme] = useState<"dark" | "light">(initial);
 
   function apply(t: "dark" | "light") {
     setTheme(t);
-    document.cookie = `harbor-theme=${t};path=/;max-age=31536000;samesite=lax`;
-    document.querySelector("[data-app-theme-root]")?.setAttribute("data-theme", t);
+    persistTheme(t);
   }
 
   return (

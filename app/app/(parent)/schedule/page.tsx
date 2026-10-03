@@ -1,54 +1,34 @@
 import Link from "next/link";
-import { CalendarClock, Plus, Copy, Wand2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { tzFromSettings, weekdayInTz } from "@/lib/tz";
 import { effectiveSchedule } from "@/lib/kiosk/schedule";
 import type { KioskRoutine } from "@/lib/kiosk/types";
+import { routineEmoji } from "@/lib/routine-emoji";
+import { formatSpan } from "@/lib/routine-presets";
 import { formatClock } from "@/lib/kiosk/calendar";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { InlineTip } from "@/components/ui/InlineTip";
-import { Card, SectionHeader, Field, Input, Select, Badge } from "@/components/ui/primitives";
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
-import { Disclosure } from "@/components/app/Disclosure";
-import { SharedRoutineCard } from "@/components/app/SharedRoutineCard";
 import { FamilyScheduleGrid, type GridRow } from "@/components/app/FamilyScheduleGrid";
+import { FamilyTimes, type FamilyTime } from "@/components/app/schedule/FamilyTimes";
 import { cn } from "@/lib/cn";
-import {
-  createScheduleTemplate,
-  updateScheduleTemplate,
-  deleteScheduleTemplate,
-  createSharedRoutine,
-  copyChildRoutines,
-  applyTemplateToChild,
-} from "./actions";
 
-export const metadata = { title: "Family Schedule" };
+export const metadata = { title: "Routine times" };
 export const dynamic = "force-dynamic";
 
 const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const DAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const runsOnDay = (days: number[] | null, day: number) => !days || days.length === 0 || days.includes(day);
+const toMin = (t: string | null) => (t ? Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)) : -1);
+const dayWords = (d: number[] | null) =>
+  !d || d.length === 0 || d.length === 7 ? "Every day" : d.length === 5 && [1, 2, 3, 4, 5].every((x) => d.includes(x)) ? "Weekdays" : d.map((x) => DAY_SHORT[x]).join(", ");
 
-function runsOnDay(days: number[] | null, day: number): boolean {
-  return !days || days.length === 0 || days.includes(day);
-}
-
-export default async function SchedulePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ day?: string }>;
-}) {
+// Routine times — the family's day at a glance (who does what, when), and the shared
+// "family times" routines can follow. Editing a routine happens in its own editor.
+export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ day?: string }> }) {
   const household = await getMyHousehold();
-  if (!household) {
-    return (
-      <Card>
-        <p className="py-6 text-center text-sm text-fg-muted">
-          No household yet — once your Harbor is set up, the Family Schedule lives here.
-        </p>
-      </Card>
-    );
-  }
+  if (!household) return <PageHeader title="Routine times" subtitle="No household yet." />;
   const supabase = await createClient();
   const tz = tzFromSettings(household.settings as Record<string, unknown> | null);
   const today = weekdayInTz(new Date(), tz);
@@ -57,406 +37,119 @@ export default async function SchedulePage({
   const day = Number.isInteger(dayNum) && dayNum >= 0 && dayNum <= 6 ? dayNum : today;
 
   const [{ data: kids }, { data: routines }, { data: templates }, { data: overrides }] = await Promise.all([
-    supabase
-      .from("children")
-      .select("id, name, color, sort_order")
-      .eq("household_id", household.id)
-      .is("deleted_at", null)
-      .order("sort_order"),
-    supabase
-      .from("routines")
-      .select("*")
-      .eq("household_id", household.id)
-      .is("person_id", null)
-      .is("deleted_at", null)
-      .order("sort_order"),
-    supabase
-      .from("schedule_templates")
-      .select("*")
-      .eq("household_id", household.id)
-      .is("deleted_at", null)
-      .order("sort_order"),
-    supabase
-      .from("routine_child_overrides")
-      .select("*")
-      .eq("household_id", household.id)
-      .is("deleted_at", null),
+    supabase.from("children").select("id, name, color, avatar, photo_url, sort_order").eq("household_id", household.id).is("deleted_at", null).order("sort_order"),
+    supabase.from("routines").select("*").eq("household_id", household.id).is("person_id", null).is("deleted_at", null).order("sort_order"),
+    supabase.from("schedule_templates").select("*").eq("household_id", household.id).is("deleted_at", null).order("sort_order"),
+    supabase.from("routine_child_overrides").select("*").eq("household_id", household.id).is("deleted_at", null),
   ]);
-
   const children = kids ?? [];
-  const allRoutines = routines ?? [];
+  const all = routines ?? [];
   const tpls = templates ?? [];
-  const ovs = overrides ?? [];
-  const shared = allRoutines.filter((r) => r.scope === "shared");
+  const ctx = { schedule_templates: tpls, routine_child_overrides: overrides ?? [] };
+  const kidsOf = (r: (typeof all)[number]) => (r.scope === "shared" ? (r.assigned_child_ids ?? []) : r.child_id ? [r.child_id] : []);
+  const nameOf = new Map(children.map((k) => [k.id, k.name]));
 
-  // Steps for the shared routines (their editors live on this page).
-  const sharedIds = shared.map((r) => r.id);
-  const { data: sharedSteps } = sharedIds.length
-    ? await supabase
-        .from("routine_steps")
-        .select("id, routine_id, label, icon, step_type, reward_points, order_index")
-        .in("routine_id", sharedIds)
-        .is("deleted_at", null)
-        .order("order_index")
-    : { data: [] as { id: string; routine_id: string; label: string; icon: string | null; step_type: string; reward_points: number; order_index: number }[] };
-
-  // The grid: every child × every routine that reaches them, through the SAME
-  // per-child resolution the wall uses (override → template → own schedule).
-  const resolveCtx = { schedule_templates: tpls, routine_child_overrides: ovs };
-  const gridRows: GridRow[] = children.map((child) => {
-    const blocks = allRoutines
-      .filter(
-        (r) =>
-          r.active &&
-          (r.scope === "shared" ? (r.assigned_child_ids ?? []).includes(child.id) : r.child_id === child.id),
-      )
-      .map((r) => {
-        const eff = effectiveSchedule(r as unknown as KioskRoutine, child.id, resolveCtx);
-        return { r, eff };
-      })
+  // Grid: every child × every routine that reaches them, resolved exactly like the wall.
+  const gridRows: GridRow[] = children.map((child) => ({
+    child,
+    blocks: all
+      .filter((r) => r.active && kidsOf(r).includes(child.id))
+      .map((r) => ({ r, eff: effectiveSchedule(r as unknown as KioskRoutine, child.id, ctx) }))
       .filter(({ eff }) => runsOnDay(eff.days_of_week, day))
-      .map(({ r, eff }) => ({
-        id: r.id,
-        name: r.name,
-        start: eff.start_time,
-        end: eff.end_time,
-        shared: r.scope === "shared",
-        disabled: eff.disabled,
-      }));
-    return { child, blocks };
-  });
+      .map(({ r, eff }) => ({ id: r.id, name: r.name, start: eff.start_time, end: eff.end_time, shared: r.scope === "shared", disabled: eff.disabled })),
+  }));
+
+  // The day's routines as rows (one per routine, with who does it).
+  const dayRows = all
+    .filter((r) => r.active)
+    .map((r) => {
+      const who = kidsOf(r).filter((id) => nameOf.has(id));
+      const eff = effectiveSchedule(r as unknown as KioskRoutine, who[0] ?? null, ctx);
+      return { r, who, eff };
+    })
+    .filter(({ who, eff }) => who.length > 0 && runsOnDay(eff.days_of_week, day))
+    .sort((a, b) => toMin(a.eff.start_time) - toMin(b.eff.start_time));
+
+  const times: FamilyTime[] = tpls.map((t) => ({
+    id: t.id,
+    name: t.name,
+    start: t.start_time,
+    end: t.end_time,
+    days: t.days_of_week as number[] | null,
+    label: [t.start_time && t.end_time ? formatSpan(t.start_time, t.end_time) : t.start_time ? `from ${formatClock(t.start_time)}` : "", dayWords(t.days_of_week as number[] | null)].filter(Boolean).join(" · "),
+    following: all.filter((r) => r.schedule_template_id === t.id).length,
+  }));
 
   return (
     <>
-      <PageHeader
-        eyebrow="Plan"
-        icon={<CalendarClock className="h-6 w-6" />}
-        title="Family Schedule"
-        subtitle="Every routine, every child, one place. Set a window once — it applies to everyone."
-      />
+      <PageHeader title="Routine times" subtitle="Who does what, and when it shows on the wall." />
 
-      <InlineTip id="schedule">
-        Make a <span className="font-semibold">shared routine</span> and set its window once — it applies to every
-        child you assign. Tweak one kid&apos;s timing with a per-child override without duplicating anything.
-      </InlineTip>
+      <nav aria-label="Day" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl border border-line bg-surface p-1 [scrollbar-width:none]">
+        {DOW.map((d, i) => (
+          <Link
+            key={i}
+            href={`/app/schedule?day=${i}`}
+            replace
+            scroll={false}
+            aria-current={i === day ? "date" : undefined}
+            className={cn(
+              "flex min-h-10 min-w-10 flex-1 items-center justify-center rounded-xl text-sm font-semibold transition",
+              i === day ? "bg-accent/15 text-fg" : "text-fg-muted hover:bg-surface-2 hover:text-fg",
+            )}
+          >
+            {d}
+            {i === today && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-accent" aria-label="today" />}
+          </Link>
+        ))}
+      </nav>
 
-      {/* ── The day at a glance (§3) ── */}
-      <Card>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-title text-fg">{DAY_FULL[day]}</h2>
-          <div className="flex gap-1">
-            {DOW.map((d, i) => (
-              <Link
-                key={i}
-                href={`/app/schedule?day=${i}`}
-                aria-current={i === day ? "date" : undefined}
-                className={cn(
-                  "inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold transition",
-                  i === day ? "bg-accent text-accent-fg shadow-button" : "text-fg-muted hover:bg-surface-2",
-                  i === today && i !== day && "ring-1 ring-accent/40",
-                )}
-              >
-                {d}
-              </Link>
-            ))}
-          </div>
-        </div>
-        {children.length === 0 ? (
-          <p className="py-6 text-center text-sm text-fg-muted">
-            No children yet — add your first in <Link href="/app/children" className="font-semibold text-accent underline">Children</Link>.
-          </p>
-        ) : (
-          <FamilyScheduleGrid rows={gridRows} />
-        )}
-        <p className="mt-3 text-xs text-fg-muted">
-          Solid blocks are shared routines; lighter ones belong to one child. Faded = turned off for that child.
+      {children.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-line-strong p-5 text-center text-sm text-fg-muted">
+          Add a child first —{" "}
+          <Link href="/app/children?add=1" className="font-semibold text-accent">
+            Add a child
+          </Link>
         </p>
-      </Card>
-
-      {/* ── Shared routines (§2.1) ── */}
-      <SectionHeader eyebrow="Define once" className="mt-8">
-        Shared routines
-      </SectionHeader>
-      <div className="space-y-3">
-        {shared.length === 0 && (
-          <Card>
-            <p className="text-sm text-fg-muted">
-              No shared routines yet. Create one below — set the window once and assign it to
-              everyone who does it. Editing it later updates every child at the same time.
-            </p>
-          </Card>
-        )}
-        {shared.map((r) => (
-          <SharedRoutineCard
-            key={r.id}
-            version={r.updated_at}
-            routine={{
-              id: r.id,
-              name: r.name,
-              type: r.type,
-              active: r.active,
-              start_time: r.start_time,
-              end_time: r.end_time,
-              sort_order: r.sort_order,
-              days_of_week: r.days_of_week,
-              assigned_child_ids: r.assigned_child_ids,
-              schedule_template_id: r.schedule_template_id,
-            }}
-            steps={(sharedSteps ?? []).filter((s) => s.routine_id === r.id)}
-            kids={children}
-            templates={tpls}
-            overrides={ovs}
-          />
-        ))}
-
-        <Card className="p-0">
-          <Disclosure
-            summary={
-              <span className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-accent">
-                <Plus className="h-4 w-4" /> New shared routine
-              </span>
-            }
-            bodyClassName="px-5 pb-5"
-          >
-            <form action={createSharedRoutine} className="grid gap-3 sm:grid-cols-2">
-              <Field label="Name">
-                <Input name="name" placeholder="Morning routine" required />
-              </Field>
-              <Field label="Type">
-                <Select name="type" defaultValue="schedule">
-                  <option value="schedule">Step list</option>
-                  <option value="first_then">First / Then</option>
-                </Select>
-              </Field>
-              <Field label="Who does it?" hint="Pick everyone — one definition covers them all." className="sm:col-span-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {children.map((k) => (
-                    <label key={k.id} className="cursor-pointer">
-                      <input type="checkbox" name="assigned" value={k.id} defaultChecked className="peer sr-only" />
-                      <span className="inline-flex h-11 items-center justify-center rounded-lg border border-line bg-surface px-3 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
-                        {k.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </Field>
-              <Field label="Schedule template" hint="Or set times below." className="sm:col-span-2">
-                <Select name="schedule_template_id" defaultValue="">
-                  <option value="">No template — use the times below</option>
-                  {tpls.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Starts">
-                <Input name="start_time" type="time" />
-              </Field>
-              <Field label="Ends">
-                <Input name="end_time" type="time" />
-              </Field>
-              <Field label="Days" className="sm:col-span-2">
-                <div className="flex flex-wrap gap-1">
-                  {DOW.map((d, i) => (
-                    <label key={i} className="cursor-pointer">
-                      <input type="checkbox" name="days" value={i} className="peer sr-only" />
-                      <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
-                        {d}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </Field>
-              <div className="sm:col-span-2">
-                <SubmitButton>Create shared routine</SubmitButton>
-              </div>
-            </form>
-          </Disclosure>
-        </Card>
-      </div>
-
-      {/* ── Schedule templates (§2.2) ── */}
-      <SectionHeader eyebrow="Reusable windows" className="mt-8">
-        Schedule templates
-      </SectionHeader>
-      <div className="space-y-3">
-        {tpls.map((t) => (
-          <Card key={t.id} className="p-0">
-            <Disclosure
-              summary={
-                <div className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="min-w-0 truncate text-sm font-semibold text-fg">{t.name}</span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <Badge tone="blue">
-                      {t.start_time ? formatClock(t.start_time) : "—"}
-                      {t.end_time ? ` – ${formatClock(t.end_time)}` : ""}
-                    </Badge>
-                  </span>
-                </div>
-              }
-              bodyClassName="px-5 pb-5"
-            >
-              <form key={t.updated_at} action={updateScheduleTemplate.bind(null, t.id)} className="grid gap-3 sm:grid-cols-3">
-                <Field label="Name" className="sm:col-span-3">
-                  <Input name="name" defaultValue={t.name} required />
-                </Field>
-                <Field label="Starts">
-                  <Input name="start_time" type="time" defaultValue={t.start_time ? t.start_time.slice(0, 5) : ""} />
-                </Field>
-                <Field label="Ends">
-                  <Input name="end_time" type="time" defaultValue={t.end_time ? t.end_time.slice(0, 5) : ""} />
-                </Field>
-                <Field label="Days" className="sm:col-span-3">
-                  <div className="flex flex-wrap gap-1">
-                    {DOW.map((d, i) => (
-                      <label key={i} className="cursor-pointer">
-                        <input type="checkbox" name="days" value={i} defaultChecked={(t.days_of_week ?? []).includes(i)} className="peer sr-only" />
-                        <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
-                          {d}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </Field>
-                <div className="flex items-center gap-2 sm:col-span-3">
-                  <SubmitButton size="sm" variant="secondary">
-                    Save
-                  </SubmitButton>
-                </div>
-              </form>
-              <form action={deleteScheduleTemplate.bind(null, t.id)} className="mt-3 flex justify-end">
-                <ConfirmSubmit
-                  message={`Delete "${t.name}"? Routines using it keep their own times instead.`}
-                >
-                  Delete template
-                </ConfirmSubmit>
-              </form>
-            </Disclosure>
-          </Card>
-        ))}
-
-        <Card className="p-0">
-          <Disclosure
-            summary={
-              <span className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-accent">
-                <Plus className="h-4 w-4" /> New template
-              </span>
-            }
-            bodyClassName="px-5 pb-5"
-          >
-            <form action={createScheduleTemplate} className="grid gap-3 sm:grid-cols-3">
-              <Field label="Name" className="sm:col-span-3">
-                <Input name="name" placeholder="School Morning" required />
-              </Field>
-              <Field label="Starts">
-                <Input name="start_time" type="time" />
-              </Field>
-              <Field label="Ends">
-                <Input name="end_time" type="time" />
-              </Field>
-              <Field label="Days" className="sm:col-span-3">
-                <div className="flex flex-wrap gap-1">
-                  {DOW.map((d, i) => (
-                    <label key={i} className="cursor-pointer">
-                      <input type="checkbox" name="days" value={i} className="peer sr-only" />
-                      <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm font-semibold text-fg-muted transition peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg">
-                        {d}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </Field>
-              <div className="sm:col-span-3">
-                <SubmitButton variant="secondary">Create template</SubmitButton>
-              </div>
-            </form>
-          </Disclosure>
-        </Card>
-      </div>
-
-      {/* ── Bulk actions (§2.4) ── */}
-      {children.length >= 2 && (
+      ) : (
         <>
-          <SectionHeader eyebrow="One action, many targets" className="mt-8">
-            Bulk actions
-          </SectionHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Card>
-              <div className="mb-2 flex items-center gap-2">
-                <Copy className="h-4 w-4 text-accent" />
-                <h3 className="text-sm font-bold text-fg">Copy routines between kids</h3>
-              </div>
-              <p className="mb-3 text-xs text-fg-muted">Clone a sibling&apos;s whole setup (routines + steps), then tweak.</p>
-              <form action={copyChildRoutines} className="flex flex-wrap items-end gap-2">
-                <Field label="From" className="min-w-28 flex-1">
-                  <Select name="from_child" defaultValue="">
-                    <option value="" disabled>
-                      Child…
-                    </option>
-                    {children.map((k) => (
-                      <option key={k.id} value={k.id}>
-                        {k.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="To" className="min-w-28 flex-1">
-                  <Select name="to_child" defaultValue="">
-                    <option value="" disabled>
-                      Child…
-                    </option>
-                    {children.map((k) => (
-                      <option key={k.id} value={k.id}>
-                        {k.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <SubmitButton size="sm" variant="secondary">
-                  Copy
-                </SubmitButton>
-              </form>
-            </Card>
-            <Card>
-              <div className="mb-2 flex items-center gap-2">
-                <Wand2 className="h-4 w-4 text-accent" />
-                <h3 className="text-sm font-bold text-fg">Apply a template to a child</h3>
-              </div>
-              <p className="mb-3 text-xs text-fg-muted">Point all of one child&apos;s routines at a named window in one go.</p>
-              <form action={applyTemplateToChild} className="flex flex-wrap items-end gap-2">
-                <Field label="Child" className="min-w-28 flex-1">
-                  <Select name="child_id" defaultValue="">
-                    <option value="" disabled>
-                      Child…
-                    </option>
-                    {children.map((k) => (
-                      <option key={k.id} value={k.id}>
-                        {k.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Template" className="min-w-28 flex-1">
-                  <Select name="template_id" defaultValue="">
-                    <option value="" disabled>
-                      Template…
-                    </option>
-                    {tpls.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <SubmitButton size="sm" variant="secondary">
-                  Apply
-                </SubmitButton>
-              </form>
-            </Card>
-          </div>
+          <section className="mb-6 rounded-2xl border border-line bg-surface p-4">
+            <h2 className="mb-3 text-title text-fg">{day === today ? `Today · ${DAY_FULL[day]}` : DAY_FULL[day]}</h2>
+            <FamilyScheduleGrid rows={gridRows} />
+          </section>
+
+          <section className="mb-8">
+            <h2 className="mb-2 text-title text-fg">Routines on {DAY_FULL[day]}</h2>
+            {dayRows.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-line-strong px-4 py-4 text-sm text-fg-muted">Nothing scheduled.</p>
+            ) : (
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+                {dayRows.map(({ r, who, eff }) => (
+                  <li key={r.id}>
+                    <Link href={`/app/children/${who[0]}/routines/${r.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 transition hover:bg-surface-2">
+                      <span className="w-[5.5rem] shrink-0 text-sm font-semibold tabular-nums text-fg-muted">
+                        {eff.start_time ? formatClock(eff.start_time) : "Any time"}
+                      </span>
+                      <span className="text-xl leading-none" aria-hidden>
+                        {routineEmoji(r)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold text-fg">{r.name}</span>
+                        <span className="block truncate text-sm text-fg-muted">
+                          {who.map((id) => nameOf.get(id)).join(", ")}
+                          {r.schedule_template_id && ` · follows “${tpls.find((t) => t.id === r.schedule_template_id)?.name ?? "a family time"}”`}
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-fg-subtle" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       )}
+
+      <FamilyTimes times={times} />
     </>
   );
 }

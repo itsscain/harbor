@@ -59,52 +59,6 @@ export async function disconnectGoogle() {
   revalidatePath("/app/settings");
 }
 
-// ── Reward store ─────────────────────────────────────────────────────────────
-export async function addStoreItem(formData: FormData) {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const { error } = await supabase.from("store_items").insert({
-    household_id,
-    label: String(formData.get("label") || "Reward"),
-    emoji: str(formData.get("emoji")),
-    cost_points: Math.max(0, int(formData.get("cost_points"))),
-    kind: str(formData.get("kind")) ?? "reward",
-    child_id: str(formData.get("child_id")),
-    sort_order: int(formData.get("sort_order"), 50),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/store");
-}
-
-export async function updateStoreItem(id: string, formData: FormData) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("store_items")
-    .update({
-      label: String(formData.get("label") || ""),
-      emoji: str(formData.get("emoji")),
-      cost_points: Math.max(0, int(formData.get("cost_points"))),
-      kind: str(formData.get("kind")) ?? "reward",
-      enabled: formData.get("enabled") === "on",
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/store");
-}
-
-export async function deleteStoreItem(id: string) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("store_items")
-    .update({ deleted_at: nowIso() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/store");
-}
-
 // ── Grounding / Reset days ───────────────────────────────────────────────────
 /** Parse a JSON string[] from a form field into a clean, capped list (or null). */
 function strList(v: FormDataEntryValue | null): string[] | null {
@@ -503,98 +457,7 @@ export async function applyCapture(
   return { ok: true, added };
 }
 
-// ── Wall messages (bonus points applied server-side, never by the kiosk) ─────
-export async function addMessage(formData: FormData) {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const childId = str(formData.get("child_id"));
-  const bonus = Math.max(0, int(formData.get("bonus_points")));
-  const expires = str(formData.get("expires_at"));
-
-  const { error } = await supabase.from("wall_messages").insert({
-    household_id,
-    child_id: childId,
-    body: String(formData.get("body") || ""),
-    emoji: str(formData.get("emoji")),
-    author_label: str(formData.get("author_label")),
-    pinned: formData.get("pinned") === "on",
-    bonus_points: bonus,
-    expires_at: expires ? new Date(expires).toISOString() : null,
-  });
-  if (error) throw new Error(error.message);
-
-  // Apply a star bonus authenticated, here — the anon kiosk never mints points. "Whole family"
-  // gives EVERY child the bonus (it used to be silently dropped while the note said "+N
-  // awarded"). Atomic per child via the same RPC the live remote uses.
-  if (bonus > 0) {
-    let targets: string[] = childId ? [childId] : [];
-    if (!childId) {
-      const { data: kids } = await supabase
-        .from("children")
-        .select("id")
-        .eq("household_id", household_id)
-        .is("deleted_at", null);
-      targets = (kids ?? []).map((k) => k.id);
-    }
-    for (const id of targets) {
-      const { error: rpcErr } = await supabase.rpc("rpc_parent_adjust_points", {
-        p_child: id,
-        p_delta: bonus,
-        p_reason: "bonus",
-      });
-      if (rpcErr) throw new Error(rpcErr.message);
-    }
-  }
-  revalidatePath("/app/messages");
-}
-
-export async function deleteMessage(id: string) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("wall_messages")
-    .update({ deleted_at: nowIso() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/messages");
-}
-
-// ── One-tap starter content ──────────────────────────────────────────────────
-export async function seedCalmTools() {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const { data: existing } = await supabase
-    .from("calm_tools")
-    .select("tool_type")
-    .eq("household_id", household_id)
-    .is("deleted_at", null);
-  const have = new Set((existing ?? []).map((t) => t.tool_type));
-  const recommended = [
-    { tool_type: "breathing", config: { pattern: "4-7-8", rounds: 4 }, sort_order: 1 },
-    { tool_type: "feelings", config: { options: ["happy", "calm", "sad", "angry", "worried", "tired"] }, sort_order: 2 },
-    { tool_type: "break", config: { minutes: 5 }, sort_order: 3 },
-    {
-      tool_type: "social_story",
-      config: { title: "Big feelings are okay", pages: ["Everyone has big feelings.", "I can take a slow breath.", "I can ask for help.", "The feeling gets smaller. I'm okay."] },
-      sort_order: 4,
-    },
-  ].filter((r) => !have.has(r.tool_type as never));
-  if (recommended.length) {
-    await supabase.from("calm_tools").insert(
-      recommended.map((r) => ({
-        household_id,
-        tool_type: r.tool_type as "breathing" | "feelings" | "break" | "social_story",
-        config: r.config as never,
-        sort_order: r.sort_order,
-        enabled: true,
-      })),
-    );
-  }
-  revalidatePath("/app/calm");
-}
-
+// ── Setup checklist ──────────────────────────────────────────────────────────
 export async function dismissOnboarding() {
   await requireUser();
   const household = await getMyHousehold();
@@ -912,36 +775,6 @@ export async function saveAiConfig(formData: FormData) {
   revalidatePath("/app/settings");
 }
 
-/** Family Goal (§9.2.9) — a cooperative reward jar the whole family's stars fill.
- *  Stored in households.settings (rides the snapshot to the wall); progress is
- *  computed live from the kids' combined points. */
-export async function setFamilyGoal(formData: FormData) {
-  await requireUser();
-  const household = await getMyHousehold();
-  if (!household) throw new Error("No household found.");
-  const supabase = await createClient();
-  const current = (household.settings ?? {}) as Record<string, unknown>;
-  const active = formData.get("active") === "on";
-  const label = str(formData.get("label"));
-  const target = int(formData.get("target"), 0);
-  const family_goal =
-    active && label && target > 0
-      ? {
-          label: label.slice(0, 60),
-          emoji: (str(formData.get("emoji")) ?? "🎉").slice(0, 8),
-          target: Math.min(100000, target),
-          reward: str(formData.get("reward"))?.slice(0, 80) ?? null,
-          active: true,
-        }
-      : null;
-  const { error } = await supabase
-    .from("households")
-    .update({ settings: { ...current, family_goal } as never })
-    .eq("id", household.id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/store");
-}
-
 /** Find an existing auth user by email (admin only) — for inviting a co-parent who
  *  already has a Harbor account. Scans a few pages; fine for small households. */
 async function findAuthUserByEmail(
@@ -1019,22 +852,5 @@ export async function inviteCoParent(
       ? `Invited ${email}. They'll get an email to set a password, then they can sign in.`
       : `${email} already had a Harbor account — added as a guardian. They can sign in now.`,
   };
-}
-
-/** Remove a co-parent (owner-only; the owner can't remove themselves). */
-export async function removeCoParent(profileId: string) {
-  const user = await requireUser();
-  const household = await getMyHousehold();
-  if (!household) throw new Error("No household found.");
-  if (household.owner_id !== user.id) throw new Error("Only the household owner can remove guardians.");
-  if (profileId === household.owner_id) throw new Error("The owner can't be removed.");
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("household_members")
-    .delete()
-    .eq("household_id", household.id)
-    .eq("profile_id", profileId);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/settings");
 }
 

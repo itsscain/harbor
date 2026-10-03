@@ -263,7 +263,7 @@ function ReminderEditForm({ data, kids, tz, onDelete }: { data: ReminderEdit; ki
       </Field>
       {kids.length > 0 && (
         <Field label="About someone? (optional)">
-          <ChildChips name="child_id" kids={kids} everyone everyoneLabel="No one" defaultValue={data.childId ?? ""} />
+          <ChildChips name="child_id" kids={kids} everyone everyoneLabel="No one" everyoneEmoji="➖" defaultValue={data.childId ?? ""} />
         </Field>
       )}
       <FormError />

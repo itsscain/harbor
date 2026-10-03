@@ -11,6 +11,7 @@ export function Toggle({
   hint,
   name,
   className,
+  compact = false,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
@@ -18,19 +19,24 @@ export function Toggle({
   hint?: string;
   name?: string;
   className?: string;
+  /** Just the switch (e.g. at the end of a list row); the label stays for screen readers. */
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={compact ? label : undefined}
       onClick={() => onChange(!checked)}
-      className={cn("flex min-h-11 w-full items-center justify-between gap-3 rounded-xl text-left", className)}
+      className={cn("flex min-h-11 items-center justify-between gap-3 rounded-xl text-left", compact ? "w-auto" : "w-full", className)}
     >
-      <span className="min-w-0">
-        <span className="block text-[15px] font-medium text-fg">{label}</span>
-        {hint && <span className="block text-sm text-fg-muted">{hint}</span>}
-      </span>
+      {!compact && (
+        <span className="min-w-0">
+          <span className="block text-[15px] font-medium text-fg">{label}</span>
+          {hint && <span className="block text-sm text-fg-muted">{hint}</span>}
+        </span>
+      )}
       <span className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors", checked ? "bg-accent" : "bg-line-strong")}>
         <span
           className={cn(

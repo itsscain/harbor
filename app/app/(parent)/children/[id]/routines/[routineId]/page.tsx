@@ -21,7 +21,7 @@ export default async function RoutinePage({ params }: { params: Promise<{ id: st
   return (
     <>
       <SetTopBarTitle title={data.routine.name} />
-      <RoutineEditor kidId={id} accent={accent} routine={data.routine} steps={data.steps} kids={data.kids} library={data.library} />
+      <RoutineEditor kidId={id} accent={accent} routine={data.routine} steps={data.steps} kids={data.kids} library={data.library} slots={data.slots} overrides={data.overrides} />
     </>
   );
 }

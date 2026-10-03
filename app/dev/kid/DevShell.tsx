@@ -18,7 +18,7 @@ export function DevShell({ kids, children }: { kids: ChipChild[]; children: Reac
             {theme}
           </button>
           <AppTopBarProvider unread={1} householdName="Rivera Family">
-            <main className="mx-auto w-full max-w-2xl p-4 pb-32">{children}</main>
+            <main className="mx-auto w-full max-w-2xl p-4 pb-32 sm:p-6 lg:max-w-3xl lg:px-10 lg:py-8">{children}</main>
           </AppTopBarProvider>
           <ParentNav />
         </QuickAddProvider>

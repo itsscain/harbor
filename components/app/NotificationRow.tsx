@@ -5,13 +5,8 @@ import { useTransition } from "react";
 import { cn } from "@/lib/cn";
 import { markNotificationRead } from "@/app/app/(parent)/notification-actions";
 
-const TIER_ACCENT: Record<number, string> = {
-  1: "bg-beacon",
-  2: "bg-accent",
-  3: "bg-accent/12",
-  4: "bg-accent/20",
-  5: "bg-surface-2",
-};
+// One clear dot for anything unread; the most urgent ("a child needs you") is gold.
+const TIER_ACCENT: Record<number, string> = { 1: "bg-beacon" };
 
 /** One notification in the center: tap marks it read and deep-links to where it belongs. */
 export function NotificationRow({

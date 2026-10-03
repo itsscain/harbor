@@ -24,9 +24,11 @@ export function NotificationPrompt({ vapidKey }: { vapidKey?: string }) {
     const snoozed = Number(localStorage.getItem(DISMISS_KEY) || 0);
     if (snoozed && Date.now() - snoozed < SNOOZE_DAYS * 86_400_000) return;
     const ios = isIOS();
-    setIosInstall(ios && !isStandalone());
     // A short delay so it feels like an app nudging you, not a wall on entry.
-    const t = window.setTimeout(() => setShow(true), 1400);
+    const t = window.setTimeout(() => {
+      setIosInstall(ios && !isStandalone());
+      setShow(true);
+    }, 1400);
     return () => window.clearTimeout(t);
   }, [vapidKey]);
 

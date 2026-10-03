@@ -25,6 +25,8 @@ import {
   setRoutineWindow,
   setRoutineDays,
   setRoutineKids,
+  setRoutineSlot,
+  setKidTiming,
   copyRoutineToKid,
   saveAsTemplate,
   deleteRoutineSoft,
@@ -50,8 +52,11 @@ type EditorRoutine = {
   strict: boolean;
   kidIds: string[];
   slotName: string | null;
+  slotId?: string | null;
 };
 type LibraryItem = { id: string; label: string; icon: string | null; points: number };
+type Slot = { id: string; name: string; start: string | null; end: string | null; days: number[] | null };
+type KidTiming = { childId: string; offset: number; enabled: boolean };
 
 const KINDS = [
   { value: "standard", label: "Regular", emoji: "✅", hint: "" },
@@ -60,6 +65,9 @@ const KINDS = [
   { value: "choice", label: "Pick one", emoji: "🎲", hint: "They choose one of the options you list." },
   { value: "substep", label: "Has parts", emoji: "🧩", hint: "Small parts they tick off — all done means the step is done." },
 ] as const;
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const dayWords = (d: number[] | null) =>
+  !d || d.length === 0 || d.length === 7 ? "Every day" : d.length === 5 && [1, 2, 3, 4, 5].every((x) => d.includes(x)) ? "Weekdays" : d.map((x) => DAY_SHORT[x]).join(", ");
 const kindLabel = (k: string) => (k === "standard" || k === "timed" ? null : (KINDS.find((x) => x.value === k)?.label ?? null));
 
 /** Save the latest value after a pause (and on the way out, so nothing is lost). */
@@ -109,6 +117,8 @@ export function RoutineEditor({
   steps,
   kids,
   library,
+  slots = [],
+  overrides = [],
 }: {
   kidId: string;
   accent: string;
@@ -116,16 +126,25 @@ export function RoutineEditor({
   steps: EditorStep[];
   kids: ChipChild[];
   library: LibraryItem[];
+  slots?: Slot[];
+  overrides?: KidTiming[];
 }) {
+  const slot = slots.find((x) => x.id === routine.slotId) ?? null;
   return (
     <>
       <TitleBlock routine={routine} />
       <StepsBlock routine={routine} steps={steps} library={library} />
-      <WhenBlock routine={routine} />
+      <WhenBlock key={routine.slotId ?? "own"} routine={routine} slots={slots} />
       <Block title="Days">
-        <DaysPicker routineId={routine.id} days={routine.days} />
+        {slot ? (
+          <p className="text-[15px] text-fg-muted">
+            {dayWords(slot.days)} — set by the family time “{slot.name}”. Pick your own time above to choose different days.
+          </p>
+        ) : (
+          <DaysPicker routineId={routine.id} days={routine.days} />
+        )}
       </Block>
-      {kids.length > 1 && <WhoBlock routine={routine} kids={kids} />}
+      {kids.length > 1 && <WhoBlock routine={routine} kids={kids} overrides={overrides} />}
       <MoreBlock kidId={kidId} accent={accent} routine={routine} steps={steps} kids={kids} />
     </>
   );
@@ -473,20 +492,27 @@ function StepForm({ step, onDelete }: { step: EditorStep; onDelete: (id: string)
 }
 
 // ── When ─────────────────────────────────────────────────────────────────────
-function WhenBlock({ routine }: { routine: EditorRoutine }) {
+function WhenBlock({ routine, slots }: { routine: EditorRoutine; slots: Slot[] }) {
   const { run } = useQuickAction();
   const [start, setStart] = useState(routine.start?.slice(0, 5) ?? "");
   const [end, setEnd] = useState(routine.end?.slice(0, 5) ?? "");
-  const [slot, setSlot] = useState(routine.slotName);
-  const current = !start && !end ? "any" : (presetFor(start, end)?.key ?? "custom");
+  const [slot, setSlot] = useState<string | null>(routine.slotId ?? null);
+  const current = slot ? `slot:${slot}` : !start && !end ? "any" : (presetFor(start, end)?.key ?? "custom");
   const [custom, setCustom] = useState(current === "custom");
   const sel = custom ? "custom" : current;
+  const slotObj = slots.find((x) => x.id === slot) ?? null;
 
   const apply = (s: string | null, e: string | null) => {
     setStart(s ?? "");
     setEnd(e ?? "");
     setSlot(null);
     run(() => setRoutineWindow(routine.id, s, e));
+  };
+  const follow = (t: Slot) => {
+    setSlot(t.id);
+    setStart(t.start?.slice(0, 5) ?? "");
+    setEnd(t.end?.slice(0, 5) ?? "");
+    run(() => setRoutineSlot(routine.id, t.id));
   };
 
   return (
@@ -499,12 +525,17 @@ function WhenBlock({ routine }: { routine: EditorRoutine }) {
           if (!k || k === sel) return;
           if (k === "custom") return setCustom(true);
           setCustom(false);
+          if (k.startsWith("slot:")) {
+            const t = slots.find((x) => x.id === k.slice(5));
+            return t ? follow(t) : undefined;
+          }
           if (k === "any") return apply(null, null);
           const p = WHEN_PRESETS.find((x) => x.key === k);
           if (p) apply(p.start, p.end);
         }}
         options={[
           ...WHEN_PRESETS.map((p) => ({ value: p.key, label: p.label, emoji: p.emoji })),
+          ...slots.map((t) => ({ value: `slot:${t.id}`, label: t.name, emoji: "👪" })),
           { value: "any", label: "Any time", emoji: "🕒" },
           { value: "custom", label: "Custom", emoji: "✏️" },
         ]}
@@ -529,9 +560,9 @@ function WhenBlock({ routine }: { routine: EditorRoutine }) {
           </Button>
         </form>
       )}
-      {slot && (
+      {slotObj && (
         <p className="mt-3 rounded-xl bg-surface-2 px-3.5 py-2.5 text-sm text-fg-muted">
-          Uses the family &ldquo;{slot}&rdquo; time. Picking a time here gives this routine its own.
+          Follows the family time &ldquo;{slotObj.name}&rdquo; — change it once in Routine times and every routine using it moves.
         </p>
       )}
     </Block>
@@ -546,10 +577,27 @@ function DaysPicker({ routineId, days }: { routineId: string; days: number[] | n
 }
 
 // ── Who ──────────────────────────────────────────────────────────────────────
-function WhoBlock({ routine, kids }: { routine: EditorRoutine; kids: ChipChild[] }) {
+const OFFSETS = [
+  { value: "-30", label: "30 min earlier" },
+  { value: "-15", label: "15 min earlier" },
+  { value: "0", label: "Same time" },
+  { value: "15", label: "15 min later" },
+  { value: "30", label: "30 min later" },
+  { value: "60", label: "1 hr later" },
+];
+
+function WhoBlock({ routine, kids, overrides }: { routine: EditorRoutine; kids: ChipChild[]; overrides: KidTiming[] }) {
   const { run } = useQuickAction();
   const [who, setWho] = useState<string[]>(routine.kidIds);
+  const [timing, setTiming] = useState<Record<string, { offset: number; enabled: boolean }>>(() =>
+    Object.fromEntries(overrides.map((o) => [o.childId, { offset: o.offset, enabled: o.enabled }])),
+  );
   const save = useDebouncedSave<string[]>((ids) => run(() => setRoutineKids(routine.id, ids)));
+  const tweak = (childId: string, next: { offset: number; enabled: boolean }) => {
+    setTiming((cur) => ({ ...cur, [childId]: next }));
+    run(() => setKidTiming(routine.id, childId, next.offset, next.enabled));
+  };
+  const shared = who.length >= 2 && routine.kidIds.length >= 2;
   return (
     <Block title="Who does it?" sub={who.length >= 2 ? "One routine for all of them — each kid checks off their own steps." : "Pick more than one kid to share it."}>
       <ChildChips
@@ -562,6 +610,30 @@ function WhoBlock({ routine, kids }: { routine: EditorRoutine; kids: ChipChild[]
           save(v);
         }}
       />
+      {shared && (
+        <div className="mt-4 rounded-xl border border-line">
+          <Disclosure summary={<span className="text-[15px] font-semibold text-fg">Different for one kid?</span>} bodyClassName="space-y-4 px-4 pb-4">
+            {kids
+              .filter((k) => who.includes(k.id))
+              .map((k) => {
+                const t = timing[k.id] ?? { offset: 0, enabled: true };
+                return (
+                  <div key={k.id} className="space-y-2 border-t border-line pt-3 first:border-t-0 first:pt-0">
+                    <Toggle checked={t.enabled} onChange={(v) => tweak(k.id, { ...t, enabled: v })} label={`${k.name} does this one`} />
+                    {t.enabled && (
+                      <ChipGroup
+                        ariaLabel={`${k.name}'s start time`}
+                        value={OFFSETS.some((o) => o.value === String(t.offset)) ? String(t.offset) : "0"}
+                        onChange={(v) => v[0] && tweak(k.id, { ...t, offset: Number(v[0]) })}
+                        options={OFFSETS}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+          </Disclosure>
+        </div>
+      )}
     </Block>
   );
 }

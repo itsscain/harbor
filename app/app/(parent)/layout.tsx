@@ -85,7 +85,7 @@ export default async function ParentLayout({
           <ParentRail householdName={household?.name} unread={unread} />
           <div className="lg:pl-64">
             <AppTopBarProvider unread={unread} householdName={household?.name}>
-              <main className="mx-auto w-full max-w-2xl p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:max-w-5xl lg:px-10 lg:py-8 lg:pb-10">
+              <main className="mx-auto w-full max-w-2xl p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:max-w-3xl lg:px-10 lg:py-8 lg:pb-10">
                 <RouteTransition>{children}</RouteTransition>
               </main>
             </AppTopBarProvider>
