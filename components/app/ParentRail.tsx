@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, LogOut } from "lucide-react";
+import { Home, Users, LogOut, Plus } from "lucide-react";
+import { useQuickAdd } from "@/components/app/quick/QuickAdd";
 import type { LucideIcon } from "lucide-react";
 import { Wordmark } from "@/components/brand/Logo";
 import { signOut } from "@/lib/actions/auth";
@@ -25,6 +26,7 @@ function isActive(pathname: string, href: string): boolean {
 
 export function ParentRail({ householdName, unread = 0 }: { householdName?: string | null; unread?: number }) {
   const pathname = usePathname();
+  const { open } = useQuickAdd();
   const name = householdName?.trim() || "Your family";
 
   const Row = ({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) => {
@@ -54,6 +56,13 @@ export function ParentRail({ householdName, unread = 0 }: { householdName?: stri
       <div className="px-5 pb-4 pt-5">
         <Wordmark />
         <p className="mt-2 truncate text-sm font-medium text-fg-muted">{name}</p>
+        <button
+          type="button"
+          onClick={() => open("menu")}
+          className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent text-[15px] font-semibold text-accent-fg shadow-button transition hover:brightness-110 active:scale-[0.98]"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.5} /> Add or send
+        </button>
       </div>
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
         <div className="space-y-0.5">

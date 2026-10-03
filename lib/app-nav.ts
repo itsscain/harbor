@@ -24,7 +24,6 @@ import {
   CreditCard,
   LayoutGrid,
   Compass,
-  Radio,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
@@ -40,14 +39,6 @@ const live = (items: NavItem[]): NavItem[] => (FEATURES.ai ? items : items.filte
 
 export type NavItem = { href: string; label: string; desc: string; icon: LucideIcon };
 export type NavGroup = { heading: string; items: NavItem[] };
-
-/** COMMAND — the live remote: reach the wall right now. */
-export const COMMAND_GROUP: NavGroup = {
-  heading: "Right now",
-  items: [
-    { href: "/app/command", label: "Command", desc: "Grant stars, nudge the wall, set a house mode", icon: Radio },
-  ],
-};
 
 /** PLAN — everything time / scheduling / planning shaped. */
 export const PLAN_GROUP: NavGroup = {
@@ -109,7 +100,8 @@ const withoutHidden = (g: NavGroup): NavGroup => ({ ...g, items: live(g.items) }
 /** The Plan hub page renders this. */
 export const PLAN_GROUPS: NavGroup[] = [PLAN_GROUP].map(withoutHidden);
 /** The More hub page renders these. */
-export const MORE_GROUPS: NavGroup[] = [COMMAND_GROUP, FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP].map(withoutHidden);
+// (The old "Command" remote now lives on Today, so it's no longer a separate destination.)
+export const MORE_GROUPS: NavGroup[] = [FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP].map(withoutHidden);
 
 /** All routes that light up the "Plan" / "More" primary tabs. */
 export const PLAN_ROUTES = ["/app/plan", ...PLAN_GROUP.items.map((i) => i.href)];

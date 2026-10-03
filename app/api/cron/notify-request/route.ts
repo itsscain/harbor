@@ -48,7 +48,7 @@ async function handle(req: Request) {
     childId: r.child_id,
     title: `${meta.emoji} ${name} is asking`,
     body: `${name} would like ${summary}. Tap to approve or say not now.`,
-    route: `/app/command?request=${r.id}`,
+    route: "/app#needs-you",
   });
 
   return Response.json({ ok: true, notified: true });
