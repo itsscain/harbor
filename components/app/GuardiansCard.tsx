@@ -28,11 +28,11 @@ export function GuardiansCard({
     <Card className="space-y-5">
       <div className="flex items-center gap-2">
         <Users className="h-5 w-5 text-accent" />
-        <h2 className="font-display text-lg font-semibold text-fg">Guardians</h2>
+        <h2 className="font-display text-lg font-semibold text-fg">Who has the app</h2>
       </div>
       <p className="text-sm text-fg-muted">
-        Everyone who helps run the home. A co-parent gets their own sign-in and sees the same
-        household — calendar, kids, routines, all of it. One Harbor, shared.
+        Each grown-up signs in with their own email and sees the same family — kids, routines,
+        calendar, all of it.
       </p>
 
       <ul className="divide-y divide-line overflow-hidden rounded-xl ring-1 ring-line">
@@ -43,7 +43,7 @@ export function GuardiansCard({
           <li key={g.profile_id} className="flex items-center justify-between gap-3 px-4 py-3">
             <p className="min-w-0 truncate text-sm font-medium text-fg">{g.email}</p>
             <div className="flex shrink-0 items-center gap-2">
-              <Badge tone={g.isOwner ? "beacon" : "neutral"}>{g.isOwner ? "Owner" : "Guardian"}</Badge>
+              <Badge tone={g.isOwner ? "beacon" : "neutral"}>{g.isOwner ? "Owner" : "Grown-up"}</Badge>
               {isOwner && !g.isOwner && (
                 <form action={removeCoParent.bind(null, g.profile_id)}>
                   <button
@@ -61,15 +61,14 @@ export function GuardiansCard({
       </ul>
 
       {!isOwner ? (
-        <p className="text-sm text-fg-muted">Only the household owner can add or remove guardians.</p>
+        <p className="text-sm text-fg-muted">Only the family’s owner can add or remove grown-ups.</p>
       ) : !available ? (
         <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-fg-muted">
-          Inviting co-parents needs the service-role key configured. It&apos;s set in production, so
-          invites work on the live site.
+          Inviting another grown-up isn&apos;t available on this copy of Harbor yet — it works on the live app.
         </p>
       ) : (
         <form action={action} className="space-y-3">
-          <Field label="Invite a co-parent by email">
+          <Field label="Invite another grown-up by email">
             <Input name="email" type="email" required placeholder="partner@example.com" autoComplete="off" />
           </Field>
           {state.error && <p className="text-sm text-error">{state.error}</p>}

@@ -7,6 +7,8 @@ import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { Disclosure } from "@/components/app/Disclosure";
 import { EntityAvatar } from "@/components/ui/EntityAvatar";
 import { CHILD_PALETTE } from "@/lib/kiosk/colors";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { GuardiansCard, type Guardian } from "@/components/app/GuardiansCard";
 import {
   addPerson,
   updatePerson,
@@ -18,7 +20,7 @@ import {
   deletePersonStep,
 } from "../actions";
 
-export const metadata = { title: "Family" };
+export const metadata = { title: "Grown-ups" };
 export const dynamic = "force-dynamic";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -58,13 +60,46 @@ export default async function FamilyPage() {
 
   const kids = children ?? [];
 
+  // Grown-ups who can sign in to Harbor (co-parents). Only the owner manages; emails come from
+  // the admin client (tolerant of no service-role key, e.g. local dev).
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const isOwner = !!authUser && household.owner_id === authUser.id;
+  let guardians: Guardian[] = [];
+  let guardiansAvailable = false;
+  try {
+    const admin = createAdminClient();
+    const { data: members } = await admin.from("household_members").select("profile_id, role, created_at").eq("household_id", household.id).order("created_at");
+    guardians = await Promise.all(
+      (members ?? []).map(async (m) => {
+        let email = "(account)";
+        try {
+          const { data } = await admin.auth.admin.getUserById(m.profile_id);
+          email = data?.user?.email ?? email;
+        } catch {
+          /* leave placeholder */
+        }
+        return { profile_id: m.profile_id, role: m.role, email, isOwner: m.profile_id === household.owner_id };
+      }),
+    );
+    guardiansAvailable = true;
+  } catch {
+    /* no service-role key — the card shows a setup note */
+  }
+
   return (
     <>
-      <PageHeader
-        eyebrow="Family"
-        title="Family profiles"
-        subtitle="You're in the boat too. Add parents, caregivers, and older siblings — give yourself a routine to model a calm rhythm. No stars for grown-ups."
-      />
+      <PageHeader title="Grown-ups" subtitle="Who can use Harbor on their phone, and who shows up on the wall." />
+
+      <div className="mb-8">
+        <GuardiansCard guardians={guardians} isOwner={isOwner} available={guardiansAvailable} />
+      </div>
+
+      <h2 className="mb-1 text-title text-fg">On the wall</h2>
+      <p className="mb-4 text-sm text-fg-muted">
+        You&apos;re in the boat too. Add parents, caregivers and older siblings — give yourself a routine to model a calm rhythm. No stars for grown-ups.
+      </p>
 
       <div className="space-y-5">
         {(people ?? []).map((p) => {

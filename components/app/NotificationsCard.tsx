@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, BellOff, Check, Send, Share, Plus, ShieldAlert } from "lucide-react";
 import { pushSupported, isIOS, isStandalone, enablePush, disablePush } from "@/lib/notifications/client";
 import {
@@ -9,25 +9,13 @@ import {
   saveNotificationPrefs,
   sendTestNotification,
 } from "@/app/app/(parent)/notification-actions";
-import { CATEGORY_LABEL, CATEGORY_DESC, CATEGORY_ORDER, type NotifPrefs, type DetailLevel } from "@/lib/notifications/prefs";
+import { CATEGORY_LABEL, CATEGORY_DESC, VISIBLE_CATEGORIES, NOTIF_PRESETS, type NotifPrefs, type DetailLevel } from "@/lib/notifications/prefs";
+import { Toggle } from "@/components/ui/Toggle";
+import { ChipGroup } from "@/components/ui/Chips";
+import { Input } from "@/components/ui/primitives";
+import { useQuickAction } from "@/components/ui/useQuickAction";
+import { Disclosure } from "@/components/app/Disclosure";
 import { cn } from "@/lib/cn";
-
-const CATS = CATEGORY_ORDER;
-
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={() => onChange(!on)}
-      className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", on ? "bg-accent" : "bg-surface-2")}
-    >
-      <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition-all", on ? "left-[22px]" : "left-0.5")} />
-    </button>
-  );
-}
 
 export function NotificationsCard({
   pushConfigured,
@@ -44,7 +32,8 @@ export function NotificationsCard({
   const [busy, setBusy] = useState(false);
   const [tested, setTested] = useState(false);
   const [prefs, setPrefs] = useState<NotifPrefs>(initialPrefs);
-  const [saved, setSaved] = useState(false);
+  const { run } = useQuickAction();
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // All async (after an await) so we never call setState synchronously in the effect body.
@@ -96,16 +85,28 @@ export function NotificationsCard({
     setBusy(false);
     window.setTimeout(() => setTested(false), 4000);
   }
-  function patch(p: Partial<NotifPrefs>) {
-    setPrefs((cur) => ({ ...cur, ...p }));
-    setSaved(false);
+  // Every change saves itself a moment later — no Save button to forget.
+  function change(next: NotifPrefs) {
+    setPrefs(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      run(
+        async () => {
+          await saveNotificationPrefs(next);
+          return { ok: true } as const;
+        },
+        { success: "Saved" },
+      );
+    }, 600);
   }
-  async function onSave() {
-    setBusy(true);
-    await saveNotificationPrefs(prefs);
-    setBusy(false);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 3000);
+  const preset =
+    NOTIF_PRESETS.find((p) => VISIBLE_CATEGORIES.every((c) => prefs.categories[c] === (c === "distress" || p.on.includes(c))))?.key ?? "custom";
+  function applyPreset(key: string) {
+    const p = NOTIF_PRESETS.find((x) => x.key === key);
+    if (!p) return;
+    const categories = { ...prefs.categories };
+    for (const c of VISIBLE_CATEGORIES) categories[c] = c === "distress" || p.on.includes(c);
+    change({ ...prefs, categories });
   }
 
   const needsInstall = caps.ios && !caps.standalone;
@@ -156,69 +157,100 @@ export function NotificationsCard({
         </button>
       )}
 
-      {/* Preferences */}
+      {/* Preferences — three simple choices, the details behind "Customize" */}
       <div className="border-t border-line pt-4">
-        <p className="mb-3 text-sm font-semibold text-fg">What to tell you about</p>
-        <div className="space-y-3">
-          {CATS.map((c) => (
-            <div key={c} className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-fg">{CATEGORY_LABEL[c]}</p>
-                <p className="text-xs text-fg-muted">{CATEGORY_DESC[c]}</p>
-              </div>
-              {c === "distress" ? (
-                // Safety: a "your child needs you" alert always reaches you — it can't be turned off.
-                <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/12 px-2.5 py-1 text-xs font-semibold text-fg">Always on</span>
-              ) : (
-                <div className="mt-0.5">
-                  <Toggle
-                    label={CATEGORY_LABEL[c]}
-                    on={prefs.categories[c]}
-                    onChange={(v) => patch({ categories: { ...prefs.categories, [c]: v } })}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+        <p className="mb-2.5 text-[15px] font-semibold text-fg">What should reach your phone?</p>
+        <div className="flex flex-col gap-2">
+          {NOTIF_PRESETS.map((p) => {
+            const on = preset === p.key;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => applyPreset(p.key)}
+                className={cn(
+                  "flex min-h-12 items-center gap-3 rounded-xl border px-4 text-left text-[15px] font-semibold transition",
+                  on ? "border-accent bg-accent/12 text-fg" : "border-line text-fg-muted hover:border-accent/50 hover:text-fg",
+                )}
+              >
+                <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border-2", on ? "border-accent" : "border-line-strong")}>
+                  {on && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+                </span>
+                {p.label}
+              </button>
+            );
+          })}
+          {preset === "custom" && <p className="px-1 text-sm text-fg-muted">You&apos;ve picked your own mix below.</p>}
         </div>
 
-        <div className="mt-4 space-y-3">
-          <label className="flex items-center justify-between gap-3">
-            <span className="text-sm text-fg">Quiet hours (hold non-urgent alerts overnight)</span>
-            <Toggle label="Quiet hours" on={prefs.quietHours.enabled} onChange={(v) => patch({ quietHours: { ...prefs.quietHours, enabled: v } })} />
-          </label>
+        <div className="mt-4 rounded-xl border border-line">
+          <Disclosure summary={<span className="text-[15px] font-semibold text-fg">Customize</span>} bodyClassName="space-y-1 px-4 pb-4">
+            {VISIBLE_CATEGORIES.map((c) =>
+              c === "distress" ? (
+                <div key={c} className="flex min-h-11 items-center justify-between gap-3 py-1">
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-medium text-fg">{CATEGORY_LABEL[c]}</span>
+                    <span className="block text-sm text-fg-muted">{CATEGORY_DESC[c]}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-accent/12 px-2.5 py-1 text-xs font-semibold text-fg">Always on</span>
+                </div>
+              ) : (
+                <Toggle
+                  key={c}
+                  checked={prefs.categories[c]}
+                  onChange={(v) => change({ ...prefs, categories: { ...prefs.categories, [c]: v } })}
+                  label={CATEGORY_LABEL[c]}
+                  hint={CATEGORY_DESC[c]}
+                  className="py-1"
+                />
+              ),
+            )}
+          </Disclosure>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-line px-3.5">
+          <Toggle
+            checked={prefs.quietHours.enabled}
+            onChange={(v) => change({ ...prefs, quietHours: { ...prefs.quietHours, enabled: v } })}
+            label="Quiet overnight"
+            hint="Hold everyday alerts until morning"
+            className="py-1"
+          />
           {prefs.quietHours.enabled && (
-            <div className="flex flex-wrap items-center gap-2 pl-1 text-sm text-fg-muted">
-              <span>From</span>
-              <input type="time" value={prefs.quietHours.start} onChange={(e) => patch({ quietHours: { ...prefs.quietHours, start: e.target.value } })} className="rounded-lg border border-line px-2 py-1 text-fg" />
-              <span>to</span>
-              <input type="time" value={prefs.quietHours.end} onChange={(e) => patch({ quietHours: { ...prefs.quietHours, end: e.target.value } })} className="rounded-lg border border-line px-2 py-1 text-fg" />
-              <label className="ml-1 flex items-center gap-1.5">
-                <input type="checkbox" checked={prefs.quietHours.allowCritical} onChange={(e) => patch({ quietHours: { ...prefs.quietHours, allowCritical: e.target.checked } })} className="h-4 w-4 rounded" />
-                let &quot;needs you&quot; through
-              </label>
+            <div className="space-y-3 pb-3">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-sm text-fg-muted">
+                  From
+                  <Input type="time" value={prefs.quietHours.start} onChange={(e) => change({ ...prefs, quietHours: { ...prefs.quietHours, start: e.target.value } })} className="mt-1" />
+                </label>
+                <label className="text-sm text-fg-muted">
+                  Until
+                  <Input type="time" value={prefs.quietHours.end} onChange={(e) => change({ ...prefs, quietHours: { ...prefs.quietHours, end: e.target.value } })} className="mt-1" />
+                </label>
+              </div>
+              <Toggle
+                checked={prefs.quietHours.allowCritical}
+                onChange={(v) => change({ ...prefs, quietHours: { ...prefs.quietHours, allowCritical: v } })}
+                label="Still tell me if a child needs me"
+              />
             </div>
           )}
-
-          <label className="flex items-center justify-between gap-3">
-            <span className="text-sm text-fg">Lock-screen detail</span>
-            <select
-              value={prefs.detailLevel}
-              onChange={(e) => patch({ detailLevel: e.target.value as DetailLevel })}
-              className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-fg"
-            >
-              <option value="full">Full (&quot;Cade finished his morning&quot;)</option>
-              <option value="names">Names only (&quot;Cade needs you&quot;)</option>
-              <option value="discreet">Discreet (&quot;Harbor: you have an update&quot;)</option>
-            </select>
-          </label>
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
-          <button type="button" onClick={onSave} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-60">
-            Save preferences
-          </button>
-          {saved && <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent"><Check className="h-4 w-4" /> Saved</span>}
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-semibold text-fg">On the lock screen, show</p>
+          <ChipGroup
+            ariaLabel="Lock screen detail"
+            value={prefs.detailLevel}
+            onChange={(v) => v[0] && change({ ...prefs, detailLevel: v[0] as DetailLevel })}
+            options={[
+              { value: "full", label: "Everything" },
+              { value: "names", label: "Names only" },
+              { value: "discreet", label: "Nothing personal" },
+            ]}
+          />
         </div>
       </div>
     </div>

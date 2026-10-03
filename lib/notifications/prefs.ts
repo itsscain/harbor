@@ -74,6 +74,17 @@ export const CATEGORY_ORDER: NotifCategory[] = [
   "digest",
 ];
 
+/** The categories Harbor actually sends today — what Settings shows. "routines" and "messages"
+ *  stay in the type (saved prefs keep working) but have no sender yet, so they aren't offered. */
+export const VISIBLE_CATEGORIES: NotifCategory[] = CATEGORY_ORDER.filter((c) => c !== "routines" && c !== "messages");
+
+/** The three simple choices in Settings; anything else shows as "Custom". */
+export const NOTIF_PRESETS: { key: "all" | "important" | "urgent"; label: string; on: NotifCategory[] }[] = [
+  { key: "all", label: "Everything", on: VISIBLE_CATEGORIES },
+  { key: "important", label: "The important stuff", on: ["distress", "approvals", "medication", "events"] },
+  { key: "urgent", label: "Only when a child needs you", on: ["distress"] },
+];
+
 /** Conservative, high-signal defaults: everything on, quiet hours off, full detail. */
 export const DEFAULT_PREFS: NotifPrefs = {
   categories: {

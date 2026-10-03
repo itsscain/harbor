@@ -53,7 +53,8 @@ export function PairingScreen({
           Let&apos;s light your Harbor
         </h1>
         <p className="mt-2 text-kmute">
-          Enter the pairing code from your setup email — we&apos;ll bring this wall to life.
+          On your phone, open the Harbor app and tap <span className="font-semibold text-ktext">More → Screens → Add a screen</span>. Type the code it
+          shows here.
         </p>
 
         <form onSubmit={submit} className="mt-8 space-y-4">
@@ -85,7 +86,7 @@ export function PairingScreen({
         </form>
 
         <p className="mt-6 text-xs text-kmute">
-          Daily use works fully offline. Pairing needs the internet just once.
+          New to Harbor? Make your free account on your phone first. Daily use works fully offline — connecting needs the internet just once.
         </p>
       </KCard>
     </div>

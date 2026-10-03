@@ -1,34 +1,35 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { Card } from "@/components/ui/primitives";
 import type { NavGroup } from "@/lib/app-nav";
 
-/** Renders a hub page (Plan / More) from the nav taxonomy — grouped rows with an
- *  icon tile, label, description, and chevron. One consistent presentation. */
+/** A hub page (More) from the nav taxonomy — each group is one calm list of rows (icon, label,
+ *  one plain line, chevron), the same rows Plan and Settings use. */
 export function NavHub({ groups }: { groups: NavGroup[] }) {
   return (
-    <div className="space-y-7">
-      {groups.map((g) => (
-        <section key={g.heading}>
-          <p className="text-eyebrow mb-2 text-fg-subtle">{g.heading}</p>
-          <div className="space-y-2.5">
-            {g.items.map(({ href, label, desc, icon: Icon }) => (
-              <Link key={href} href={href} className="block">
-                <Card interactive className="flex items-center gap-3.5 py-3.5">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-accent ring-1 ring-line">
-                    <Icon className="h-[22px] w-[22px]" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-title text-fg">{label}</p>
-                    <p className="truncate text-sm text-fg-muted">{desc}</p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-fg-subtle" />
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
+    <div className="space-y-6">
+      {groups
+        .filter((g) => g.items.length > 0)
+        .map((g) => (
+          <section key={g.heading}>
+            <h2 className="mb-2 px-1 text-sm font-semibold text-fg-muted">{g.heading}</h2>
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+              {g.items.map(({ href, label, desc, icon: Icon }) => (
+                <li key={href}>
+                  <Link href={href} className="flex min-h-16 items-center gap-3 px-4 py-3 transition hover:bg-surface-2">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-accent">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-fg">{label}</span>
+                      <span className="block truncate text-sm text-fg-muted">{desc}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-fg-subtle" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
     </div>
   );
 }

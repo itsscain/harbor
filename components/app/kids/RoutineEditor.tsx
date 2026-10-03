@@ -2,7 +2,7 @@
 
 import { useEffect, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ChevronRight, Eye, Pencil, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookmarkPlus, ChevronRight, Eye, Pencil, Plus, X } from "lucide-react";
 import { Sheet, SheetActions, useSheetClose } from "@/components/ui/Sheet";
 import { ActionForm, FormError } from "@/components/ui/ActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -26,6 +26,7 @@ import {
   setRoutineDays,
   setRoutineKids,
   copyRoutineToKid,
+  saveAsTemplate,
   deleteRoutineSoft,
   restoreRoutine,
   addStepQuick,
@@ -606,9 +607,14 @@ function MoreBlock({ kidId, accent, routine, steps, kids }: { kidId: string; acc
           </div>
         )}
 
-        <Button variant="secondary" className="w-full" onClick={() => setPreview(true)} disabled={steps.length === 0}>
-          <Eye className="h-4 w-4" /> See it like the kids do
-        </Button>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button variant="secondary" onClick={() => setPreview(true)} disabled={steps.length === 0}>
+            <Eye className="h-4 w-4" /> See it like the kids do
+          </Button>
+          <Button variant="secondary" disabled={pending || steps.length === 0} onClick={() => run(() => saveAsTemplate(routine.id))}>
+            <BookmarkPlus className="h-4 w-4" /> Save as a template
+          </Button>
+        </div>
 
         {others.length > 0 && (
           <div>

@@ -298,6 +298,60 @@ export async function copyRoutineToKid(routineId: string, targetChildId: string)
   return { ok: true, id: copy.id, message: "Copied" };
 }
 
+/** Save a routine (and its steps) as one of your own templates — it shows up under
+ *  "Add a routine" for every kid, marked "Yours". */
+export async function saveAsTemplate(routineId: string): Promise<KidResult> {
+  const { household, supabase } = await ctx();
+  const r = await routineRow(supabase, routineId);
+  if (!r) return { ok: false, error: "That routine isn't available." };
+  const { data: steps } = await supabase
+    .from("routine_steps")
+    .select("label, icon, reward_points, kind, step_type")
+    .eq("routine_id", routineId)
+    .is("deleted_at", null)
+    .order("order_index");
+  const content = {
+    type: r.type,
+    strict_order: r.strict_order ?? false,
+    steps: (steps ?? []).map((s) => ({ icon: s.icon ?? undefined, label: s.label, points: s.reward_points, kind: s.kind ?? "standard", step_type: s.step_type })),
+  };
+  const { data: last } = await supabase
+    .from("routine_templates")
+    .select("sort_order")
+    .eq("household_id", household.id)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase.from("routine_templates").insert({
+    household_id: household.id,
+    name: r.name,
+    emoji: "⭐",
+    description: "Saved from your routines",
+    content: content as unknown as Json,
+    sort_order: ((last?.sort_order as number) ?? -1) + 1,
+  });
+  if (error) return { ok: false, error: "Couldn't save the template." };
+  touch(kidsOf(r));
+  return { ok: true, message: `Saved — “${r.name}” is now in Add a routine` };
+}
+
+/** Remove one of your own saved templates (curated ones can't be removed). Undo restores it. */
+export async function deleteSavedTemplate(id: string): Promise<KidResult> {
+  const { household, supabase } = await ctx();
+  const { error } = await supabase.from("routine_templates").update({ deleted_at: new Date().toISOString() }).eq("id", id).eq("household_id", household.id);
+  if (error) return { ok: false, error: "Couldn't remove that template." };
+  revalidatePath("/app/children", "layout");
+  return { ok: true, message: "Template removed" };
+}
+
+export async function restoreSavedTemplate(id: string): Promise<KidResult> {
+  const { household, supabase } = await ctx();
+  const { error } = await supabase.from("routine_templates").update({ deleted_at: null }).eq("id", id).eq("household_id", household.id);
+  if (error) return { ok: false, error: "Couldn't bring it back." };
+  revalidatePath("/app/children", "layout");
+  return { ok: true, message: "Restored" };
+}
+
 export async function renameRoutine(routineId: string, name: string): Promise<KidResult> {
   const { supabase } = await ctx();
   const n = clip(name, 60);

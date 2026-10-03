@@ -274,6 +274,32 @@ export async function loadKidRoutines(supabase: Db, household: Household, childI
   return { routines: mine, siblings, templates, kids: kids ?? [] };
 }
 
+/** Every kid's routines in one pass (for Plan → All routines). */
+export async function loadAllKidRoutines(supabase: Db, household: Household) {
+  const [{ routines, snap }, { data: kids }] = await Promise.all([
+    loadRoutineContext(supabase, household.id),
+    supabase.from("children").select("id, name, avatar, photo_url, color").eq("household_id", household.id).is("deleted_at", null).order("sort_order"),
+  ]);
+  const nameOf = new Map((kids ?? []).map((k) => [k.id, k.name]));
+  return (kids ?? []).map((k) => ({
+    kid: k,
+    routines: routines
+      .filter((r) => !r.person_id && routineForChild(r as unknown as KioskRoutine, k.id))
+      .map((r) => {
+        const eff = effectiveSchedule(r as unknown as KioskRoutine, k.id, snap);
+        return {
+          id: r.id,
+          name: r.name,
+          emoji: routineEmoji(r),
+          when: whenLabel(eff.start_time, eff.end_time, eff.days_of_week),
+          stepCount: r.routine_steps.filter((s) => !s.deleted_at).length,
+          active: r.active && !eff.disabled,
+          sharedWith: r.scope === "shared" ? (r.assigned_child_ids ?? []).filter((id) => id !== k.id).map((id) => nameOf.get(id) ?? "").filter(Boolean) : [],
+        };
+      }),
+  }));
+}
+
 // ── Chores & stars tab ───────────────────────────────────────────────────────
 export type KidChoreRow = {
   id: string;

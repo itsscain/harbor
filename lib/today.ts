@@ -362,8 +362,8 @@ export async function buildTodayModel(supabase: Db, household: Household, opts?:
       href: kids[0] ? `/app/children/${kids[0].id}` : "/app/children",
     },
     { label: "Add a reward", hint: "Something to spend stars on", done: (storeCount ?? 0) > 0, href: "/app/store" },
-    { label: "Set a wall PIN", hint: "Keeps little hands out of settings", done: !!household.parent_pin_hash, href: "/app/settings#pin" },
-    { label: "Connect your wall", hint: "Show your family on the tablet", done: (pairings ?? []).some((p) => p.status === "paired"), href: "/app/devices" },
+    { label: "Set a wall PIN", hint: "Keeps little hands out of settings", done: !!household.parent_pin_hash, href: "/app/settings?open=pin" },
+    { label: "Connect your wall", hint: "Show your family on the tablet", done: (pairings ?? []).some((p) => p.status === "paired"), href: "/app/devices?add=1" },
   ];
   const showSetup = (settings.onboardingDismissed !== true || !!opts?.forceSetup) && !steps.every((s) => s.done);
 

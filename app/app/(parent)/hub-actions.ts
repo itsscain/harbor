@@ -9,9 +9,7 @@ import { planDinners } from "@/lib/ai/mealPlan";
 import { buildCornerPlan, buildCornerReport, sanitizeCornerPlan, type CornerPlan } from "@/lib/ai/corner";
 import { extractFromCapture, isCaptureImageType, type CaptureResult } from "@/lib/ai/capture";
 import { buildTidesInsight, type TidesInsight } from "@/lib/ai/tides";
-import { pushToGoogle, deleteGoogleEvent } from "@/lib/google/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generatePairingCode } from "@/lib/codes";
 import { env, serverEnv } from "@/lib/env";
 import { tzFromSettings, wallTimeToUtcMs } from "@/lib/tz";
 import type { Json } from "@/lib/database.types";
@@ -45,73 +43,7 @@ async function myHouseholdId(): Promise<string> {
   return h.id;
 }
 
-// ── Calendar events ──────────────────────────────────────────────────────────
-export async function addEvent(formData: FormData) {
-  await requireUser();
-  const household = await getMyHousehold();
-  if (!household) throw new Error("No household found.");
-  const household_id = household.id;
-  const supabase = await createClient();
-  const allDay = formData.get("all_day") === "on";
-  // Interpret the parent's entered WALL time in the family timezone (default America/New_York),
-  // so the event lands at the same instant no matter which device/zone added it. The legacy
-  // browser-tz ISO is only a fallback when the naive value is missing.
-  const tz = tzFromSettings((household.settings ?? {}) as Record<string, unknown>);
-  const dt = str(formData.get("starts_at"));
-  const dtIso = str(formData.get("starts_at_iso"));
-  const startMs = dt ? wallTimeToUtcMs(dt, tz) : NaN;
-  const starts_at = Number.isFinite(startMs) ? new Date(startMs).toISOString() : dtIso || nowIso();
-  const { error } = await supabase.from("events").insert({
-    household_id,
-    title: String(formData.get("title") || "Event"),
-    emoji: str(formData.get("emoji")),
-    location: str(formData.get("location")),
-    starts_at,
-    all_day: allDay,
-    is_countdown: formData.get("is_countdown") === "on",
-    person_label: str(formData.get("person_label")),
-    color: str(formData.get("color")),
-    recurrence_rule: str(formData.get("recurrence_rule")),
-    child_id: str(formData.get("child_id")),
-  });
-  if (error) throw new Error(error.message);
-  await invalidateBriefs(household_id);
-  // Two-way sync: push the new event up to Google (best-effort; no-op if not connected).
-  try {
-    await pushToGoogle(supabase, household_id);
-  } catch (e) {
-    // Sync is additive — never block adding an event; log for visibility.
-    console.error("Google push failed after addEvent:", e);
-  }
-  revalidatePath("/app/calendar");
-}
-
-export async function deleteEvent(id: string) {
-  await requireUser();
-  const supabase = await createClient();
-  // Keep the core delete independent of the google_event_id column so it works
-  // even before migration 0031 is applied.
-  const { data: ev, error } = await supabase
-    .from("events")
-    .update({ deleted_at: nowIso() })
-    .eq("id", id)
-    .select("household_id")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (ev?.household_id) await invalidateBriefs(ev.household_id);
-  // Mirror the deletion to Google if this event was synced (tolerant of the
-  // column/table not existing yet — never blocks the delete).
-  if (ev?.household_id) {
-    try {
-      const { data: g } = await supabase.from("events").select("google_event_id").eq("id", id).maybeSingle();
-      if (g?.google_event_id) await deleteGoogleEvent(supabase, ev.household_id, g.google_event_id);
-    } catch {
-      /* best-effort */
-    }
-  }
-  revalidatePath("/app/calendar");
-}
-
+// ── Google Calendar ──────────────────────────────────────────────────────────
 /** Disconnect Google Calendar — removes the stored tokens for this household. */
 export async function disconnectGoogle() {
   await requireUser();
@@ -125,70 +57,6 @@ export async function disconnectGoogle() {
   }
   await supabase.from("google_calendar").delete().eq("household_id", household_id);
   revalidatePath("/app/settings");
-}
-
-// ── Reminders ────────────────────────────────────────────────────────────────
-export async function addReminder(formData: FormData) {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const { error } = await supabase.from("reminders").insert({
-    household_id,
-    title: String(formData.get("title") || "Reminder"),
-    due_date: str(formData.get("due_date")) ?? new Date().toISOString().slice(0, 10),
-    child_id: str(formData.get("child_id")),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/calendar");
-}
-
-export async function deleteReminder(id: string) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("reminders")
-    .update({ deleted_at: nowIso() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/calendar");
-}
-
-// ── Shared lists ─────────────────────────────────────────────────────────────
-export async function addListItemParent(formData: FormData) {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const { error } = await supabase.from("list_items").insert({
-    household_id,
-    name: String(formData.get("name") || "Item"),
-    category: str(formData.get("category")),
-    list_kind: str(formData.get("list_kind")) ?? "grocery",
-    added_by_label: "Phone",
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/lists");
-}
-
-export async function toggleListItem(id: string, checked: boolean) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase.from("list_items").update({ checked }).eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/lists");
-}
-
-export async function clearCheckedItems() {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("list_items")
-    .update({ deleted_at: nowIso() })
-    .eq("household_id", household_id)
-    .eq("checked", true)
-    .is("deleted_at", null);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/lists");
 }
 
 // ── Reward store ─────────────────────────────────────────────────────────────
@@ -235,33 +103,6 @@ export async function deleteStoreItem(id: string) {
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/app/store");
-}
-
-// ── Meals (weekly meal planner; read-only on the wall) ───────────────────────
-export async function addMeal(formData: FormData) {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const { error } = await supabase.from("meals").insert({
-    household_id,
-    date: str(formData.get("date")) ?? new Date().toISOString().slice(0, 10),
-    meal_type: str(formData.get("meal_type")) ?? "dinner",
-    title: String(formData.get("title") || "Dinner"),
-    emoji: str(formData.get("emoji")),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/meals");
-}
-
-export async function deleteMeal(id: string) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("meals")
-    .update({ deleted_at: nowIso() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/meals");
 }
 
 // ── Grounding / Reset days ───────────────────────────────────────────────────
@@ -332,22 +173,6 @@ export async function adjustGrounding(id: string, childId: string, delta: number
   } else {
     await supabase.from("groundings").update({ ends_on: newEnd }).eq("id", id);
   }
-  revalidatePath(`/app/children/${childId}`);
-}
-
-export async function updateGrounding(id: string, childId: string, formData: FormData) {
-  await requireUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("groundings")
-    .update({
-      note: str(formData.get("note")),
-      pause_rewards: formData.get("pause_rewards") === "on",
-      pause_screen_time: formData.get("pause_screen_time") === "on",
-      privileges_lost: strList(formData.get("privileges")),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
   revalidatePath(`/app/children/${childId}`);
 }
 
@@ -783,43 +608,7 @@ export async function dismissOnboarding() {
   revalidatePath("/app");
 }
 
-// ── Per-child accessibility settings (merge into children.settings jsonb) ─────
-export async function updateChildSettings(childId: string, formData: FormData) {
-  await requireUser();
-  const supabase = await createClient();
-  const { data: child } = await supabase
-    .from("children")
-    .select("settings")
-    .eq("id", childId)
-    .maybeSingle();
-  const current = (child?.settings ?? {}) as Record<string, unknown>;
-  const next = {
-    ...current,
-    readAloud: formData.get("readAloud") === "on",
-    autoRead: formData.get("autoRead") === "on",
-    sound: formData.get("sound") === "on",
-    haptics: formData.get("haptics") === "on",
-    reducedMotion: formData.get("reducedMotion") === "on",
-    sensory: ["calm", "standard", "vivid"].includes(str(formData.get("sensory")) ?? "")
-      ? str(formData.get("sensory"))
-      : "standard",
-    // AI-Led Voice §5.5 — child voice conversation, OFF by default (conservative).
-    voiceChat: formData.get("voiceChat") === "on",
-    theme: str(formData.get("theme")) ?? "harbor",
-    bedtime: (() => {
-      const b = str(formData.get("bedtime"));
-      return b && /^\d{2}:\d{2}$/.test(b) ? b : null;
-    })(),
-  };
-  const { error } = await supabase
-    .from("children")
-    .update({ settings: next as never })
-    .eq("id", childId);
-  if (error) throw new Error(error.message);
-  revalidatePath(`/app/children/${childId}`);
-}
-
-// ── Kiosk / home settings (merge into households.settings jsonb) ──────────────
+// ── Meals + pantry (AI) ──────────────────────────────────────────────────────
 export type MealPlanResult = {
   ok: boolean;
   error?: string;
@@ -1153,31 +942,6 @@ export async function setFamilyGoal(formData: FormData) {
   revalidatePath("/app/store");
 }
 
-/** Mint a one-time pairing code — for a wall (full hub) or an outpost (a per-child
- *  room device, §9.1.4). The kiosk reads the kind/child at pair time. */
-export async function createPairingCode(formData: FormData) {
-  await requireUser();
-  const household_id = await myHouseholdId();
-  const supabase = await createClient();
-  const kind = formData.get("kind") === "outpost" ? "outpost" : "wall";
-  const child_id = kind === "outpost" ? str(formData.get("child_id")) : null;
-  if (kind === "outpost") {
-    if (!child_id) throw new Error("Pick a child for the room device.");
-    // Verify the child belongs to this household (RLS-scoped read).
-    const { data: ok } = await supabase.from("children").select("id").eq("id", child_id).eq("household_id", household_id).maybeSingle();
-    if (!ok) throw new Error("That child isn't in your household.");
-  }
-  const { error } = await supabase.from("device_pairings").insert({
-    household_id,
-    code: generatePairingCode(),
-    status: "pending",
-    kind,
-    child_id,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/settings");
-}
-
 /** Find an existing auth user by email (admin only) — for inviting a co-parent who
  *  already has a Harbor account. Scans a few pages; fine for small households. */
 async function findAuthUserByEmail(
@@ -1274,62 +1038,3 @@ export async function removeCoParent(profileId: string) {
   revalidatePath("/app/settings");
 }
 
-export async function updateKioskSettings(formData: FormData) {
-  await requireUser();
-  const household = await getMyHousehold();
-  if (!household) throw new Error("No household found.");
-  const supabase = await createClient();
-  const current = (household.settings ?? {}) as Record<string, unknown>;
-
-  // Optional weather location: geocode a city to lat/lon once, here.
-  let weather = current.weather as { lat: number; lon: number; label: string } | undefined;
-  const city = str(formData.get("weatherCity"));
-  const prevLabel = weather?.label ?? "";
-  if (city === null) {
-    weather = undefined;
-  } else if (city.toLowerCase() !== prevLabel.toLowerCase()) {
-    try {
-      const r = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`,
-      );
-      const j = await r.json();
-      const hit = j?.results?.[0];
-      if (hit) {
-        weather = {
-          lat: hit.latitude,
-          lon: hit.longitude,
-          label: [hit.name, hit.admin1].filter(Boolean).join(", "),
-        };
-      }
-    } catch {
-      /* leave existing weather if geocoding fails */
-    }
-  }
-
-  const photosRaw = formData.get("homePhotos");
-  const homePhotos =
-    photosRaw == null
-      ? (current.homePhotos as string[] | undefined)
-      : String(photosRaw)
-          .split(/[\n,]+/)
-          .map((s) => s.trim())
-          .filter((s) => /^https?:\/\//i.test(s));
-
-  const next = {
-    ...current,
-    timezone: str(formData.get("timezone")) ?? (current.timezone as string) ?? "America/New_York",
-    idleSeconds: Math.max(30, int(formData.get("idleSeconds"), 120)),
-    screensaver: formData.get("screensaver") === "on",
-    homePhotoUrl: str(formData.get("homePhotoUrl")),
-    homePhotos,
-    quietStart: str(formData.get("quietStart")),
-    quietEnd: str(formData.get("quietEnd")),
-    weather,
-  };
-  const { error } = await supabase
-    .from("households")
-    .update({ settings: next as never })
-    .eq("id", household.id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/app/settings");
-}

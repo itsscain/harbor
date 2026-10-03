@@ -43,10 +43,10 @@ export type NavGroup = { heading: string; items: NavItem[] };
 export const PLAN_GROUP: NavGroup = {
   heading: "Plan the days",
   items: [
-    { href: "/app/lists", label: "Lists", desc: "Groceries and the wall's to-do list", icon: ClipboardList },
-    { href: "/app/medication", label: "Medicine", desc: "Doses, times and a log for the doctor", icon: Pill },
+    { href: "/app/lists", label: "Lists", desc: "Groceries and to-dos", icon: ClipboardList },
+    { href: "/app/medication", label: "Medicine", desc: "Doses, times and a dose log", icon: Pill },
     { href: "/app/routines", label: "All routines", desc: "Every kid's routines in one place", icon: ListChecks },
-    { href: "/app/schedule", label: "Routine times", desc: "When each routine shows, for every kid", icon: CalendarRange },
+    { href: "/app/schedule", label: "Routine times", desc: "When each routine shows", icon: CalendarRange },
     { href: "/app/pantry", label: "Pantry", desc: "On-hand ingredients for AI meals", icon: Carrot },
   ],
 };
@@ -55,11 +55,11 @@ export const PLAN_GROUP: NavGroup = {
 export const FAMILY_GROUP: NavGroup = {
   heading: "Your family",
   items: [
-    { href: "/app/family", label: "Grown-ups", desc: "Parents & caregivers + Together Time", icon: Heart },
-    { href: "/app/rules", label: "House Rules", desc: "Rules & the consequence ladder on the wall", icon: ScrollText },
     { href: "/app/store", label: "Rewards", desc: "What kids spend their stars on", icon: Gift },
-    { href: "/app/calm", label: "Calm Tools", desc: "Breathing, feelings & social stories", icon: Wind },
-    { href: "/app/messages", label: "Message board", desc: "Notes & nudges for the wall", icon: StickyNote },
+    { href: "/app/rules", label: "House rules", desc: "Rules, and what happens next", icon: ScrollText },
+    { href: "/app/calm", label: "Calm tools", desc: "Breathing, feelings, stories", icon: Wind },
+    { href: "/app/messages", label: "Message board", desc: "Notes pinned to the wall", icon: StickyNote },
+    { href: "/app/family", label: "Grown-ups", desc: "Co-parents and wall profiles", icon: Heart },
   ],
 };
 
@@ -67,28 +67,28 @@ export const FAMILY_GROUP: NavGroup = {
 export const INSIGHTS_GROUP: NavGroup = {
   heading: "Look back",
   items: [
-    { href: "/app/insights", label: "Insights", desc: "Trends & gentle patterns", icon: BarChart3 },
-    { href: "/app/history", label: "Activity", desc: "Full ledger — chores, routines, rewards", icon: History },
+    { href: "/app/history", label: "Activity", desc: "Everything that happened", icon: History },
+    { href: "/app/insights", label: "Patterns", desc: "Gentle trends over the weeks", icon: BarChart3 },
   ],
 };
 
 /** ASSISTANT — the copilot + your inbox. */
 export const ASSISTANT_GROUP: NavGroup = {
-  heading: "Harbor helps",
+  heading: "Help",
   items: [
     { href: "/app/ask", label: "Ask Harbor", desc: "Talk or type — grounded help & drafts", icon: MessageCircleHeart },
-    { href: "/app/notifications", label: "Notifications", desc: "Everything Harbor flagged for you", icon: Bell },
-    { href: "/app?setup=1", label: "Getting started", desc: "Reopen your setup checklist", icon: Compass },
+    { href: "/app/notifications", label: "Notifications", desc: "Things Harbor flagged for you", icon: Bell },
+    { href: "/app?setup=1", label: "Getting started", desc: "Your setup checklist", icon: Compass },
   ],
 };
 
 /** ACCOUNT — system + hardware + money. */
 export const ACCOUNT_GROUP: NavGroup = {
-  heading: "Account",
+  heading: "Setup",
   items: [
-    { href: "/app/devices", label: "Devices", desc: "Name, monitor & manage every screen", icon: Tablet },
-    { href: "/app/settings", label: "Settings", desc: "Household, wall PIN, notifications, account", icon: Settings },
-    { href: "/app/billing", label: "Harbor Plus", desc: "Cloud sync & extras", icon: CreditCard },
+    { href: "/app/devices", label: "Screens", desc: "The wall and bedroom screens", icon: Tablet },
+    { href: "/app/settings", label: "Settings", desc: "PIN, time zone, alerts", icon: Settings },
+    { href: "/app/billing", label: "Harbor Plus", desc: "Extras for your family", icon: CreditCard },
   ],
 };
 

@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2 } from "lucide-react";
+import { useOptimistic } from "react";
+import { Plus, Loader2, X } from "lucide-react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button, Input } from "@/components/ui/primitives";
 import { useQuickAction } from "@/components/ui/useQuickAction";
 import { routineEmoji } from "@/lib/routine-emoji";
-import { createRoutineFromTemplate, copyRoutineToKid, createBlankRoutine } from "@/app/app/(parent)/children/kid-actions";
+import { createRoutineFromTemplate, copyRoutineToKid, createBlankRoutine, deleteSavedTemplate, restoreSavedTemplate } from "@/app/app/(parent)/children/kid-actions";
 import type { TemplateCard } from "@/lib/kid";
 
 type Sibling = { id: string; name: string; routines: { id: string; name: string; emoji: string; steps: number }[] };
@@ -34,6 +35,7 @@ export function AddRoutineSheet({
   const [open, setOpen] = useState(autoOpen);
   const [tapped, setTapped] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [gone, hide] = useOptimistic<string[], string>([], (cur, id) => [...cur, id]);
   const [prevAuto, setPrevAuto] = useState(autoOpen);
   if (autoOpen !== prevAuto) {
     setPrevAuto(autoOpen);
@@ -61,31 +63,44 @@ export function AddRoutineSheet({
           <section>
             <h3 className="text-eyebrow mb-2 text-fg-muted">Ready-made</h3>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {templates.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={pending}
-                  onClick={() => go(t.id, () => createRoutineFromTemplate(kidId, t.id))}
-                  className="tap flex min-h-[4.5rem] items-start gap-3 rounded-2xl border border-line bg-surface-2/50 p-3.5 text-left transition hover:border-accent/50 hover:bg-surface-2 active:scale-[0.98] disabled:opacity-60"
-                >
-                  <span className="text-2xl leading-none" aria-hidden>
-                    {busy === t.id ? <Loader2 className="h-6 w-6 animate-spin text-accent" /> : (t.emoji ?? routineEmoji({ name: t.name }))}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 font-semibold text-fg">
-                      {t.name}
-                      {t.saved && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent">Yours</span>}
-                    </span>
-                    {t.description && <span className="mt-0.5 line-clamp-2 block text-sm leading-snug text-fg-muted">{t.description}</span>}
-                    {t.steps.length > 0 && (
-                      <span className="mt-1.5 block truncate text-base tracking-wide" aria-label={`${t.steps.length} steps`}>
-                        {t.steps.map((s) => s.icon ?? "•").join(" ")}
+              {templates
+                .filter((t) => !gone.includes(t.id))
+                .map((t) => (
+                  <div key={t.id} className="relative">
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => go(t.id, () => createRoutineFromTemplate(kidId, t.id))}
+                      className="tap flex min-h-[4.5rem] w-full items-start gap-3 rounded-2xl border border-line bg-surface-2/50 p-3.5 pr-11 text-left transition hover:border-accent/50 hover:bg-surface-2 active:scale-[0.98] disabled:opacity-60"
+                    >
+                      <span className="text-2xl leading-none" aria-hidden>
+                        {busy === t.id ? <Loader2 className="h-6 w-6 animate-spin text-accent" /> : (t.emoji ?? routineEmoji({ name: t.name }))}
                       </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 font-semibold text-fg">
+                          {t.name}
+                          {t.saved && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent">Yours</span>}
+                        </span>
+                        {t.description && <span className="mt-0.5 line-clamp-2 block text-sm leading-snug text-fg-muted">{t.description}</span>}
+                        {t.steps.length > 0 && (
+                          <span className="mt-1.5 block truncate text-base tracking-wide" aria-label={`${t.steps.length} steps`}>
+                            {t.steps.map((s) => s.icon ?? "•").join(" ")}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                    {t.saved && (
+                      <button
+                        type="button"
+                        aria-label={`Remove the ${t.name} template`}
+                        onClick={() => run(() => deleteSavedTemplate(t.id), { optimistic: () => hide(t.id), undo: () => restoreSavedTemplate(t.id) })}
+                        className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-full text-fg-subtle transition hover:bg-surface hover:text-error"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     )}
-                  </span>
-                </button>
-              ))}
+                  </div>
+                ))}
             </div>
           </section>
 
