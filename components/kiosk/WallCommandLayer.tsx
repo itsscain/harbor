@@ -31,7 +31,16 @@ const CMD_STYLE: Record<string, { emoji: string; title: string; tint: string; fx
  * pending→decided live OR they landed between polls / while the wall slept (guarded by
  * decided_at so boot/reconnect never replays old decisions).
  */
-export function WallCommandLayer({ kiosk, onStartCalm }: { kiosk: Kiosk; onStartCalm?: () => void }) {
+export function WallCommandLayer({
+  kiosk,
+  onStartCalm,
+  tone = "dark",
+}: {
+  kiosk: Kiosk;
+  onStartCalm?: () => void;
+  /** "light" for the Lantern's pale UI — a solid white card with dark text. */
+  tone?: "dark" | "light";
+}) {
   const commands = kiosk.state?.snapshot.wall_commands ?? [];
   const requests = kiosk.state?.snapshot.requests ?? [];
 
@@ -120,12 +129,20 @@ export function WallCommandLayer({ kiosk, onStartCalm }: { kiosk: Kiosk; onStart
       <div
         key={toast.key}
         className="animate-sheet-up flex max-w-md items-center gap-3 rounded-2xl px-5 py-3.5 text-left shadow-k-pop backdrop-blur"
-        style={{ background: `${toast.tint}1f`, boxShadow: `0 0 34px -10px ${toast.tint}`, border: `1px solid ${toast.tint}66` }}
+        style={
+          tone === "light"
+            ? { background: "#ffffff", boxShadow: `0 10px 34px -10px ${toast.tint}`, border: `2px solid ${toast.tint}` }
+            : { background: `${toast.tint}1f`, boxShadow: `0 0 34px -10px ${toast.tint}`, border: `1px solid ${toast.tint}66` }
+        }
       >
         <span className="text-3xl leading-none">{toast.emoji}</span>
         <div className="min-w-0">
-          <p className="font-display text-lg font-bold text-ktext">{toast.title}</p>
-          {toast.body && <p className="truncate text-sm text-kmute">{toast.body}</p>}
+          <p className={tone === "light" ? "font-display text-lg font-bold text-harbor" : "font-display text-lg font-bold text-ktext"}>
+            {toast.title}
+          </p>
+          {toast.body && (
+            <p className={tone === "light" ? "truncate text-sm text-muted" : "truncate text-sm text-kmute"}>{toast.body}</p>
+          )}
         </div>
       </div>
     </div>

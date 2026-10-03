@@ -6,7 +6,7 @@ import { Home, Users, LogOut } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Wordmark } from "@/components/brand/Logo";
 import { signOut } from "@/lib/actions/auth";
-import { PLAN_GROUP, MORE_GROUPS, type NavItem } from "@/lib/app-nav";
+import { PLAN_GROUPS, MORE_GROUPS, type NavItem } from "@/lib/app-nav";
 import { cn } from "@/lib/cn";
 
 // The Helm — the parent's persistent command rail on desktop. Mobile hides it and
@@ -16,7 +16,7 @@ const TOP: NavItem[] = [
   { href: "/app", label: "Today", desc: "", icon: Home },
   { href: "/app/children", label: "Kids", desc: "", icon: Users },
 ];
-const GROUPS = [PLAN_GROUP, ...MORE_GROUPS];
+const GROUPS = [...PLAN_GROUPS, ...MORE_GROUPS];
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/app") return pathname === "/app";

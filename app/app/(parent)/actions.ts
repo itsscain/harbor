@@ -148,7 +148,9 @@ export async function updateChild(id: string, formData: FormData) {
       // custom color (no matching radio) must not be wiped to null on save.
       ...(color ? { color } : {}),
       birthday: str(formData.get("birthday")),
-      sort_order: int(formData.get("sort_order"), 0),
+      // Only reorder when the form actually carries a position — the profile form doesn't,
+      // and writing 0 here scrambled the kids' order on the wall on every profile save.
+      ...(formData.has("sort_order") ? { sort_order: int(formData.get("sort_order"), 0) } : {}),
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
@@ -1406,7 +1408,9 @@ export async function askHarbor(question: string): Promise<{ answer: string }> {
         return (
           `- ${k.name}${age ? `, ${age}y` : ""}${cs.sensory ? `, ${cs.sensory} sensory` : ""}. ` +
           `Routines: ${rnames || "none"}. Last 2 weeks of feelings: ${topFeelings || "none logged"}.` +
-          (k.ai_profile ? ` Parent notes: ${String(k.ai_profile).slice(0, 200)}` : "")
+          ((k.ai_profile as { summary?: string } | null)?.summary
+            ? ` Parent notes: ${String((k.ai_profile as { summary?: string }).summary).slice(0, 200)}`
+            : "")
         );
       })
       .join("\n") || "(no children set up yet)";

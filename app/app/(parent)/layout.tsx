@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Wordmark } from "@/components/brand/Logo";
 import { ParentNav } from "@/components/app/ParentNav";
 import { ParentRail } from "@/components/app/ParentRail";
@@ -9,18 +9,41 @@ import { RegisterSWApp } from "@/components/app/RegisterSWApp";
 import { NotificationPrompt } from "@/components/app/NotificationPrompt";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { BadgeSync } from "@/components/app/BadgeSync";
+import { ToastProvider } from "@/components/ui/Toast";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 
+async function isDark(): Promise<boolean> {
+  return (await cookies()).get("harbor-theme")?.value !== "light";
+}
+
 // /app gets its own standalone manifest so "Add to Home Screen" installs the parent app
-// (start_url/scope = /app) chrome-less, separate from the /kiosk wall app.
-export const metadata: Metadata = {
-  manifest: "/manifest-app.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Harbor" },
-};
+// (start_url/scope = /app) chrome-less, separate from the /kiosk wall app. The iPhone status bar
+// follows the skin: translucent-dark over the dark Helm (the header already pads for the notch),
+// default on the light skin — no more white bar over a dark app.
+export async function generateMetadata(): Promise<Metadata> {
+  const dark = await isDark();
+  return {
+    manifest: "/manifest-app.webmanifest",
+    appleWebApp: { capable: true, statusBarStyle: dark ? "black-translucent" : "default", title: "Harbor" },
+  };
+}
+
+// The parent app allows pinch-zoom (accessibility); the kid-proof wall keeps it locked at root.
+export async function generateViewport(): Promise<Viewport> {
+  const dark = await isDark();
+  return {
+    themeColor: dark ? "#0b0e13" : "#eef3f4",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: "cover",
+  };
+}
 
 export default async function ParentLayout({
   children,
@@ -47,6 +70,7 @@ export default async function ParentLayout({
 
   return (
     <div data-theme={theme} data-app-theme-root className="min-h-dvh bg-bg text-fg">
+      <ToastProvider>
       {household?.id && <RealtimeRefresh householdId={household.id} />}
       <RegisterSWApp vapidKey={env.vapidPublicKey} />
       <NotificationPrompt vapidKey={env.vapidPublicKey} />
@@ -68,6 +92,7 @@ export default async function ParentLayout({
       <div className="lg:hidden">
         <ParentNav unread={unread} />
       </div>
+      </ToastProvider>
     </div>
   );
 }

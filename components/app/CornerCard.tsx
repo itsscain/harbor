@@ -6,6 +6,7 @@ import { startCorner, endCorner, generateCornerReport } from "@/app/app/(parent)
 import { Card, Field, Input } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
+import { FEATURES } from "@/lib/features";
 
 type Plan = { steps?: string[]; reminder?: string; encouragement?: string };
 export type CornerRow = {
@@ -148,6 +149,17 @@ function ActiveCorner({ childId, childName, c }: { childId: string; childName: s
 }
 
 function ReportButton({ id, childId, existing }: { id: string; childId: string; existing: string | null }) {
+  // While AI is off (lib/features.ts) only a previously-written reflection is shown — no
+  // "generate" button that would dead-end on a missing API key.
+  if (!FEATURES.ai) {
+    return existing ? (
+      <p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface p-3 text-sm text-fg ring-1 ring-line">{existing}</p>
+    ) : null;
+  }
+  return <ReportGenerator id={id} childId={childId} existing={existing} />;
+}
+
+function ReportGenerator({ id, childId, existing }: { id: string; childId: string; existing: string | null }) {
   const [text, setText] = useState<string | null>(existing);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);

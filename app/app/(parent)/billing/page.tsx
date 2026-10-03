@@ -9,11 +9,12 @@ import { BillingActions } from "./BillingActions";
 export const metadata = { title: "Harbor Plus" };
 export const dynamic = "force-dynamic";
 
+// Editing from your phone and seeing it on the wall is FREE for every family (2026-10). Plus is
+// the extras on top.
 const PLUS_FEATURES = [
-  "Cloud backup of your routines and progress",
-  "Edit from your phone and push to the wall",
-  "Gentle insights and trends",
+  "Weekly insights and gentle trends",
   "The growing content & template library",
+  "Built-in AI helpers (coming soon)",
   "New features first",
 ];
 
@@ -73,10 +74,9 @@ export default async function BillingPage() {
 
       <Card className="border-line bg-surface-2">
         <p className="text-sm text-fg-muted">
-          <strong className="text-fg">Cancel anytime.</strong> If you stop
-          Plus, your wall keeps running exactly as-is from the tablet&apos;s own
-          data — you only lose cloud backup, remote editing, and new content.
-          Nothing on the wall breaks.
+          <strong className="text-fg">Cancel anytime.</strong> Editing from your phone and
+          syncing to the wall stay free either way. If you stop Plus you only lose the extras —
+          nothing on the wall breaks.
         </p>
       </Card>
     </>

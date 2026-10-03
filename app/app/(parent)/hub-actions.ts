@@ -699,22 +699,27 @@ export async function addMessage(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  // Apply a star bonus authenticated, here — the anon kiosk never mints points.
-  if (bonus > 0 && childId) {
-    await supabase
-      .from("reward_log")
-      .insert({ child_id: childId, delta: bonus, reason: "bonus" });
-    const { data: rw } = await supabase
-      .from("rewards")
-      .select("points_total")
-      .eq("child_id", childId)
-      .maybeSingle();
-    await supabase
-      .from("rewards")
-      .upsert(
-        { child_id: childId, points_total: (rw?.points_total ?? 0) + bonus },
-        { onConflict: "child_id" },
-      );
+  // Apply a star bonus authenticated, here — the anon kiosk never mints points. "Whole family"
+  // gives EVERY child the bonus (it used to be silently dropped while the note said "+N
+  // awarded"). Atomic per child via the same RPC the live remote uses.
+  if (bonus > 0) {
+    let targets: string[] = childId ? [childId] : [];
+    if (!childId) {
+      const { data: kids } = await supabase
+        .from("children")
+        .select("id")
+        .eq("household_id", household_id)
+        .is("deleted_at", null);
+      targets = (kids ?? []).map((k) => k.id);
+    }
+    for (const id of targets) {
+      const { error: rpcErr } = await supabase.rpc("rpc_parent_adjust_points", {
+        p_child: id,
+        p_delta: bonus,
+        p_reason: "bonus",
+      });
+      if (rpcErr) throw new Error(rpcErr.message);
+    }
   }
   revalidatePath("/app/messages");
 }

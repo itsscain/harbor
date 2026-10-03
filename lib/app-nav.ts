@@ -26,6 +26,12 @@ import {
   Compass,
   Radio,
 } from "lucide-react";
+import { FEATURES } from "@/lib/features";
+
+// Routes that only make sense with AI on (lib/features.ts). Filtered out of every nav surface
+// while AI is hidden, so no parent lands on a "paste your API key" dead end.
+const AI_ONLY = new Set(["/app/ask", "/app/pantry"]);
+const live = (items: NavItem[]): NavItem[] => (FEATURES.ai ? items : items.filter((i) => !AI_ONLY.has(i.href)));
 
 // Single source of truth for the parent-app (Helm) navigation taxonomy. The mobile
 // bottom bar (ParentNav), the desktop rail (ParentRail), and the Plan + More hub pages
@@ -98,10 +104,12 @@ export const ACCOUNT_GROUP: NavGroup = {
   ],
 };
 
+const withoutHidden = (g: NavGroup): NavGroup => ({ ...g, items: live(g.items) });
+
 /** The Plan hub page renders this. */
-export const PLAN_GROUPS: NavGroup[] = [PLAN_GROUP];
+export const PLAN_GROUPS: NavGroup[] = [PLAN_GROUP].map(withoutHidden);
 /** The More hub page renders these. */
-export const MORE_GROUPS: NavGroup[] = [COMMAND_GROUP, FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP];
+export const MORE_GROUPS: NavGroup[] = [COMMAND_GROUP, FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP].map(withoutHidden);
 
 /** All routes that light up the "Plan" / "More" primary tabs. */
 export const PLAN_ROUTES = ["/app/plan", ...PLAN_GROUP.items.map((i) => i.href)];

@@ -12,6 +12,7 @@ import { DateTimeField } from "@/components/app/DateTimeField";
 import { childColor, eventColor } from "@/lib/kiosk/colors";
 import { tzFromSettings } from "@/lib/tz";
 import { addEvent, deleteEvent, addReminder, deleteReminder } from "../hub-actions";
+import { FEATURES } from "@/lib/features";
 
 export const metadata = { title: "Calendar" };
 export const dynamic = "force-dynamic";
@@ -39,13 +40,15 @@ export default async function CalendarPage() {
         subtitle="Events show on the wall's Today view and agenda."
       />
 
-      <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface-2/40 p-4">
-        <div>
-          <p className="font-semibold text-fg">Got a flyer, email, or invite?</p>
-          <p className="text-sm text-fg-muted">Snap or paste it — Harbor adds the events for you.</p>
+      {FEATURES.ai && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface-2/40 p-4">
+          <div>
+            <p className="font-semibold text-fg">Got a flyer, email, or invite?</p>
+            <p className="text-sm text-fg-muted">Snap or paste it — Harbor adds the events for you.</p>
+          </div>
+          <QuickCapture />
         </div>
-        <QuickCapture />
-      </div>
+      )}
 
       <Card className="mb-6 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={<span className="text-title text-fg">Add an event</span>}>

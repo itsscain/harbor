@@ -17,6 +17,7 @@ import { TidesCard } from "@/components/app/TidesCard";
 import { ChildPhotoField } from "@/components/app/ChildPhotoField";
 import { SuggestChoresButton } from "@/components/app/SuggestChoresButton";
 import { AiProfileCard, type AiProfile } from "@/components/app/AiProfileCard";
+import { FEATURES } from "@/lib/features";
 import { titleCase } from "@/lib/format";
 import {
   updateChild,
@@ -323,9 +324,11 @@ export default async function ChildDetail({
         <CornerCard childId={child.id} childName={child.name} active={activeCorner} recent={corners} />
       </div>
 
-      <div className="mb-4">
-        <TidesCard childId={child.id} childName={child.name} />
-      </div>
+      {FEATURES.ai && (
+        <div className="mb-4">
+          <TidesCard childId={child.id} childName={child.name} />
+        </div>
+      )}
 
       {/* Chores */}
       <SectionHeader rule eyebrow="Care &amp; growth">Chores &amp; companion</SectionHeader>
@@ -340,9 +343,11 @@ export default async function ChildDetail({
         <p className="mt-1 text-sm text-fg-muted">
           Tasks {child.name} checks off on the wall to earn stars. They show on the family chore board.
         </p>
-        <div className="mt-3">
-          <SuggestChoresButton childId={child.id} />
-        </div>
+        {FEATURES.ai && (
+          <div className="mt-3">
+            <SuggestChoresButton childId={child.id} />
+          </div>
+        )}
         {(chores ?? []).length > 0 ? (
           <div className="mt-3 space-y-2">
             {(chores ?? []).map((ch) => {
@@ -436,13 +441,15 @@ export default async function ChildDetail({
         </Disclosure>
       </Card>
 
-      <div className="mb-4">
-        <AiProfileCard
-          childId={child.id}
-          childName={child.name}
-          profile={(child.ai_profile as AiProfile) ?? null}
-        />
-      </div>
+      {FEATURES.ai && (
+        <div className="mb-4">
+          <AiProfileCard
+            childId={child.id}
+            childName={child.name}
+            profile={(child.ai_profile as AiProfile) ?? null}
+          />
+        </div>
+      )}
 
 
       <SectionHeader rule eyebrow="Setup">Profile &amp; wall</SectionHeader>
@@ -514,7 +521,9 @@ export default async function ChildDetail({
               { name: "sound", label: "Success sounds", hint: "Play a chime on completion", def: cs.sound !== false },
               { name: "haptics", label: "Vibrate on done", hint: "Gentle buzz when a step is finished", def: cs.haptics !== false },
               { name: "reducedMotion", label: "Reduce motion", hint: "Calmer, minimal animation", def: cs.reducedMotion === true },
-              { name: "voiceChat", label: "AI voice conversation", hint: "Let this child talk to Harbor for routine help — bounded, safe, never an open chatbot. Off by default; you can review every conversation below.", def: cs.voiceChat === true },
+              ...(FEATURES.ai
+                ? [{ name: "voiceChat", label: "AI voice conversation", hint: "Let this child talk to Harbor for routine help — bounded, safe, never an open chatbot. Off by default; you can review every conversation below.", def: cs.voiceChat === true }]
+                : []),
             ].map((t) => (
               <div key={t.name} className="px-3.5 py-3">
                 <Switch name={t.name} label={t.label} hint={t.hint} defaultChecked={t.def} />
@@ -549,7 +558,7 @@ export default async function ChildDetail({
         </Disclosure>
       </Card>
 
-      {(cs.voiceChat === true || (voiceLog ?? []).length > 0) && (
+      {FEATURES.ai && (cs.voiceChat === true || (voiceLog ?? []).length > 0) && (
         <Card className="mb-4 p-0">
           <Disclosure
             bodyClassName="px-5 pb-5"

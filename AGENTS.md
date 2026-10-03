@@ -19,8 +19,10 @@ Harbor is a wall-tablet family command center. One Next.js app, four surfaces:
 
 ## Non-negotiable
 The kiosk's daily core runs **local-first from IndexedDB** and must never be gated
-behind the server or a subscription. Sync (push/pull) is Plus-only and additive;
-canceling Plus degrades to local-only, never to a broken device.
+behind the server or a subscription. Sync (push/pull) is **free for every paired
+device** (phone → wall editing is core, decided 2026-10); offline, the wall keeps
+working from IndexedDB. Plus is extras only (insights, content, built-in AI later).
+AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in AI ships.
 
 ## Key pieces
 - **Supabase** (`lib/supabase/{server,client,admin,middleware}.ts`). RLS on every
@@ -41,4 +43,12 @@ canceling Plus degrades to local-only, never to a broken device.
   Server Actions in `actions.ts` files, bound with `.bind(null, id)`.
 - Shared UI in `components/ui/primitives.tsx`. Brand tokens in `app/globals.css`
   (`@theme`): `harbor`, `water`, `beacon`, `seafoam`, `seafog`, `ink`, `muted`.
+- Parent app (`/app`) is dark by default: use the semantic tokens (`bg-bg/surface/surface-2`,
+  `border-line`, `text-fg/fg-muted`, `accent`). Hand-written CSS must use the runtime `--c-*`
+  vars — Tailwind's `@theme inline` never emits `--color-*` as CSS variables.
+- Parent-app forms use `ActionForm` (`components/ui/ActionForm.tsx`): it calls the action, shows
+  the real outcome in a toast, and never wipes the page. Actions **return**
+  `{ ok: false, error: "plain words" }` for expected problems (thrown messages are hidden in
+  production). Add/edit flows open a `Sheet`; pick values with `ChipGroup`/`ChildChips`,
+  `Stepper`, `DayPicker`, `TimeList`, `EmojiPicker`, `ColorPicker` (all in `components/ui`).
 - Run `get_advisors` after schema changes; keep `npm run build` clean.

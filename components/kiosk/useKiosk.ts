@@ -37,7 +37,7 @@ export type PairResult = {
 };
 
 export type KioskStatus = "loading" | "unpaired" | "ready" | "error";
-export type SyncStatus = "idle" | "syncing" | "ok" | "error" | "offline" | "no-plus";
+export type SyncStatus = "idle" | "syncing" | "ok" | "error" | "offline";
 
 export function useKiosk() {
   const [state, setState] = useState<KioskState | null>(null);
@@ -104,7 +104,7 @@ export function useKiosk() {
     return () => window.clearInterval(id);
   }, [update]);
 
-  // Background sync (no-op unless online + Plus). Daily use never needs this.
+  // Background sync (free for every family; a no-op when offline). Daily use never needs it.
   // Reconciles against live state: mutations enqueued during the network await
   // are preserved (and their optimistic effects re-applied) so a tap mid-sync is
   // never lost.
@@ -113,10 +113,6 @@ export function useKiosk() {
     if (!before) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setSyncStatus("offline");
-      return;
-    }
-    if (!before.snapshot.household.plus_active) {
-      setSyncStatus("no-plus");
       return;
     }
     setSyncStatus("syncing");
@@ -217,9 +213,8 @@ export function useKiosk() {
   // on a nudge, debounce + delta-pull (the same authoritative path as the poll, so the
   // two can never diverge). The 30s poll + reconcile-on-wake remain the backstop.
   const householdId = state?.snapshot.household.id;
-  const plusActive = state?.snapshot.household.plus_active ?? false;
   useEffect(() => {
-    if (!householdId || !plusActive) return;
+    if (!householdId) return;
     let t: number | undefined;
     const nudge = (payload?: { at?: number }) => {
       const now = Date.now();
@@ -240,7 +235,7 @@ export function useKiosk() {
       setRealtimeStatus("idle");
       unsub();
     };
-  }, [householdId, plusActive, runSync]);
+  }, [householdId, runSync]);
 
   // Device check-in (Device Management D3) — report this build + last-seen and pop any
   // remote command the parent queued. NOT Plus-gated: device control (Remote Refresh,

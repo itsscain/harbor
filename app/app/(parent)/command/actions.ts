@@ -28,6 +28,13 @@ async function ctx() {
   return { profile, household, supabase };
 }
 
+/** How long a pop stays deliverable. Notes + praise wait ~10 min so a wall that was asleep or
+ *  briefly offline still shows them when it wakes; attention + calm are only useful right now. */
+function expiresFor(kind: "attention" | "note" | "praise" | "calm"): string {
+  const mins = kind === "note" || kind === "praise" ? 10 : 2;
+  return new Date(Date.now() + mins * 60_000).toISOString();
+}
+
 async function popCommand(input: {
   kind: "attention" | "note" | "praise" | "calm";
   childId: string | null;
@@ -44,6 +51,7 @@ async function popCommand(input: {
     emoji: input.emoji ?? null,
     payload: (input.payload ?? {}) as never,
     created_by: profile.id,
+    expires_at: expiresFor(input.kind),
   });
   if (error) throw new Error(error.message);
   return { ok: true as const };
@@ -82,6 +90,7 @@ export async function grantStars(input: {
       emoji: "⭐",
       payload: { stars: delta } as never,
       created_by: profile.id,
+      expires_at: expiresFor("praise"),
     });
   }
   revalidatePath("/app/command");

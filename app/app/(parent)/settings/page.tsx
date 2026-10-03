@@ -19,6 +19,7 @@ import { formatPairingCode } from "@/lib/pairing-format";
 import { titleCase } from "@/lib/format";
 import { updateHouseholdName, setParentPin, clearParentPin } from "../actions";
 import { updateKioskSettings, saveAiConfig, disconnectGoogle, createPairingCode } from "../hub-actions";
+import { FEATURES } from "@/lib/features";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -217,6 +218,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </Disclosure>
       </Card>
 
+      {FEATURES.ai && (
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={
         <div className="flex items-center gap-2">
@@ -261,6 +263,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </form>
         </Disclosure>
       </Card>
+      )}
 
       <Card className="mb-4 p-0">
         <Disclosure bodyClassName="px-5 pb-5" summary={

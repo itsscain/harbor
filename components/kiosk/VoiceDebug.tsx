@@ -220,7 +220,6 @@ function isConnError(s: string) {
 }
 
 function connLabel(s: SyncHealth): string {
-  if (!s.plusActive) return "Local only";
   if (s.realtimeStatus === "SUBSCRIBED") return "Live";
   if (isConnError(s.realtimeStatus)) return "Reconnecting…";
   if (!s.online) return "Offline";

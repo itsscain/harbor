@@ -1,12 +1,12 @@
 {
   "name": "Harbor — Parent",
   "short_name": "Harbor",
-  "description": "Manage your family's routines, calendar, and rewards — and Ask Harbor for help.",
+  "description": "Your family's routines, stars, calendar, and the wall — all from your phone.",
   "start_url": "/app",
   "scope": "/app",
   "display": "standalone",
-  "background_color": "#EDF3F3",
-  "theme_color": "#0C3B47",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
   "icons": [
     {
       "src": "/icons/icon.svg",

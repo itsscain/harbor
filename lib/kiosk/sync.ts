@@ -246,13 +246,13 @@ export async function pairDevice(code: string): Promise<{
 }
 
 /**
- * Push pending mutations and pull remote edits — ONLY when online and Plus is
- * active. Daily kiosk use never calls this; it is pure backup/remote-edit.
+ * Push pending mutations and pull remote edits whenever the device is online — free for
+ * every paired family (phone → wall editing is core, not a Plus perk). Daily kiosk use never
+ * depends on it: offline, the wall keeps running from IndexedDB.
  * Returns the (possibly updated) state; on failure returns the input unchanged.
  */
 export async function syncNow(state: KioskState, opts?: { full?: boolean }): Promise<KioskState> {
   if (typeof navigator !== "undefined" && !navigator.onLine) return state;
-  if (!state.snapshot.household.plus_active) return state;
 
   const supabase = createClient();
   let next = state;

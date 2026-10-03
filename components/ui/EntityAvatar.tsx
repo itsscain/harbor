@@ -22,8 +22,8 @@ export function EntityAvatar({
 }) {
   return (
     <span
-      className={cn("grid shrink-0 place-items-center overflow-hidden bg-harbor-50", SIZES[size])}
-      style={{ boxShadow: `0 0 0 1.5px #fff, 0 0 0 ${RING[size]}px ${accent}` }}
+      className={cn("grid shrink-0 place-items-center overflow-hidden bg-surface-2", SIZES[size])}
+      style={{ boxShadow: `0 0 0 1.5px var(--c-surface), 0 0 0 ${RING[size]}px ${accent}` }}
     >
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

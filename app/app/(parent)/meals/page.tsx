@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { titleCase } from "@/lib/format";
 import { addMeal, deleteMeal } from "../hub-actions";
 import { GenerateMealsButton } from "@/components/app/GenerateMealsButton";
+import { FEATURES } from "@/lib/features";
 
 export const metadata = { title: "Meals" };
 export const dynamic = "force-dynamic";
@@ -46,14 +47,15 @@ export default async function MealsPage() {
         subtitle="Tonight's dinner shows on the wall. Plan the week in a minute."
       />
 
-      <Card className="mb-4 border-accent/30 bg-accent/[0.04]">
-        <h2 className="text-title text-fg">Plan the week with AI</h2>
-        <p className="mb-3 mt-1 text-sm text-fg-muted">
-          Let Harbor fill any open dinner slots for the next 7 days with kid-friendly ideas. Needs your
-          Anthropic key (Settings → AI Companion).
-        </p>
-        <GenerateMealsButton />
-      </Card>
+      {FEATURES.ai && (
+        <Card className="mb-4 border-accent/30 bg-accent/[0.04]">
+          <h2 className="text-title text-fg">Plan the week with AI</h2>
+          <p className="mb-3 mt-1 text-sm text-fg-muted">
+            Let Harbor fill any open dinner slots for the next 7 days with kid-friendly ideas.
+          </p>
+          <GenerateMealsButton />
+        </Card>
+      )}
 
       <Card className="mb-6">
         <h2 className="text-title text-fg">Add a meal</h2>

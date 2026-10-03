@@ -62,7 +62,7 @@ export function ConfirmSubmit({
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 active:scale-[0.98]",
+          "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-error/40 px-3 py-2 text-sm font-semibold text-error transition hover:bg-error/10 active:scale-[0.98]",
           className,
         )}
       >
@@ -74,21 +74,21 @@ export function ConfirmSubmit({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="animate-pop w-full max-w-sm rounded-2xl bg-white p-6 text-left shadow-pop"
+            className="animate-pop w-full max-w-sm rounded-2xl border border-line bg-surface p-6 text-left shadow-pop"
           >
-            <h2 className="text-title text-harbor">{title}</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">{message}</p>
+            <h2 className="text-title text-fg">{title}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">{message}</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 ref={cancelRef}
                 onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-harbor transition hover:bg-harbor-50 active:scale-[0.98]"
+                className="min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold text-fg transition hover:bg-surface-2 active:scale-[0.98]"
               >
                 Cancel
               </button>
@@ -104,7 +104,7 @@ export function ConfirmSubmit({
                   form?.requestSubmit();
                   setOpen(false);
                 }}
-                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-red-700 active:scale-[0.98]"
+                className="min-h-11 rounded-xl bg-error px-4 py-2.5 text-sm font-semibold text-white shadow-button transition hover:brightness-110 active:scale-[0.98]"
               >
                 {confirmLabel}
               </button>

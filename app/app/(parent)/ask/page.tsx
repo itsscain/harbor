@@ -1,11 +1,15 @@
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/primitives";
 import { AskHarbor } from "@/components/app/AskHarbor";
+import { FEATURES } from "@/lib/features";
 
 export const metadata = { title: "Ask Harbor" };
 export const dynamic = "force-dynamic";
 
 export default function AskPage() {
+  // Hidden until Harbor ships built-in AI (lib/features.ts) — no "paste your API key" dead end.
+  if (!FEATURES.ai) redirect("/app");
   return (
     <>
       <PageHeader

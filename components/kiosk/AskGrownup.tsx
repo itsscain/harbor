@@ -54,10 +54,6 @@ export function AskGrownup({
     else send(kind);
   };
 
-  // Requests ride the (Plus-only) sync channel — a free wall can't deliver them, so don't
-  // offer the button there (it would enqueue and never send, then falsely say "Sent!").
-  if (!kiosk.state?.snapshot.household.plus_active) return null;
-
   return (
     <>
       <Pressable

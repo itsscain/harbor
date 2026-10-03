@@ -11,10 +11,11 @@ const buttonVariants: Record<ButtonVariant, string> = {
   ghost: "text-fg hover:bg-surface-2",
   danger: "border border-error/40 bg-surface text-error hover:bg-error/10",
 };
+// Touch-first sizes: md/lg meet the 44pt target; sm (dense rows only) stays a comfortable 40.
 const buttonSizes: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2.5 text-sm",
-  lg: "px-6 py-3 text-base",
+  sm: "min-h-10 px-3.5 py-2 text-sm",
+  md: "min-h-11 px-4 py-2.5 text-[15px]",
+  lg: "min-h-12 px-6 py-3 text-base",
 };
 
 export function Button({
@@ -229,7 +230,7 @@ export function Select({
   className,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn(fieldClass, "appearance-none", className)} {...props} />;
+  return <select className={cn(fieldClass, "select-chevron appearance-none", className)} {...props} />;
 }
 
 // ── Switch ────────────────────────────────────────────────────────────────────

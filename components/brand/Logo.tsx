@@ -99,8 +99,9 @@ export function BeaconGlyph({
 export function Wordmark({ className, tone }: { className?: string; tone?: Tone }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <LighthouseMark className="h-7 w-7 text-harbor" tone={tone} />
-      <span className="font-display text-xl font-extrabold tracking-tight text-harbor">Harbor</span>
+      {/* text-fg = ink on light pages, near-white on the dark Helm (text-harbor was ~1.5:1 there). */}
+      <LighthouseMark className="h-7 w-7 text-fg" tone={tone} />
+      <span className="font-display text-xl font-extrabold tracking-tight text-fg">Harbor</span>
     </span>
   );
 }
@@ -109,8 +110,8 @@ export function Wordmark({ className, tone }: { className?: string; tone?: Tone 
 export function StackedWordmark({ className, tone }: { className?: string; tone?: Tone }) {
   return (
     <span className={cn("inline-flex flex-col items-center gap-2", className)}>
-      <LighthouseMark className="h-12 w-12 text-harbor" tone={tone} />
-      <span className="font-display text-2xl font-extrabold tracking-tight text-harbor">Harbor</span>
+      <LighthouseMark className="h-12 w-12 text-fg" tone={tone} />
+      <span className="font-display text-2xl font-extrabold tracking-tight text-fg">Harbor</span>
     </span>
   );
 }

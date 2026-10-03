@@ -50,15 +50,30 @@ export async function POST(req: Request) {
   const dow = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
   const wk = Math.floor((Date.UTC(yy, mm - 1, dd) - Date.UTC(1970, 0, 5)) / (7 * 86_400_000));
 
-  const [{ data: kids }, { data: meals }, { data: chores }, { data: log }] = await Promise.all([
-    admin.from("children").select("id, name").eq("household_id", household_id).is("deleted_at", null).order("sort_order"),
+  const { data: kids } = await admin
+    .from("children")
+    .select("id, name")
+    .eq("household_id", household_id)
+    .is("deleted_at", null)
+    .order("sort_order");
+  const kidIds = (kids ?? []).map((k) => k.id);
+  const [{ data: meals }, { data: chores }, { data: log }] = await Promise.all([
     admin.from("meals").select("title, meal_type").eq("household_id", household_id).eq("date", date).is("deleted_at", null),
     admin
       .from("chores")
       .select("id, child_id, title, days_of_week, rotation_member_ids, active")
       .eq("household_id", household_id)
       .is("deleted_at", null),
-    admin.from("reward_log").select("child_id, chore_id").eq("reason", "chore").gte("created_at", `${date}T00:00:00Z`),
+    // reward_log has no household_id — scope it to THIS household's kids so the service-role
+    // query never touches another family's ledger.
+    kidIds.length
+      ? admin
+          .from("reward_log")
+          .select("child_id, chore_id")
+          .eq("reason", "chore")
+          .in("child_id", kidIds)
+          .gte("created_at", `${date}T00:00:00Z`)
+      : Promise.resolve({ data: [] as { child_id: string; chore_id: string | null }[] }),
   ]);
   const kidList = kids ?? [];
   const kidNames = kidList.map((k) => k.name).join(", ") || "no kids yet";

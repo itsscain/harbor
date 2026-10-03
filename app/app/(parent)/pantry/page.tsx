@@ -7,11 +7,15 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ConfirmSubmit } from "@/components/ui/ConfirmSubmit";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { addPantryItem, deletePantryItem } from "../hub-actions";
+import { redirect } from "next/navigation";
+import { FEATURES } from "@/lib/features";
 
 export const metadata = { title: "Pantry" };
 export const dynamic = "force-dynamic";
 
 export default async function PantryPage() {
+  // The pantry only feeds AI meal planning — hidden with the rest of AI (lib/features.ts).
+  if (!FEATURES.ai) redirect("/app/meals");
   const household = await getMyHousehold();
   if (!household) {
     return <EmptyState title="No household yet" body="Your pantry will appear here once your household is set up." />;

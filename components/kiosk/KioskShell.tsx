@@ -25,6 +25,7 @@ import { KButton, KCard } from "./ui";
 import { childColor } from "@/lib/kiosk/colors";
 import { intensityOf } from "@/lib/kiosk/motion";
 import { setFxDefaults } from "@/lib/kiosk/feedback";
+import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/cn";
 
 function inQuietHours(start?: string, end?: string, d = new Date()): boolean {
@@ -262,7 +263,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
         />
       )}
 
-      {!asleep && !gate && !menu && state.deviceSecret && (
+      {FEATURES.ai && !asleep && !gate && !menu && state.deviceSecret && (
         <VoiceButton
           deviceSecret={state.deviceSecret}
           onActed={() => void kiosk.syncNow()}
@@ -299,7 +300,6 @@ const SYNC_LABEL: Record<string, string> = {
   ok: "Backed up to the cloud",
   error: "Sync hiccup — will retry automatically",
   offline: "Offline — the wall keeps working",
-  "no-plus": "Local only · Harbor Plus adds cloud backup",
 };
 
 function relativeTime(iso: string | null): string {

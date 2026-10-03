@@ -42,6 +42,7 @@ import { speak, cheer, greetLine, doneLine, feedback } from "@/lib/kiosk/feedbac
 import { activeStreak } from "@/lib/kiosk/streak";
 import { StreakBadge } from "./StreakBadge";
 import { AskGrownup } from "./AskGrownup";
+import { FEATURES } from "@/lib/features";
 import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
@@ -974,7 +975,7 @@ export function ChildView({
           onClose={() => setAnchorOpen(false)}
           deviceSecret={kiosk.state?.deviceSecret}
           childId={child.id}
-          voiceChat={(child.settings as Record<string, unknown> | null)?.voiceChat === true}
+          voiceChat={FEATURES.ai && (child.settings as Record<string, unknown> | null)?.voiceChat === true}
         />
       )}
 

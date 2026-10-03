@@ -11,6 +11,9 @@ import { Anchor } from "./Anchor";
 import { ParentGate } from "./ParentGate";
 import { VoiceButton } from "./VoiceButton";
 import { IdentifyFlash } from "./IdentifyFlash";
+import { HouseModeLayer } from "./HouseModeLayer";
+import { WallCommandLayer } from "./WallCommandLayer";
+import { FEATURES } from "@/lib/features";
 import { LighthouseMark } from "@/components/brand/Logo";
 import { childColor } from "@/lib/kiosk/colors";
 import { childSettings } from "@/lib/lantern/day";
@@ -89,7 +92,7 @@ export function LanternShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
       <div className="flex min-h-dvh flex-col items-center justify-center bg-[#fbfdfc] px-6 text-center text-harbor">
         <LighthouseMark className="h-14 w-14 text-beacon" />
         <h1 className="mt-6 font-display text-2xl font-extrabold">This Lantern needs a grown-up</h1>
-        <p className="mt-2 max-w-sm text-muted">Its child isn&apos;t set up anymore. A parent can re-assign it from the Harbor app.</p>
+        <p className="mt-2 max-w-sm text-muted">Its child isn&apos;t set up anymore. A grown-up can set it up again from the Harbor app.</p>
         <button onClick={() => setGate(true)} className="mt-6 inline-flex items-center gap-2 rounded-full bg-harbor-50 px-5 py-2.5 font-semibold text-harbor ring-1 ring-harbor-100">
           <Lock className="h-4 w-4" /> Parent options
         </button>
@@ -106,6 +109,10 @@ export function LanternShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
   return (
     <div className="min-h-full">
       <IdentifyFlash at={kiosk.identifyAt} name={kiosk.deviceLabel} />
+      {/* Parent Power on the bedside screen — house modes (honoring "except this child") and
+          the phone's live pops + request outcomes, in the Lantern's light style. */}
+      <HouseModeLayer settings={state.snapshot.household.settings} childId={childId} />
+      <WallCommandLayer kiosk={kiosk} tone="light" onStartCalm={() => setAnchorOpen(true)} />
 
       {view.k === "home" && (
         <LanternHome
@@ -141,7 +148,7 @@ export function LanternShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
 
       {/* Private tap-to-talk voice (§6.2) — ONLY when this child's voice chat is on (bounded,
           child-scoped endpoint). A Lantern never exposes the whole-household command channel. */}
-      {!resting && voiceChild && state.deviceSecret && (
+      {FEATURES.ai && !resting && voiceChild && state.deviceSecret && (
         <VoiceButton deviceSecret={state.deviceSecret} childId={voiceChild} onActed={() => void kiosk.syncNow()} />
       )}
 
@@ -172,7 +179,7 @@ export function LanternShell({ kiosk, childId }: { kiosk: Kiosk; childId: string
           onClose={() => setAnchorOpen(false)}
           deviceSecret={state.deviceSecret}
           childId={childId}
-          voiceChat={settings.voiceChat}
+          voiceChat={FEATURES.ai && settings.voiceChat}
         />
       )}
 

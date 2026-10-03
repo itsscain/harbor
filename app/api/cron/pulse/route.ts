@@ -82,14 +82,15 @@ async function handle(req: Request) {
       events++;
     }
 
-    // 2) REMINDERS due today (not done, not snoozed past today). Deep-links to Calendar.
+    // 2) REMINDERS due TODAY (not done, not snoozed past today) — one push on the due day, not a
+    //    daily nag while overdue (overdue ones surface on the Today screen instead).
     const { data: remRows } = await admin
       .from("reminders")
       .select("id, title, due_date, done, snoozed_until")
       .eq("household_id", hh.id)
       .is("deleted_at", null)
       .eq("done", false)
-      .lte("due_date", todayKey);
+      .eq("due_date", todayKey);
     for (const r of remRows ?? []) {
       if (r.snoozed_until && r.snoozed_until > todayKey) continue;
       if (!(await claim(admin, hh.id, "reminder", r.id, todayKey))) continue;
