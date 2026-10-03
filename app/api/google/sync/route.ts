@@ -15,7 +15,7 @@ export async function POST() {
   if (!household) return NextResponse.json({ ok: false, error: "No household" }, { status: 400 });
   try {
     const r = await syncGoogle(supabase, household.id);
-    revalidatePath("/app/calendar");
+    revalidatePath("/app/plan");
     return NextResponse.json({ ok: true, ...r });
   } catch {
     return NextResponse.json({ ok: false, error: "Sync failed — try reconnecting Google in Settings." }, { status: 500 });

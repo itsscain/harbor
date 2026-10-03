@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PantryPage() {
   // The pantry only feeds AI meal planning — hidden with the rest of AI (lib/features.ts).
-  if (!FEATURES.ai) redirect("/app/meals");
+  if (!FEATURES.ai) redirect("/app/plan");
   const household = await getMyHousehold();
   if (!household) {
     return <EmptyState title="No household yet" body="Your pantry will appear here once your household is set up." />;

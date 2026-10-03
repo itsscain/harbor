@@ -77,7 +77,7 @@ async function handle(req: Request) {
         category: "events",
         title: `⏰ ${e.title}`,
         body: `Coming up at ${at}${e.location ? ` · ${e.location}` : ""}.`,
-        route: "/app/calendar",
+        route: "/app/plan",
       });
       events++;
     }
@@ -99,7 +99,7 @@ async function handle(req: Request) {
         category: "events",
         title: "🔔 Reminder",
         body: r.title,
-        route: "/app/calendar",
+        route: "/app/plan",
       });
       reminders++;
     }

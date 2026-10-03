@@ -5,8 +5,6 @@ import {
   ListChecks,
   CalendarClock,
   CalendarRange,
-  CalendarDays,
-  UtensilsCrossed,
   Carrot,
   ClipboardList,
   Pill,
@@ -40,17 +38,16 @@ const live = (items: NavItem[]): NavItem[] => (FEATURES.ai ? items : items.filte
 export type NavItem = { href: string; label: string; desc: string; icon: LucideIcon };
 export type NavGroup = { heading: string; items: NavItem[] };
 
-/** PLAN — everything time / scheduling / planning shaped. */
+/** PLAN — the agenda (events, reminders, dinners) lives on /app/plan itself; these are the
+ *  other planning tools under it. (Calendar + Meals merged into the agenda.) */
 export const PLAN_GROUP: NavGroup = {
   heading: "Plan the days",
   items: [
-    { href: "/app/routines", label: "Routines", desc: "Build each child's day", icon: ListChecks },
-    { href: "/app/schedule", label: "Family Schedule", desc: "Every routine × every child; set windows once", icon: CalendarRange },
-    { href: "/app/calendar", label: "Calendar", desc: "Events, reminders & appointments", icon: CalendarDays },
-    { href: "/app/meals", label: "Meals", desc: "Plan the week's dinners", icon: UtensilsCrossed },
+    { href: "/app/lists", label: "Lists", desc: "Groceries and the wall's to-do list", icon: ClipboardList },
+    { href: "/app/medication", label: "Medicine", desc: "Doses, times and a log for the doctor", icon: Pill },
+    { href: "/app/routines", label: "All routines", desc: "Every kid's routines in one place", icon: ListChecks },
+    { href: "/app/schedule", label: "Routine times", desc: "When each routine shows, for every kid", icon: CalendarRange },
     { href: "/app/pantry", label: "Pantry", desc: "On-hand ingredients for AI meals", icon: Carrot },
-    { href: "/app/lists", label: "Lists", desc: "Grocery & things to remember", icon: ClipboardList },
-    { href: "/app/medication", label: "Medication", desc: "Doses, times & a record for the doctor", icon: Pill },
   ],
 };
 
@@ -104,7 +101,7 @@ export const PLAN_GROUPS: NavGroup[] = [PLAN_GROUP].map(withoutHidden);
 export const MORE_GROUPS: NavGroup[] = [FAMILY_GROUP, INSIGHTS_GROUP, ASSISTANT_GROUP, ACCOUNT_GROUP].map(withoutHidden);
 
 /** All routes that light up the "Plan" / "More" primary tabs. */
-export const PLAN_ROUTES = ["/app/plan", ...PLAN_GROUP.items.map((i) => i.href)];
+export const PLAN_ROUTES = ["/app/plan", "/app/calendar", "/app/meals", ...PLAN_GROUP.items.map((i) => i.href)];
 export const MORE_ROUTES = ["/app/more", ...MORE_GROUPS.flatMap((g) => g.items.map((i) => i.href))];
 
 export type PrimaryTab = {

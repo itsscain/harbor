@@ -73,7 +73,7 @@ export async function GET(req: Request) {
         category: "events",
         title: `Today: ${todays.length} on the calendar`,
         body: `${list}${more}`,
-        route: "/app/calendar",
+        route: "/app/plan",
       });
       eventPings++;
     }

@@ -181,7 +181,7 @@ export async function completeReminder(id: string): Promise<QuickResult> {
   const { supabase } = await ctx();
   const { error } = await supabase.from("reminders").update({ done: true }).eq("id", id);
   if (error) return { ok: false, error: "Couldn't check that off." };
-  touchToday("/app/calendar");
+  touchToday("/app/plan");
   return { ok: true, message: "Done ✓" };
 }
 
@@ -189,7 +189,7 @@ export async function reopenReminder(id: string): Promise<QuickResult> {
   const { supabase } = await ctx();
   const { error } = await supabase.from("reminders").update({ done: false }).eq("id", id);
   if (error) return { ok: false, error: "Couldn't undo that." };
-  touchToday("/app/calendar");
+  touchToday("/app/plan");
   return { ok: true, message: "Undone" };
 }
 
@@ -198,7 +198,7 @@ export async function snoozeReminder(id: string): Promise<QuickResult> {
   const tomorrow = dayKeyInTz(new Date(Date.now() + 86_400_000), tz);
   const { error } = await supabase.from("reminders").update({ snoozed_until: tomorrow }).eq("id", id);
   if (error) return { ok: false, error: "Couldn't snooze that." };
-  touchToday("/app/calendar");
+  touchToday("/app/plan");
   return { ok: true, message: "Moved to tomorrow" };
 }
 
@@ -229,7 +229,7 @@ export async function quickAddEvent(formData: FormData): Promise<QuickResult> {
   } catch {
     /* calendar sync is additive — never block adding an event */
   }
-  touchToday("/app/calendar");
+  touchToday("/app/plan");
   return { ok: true, message: "Added to the calendar" };
 }
 
@@ -243,9 +243,9 @@ export async function quickAddTodo(formData: FormData): Promise<QuickResult> {
     due_date: fdStr(formData, "due_date", 10) ?? dayKeyInTz(new Date(), tz),
     child_id: fdStr(formData, "child_id", 64),
   });
-  if (error) return { ok: false, error: "Couldn't add that to-do. Try again." };
-  touchToday("/app/calendar");
-  return { ok: true, message: "To-do added" };
+  if (error) return { ok: false, error: "Couldn't add that reminder. Try again." };
+  touchToday("/app/plan");
+  return { ok: true, message: "Reminder added" };
 }
 
 export async function quickAddGrocery(formData: FormData): Promise<QuickResult> {

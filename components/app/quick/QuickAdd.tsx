@@ -9,10 +9,10 @@ import { ChipGroup, ChildChips, type ChipChild } from "@/components/ui/Chips";
 import { Stepper } from "@/components/ui/Stepper";
 import { DayPicker } from "@/components/ui/DayPicker";
 import { EmojiPicker } from "@/components/ui/EmojiPicker";
+import { DateChips, TimeChips } from "@/components/ui/DateChips";
 import { Toggle } from "@/components/ui/Toggle";
 import { useQuickAction } from "@/components/ui/useQuickAction";
 import { Button, Field, Input, Textarea } from "@/components/ui/primitives";
-import { dayKeyInTz, weekdayInTz } from "@/lib/tz";
 import { cn } from "@/lib/cn";
 import {
   giveStars,
@@ -34,7 +34,7 @@ const TITLES: Record<QuickKind, string> = {
   stars: "Give stars",
   note: "Message the wall",
   event: "Add an event",
-  todo: "Add a to-do",
+  todo: "Add a reminder",
   grocery: "Add groceries",
   chore: "Add a chore",
 };
@@ -87,7 +87,7 @@ const TILES: { kind: QuickKind | "routine" | "child"; emoji: string; label: stri
   { kind: "stars", emoji: "⭐", label: "Give stars", sub: "Cheer someone on" },
   { kind: "note", emoji: "💬", label: "Message the wall", sub: "Pop up or pin it" },
   { kind: "event", emoji: "📅", label: "Event", sub: "Practice, party, appointment" },
-  { kind: "todo", emoji: "✅", label: "To-do", sub: "Something to remember" },
+  { kind: "todo", emoji: "🔔", label: "Reminder", sub: "Shows on the day it's due" },
   { kind: "grocery", emoji: "🛒", label: "Groceries", sub: "Add to the list" },
   { kind: "chore", emoji: "🧹", label: "Chore", sub: "A job that earns stars" },
   { kind: "routine", emoji: "🗓️", label: "Routine", sub: "Morning, bedtime…" },
@@ -224,51 +224,7 @@ function NoteForm({ kids, defaultChild }: { kids: ChipChild[]; defaultChild?: st
 }
 
 // ── Event ────────────────────────────────────────────────────────────────────
-function dayChips(tz: string) {
-  const now = Date.now();
-  const today = dayKeyInTz(now, tz);
-  const tomorrow = dayKeyInTz(now + 86_400_000, tz);
-  const dow = weekdayInTz(now, tz);
-  const toSat = (6 - dow + 7) % 7 || 7;
-  const saturday = dayKeyInTz(now + toSat * 86_400_000, tz);
-  return { today, tomorrow, saturday };
-}
-
-function DatePick({ tz, name, includeWeekend = false }: { tz: string; name: string; includeWeekend?: boolean }) {
-  const d = dayChips(tz);
-  const [choice, setChoice] = useState<string>("today");
-  const [custom, setCustom] = useState(d.today);
-  const value = choice === "today" ? d.today : choice === "tomorrow" ? d.tomorrow : choice === "weekend" ? d.saturday : custom;
-  return (
-    <div className="space-y-2">
-      <ChipGroup
-        value={choice}
-        onChange={(v) => setChoice(v[0] ?? "today")}
-        options={[
-          { value: "today", label: "Today" },
-          { value: "tomorrow", label: "Tomorrow" },
-          ...(includeWeekend ? [{ value: "weekend", label: "This weekend" }] : []),
-          { value: "pick", label: "Pick a date" },
-        ]}
-        ariaLabel="When"
-      />
-      {choice === "pick" && (
-        <Input type="date" value={custom} min={d.today} onChange={(e) => setCustom(e.target.value)} aria-label="Date" />
-      )}
-      <input type="hidden" name={name} value={value} />
-    </div>
-  );
-}
-
-const TIME_PRESETS = [
-  { value: "", label: "All day" },
-  { value: "09:00", label: "9 am" },
-  { value: "15:30", label: "3:30 pm" },
-  { value: "18:00", label: "6 pm" },
-];
-
 function EventForm({ kids, tz, defaultChild }: { kids: ChipChild[]; tz: string; defaultChild?: string }) {
-  const [time, setTime] = useState("");
   return (
     <ActionForm action={quickAddEvent} className="space-y-5">
       <div className="flex items-end gap-3">
@@ -278,13 +234,10 @@ function EventForm({ kids, tz, defaultChild }: { kids: ChipChild[]; tz: string; 
         </Field>
       </div>
       <Field label="When?">
-        <DatePick tz={tz} name="date" />
+        <DateChips tz={tz} name="date" />
       </Field>
       <Field label="What time?">
-        <div className="space-y-2">
-          <ChipGroup value={TIME_PRESETS.some((p) => p.value === time) ? time : null} onChange={(v) => setTime(v[0] ?? "")} options={TIME_PRESETS} ariaLabel="Time" />
-          <Input type="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Exact time" />
-        </div>
+        <TimeChips name="time" />
       </Field>
       {kids.length > 0 && (
         <Field label="Who's it for?">
@@ -313,20 +266,20 @@ function EventForm({ kids, tz, defaultChild }: { kids: ChipChild[]; tz: string; 
   );
 }
 
-// ── To-do ────────────────────────────────────────────────────────────────────
+// ── Reminder ────────────────────────────────────────────────────────────────────
 function TodoForm({ tz }: { tz: string }) {
   return (
     <ActionForm action={quickAddTodo} className="space-y-5">
-      <Field label="What do you need to remember?" htmlFor="qa-todo">
+      <Field label="What should we remind you about?" htmlFor="qa-todo">
         <Input id="qa-todo" name="title" required autoFocus data-autofocus maxLength={120} placeholder="Return library books" />
       </Field>
       <Field label="When?">
-        <DatePick tz={tz} name="due_date" includeWeekend />
+        <DateChips tz={tz} name="due_date" includeWeekend />
       </Field>
       <FormError />
       <SheetActions>
         <SubmitButton size="lg" className="w-full sm:w-auto" confirmSaved={false}>
-          Add to-do
+          Add reminder
         </SubmitButton>
       </SheetActions>
     </ActionForm>

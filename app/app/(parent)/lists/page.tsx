@@ -1,87 +1,64 @@
-import { Check, Circle, ListChecks } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMyHousehold } from "@/lib/household";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, Input, Field, Button } from "@/components/ui/primitives";
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { addListItemParent, toggleListItem, clearCheckedItems } from "../hub-actions";
+import { FamilyList, type ListItem } from "@/components/app/plan/FamilyLists";
+import { cn } from "@/lib/cn";
 
 export const metadata = { title: "Lists" };
 export const dynamic = "force-dynamic";
 
-export default async function ListsPage() {
+// The wall's two shared lists — Groceries and To-do — on your phone.
+export default async function ListsPage({ searchParams }: { searchParams: Promise<{ list?: string }> }) {
   const household = await getMyHousehold();
-  if (!household) {
-    return <EmptyState title="No household yet" body="Your shared grocery list will appear here once your household is set up." />;
-  }
+  if (!household) return <PageHeader title="Lists" subtitle="No household yet." />;
+  const { list } = await searchParams;
+  const kind = list === "todo" ? "todo" : "grocery";
   const supabase = await createClient();
-  const { data: items } = await supabase
+  const { data } = await supabase
     .from("list_items")
-    .select("*")
+    .select("id, name, checked, list_kind, added_by_label, created_at")
     .eq("household_id", household.id)
-    .eq("list_kind", "grocery")
+    .in("list_kind", ["grocery", "todo"])
     .is("deleted_at", null)
-    .order("checked")
     .order("created_at");
+  const rows = data ?? [];
+  const items: ListItem[] = rows
+    .filter((r) => r.list_kind === kind)
+    .map((r) => ({ id: r.id, name: r.name, checked: r.checked, addedBy: r.added_by_label }));
+  const openCount = (k: string) => rows.filter((r) => r.list_kind === k && !r.checked).length;
 
-  const checkedCount = (items ?? []).filter((i) => i.checked).length;
+  const tabs = [
+    { key: "grocery", label: "Groceries", href: "/app/lists" },
+    { key: "todo", label: "To-do", href: "/app/lists?list=todo" },
+  ];
 
   return (
     <>
-      <PageHeader
-        eyebrow="Plan"
-        icon={<ListChecks className="h-6 w-6" />}
-        title="Grocery List"
-        subtitle="Shared with the wall — add here or there, check off at the store."
-        actions={
-          checkedCount > 0 ? (
-            <form action={clearCheckedItems}>
-              <Button type="submit" variant="secondary" size="sm">Clear {checkedCount} checked</Button>
-            </form>
-          ) : undefined
-        }
-      />
-
-      <Card className="mb-4">
-        <form action={addListItemParent} className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <Field label="Item"><Input name="name" required placeholder="Milk" /></Field>
-          <Field label="Category"><Input name="category" placeholder="Dairy" /></Field>
-          <div className="flex items-end"><SubmitButton>Add</SubmitButton></div>
-        </form>
-      </Card>
-
-      <div className="space-y-2">
-        {(items ?? []).map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center gap-3 rounded-xl border border-line bg-surface p-2.5 pr-3 shadow-card transition hover:border-accent/40"
-          >
-            <form action={toggleListItem.bind(null, item.id, !item.checked)}>
-              <button
-                className="flex h-11 w-11 items-center justify-center rounded-full transition active:scale-90"
-                aria-label={`Mark ${item.name} ${item.checked ? "not done" : "done"}`}
-              >
-                {item.checked ? (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
-                    <Check className="h-4 w-4" />
-                  </span>
-                ) : (
-                  <Circle className="h-7 w-7 text-fg-subtle" />
-                )}
-              </button>
-            </form>
-            <span className={item.checked ? "flex-1 text-fg-muted line-through" : "flex-1 font-medium text-fg"}>
-              {item.name}
-              {item.category && <span className="ml-2 text-sm text-fg-muted">{item.category}</span>}
-            </span>
-            {item.added_by_label && <span className="text-xs text-fg-muted">{item.added_by_label}</span>}
-          </div>
-        ))}
-        {(items ?? []).length === 0 && (
-          <EmptyState title="The list is empty" body="Add the first thing you need above — it syncs straight to the wall." />
-        )}
-      </div>
+      <PageHeader title="Lists" subtitle="The same lists as the wall — add here or there." />
+      <nav aria-label="Lists" className="mb-5 flex gap-1 rounded-2xl border border-line bg-surface p-1">
+        {tabs.map((t) => {
+          const on = t.key === kind;
+          const n = openCount(t.key);
+          return (
+            <Link
+              key={t.key}
+              href={t.href}
+              replace
+              scroll={false}
+              aria-current={on ? "page" : undefined}
+              className={cn(
+                "flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition",
+                on ? "bg-accent/15 text-fg" : "text-fg-muted hover:bg-surface-2 hover:text-fg",
+              )}
+            >
+              {t.label}
+              {n > 0 && <span className="rounded-full bg-surface-2 px-1.5 text-xs tabular-nums text-fg-muted">{n}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+      <FamilyList key={kind} kind={kind} items={items} />
     </>
   );
 }

@@ -76,7 +76,7 @@ function Agenda({
       ) : (
         today.map((e, i) => <AgendaRow key={e.id} e={e} first={i === 0} />)
       )}
-      <Link href="/app/meals" className="tap flex min-h-12 items-center gap-3 border-t border-line px-4 py-2.5 transition hover:bg-surface-2">
+      <Link href="/app/plan" className="tap flex min-h-12 items-center gap-3 border-t border-line px-4 py-2.5 transition hover:bg-surface-2">
         <span className="w-16 shrink-0 text-sm font-semibold text-fg-muted">Dinner</span>
         <span className="min-w-0 flex-1 truncate text-[15px] text-fg">
           {dinner ? `${dinner.emoji ? `${dinner.emoji} ` : ""}${dinner.title}` : <span className="text-fg-muted">Not planned yet</span>}
@@ -95,7 +95,7 @@ function Agenda({
         <QuickAddButton kind="event" size="sm" variant="ghost">
           <CalendarPlus className="h-4 w-4" /> Add event
         </QuickAddButton>
-        <Link href="/app/calendar" className="flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-accent transition hover:bg-surface-2">
+        <Link href="/app/plan" className="flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-accent transition hover:bg-surface-2">
           Full calendar
         </Link>
       </div>
@@ -106,7 +106,7 @@ function Agenda({
 function AgendaRow({ e, first }: { e: AgendaItem; first?: boolean }) {
   return (
     <Link
-      href="/app/calendar"
+      href="/app/plan"
       className={cn(
         "tap flex min-h-12 items-center gap-3 px-4 py-2.5 transition hover:bg-surface-2",
         !first && "border-t border-line",
