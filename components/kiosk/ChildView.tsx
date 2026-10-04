@@ -47,9 +47,8 @@ import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
 import { ChildAvatar } from "./ChildAvatar";
-import { LearnApp } from "./learn/LearnApp";
 import { ModeSwitch, type WallMode } from "./learn/ModeSwitch";
-import { kidLearnView } from "./learn/learnData";
+import { lightLearnBadge, useLearnModule } from "./learn/lazy";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -70,6 +69,9 @@ export function readChildSettings(child: KioskChild) {
     intensity: intensityOf(s.sensory),
   };
 }
+
+/** A unique stamp for a celebration (a helper, so the clock stays out of render). */
+const stamp = () => Date.now();
 
 /** Spoken text for a step — the custom read-aloud if set, else the label (§8.2). */
 function spoken(step: KioskStep): string {
@@ -250,6 +252,8 @@ export function ChildView({
   // Harbor Learn: the child flips between "My Day" and "Learn" (tap the switch, or swipe).
   const [mode, setMode] = useState<WallMode>("day");
   const [learnBusy, setLearnBusy] = useState(false);
+  // Learn's code loads quietly once the wall is idle (or right away on the switch to Learn).
+  const learnMod = useLearnModule(FEATURES.learn && mode === "learn");
   useEffect(() => {
     onLearnActive?.(learnBusy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -387,7 +391,7 @@ export function ChildView({
       feedback("step-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
     }
     if (step.reward_points > 0) {
-      setCelebrate({ points: step.reward_points, n: Date.now() });
+      setCelebrate({ points: step.reward_points, n: stamp() });
       setTimeout(() => setCelebrate(null), 1300);
     }
     setSubProgress((p) => (p[step.id] ? { ...p, [step.id]: [] } : p));
@@ -434,7 +438,7 @@ export function ChildView({
     kiosk.completeChore(child!.id, chore);
     feedback("chore-complete", { ...fx, say: settings!.readAloud ? cheer() : undefined });
     if (chore.points > 0) {
-      setCelebrate({ points: chore.points, n: Date.now() });
+      setCelebrate({ points: chore.points, n: stamp() });
       setTimeout(() => setCelebrate(null), 1300);
     }
     // Chore-only kids (no routine) earn the day's streak by clearing all chores.
@@ -490,14 +494,17 @@ export function ChildView({
 
   // ── Harbor Learn: the second screen a child flips to ─────────────────────────
   const learnOn = FEATURES.learn;
-  const learnView = learnOn ? kidLearnView(state, child) : null;
-  const learnBadge = !learnView
+  const learn = learnMod;
+  const learnView = learnOn && learn ? learn.kidLearnView(state, child) : null;
+  const learnBadge = !learnOn
     ? null
-    : learnView.assignments.length > 0
-      ? learnView.assignments.length
-      : learnView.kid.todayCount < learnView.profile.daily_goal
-        ? ("dot" as const)
-        : null;
+    : !learnView
+      ? lightLearnBadge(state, child)
+      : learnView.assignments.length > 0
+        ? learnView.assignments.length
+        : learnView.kid.todayCount < learnView.profile.daily_goal
+          ? ("dot" as const)
+          : null;
   const switchMode = (m: WallMode) => {
     if (m === mode) return;
     feedback("tab-switch", fx);
@@ -542,7 +549,17 @@ export function ChildView({
     );
     return (
       <div style={accentStyle} {...swipeHandlers}>
-        <LearnApp kiosk={kiosk} child={child} accent={color} reduced={settings.reducedMotion} sound={settings.sound} intensity={fxIntensity} header={learnTopRow} onBusy={setLearnBusy} />
+        {learn ? (
+          <learn.LearnApp kiosk={kiosk} child={child} accent={color} reduced={settings.reducedMotion} sound={settings.sound} intensity={fxIntensity} header={learnTopRow} onBusy={setLearnBusy} />
+        ) : (
+          <div className="learn-root relative min-h-dvh">
+            {learnTopRow}
+            <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-3 text-white">
+              <span className={cn("text-7xl", !settings.reducedMotion && "l-bob")}>⛵</span>
+              <span className="font-display text-2xl font-extrabold drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">Setting sail…</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

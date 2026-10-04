@@ -20,6 +20,9 @@ import { LessonPlayer, type LessonOutcome } from "./LessonPlayer";
 import { LessonDone, type DoneInfo } from "./LessonDone";
 import { kidLearnView, starsForLesson } from "./learnData";
 
+// Loaded lazily by the wall (see lazy.ts), so it also carries the view-model the badge needs.
+export { kidLearnView };
+
 // Harbor Learn on the wall — the bright second screen a child flips to from "My Day".
 // Home → a subject's voyage map → a level → the treasure-chest finish → the next level (or a
 // Practice Cove detour when a level isn't passed yet). Lessons, voice and progress all work

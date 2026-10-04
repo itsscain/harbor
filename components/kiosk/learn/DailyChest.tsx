@@ -42,7 +42,7 @@ export function DailyChest({ ready, prize, accent, reduced, onOpen, onClose }: {
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0b2340]/60 p-6 backdrop-blur-sm" onClick={open || !ready ? onClose : undefined}>
       <div className="relative">{open && !reduced && <Confetti count={50} spread={420} accent={accent} />}</div>
       <div className="l-pop-in flex w-full max-w-md flex-col items-center gap-4 rounded-[34px] bg-white p-7 text-center shadow-[0_10px_0_var(--l-line)]" onClick={(e) => e.stopPropagation()}>
-        <p className="font-display text-3xl font-extrabold text-[var(--l-ink)]">{ready ? (open ? "Treasure!" : "Your daily chest!") : "Come back tomorrow!"}</p>
+        <p className="font-display text-3xl font-extrabold text-[var(--l-ink)]">{open ? "Treasure!" : ready ? "Your daily chest!" : "Come back tomorrow!"}</p>
         <button type="button" onClick={tap} disabled={open || !ready} className={cn("text-[120px] leading-none", ready && !open && !reduced && "l-chest")} aria-label="Open the chest">
           {open ? "🎉" : ready ? "🎁" : "🌙"}
         </button>

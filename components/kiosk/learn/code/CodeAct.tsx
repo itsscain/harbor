@@ -487,7 +487,7 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border-2 border-dashed border-[var(--l-gold)] bg-[#fff7d6] p-2">
             <span className="font-display text-sm font-extrabold text-[#7a5200]">Answer:</span>
             {flat(level.solution).map((op, i) => (
-              <BlockPill key={i} op={op} band="little" size="sm" />
+              <BlockPill key={i} op={op} band={band} size="sm" />
             ))}
           </div>
         )}
