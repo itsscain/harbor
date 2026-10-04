@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { normalizePairingCode } from "@/lib/pairing-format";
 import { tzFromSettings, dayKeyInTz } from "@/lib/tz";
 import type { Json } from "@/lib/database.types";
+import type { LearnSnapshot } from "@/lib/learn/progress";
 import type { KioskSnapshot, KioskState, Mutation } from "./types";
 
 type Identified = { id: string; deleted_at?: string | null };
@@ -251,7 +252,7 @@ export async function pairDevice(code: string): Promise<{
  * depends on it: offline, the wall keeps running from IndexedDB.
  * Returns the (possibly updated) state; on failure returns the input unchanged.
  */
-export async function syncNow(state: KioskState, opts?: { full?: boolean }): Promise<KioskState> {
+export async function syncNow(state: KioskState, opts?: { full?: boolean; learn?: boolean }): Promise<KioskState> {
   if (typeof navigator !== "undefined" && !navigator.onLine) return state;
 
   const supabase = createClient();
@@ -266,6 +267,17 @@ export async function syncNow(state: KioskState, opts?: { full?: boolean }): Pro
     next = { ...next, outbox: [] };
   }
 
+  // Harbor Learn rides its own RPC (the core push/pull stay untouched). It runs BEFORE the pull
+  // so the stars a finished lesson earns arrive in this same sync. Only when there's something
+  // to send, a Learn change was nudged, on a full refresh, or every couple of minutes.
+  const learnDue =
+    (next.learnOutbox?.length ?? 0) > 0 ||
+    opts?.learn ||
+    opts?.full ||
+    !next.learnSyncedAt ||
+    Date.now() - next.learnSyncedAt > LEARN_REFRESH_MS;
+  if (learnDue) next = await syncLearn(supabase, next);
+
   // full=true → pull the complete set (since=null) and REPLACE local arrays,
   // self-healing any stale/orphaned cached rows. Otherwise a cheap delta pull.
   const { data, error } = await supabase.rpc("rpc_kiosk_pull", {
@@ -274,4 +286,23 @@ export async function syncNow(state: KioskState, opts?: { full?: boolean }): Pro
   });
   if (!error && data) next = applyPull(next, data as KioskSnapshot, opts?.full ?? false);
   return next;
+}
+
+const LEARN_REFRESH_MS = 2 * 60_000;
+
+/** Send finished lessons, get the latest Learn state back. A failure keeps the outbox and never
+ *  blocks the rest of the sync — the wall's lessons keep working offline either way. */
+async function syncLearn(supabase: ReturnType<typeof createClient>, state: KioskState): Promise<KioskState> {
+  const pending = state.learnOutbox ?? [];
+  const batch = pending.slice(0, 150); // the RPC takes up to 200 per call; the rest go next time
+  try {
+    const { data, error } = await supabase.rpc("rpc_learn_sync", {
+      p_secret: state.deviceSecret,
+      p_results: batch as unknown as Json,
+    });
+    if (error || !data || typeof data !== "object") return state;
+    return { ...state, learn: data as unknown as LearnSnapshot, learnOutbox: pending.slice(batch.length), learnSyncedAt: Date.now() };
+  } catch {
+    return state;
+  }
 }

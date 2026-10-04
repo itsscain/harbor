@@ -33,6 +33,21 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   store (`lib/kiosk/db.ts`), sync engine (`lib/kiosk/sync.ts`), service worker
   (`public/sw.js`) + manifest. Parent PIN hashed locally (and adoptable from the
   account via the snapshot).
+- **Harbor Learn** (`FEATURES.learn`): a child's second wall screen (the "My Day | Learn" switch
+  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Content is code, bundled for offline:
+  `lib/learn/{reading,code,math}.ts` → `curriculum.ts` (lesson ids `read.*`/`code.*`/`math.*`,
+  `courseMap`/`nextLessonFor`), phonics in `sounds.ts` (IPA per sound) + `words.ts`, code puzzles
+  in `codeSim.ts`. Kid UI: `LearnApp` → `LearnHome`/`SubjectMap`/`LessonPlayer`/`LessonDone`/
+  `StickerBook`, activities in `components/kiosk/learn/acts/*` (bright `.learn-root` theme +
+  `l-*` animations in `globals.css`). Results sync through **`rpc_learn_sync`** (separate from the
+  core push/pull; `learnOutbox`/`learn` in `KioskState`, `finishLesson` in `useKiosk`), which
+  records results, marks assignments done and awards a few store stars. Parent side: the kid
+  page's Learn tab (`KidLearnView`, `KidLearnParts`, `children/learn-actions.ts`,
+  `lib/learn/parent.ts`); alerts via the `learn_notify` trigger → `/api/cron/notify-learn`
+  ("learning" category). Every spoken line is a pre-recorded clip in `public/learn-voice`:
+  after changing lesson content or `lib/learn/script.ts`, run `node scripts/gen-learn-voice.mjs`
+  (local Kokoro from node_modules — no download) and commit the clips + `index.json`.
+  Preview: `/dev/learn` (`?lesson=<id>` jumps into a lesson).
 - **Stripe** (`lib/stripe/*`, `app/api/stripe/*`): guarded by `isStripeConfigured()`
   so the app runs keyless. Webhook → `plus_subscriptions` + `households.plus_active`.
 - **Types**: `lib/database.types.ts` is generated from the live schema (Supabase MCP
@@ -59,5 +74,5 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   the family time zone with the wall's own helpers (`lib/kiosk/schedule.ts`, `calendar.ts`).
   Deletes are soft so the toast can offer Undo.
 - `/app` is auth-gated, so check UI with the dev-only mock pages (`/dev/today`, `/dev/kid`,
-  `/dev/plan`, `/dev/settings`, `/dev/ui` — they 404 in production).
+  `/dev/plan`, `/dev/settings`, `/dev/ui`, `/dev/learn` — they 404 in production).
 - Run `get_advisors` after schema changes; keep `npm run build` clean.

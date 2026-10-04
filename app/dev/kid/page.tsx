@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { DevShell } from "./DevShell";
 import { KidHeader, KidTabs, parseKidTab } from "@/components/app/kids/KidChrome";
-import { KidTodayView, KidRoutinesView, KidChoresView, KidAboutView } from "@/components/app/kids/KidTabViews";
+import { KidTodayView, KidRoutinesView, KidChoresView, KidAboutView, KidLearnView } from "@/components/app/kids/KidTabViews";
+import { nowDate, type KidLearnData } from "@/lib/learn/parent";
 import { RoutineEditor } from "@/components/app/kids/RoutineEditor";
 import { SetTopBarTitle } from "@/components/app/AppTopBar";
 import type { KidBasics, KidDay, KidRoutineRow, KidChoreRow, TemplateCard, EditorStep } from "@/lib/kid";
 
 // Development-only: the redesigned kid page + routine editor with mock data (404s in production).
-// /dev/kid?tab=today|routines|chores|about  ·  &state=new (welcome) | status (break + grounding)
+// /dev/kid?tab=today|routines|chores|learn|about  ·  &state=new (welcome) | status (break + grounding)
 // /dev/kid?tab=editor  ·  &type=ft (a First/Then board)
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,38 @@ const LIBRARY = [
   { id: "l11", label: "Take a breath", icon: "🫧", points: 0 },
 ];
 
+// Harbor Learn mock: a kindergartner a week in (letters m s a t, first code + math lessons).
+function learnMock(fresh: boolean): KidLearnData {
+  const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
+  const r = (id: string, lesson: string, subject: "reading" | "code" | "math", stars: number, h: number, sec = 240) => ({ id, lesson_id: lesson, subject, stars, correct: 5, total: 6, duration_sec: sec, sticker: "fish", completed_at: ago(h) });
+  return {
+    profile: { child_id: LEO, grade: "k", subjects: ["reading", "code", "math"], daily_goal: 2, earn_stars: true },
+    profileSaved: !fresh,
+    tz: "America/New_York",
+    assignments: fresh
+      ? []
+      : [
+          { id: "as1", lesson_id: "read.ls1.t", note: "Practice the t sound!", status: "assigned", created_at: ago(3), completed_at: null },
+          { id: "as2", lesson_id: "math.c5.2", note: null, status: "assigned", created_at: ago(20), completed_at: null },
+          { id: "as3", lesson_id: "read.ls1.m", note: null, status: "done", created_at: ago(30), completed_at: ago(2) },
+        ],
+    results: fresh
+      ? []
+      : [
+          r("x1", "read.ls1.a", "reading", 3, 1),
+          r("x2", "read.ls1.m", "reading", 2, 2),
+          r("x3", "code.u1.1", "code", 3, 26, 300),
+          r("x4", "read.ls1.s", "reading", 3, 27),
+          r("x5", "read.pa.rhyme2", "reading", 3, 50),
+          r("x6", "math.c5.1", "math", 2, 51, 180),
+          r("x7", "read.pa.first1", "reading", 2, 74),
+          r("x8", "read.pa.rhyme1", "reading", 3, 75),
+        ],
+  };
+}
+const LEARN = learnMock(false);
+const LEARN_NEW = learnMock(true);
+
 export default async function DevKidPage({ searchParams }: { searchParams: Promise<{ tab?: string; state?: string; type?: string }> }) {
   if (process.env.NODE_ENV === "production") notFound();
   const sp = await searchParams;
@@ -125,6 +158,7 @@ export default async function DevKidPage({ searchParams }: { searchParams: Promi
       {tab === "today" && <KidTodayView kid={KID} day={day} />}
       {tab === "routines" && <KidRoutinesView kid={KID} routines={sp.state === "new" ? [] : ROUTINES} siblings={[{ id: KIDS[1].id, name: "Mia", routines: [{ id: "x1", name: "Morning", emoji: "🌅", steps: 5 }, { id: "x2", name: "Piano practice", emoji: "📋", steps: 3 }] }]} templates={TEMPLATES} autoAdd={false} />}
       {tab === "chores" && <KidChoresView kid={KID} chores={sp.state === "new" ? [] : CHORES} kids={KIDS} storeCount={6} />}
+      {tab === "learn" && <KidLearnView kid={KID} data={sp.state === "new" ? LEARN_NEW : LEARN} now={nowDate()} />}
       {tab === "about" && <KidAboutView kid={KID} />}
     </DevShell>
   );

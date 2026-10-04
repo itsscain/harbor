@@ -1076,3 +1076,105 @@ html[data-sheet-open] .toast-host {
 /* Skipper's thought bubble popping in when the line changes. */
 @keyframes sk-pop { 0% { transform: translateY(4px) scale(0.96); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
 .sk-pop { animation: sk-pop 0.28s cubic-bezier(0.34, 1.4, 0.64, 1); }
+
+/* ── Harbor Learn — the bright lagoon a child flips to from "My Day" ───────────
+   Its own palette (day, and a softer dusk after 7pm), chunky press-down buttons, and the
+   micro-animations that make every right answer feel good. Everything here is transform /
+   opacity, and all of it stops under reduced motion. */
+.learn-root {
+  --l-ink: #17324d;
+  --l-ink-2: #4f6b82;
+  --l-card: #ffffff;
+  --l-card-2: #f2f8fc;
+  --l-line: #dbe8f1;
+  --l-blue: #1cb0f6;
+  --l-blue-edge: #1491cf;
+  --l-green: #3ccf6e;
+  --l-green-edge: #25a552;
+  --l-coral: #ff7363;
+  --l-coral-edge: #df5444;
+  --l-gold: #ffc83d;
+  --l-gold-edge: #e0a21a;
+  --l-violet: #8b6cff;
+  --l-violet-edge: #6b4fe0;
+  --l-teal: #22c59b;
+  --l-teal-edge: #14a07c;
+  --l-orange: #ff9149;
+  --l-orange-edge: #e26f27;
+  --l-bg: radial-gradient(1200px 600px at 50% -10%, #c6f1ff 0%, transparent 60%),
+    linear-gradient(180deg, #8fdcff 0%, #4cc3f0 34%, #24a7dc 72%, #1690c9 100%);
+  color: var(--l-ink);
+  background: var(--l-bg);
+}
+.learn-root[data-tone="dusk"] {
+  --l-card: #f6f9fd;
+  --l-card-2: #e9f0f8;
+  --l-bg: radial-gradient(1100px 560px at 50% -10%, #3e5fa8 0%, transparent 62%),
+    linear-gradient(180deg, #2b4c8c 0%, #1f3b74 40%, #172e5e 75%, #10224a 100%);
+}
+.font-reading {
+  font-family: var(--font-reading), "Andika", ui-rounded, "Comic Sans MS", system-ui, sans-serif;
+}
+/* Chunky, press-down tiles (the "it really clicked" feel). --f fill, --e edge. */
+.l-chunk {
+  background: var(--f, var(--l-card));
+  box-shadow: 0 6px 0 var(--e, var(--l-line));
+  border-radius: 22px;
+  transition: transform 90ms ease-out, box-shadow 90ms ease-out, background-color 160ms;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.l-chunk:active:not(:disabled),
+.l-chunk[data-down="true"] {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--e, var(--l-line));
+}
+.l-chunk:disabled { cursor: default; }
+.l-drag { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.l-drag[data-dragging="true"] { cursor: grabbing; z-index: 60; transition: none !important; }
+
+@keyframes l-shake { 0%, 100% { transform: translateX(0); } 18% { transform: translateX(-11px) rotate(-2deg); } 36% { transform: translateX(10px) rotate(2deg); } 54% { transform: translateX(-7px); } 72% { transform: translateX(5px); } 88% { transform: translateX(-2px); } }
+.l-shake { animation: l-shake 0.46s ease-in-out; }
+@keyframes l-boing { 0% { transform: scale(1); } 30% { transform: scale(1.14); } 55% { transform: scale(0.95); } 75% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.l-boing { animation: l-boing 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes l-hint { 0%, 100% { outline-color: rgba(255, 200, 61, 0); outline-offset: 2px; } 50% { outline-color: rgba(255, 200, 61, 0.95); outline-offset: 7px; } }
+.l-hint { outline: 5px solid rgba(255, 200, 61, 0); animation: l-hint 1.1s ease-in-out infinite; }
+@keyframes l-particle {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(var(--s, 1)) rotate(var(--r, 0deg)); opacity: 0; }
+}
+.l-particle { position: absolute; pointer-events: none; animation: l-particle var(--d, 800ms) cubic-bezier(0.15, 0.85, 0.35, 1) forwards; }
+@keyframes l-pop-in { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+.l-pop-in { animation: l-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes l-rise { 0% { transform: translateY(22px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.l-rise { animation: l-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes l-slide-in { 0% { transform: translateX(60px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.l-slide-in { animation: l-slide-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes l-bubble-up { 0% { transform: translateY(0); } 100% { transform: translateY(var(--rise, -900px)); } }
+.l-bubble-up { animation: l-bubble-up var(--dur, 9s) linear forwards; }
+@keyframes l-wobble { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(var(--wx, 14px)); } }
+.l-wobble { animation: l-wobble var(--wd, 2.6s) ease-in-out infinite; }
+@keyframes l-rays { to { transform: rotate(360deg); } }
+.l-rays { animation: l-rays 10s linear infinite; }
+@keyframes l-chest { 0%, 100% { transform: rotate(0deg) scale(1); } 15% { transform: rotate(-7deg) scale(1.03); } 30% { transform: rotate(7deg) scale(1.03); } 45% { transform: rotate(-4deg); } 60% { transform: rotate(4deg); } 75% { transform: rotate(0deg); } }
+.l-chest { animation: l-chest 1.4s ease-in-out infinite; transform-origin: 50% 85%; }
+@keyframes l-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.l-pulse { animation: l-pulse 1.7s ease-in-out infinite; }
+@keyframes l-flame { 0%, 100% { transform: scale(1) rotate(-4deg); } 50% { transform: scale(1.14) rotate(4deg); } }
+.l-flame { display: inline-block; animation: l-flame 1.1s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes l-star-in { 0% { transform: scale(0) rotate(-140deg); opacity: 0; } 70% { transform: scale(1.25) rotate(12deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+.l-star-in { animation: l-star-in 0.62s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes l-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.l-bob { animation: l-bob 2.6s ease-in-out infinite; }
+@keyframes l-ring { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.75); } 100% { box-shadow: 0 0 0 18px rgba(255, 255, 255, 0); } }
+.l-ring { animation: l-ring 1.6s ease-out infinite; }
+@keyframes l-float-num { 0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; } 20% { transform: translate(-50%, -12px) scale(1.15); opacity: 1; } 100% { transform: translate(-50%, -64px) scale(1); opacity: 0; } }
+.l-float-num { animation: l-float-num 1s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes l-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes l-dash { to { stroke-dashoffset: -24; } }
+.l-dash { animation: l-dash 1.2s linear infinite; }
+/* Reduced motion: every Learn animation holds still. */
+.learn-root[data-reduced="true"] [class*="l-"] { animation: none !important; }

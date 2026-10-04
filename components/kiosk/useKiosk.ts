@@ -25,6 +25,7 @@ import type {
   KioskStoreItem,
   KioskListItem,
 } from "@/lib/kiosk/types";
+import type { LearnResult } from "@/lib/learn/types";
 
 /** The shape both pairing paths yield: the parent-initiated rpc_kiosk_pair result AND the
  *  Lantern's device-initiated claim (rpc_lantern_poll → 'claimed'). */
@@ -108,7 +109,7 @@ export function useKiosk() {
   // Reconciles against live state: mutations enqueued during the network await
   // are preserved (and their optimistic effects re-applied) so a tap mid-sync is
   // never lost.
-  const runSync = useCallback(async (full = false) => {
+  const runSync = useCallback(async (full = false, learn = false) => {
     const before = stateRef.current;
     if (!before) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -118,7 +119,7 @@ export function useKiosk() {
     setSyncStatus("syncing");
     let synced: KioskState;
     try {
-      synced = await syncNow(before, { full });
+      synced = await syncNow(before, { full, learn });
     } catch (e) {
       setSyncStatus("error");
       captureError(e, { area: "sync", full });
@@ -162,9 +163,13 @@ export function useKiosk() {
             : p;
       }
 
+      // Lessons finished during the network await stay queued behind whatever didn't send.
+      const learnNew = (prev.learnOutbox ?? []).slice((before.learnOutbox ?? []).length);
+
       const merged: KioskState = {
         ...synced,
         outbox: newEntries,
+        learnOutbox: [...(synced.learnOutbox ?? []), ...learnNew],
         progress,
         // Preserve local reset stamps (prev is authoritative — a reset may have happened
         // during the network await) so a "reset today" is never lost across a sync.
@@ -216,7 +221,8 @@ export function useKiosk() {
   useEffect(() => {
     if (!householdId) return;
     let t: number | undefined;
-    const nudge = (payload?: { at?: number }) => {
+    let learnNudged = false;
+    const nudge = (payload?: { at?: number; tbl?: string }) => {
       const now = Date.now();
       setLastNudgeAt(now);
       // Edit→wall propagation (§8 freshness SLO). payload.at is server epoch seconds;
@@ -225,8 +231,14 @@ export function useKiosk() {
         const ms = now - payload.at * 1000;
         if (ms >= 0 && ms < 60_000) setLastPropagationMs(ms);
       }
+      // A Learn change (grade, assignment) rides its own RPC — ask the sync to include it.
+      if (payload?.tbl?.startsWith("learn_")) learnNudged = true;
       window.clearTimeout(t);
-      t = window.setTimeout(() => void runSync(), 400);
+      t = window.setTimeout(() => {
+        const learn = learnNudged;
+        learnNudged = false;
+        void runSync(false, learn);
+      }, 400);
     };
     setRealtimeStatus("connecting");
     const unsub = subscribeHousehold(householdId, nudge, setRealtimeStatus);
@@ -541,7 +553,23 @@ export function useKiosk() {
           },
         ],
       }));
-      void runSync();
+      // After the queued state has rendered (runSync reads the live state), so the ask goes
+      // out now instead of waiting for the next 30s tick.
+      window.setTimeout(() => void runSync(), 60);
+    },
+    [update, runSync],
+  );
+
+  // Harbor Learn: a finished lesson is queued locally (so progress, streaks and stickers are
+  // right offline) and synced right away — the server records it, marks a matching assignment
+  // done, and awards the lesson's stars, which come back in the same sync.
+  const finishLesson = useCallback(
+    (result: LearnResult) => {
+      update((s) => {
+        if ((s.learnOutbox ?? []).some((r) => r.op_id === result.op_id)) return s;
+        return { ...s, learnOutbox: [...(s.learnOutbox ?? []), result] };
+      });
+      window.setTimeout(() => void runSync(false, true), 60);
     },
     [update, runSync],
   );
@@ -778,6 +806,7 @@ export function useKiosk() {
     softenChild,
     bumpStreak,
     requestSomething,
+    finishLesson,
     refreshSkipperLines,
     resetDay,
     resetPoints,

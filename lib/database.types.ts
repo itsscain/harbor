@@ -1149,6 +1149,174 @@ export type Database = {
           },
         ]
       }
+      learn_assignments: {
+        Row: {
+          child_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          household_id: string
+          id: string
+          lesson_id: string
+          note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          household_id: string
+          id?: string
+          lesson_id: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          household_id?: string
+          id?: string
+          lesson_id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_assignments_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learn_assignments_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learn_profiles: {
+        Row: {
+          child_id: string
+          created_at: string
+          daily_goal: number
+          earn_stars: boolean
+          grade: string
+          household_id: string
+          subjects: string[]
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          daily_goal?: number
+          earn_stars?: boolean
+          grade?: string
+          household_id: string
+          subjects?: string[]
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          daily_goal?: number
+          earn_stars?: boolean
+          grade?: string
+          household_id?: string
+          subjects?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_profiles_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learn_profiles_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learn_results: {
+        Row: {
+          child_id: string
+          client_op_id: string
+          completed_at: string
+          correct: number
+          created_at: string
+          duration_sec: number
+          household_id: string
+          id: string
+          lesson_id: string
+          stars: number
+          sticker: string | null
+          subject: string
+          total: number
+        }
+        Insert: {
+          child_id: string
+          client_op_id: string
+          completed_at: string
+          correct?: number
+          created_at?: string
+          duration_sec?: number
+          household_id: string
+          id?: string
+          lesson_id: string
+          stars: number
+          sticker?: string | null
+          subject: string
+          total?: number
+        }
+        Update: {
+          child_id?: string
+          client_op_id?: string
+          completed_at?: string
+          correct?: number
+          created_at?: string
+          duration_sec?: number
+          household_id?: string
+          id?: string
+          lesson_id?: string
+          stars?: number
+          sticker?: string | null
+          subject?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_results_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learn_results_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           added_by_label: string | null
@@ -2850,6 +3018,10 @@ export type Database = {
         Returns: Json
       }
       rpc_kiosk_reset_points: { Args: { p_secret: string }; Returns: Json }
+      rpc_learn_sync: {
+        Args: { p_results?: Json; p_secret: string }
+        Returns: Json
+      }
       rpc_lantern_claim: {
         Args: { p_child_id: string; p_code: string; p_nickname: string }
         Returns: Json

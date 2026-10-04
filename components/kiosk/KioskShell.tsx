@@ -59,6 +59,9 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
   // True while a child's Anchor session is open — ducks the ambient depth layers and
   // blocks idle sleep so co-regulation is never interrupted (§9.1).
   const [anchorActive, setAnchorActive] = useState(false);
+  // True while a Harbor Learn lesson is open — the wall waits much longer before resting, so a
+  // child thinking over a puzzle is never yanked back to Home.
+  const [learnActive, setLearnActive] = useState(false);
   const [, setTick] = useState(0);
   const lastActivity = useRef(Date.now());
 
@@ -114,7 +117,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
     window.addEventListener("keydown", onActivity);
     window.addEventListener("touchstart", onActivity, { passive: true });
     const id = window.setInterval(() => {
-      const idle = Date.now() - lastActivity.current > idleMs;
+      const idle = Date.now() - lastActivity.current > (learnActive ? Math.max(idleMs, 10 * 60_000) : idleMs);
       // Never sleep mid-Anchor — co-regulation completes first (§9.1).
       if (anchorActive) return;
       // Only "sleep" when something will actually render (screensaver on, or in
@@ -134,7 +137,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
       window.removeEventListener("keydown", onActivity);
       window.removeEventListener("touchstart", onActivity);
     };
-  }, [sleepEnabled, idleMs, asleep, anchorActive]);
+  }, [sleepEnabled, idleMs, asleep, anchorActive, learnActive]);
 
   if (!state) return null;
 
@@ -216,6 +219,7 @@ export function KioskShell({ kiosk }: { kiosk: Kiosk }) {
           onHome={() => setView({ k: "home" })}
           onOpenCalm={() => setCalmOpen(true)}
           onAnchorActive={setAnchorActive}
+          onLearnActive={setLearnActive}
           autoAnchor={view.anchor}
         />
       )}

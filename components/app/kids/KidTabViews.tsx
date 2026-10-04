@@ -4,6 +4,9 @@ import { KidQuickActions, KidStatusBanners, KidWelcome } from "./KidTodayParts";
 import { AddRoutineSheet } from "./AddRoutineSheet";
 import { KidStarsCard, KidChoreList } from "./KidChoresParts";
 import { KidProfileCard, KidWallFeel, KidDangerZone } from "./KidAboutParts";
+import { LearnSettingsRow, MissionsCard, type MissionRow } from "./KidLearnParts";
+import { summarize, type KidLearnData, type UnitChip } from "@/lib/learn/parent";
+import { dayKeyInTz, formatInTz, formatTimeInTz } from "@/lib/tz";
 import type { KidBasics, KidDay, KidDayRoutine, KidRoutineRow, KidChoreRow, TemplateCard } from "@/lib/kid";
 import type { ChipChild } from "@/components/ui/Chips";
 import { cn } from "@/lib/cn";
@@ -228,6 +231,175 @@ export function KidAboutView({ kid }: { kid: KidBasics }) {
         ))}
       </ul>
       <KidDangerZone kidId={kid.id} kidName={kid.name} />
+    </div>
+  );
+}
+
+// ── Learn ────────────────────────────────────────────────────────────────────
+/** "today, 3:42 PM" · "yesterday" · "Mon, Oct 1" — in the family's time zone. */
+function whenLabel(iso: string, tz: string, now: Date): string {
+  const day = dayKeyInTz(new Date(iso), tz);
+  const today = dayKeyInTz(now, tz);
+  const yesterday = dayKeyInTz(new Date(now.getTime() - 86400_000), tz);
+  if (day === today) return `today, ${formatTimeInTz(new Date(iso), tz)}`;
+  if (day === yesterday) return "yesterday";
+  return formatInTz(new Date(iso), tz, { weekday: "short", month: "short", day: "numeric" });
+}
+
+const UNIT_CHIP: Record<UnitChip["state"], string> = {
+  done: "border-good/30 bg-good/10 text-good",
+  doing: "border-accent/40 bg-accent/10 text-fg",
+  next: "border-accent/40 text-fg",
+  later: "border-line text-fg-subtle",
+};
+
+export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLearnData; now: Date }) {
+  const s = summarize(data, now);
+  const goal = data.profile.daily_goal;
+  const best: Record<string, number> = {};
+  for (const r of data.results) best[r.lesson_id] = Math.max(best[r.lesson_id] ?? 0, r.stars);
+  const missions: MissionRow[] = data.assignments.map((a) => ({
+    id: a.id,
+    lessonId: a.lesson_id,
+    note: a.note,
+    status: a.status,
+    when: whenLabel(a.status === "done" && a.completed_at ? a.completed_at : a.created_at, data.tz, now),
+  }));
+  const stats = [
+    { emoji: "🔥", value: s.streak, label: "day streak" },
+    { emoji: "📚", value: s.weekLessons, label: "lessons this week" },
+    { emoji: "⏱️", value: s.weekMinutes, label: "minutes this week" },
+    { emoji: "🏅", value: s.level, label: `level · ${s.levelName}` },
+  ];
+
+  return (
+    <div>
+      <section className="rounded-2xl border border-line bg-surface p-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map((st) => (
+            <div key={st.label} className="rounded-xl bg-surface-2 px-3 py-2.5">
+              <p className="flex items-center gap-1.5 text-2xl font-extrabold tabular-nums text-fg">
+                <span className="text-xl" aria-hidden>
+                  {st.emoji}
+                </span>
+                {st.value}
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-fg-muted">{st.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold text-fg">Today&apos;s goal</span>
+            <span className="tabular-nums text-fg-muted">
+              {Math.min(s.todayCount, goal)} of {goal} lessons{s.todayCount >= goal ? " ✅" : ""}
+            </span>
+          </div>
+          <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-surface-2">
+            <div className={cn("h-full rounded-full", s.todayCount >= goal ? "bg-good" : "bg-accent")} style={{ width: `${Math.min(100, (s.todayCount / goal) * 100)}%` }} />
+          </div>
+          <p className="mt-2 text-sm text-fg-muted">
+            {s.lastActive ? `Last lesson ${whenLabel(s.lastActive, data.tz, now)}` : `${kid.name} hasn’t tried a lesson yet. On the wall, tap Learn next to My Day.`}
+          </p>
+        </div>
+      </section>
+
+      <div className="mt-3">
+        <LearnSettingsRow kidId={kid.id} kidName={kid.name} profile={data.profile} saved={data.profileSaved} />
+      </div>
+
+      <MissionsCard kidId={kid.id} kidName={kid.name} grade={data.profile.grade} missions={missions} bestStars={best} />
+
+      <SectionTitle>Progress</SectionTitle>
+      <div className="space-y-3">
+        {s.bySubject.map((sub) => {
+          const cur = sub.current;
+          const ci = cur ? sub.units.findIndex((u) => u.id === cur.id) : sub.units.length;
+          const shown = sub.units.filter((u, i) => u.state === "done" || i <= ci + 2);
+          const more = sub.units.length - shown.length;
+          return (
+            <section key={sub.subject} className="rounded-2xl border border-line bg-surface p-4">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-2xl" style={{ background: `${sub.color}22` }} aria-hidden>
+                  {sub.emoji}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-fg">{sub.title}</p>
+                  <p className="truncate text-sm text-fg-muted">{cur ? `${cur.emoji} ${cur.title} · ${cur.done} of ${cur.total}` : "Every unit finished 🎉"}</p>
+                </div>
+                <span className="shrink-0 text-right text-xs text-fg-muted">
+                  <span className="block text-base font-bold tabular-nums text-fg">{sub.lessonsDone}</span>
+                  lessons
+                </span>
+              </div>
+              {cur && (
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
+                  <div className="h-full rounded-full" style={{ width: `${cur.total ? (cur.done / cur.total) * 100 : 0}%`, background: sub.color }} />
+                </div>
+              )}
+              {sub.next && (
+                <p className="mt-2 text-sm text-fg-muted">
+                  Up next: <span className="font-semibold text-fg">{sub.next}</span>
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {shown.map((u) => (
+                  <span key={u.id} className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium", UNIT_CHIP[u.state])}>
+                    {u.state === "done" ? <Check className="h-3 w-3" /> : <span aria-hidden>{u.emoji}</span>}
+                    {u.title}
+                    {u.state === "doing" && (
+                      <span className="tabular-nums text-fg-muted">
+                        {u.done}/{u.total}
+                      </span>
+                    )}
+                  </span>
+                ))}
+                {more > 0 && <span className="rounded-full px-2 py-1 text-xs text-fg-subtle">+{more} more</span>}
+              </div>
+              {sub.subject === "reading" && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">Letter sounds · {s.lettersKnown.length} of 26</p>
+                  <div className="mt-2 grid grid-cols-9 gap-1 sm:grid-cols-[repeat(13,minmax(0,1fr))]">
+                    {"abcdefghijklmnopqrstuvwxyz".split("").map((l) => {
+                      const known = s.lettersKnown.includes(l);
+                      return (
+                        <span key={l} className={cn("grid aspect-square place-items-center rounded-lg text-sm font-bold", known ? "bg-accent/20 text-fg" : "bg-surface-2 text-fg-subtle")} title={known ? `${l}: learned` : `${l}: not yet`}>
+                          {l}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      {s.recent.length > 0 && (
+        <>
+          <SectionTitle>Recent lessons</SectionTitle>
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+            {s.recent.map((r) => (
+              <li key={r.id} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
+                <span className="text-xl leading-none" aria-hidden>
+                  {r.emoji}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-semibold text-fg">{r.title}</span>
+                  <span className="block text-xs text-fg-muted">
+                    {whenLabel(r.at, data.tz, now)} · {r.minutes} min
+                  </span>
+                </span>
+                <span className="shrink-0 text-sm" aria-label={`${r.stars} of 3 stars`}>
+                  {"⭐".repeat(r.stars)}
+                  <span className="opacity-30">{"⭐".repeat(3 - r.stars)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

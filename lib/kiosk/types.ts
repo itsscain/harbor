@@ -1,6 +1,9 @@
 // On-device kiosk types. The kiosk's source of truth is IndexedDB; these mirror
 // the snapshot returned by the rpc_kiosk_* functions plus local-only state.
 
+import type { LearnResult } from "@/lib/learn/types";
+import type { LearnSnapshot } from "@/lib/learn/progress";
+
 export type KioskChildProfile = {
   summary?: string;
   interests?: string[];
@@ -465,6 +468,12 @@ export type KioskState = {
    *  per family day from /api/ai/skipper (Plus + AI configured); merged with the built-in curated
    *  pool by the Lantern. `day` is the family-tz service day the batch was fetched. */
   skipperLines?: Record<string, { day: string; lines: { text: string; category: string }[] }>;
+  /** Harbor Learn — finished lessons waiting to sync (rpc_learn_sync, separate from the core
+   *  push/pull), the last Learn state the server sent (grade levels, assignments, per-kid
+   *  progress), and when that was (wall-clock ms) so Learn isn't re-fetched on every tick. */
+  learnOutbox?: LearnResult[];
+  learn?: LearnSnapshot | null;
+  learnSyncedAt?: number;
   /** Pending mutations to push when online + Plus active. */
   outbox: Mutation[];
 };

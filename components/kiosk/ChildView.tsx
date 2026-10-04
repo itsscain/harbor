@@ -47,6 +47,9 @@ import { sensoryOf, intensityOf, scaleCount } from "@/lib/kiosk/motion";
 import { StoreView } from "./StoreView";
 import { TransitionTimer } from "./TransitionTimer";
 import { ChildAvatar } from "./ChildAvatar";
+import { LearnApp } from "./learn/LearnApp";
+import { ModeSwitch, type WallMode } from "./learn/ModeSwitch";
+import { kidLearnView } from "./learn/learnData";
 import { cn } from "@/lib/cn";
 
 type Kiosk = ReturnType<typeof useKiosk>;
@@ -94,6 +97,7 @@ export function ChildView({
   onHome,
   onOpenCalm,
   onAnchorActive,
+  onLearnActive,
   autoAnchor = false,
   hideHome = false,
 }: {
@@ -103,6 +107,8 @@ export function ChildView({
   onOpenCalm: () => void;
   /** Signals the shell when Anchor opens/closes (ducks ambient; blocks idle sleep). */
   onAnchorActive?: (active: boolean) => void;
+  /** Signals the shell while a Learn lesson is open (the wall stays awake longer). */
+  onLearnActive?: (active: boolean) => void;
   /** Open Anchor immediately on mount (parent's "Quick Anchor" from the wall). */
   autoAnchor?: boolean;
   /** Outpost (room-device) mode hides the family Home button. */
@@ -241,6 +247,15 @@ export function ChildView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorOpen]);
   useEffect(() => () => onAnchorActive?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Harbor Learn: the child flips between "My Day" and "Learn" (tap the switch, or swipe).
+  const [mode, setMode] = useState<WallMode>("day");
+  const [learnBusy, setLearnBusy] = useState(false);
+  useEffect(() => {
+    onLearnActive?.(learnBusy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [learnBusy]);
+  useEffect(() => () => onLearnActive?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const swipe = useRef<{ x: number; y: number; t: number; ok: boolean } | null>(null);
   // Reward minigame can be played once per day, only after everything's done.
   const [gamePlayed, setGamePlayed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -473,8 +488,68 @@ export function ChildView({
       ? "Let's get started!"
       : `${progressDone} of ${progressTotal} done${pct >= 60 ? " — almost there!" : ""}`;
 
+  // ── Harbor Learn: the second screen a child flips to ─────────────────────────
+  const learnOn = FEATURES.learn;
+  const learnView = learnOn ? kidLearnView(state, child) : null;
+  const learnBadge = !learnView
+    ? null
+    : learnView.assignments.length > 0
+      ? learnView.assignments.length
+      : learnView.kid.todayCount < learnView.profile.daily_goal
+        ? ("dot" as const)
+        : null;
+  const switchMode = (m: WallMode) => {
+    if (m === mode) return;
+    feedback("tab-switch", fx);
+    setMode(m);
+  };
+  // A sideways swipe flips screens too (never mid-lesson, never from a draggable or a scroller).
+  const swipeHandlers = learnOn
+    ? {
+        onPointerDown: (e: React.PointerEvent) => {
+          const el = e.target as HTMLElement;
+          swipe.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, ok: !el.closest("[data-noswipe], .l-drag, .overflow-x-auto, input, textarea") };
+        },
+        onPointerUp: (e: React.PointerEvent) => {
+          const sw = swipe.current;
+          swipe.current = null;
+          if (!sw || !sw.ok || learnBusy) return;
+          const dx = e.clientX - sw.x;
+          const dy = e.clientY - sw.y;
+          if (Math.abs(dx) > 110 && Math.abs(dy) < 80 && e.timeStamp - sw.t < 700) switchMode(dx < 0 ? "learn" : "day");
+        },
+      }
+    : {};
+
+  if (learnOn && mode === "learn") {
+    const learnTopRow = (
+      <div className="relative z-[2] flex items-center justify-between gap-3 px-4 pb-2 pt-3 sm:px-6">
+        {hideHome ? (
+          <span className="w-12" aria-hidden />
+        ) : (
+          <button type="button" onClick={onHome} className="kiosk-tap flex h-12 items-center gap-2 rounded-full bg-white/25 px-4 font-display text-[17px] font-bold text-white shadow-[inset_0_2px_0_rgba(0,40,80,0.1)]">
+            <HomeIcon className="h-5 w-5" /> Home
+          </button>
+        )}
+        <ModeSwitch mode="learn" onChange={switchMode} tone="light" />
+        <span className="flex h-12 items-center gap-1.5 rounded-full bg-white px-4 shadow-[0_3px_0_rgba(0,40,80,0.15)]">
+          <Star className="h-5 w-5 fill-[#ffc83d] text-[#e0a21a]" />
+          <span key={points} className={cn("font-display text-lg font-extrabold tabular-nums text-[#17324d]", !settings.reducedMotion && "animate-pop")}>
+            {points}
+          </span>
+        </span>
+      </div>
+    );
+    return (
+      <div style={accentStyle} {...swipeHandlers}>
+        <LearnApp kiosk={kiosk} child={child} accent={color} reduced={settings.reducedMotion} sound={settings.sound} intensity={fxIntensity} header={learnTopRow} onBusy={setLearnBusy} />
+      </div>
+    );
+  }
+
   return (
     <div
+      {...swipeHandlers}
       className="relative min-h-dvh text-ktext"
       style={{
         ...accentStyle,
@@ -503,6 +578,7 @@ export function ChildView({
               <HomeIcon className="h-5 w-5" /> Home
             </Pressable>
           )}
+          {learnOn && <ModeSwitch mode="day" onChange={switchMode} tone="dark" badge={learnBadge} />}
           <div className="flex items-center gap-2">
             <AskGrownup kiosk={kiosk} childId={child.id} childName={child.name} haptics={settings.haptics} sound={settings.sound} />
             <StreakBadge count={streak} />

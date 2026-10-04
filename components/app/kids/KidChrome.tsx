@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import { MiniAvatar } from "@/components/ui/Chips";
 import type { KidBasics } from "@/lib/kid";
 import { cn } from "@/lib/cn";
+import { FEATURES } from "@/lib/features";
 
 /** The top of a kid's page: their face, name, age and stars — calm, theme-aware. */
 export function KidHeader({ kid }: { kid: KidBasics }) {
@@ -23,19 +24,21 @@ export function KidHeader({ kid }: { kid: KidBasics }) {
   );
 }
 
-export const KID_TABS = [
+const ALL_TABS = [
   { key: "today", label: "Today" },
   { key: "routines", label: "Routines" },
   { key: "chores", label: "Chores" },
+  { key: "learn", label: "Learn" },
   { key: "about", label: "About" },
 ] as const;
-export type KidTab = (typeof KID_TABS)[number]["key"];
+export const KID_TABS = ALL_TABS.filter((t) => t.key !== "learn" || FEATURES.learn);
+export type KidTab = (typeof ALL_TABS)[number]["key"];
 
 export function parseKidTab(v: string | undefined): KidTab {
   return (KID_TABS.find((t) => t.key === v)?.key ?? "today") as KidTab;
 }
 
-/** Four plain tabs instead of one 600-control scroll. */
+/** A few plain tabs instead of one 600-control scroll. */
 export function KidTabs({ kidId, active, base }: { kidId: string; active: KidTab; base?: string }) {
   const root = base ?? `/app/children/${kidId}`;
   return (
@@ -50,7 +53,7 @@ export function KidTabs({ kidId, active, base }: { kidId: string; active: KidTab
             scroll={false}
             replace
             className={cn(
-              "flex min-h-10 flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold transition",
+              "flex min-h-10 flex-auto items-center justify-center whitespace-nowrap rounded-xl px-2 text-[13px] font-semibold transition sm:px-3 sm:text-sm",
               on ? "bg-accent/15 text-fg" : "text-fg-muted hover:bg-surface-2 hover:text-fg",
             )}
           >

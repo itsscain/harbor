@@ -10,6 +10,7 @@ export type NotifCategory =
   | "approvals" // tier 2 — a chore/reward is waiting for your OK
   | "routines" // tier 3 — a routine finished, or was missed
   | "moments" // tier 3 — celebrations & milestones
+  | "learning" // tier 3 — Harbor Learn: missions done, daily goal, units, streaks
   | "medication" // tier 3 — a dose is due or was missed
   | "messages" // tier 3 — a note posted to the wall for you
   | "events" // tier 4 — an upcoming calendar event
@@ -29,6 +30,7 @@ export const CATEGORY_TIER: Record<NotifCategory, number> = {
   approvals: 2,
   routines: 3,
   moments: 3,
+  learning: 3,
   medication: 3,
   messages: 3,
   events: 4,
@@ -41,6 +43,7 @@ export const CATEGORY_LABEL: Record<NotifCategory, string> = {
   approvals: "Approvals & requests",
   routines: "Routines — finished or missed",
   moments: "Moments & celebrations",
+  learning: "Learning — missions & milestones",
   medication: "Medication reminders",
   messages: "Messages from the wall",
   events: "Event reminders",
@@ -54,6 +57,7 @@ export const CATEGORY_DESC: Record<NotifCategory, string> = {
   approvals: "A chore or reward is waiting for your OK.",
   routines: "When a child finishes their day — or a window closes unfinished.",
   moments: "Streaks, big wins, and points milestones.",
+  learning: "A lesson you assigned is done, the daily goal is hit, or a unit is finished.",
   medication: "A dose is coming up, or was missed.",
   messages: "A note posted to the wall for you.",
   events: "A heads-up before a calendar event.",
@@ -69,6 +73,7 @@ export const CATEGORY_ORDER: NotifCategory[] = [
   "medication",
   "messages",
   "moments",
+  "learning",
   "events",
   "briefing",
   "digest",
@@ -92,6 +97,7 @@ export const DEFAULT_PREFS: NotifPrefs = {
     approvals: true,
     routines: true,
     moments: true,
+    learning: true,
     medication: true,
     messages: true,
     events: true,

@@ -25,11 +25,13 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  // Only this worker's own old shell caches are purged. Long-lived content caches the page owns
+  // (Harbor Learn's offline voice library, the on-device voice model) survive every deploy.
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+        Promise.all(keys.filter((k) => k.startsWith("harbor-kiosk-") && k !== CACHE).map((k) => caches.delete(k))),
       )
       .then(() => self.clients.claim()),
   );
