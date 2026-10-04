@@ -4,7 +4,11 @@ import type { Block, CodeLevel, Dir } from "./types";
 // functions) driving six little worlds. Everything is pure, so the UI animates the steps and
 // a checker can prove every level is solvable.
 
-export type Step<S> = { state: S; at: number[]; event: string; fail?: string };
+/** One pass of a loop that's running: the loop's address, which pass (1-based) and how many
+ *  (repeat-until has no fixed count). Every step carries the loops it's inside, so the editor can
+ *  show "pass 2 of 4" on the loop while it runs. */
+export type Iter = { at: number[]; k: number; n?: number };
+export type Step<S> = { state: S; at: number[]; event: string; fail?: string; iters?: Iter[] };
 export type Engine<S> = {
   init: S;
   exec: (op: string, s: S) => { s: S; event: string; fail?: string };
@@ -27,6 +31,8 @@ export function runEngine<S>(prog: Block[], eng: Engine<S>, limit = 3000): RunRe
   let fail: RunResult<S>["fail"];
   let halted = false;
   let overflow = false;
+  const stack: Iter[] = [];
+  const iters = () => (stack.length ? stack.map((x) => ({ ...x })) : undefined);
   const exec = (blocks: Block[], path: number[], depth: number, elseBranch = false) => {
     for (let i = 0; i < blocks.length && !halted; i++) {
       const b = blocks[i];
@@ -38,12 +44,17 @@ export function runEngine<S>(prog: Block[], eng: Engine<S>, limit = 3000): RunRe
         return;
       }
       if (b.op === "repeat") {
-        for (let k = 0; k < Math.min(30, Math.max(0, b.n ?? 2)) && !halted; k++) exec(b.body ?? [], at, depth + 1);
+        const reps = Math.min(30, Math.max(0, b.n ?? 2));
+        for (let k = 0; k < reps && !halted; k++) {
+          stack.push({ at, k: k + 1, n: reps });
+          exec(b.body ?? [], at, depth + 1);
+          stack.pop();
+        }
         continue;
       }
       if (b.op === "if" || b.op === "ifelse") {
         const ok = eng.test(b.cond ?? "", s);
-        steps.push({ state: s, at, event: ok ? "yes" : "no" });
+        steps.push({ state: s, at, event: ok ? "yes" : "no", iters: iters() });
         if (ok) exec(b.body ?? [], at, depth + 1);
         else if (b.op === "ifelse") exec(b.else ?? [], at, depth + 1, true);
         continue;
@@ -51,11 +62,16 @@ export function runEngine<S>(prog: Block[], eng: Engine<S>, limit = 3000): RunRe
       if (b.op === "until") {
         let guard = 0;
         while (!halted && guard++ < 250) {
+          stack.push({ at, k: guard });
           const met = eng.test(b.cond ?? "", s);
-          steps.push({ state: s, at, event: met ? "yes" : "no" });
-          if (met) break;
+          steps.push({ state: s, at, event: met ? "yes" : "no", iters: iters() });
+          if (met) {
+            stack.pop();
+            break;
+          }
           const before = steps.length;
           exec(b.body ?? [], at, depth + 1);
+          stack.pop();
           if (steps.length === before) break; // an empty body can't make progress
         }
         continue;
@@ -67,7 +83,7 @@ export function runEngine<S>(prog: Block[], eng: Engine<S>, limit = 3000): RunRe
       }
       const r = eng.exec(b.op, s);
       s = r.s;
-      steps.push({ state: s, at, event: r.event, fail: r.fail });
+      steps.push({ state: s, at, event: r.event, fail: r.fail, iters: iters() });
       if (r.fail) {
         fail = { at, reason: r.fail };
         halted = true;
@@ -310,6 +326,31 @@ export function toText(prog: Block[], indent = ""): string[] {
       const rt = /^(rt|lt)(\d+)$/.exec(b.op);
       const col = /^color:(.+)$/.exec(b.op);
       out.push(`${indent}${fd ? `forward(${fd[1]})` : rt ? `${rt[1] === "rt" ? "turnRight" : "turnLeft"}(${rt[2]})` : col ? `setColor("${col[1]}")` : NAMES[b.op] ?? `${b.op}()`};`);
+    }
+  }
+  return out;
+}
+
+/** The same program as Python (what Python Peek teaches): snake_case names, colons and indents. */
+const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+export function toPython(prog: Block[], indent = ""): string[] {
+  const inner = indent + "    ";
+  const body = (p?: Block[]) => (p?.length ? toPython(p, inner) : [`${inner}pass`]);
+  const cond = (c?: string) => snake(CONDS[c ?? ""] ?? `${c}()`);
+  const out: string[] = [];
+  for (const b of prog) {
+    if (b.op === "repeat") out.push(`${indent}for i in range(${b.n ?? 2}):`, ...body(b.body));
+    else if (b.op === "if") out.push(`${indent}if ${cond(b.cond)}:`, ...body(b.body));
+    else if (b.op === "ifelse") out.push(`${indent}if ${cond(b.cond)}:`, ...body(b.body), `${indent}else:`, ...body(b.else));
+    else if (b.op === "until") out.push(`${indent}while not ${cond(b.cond)}:`, ...body(b.body));
+    else if (b.op === "def") out.push(`${indent}def ${b.name}():`, ...body(b.body));
+    else if (b.op === "call") out.push(`${indent}${b.name}()`);
+    else {
+      const fd = /^fd(\d)$/.exec(b.op);
+      const rt = /^(rt|lt)(\d+)$/.exec(b.op);
+      const col = /^color:(.+)$/.exec(b.op);
+      const note = /^[A-G]$/.test(b.op);
+      out.push(`${indent}${fd ? `forward(${fd[1]})` : rt ? `${rt[1] === "rt" ? "turn_right" : "turn_left"}(${rt[2]})` : col ? `set_color("${col[1]}")` : note ? `play("${b.op}")` : snake(NAMES[b.op] ?? `${b.op}()`)}`);
     }
   }
   return out;

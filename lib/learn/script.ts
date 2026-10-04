@@ -23,6 +23,7 @@ export const SAY = {
   math: "Math",
   manners: "Captain's Code",
   faith: "Lighthouse",
+  science: "Discovery",
   mission: "Here's your mission!",
   fromGrownup: "A grown-up picked this one for you.",
   letsGo: "Let's go!",
@@ -117,6 +118,77 @@ export const SAY = {
   fewerBlocks: "It works! Can you do it with fewer blocks?",
   everyMap: "Your program has to work on every map!",
   useLoop: "Try a repeat block. It does things again and again!",
+  recapLoop: "The loop did the repeating for you!",
+  recapCheck: "Your program checked and decided, all by itself!",
+  recapFunc: "Your function did lots of steps with just one name!",
+  recapSteps: "Step by step, in order. That's a program!",
+
+  // Code Lab
+  conceptTime: "Let's learn a big coding idea!",
+  predictEnd: "Be the computer! Where will the boat stop? Tap the square.",
+  predictEndRover: "Be the computer! Where will the rover stop? Tap the square.",
+  predictCountSong: "Be the computer! How many bells will ring?",
+  predictCountDance: "Be the computer! How many moves will the robot do?",
+  predictPick: "Which program works? Tap one to test it.",
+  predictRight: "You thought just like a computer!",
+  predictWatch: "Let's run it and see.",
+  loopFindPart: "Find the part that repeats.",
+  loopFindTimes: "How many times does it repeat?",
+  loopFindDone: "One loop instead of all those blocks!",
+  recipeIntro: "The robot does exactly what you say. Put the steps in order, then press play!",
+  recipeOops: "Oops! The robot did exactly what you said. Fix the order!",
+  recipeWin: "The robot did it!",
+  factoryIntro: "Build the rule, then run the factory!",
+  factoryWrong: "Some went to the wrong bin. Fix the rule and try again!",
+  factoryWin: "Every one sorted! What a rule!",
+  varIntro: "Follow the program. What will the box hold at the end?",
+  varWatch: "Let's watch the box change.",
+  eventsIntro: "Make your app! Pick what happens when you tap each one.",
+  eventsPlay: "Now tap them and try your app!",
+  eventsWrong: "Hmm, that's not what the app is supposed to do. Check the goal!",
+  binaryMake: "Turn on lights to make the number.",
+  binaryRead: "Add up the lights that are on. What number is it?",
+  searchIntro: "I'm thinking of a number. Find it in as few guesses as you can!",
+  higher: "Higher!",
+  lower: "Lower!",
+  searchFound: "You found it!",
+  searchTip: "Pro tip: guess the middle. Each guess cuts the choices in half!",
+  swapIntro: "Swap neighbors to put them in order, smallest first.",
+  swapDone: "All in order!",
+  cipherIntro: "Use the key to crack the secret code!",
+  logicLight: "Flip the switches to turn on the light.",
+  logicPredict: "Will the light be on?",
+  machineOut: "What number will come out?",
+  machineRule: "What rule is the machine using?",
+  plotPlace: "Put the treasure on the spot. Go across first, then up.",
+  plotRead: "Where is the treasure? Count across first, then up.",
+
+  // Discovery labs
+  labFloat: "Will it sink or float? Guess first, then drop it in!",
+  labMagnet: "Will the magnet pull it? Guess first, then test it!",
+  labCircuit: "Will the bulb light up? Guess first, then try it!",
+  labStates: "Heat it up or cool it down!",
+  labPlant: "Give the plant what it needs to grow!",
+  labShadow: "Move the sun and watch the shadow!",
+  labRamp: "Change the ramp, then roll the car!",
+  itSinks: "It sinks!",
+  itFloats: "It floats!",
+  itSticks: "It sticks to the magnet!",
+  noStick: "The magnet doesn't pull it.",
+  bulbOn: "The bulb lights up!",
+  bulbOff: "No light!",
+  guessRight: "Your prediction was right!",
+  guessOops: "Not what you guessed. That's how scientists learn!",
+  melting: "Melting!",
+  freezing: "Freezing!",
+  evaporating: "Evaporating!",
+  condensing: "Condensing!",
+  plantSun: "Plants use sunlight to make their food.",
+  plantWater: "Roots drink water. Without it, the plant wilts.",
+  plantAir: "Leaves take in air to make food.",
+  plantSoil: "Soil holds the roots and gives the plant nutrients.",
+  rampFarther: "Can you make it go even farther?",
+  rampSooner: "Can you make it stop even sooner?",
 
   // Stories, verses and character
   storyTime: "Story time!",
@@ -165,6 +237,21 @@ export const SAY = {
   gymGrid: "Remember where the stars are!",
   gymFacts: "Answer as many as you can!",
   brainBoost: "Brain Boost! A little bit of everything.",
+  arcade: "Welcome to the Game Arcade! Pick a game.",
+  gameTen: "Tap two bubbles that add up to the goal number!",
+  gameBigger: "Tap the bigger one, as fast as you can!",
+  gameHop: "Tap where the number belongs on the line!",
+  gameCoins: "Count the coins, then tap the total!",
+  gameRocket: "Listen to the word, then tap the right rocket!",
+  gameRhyme: "Tap every picture that rhymes!",
+  gameOpposites: "Tap the word that means the opposite!",
+  gameBits: "Turn on the lights to make the number!",
+  gameBugs: "One arrow is wrong. Find the bug and squash it!",
+  gameFloat: "Will it sink or float? Decide fast!",
+  gameAnimals: "Put each animal in its group!",
+  gamePython: "Read the code and tap what it prints. Go fast!",
+  gameRobot: "Which program gets the robot to the star?",
+  gameLoops: "Which loop makes this pattern?",
 
   // End of lesson
   lessonDone: "Level complete!",
@@ -367,6 +454,34 @@ function activityClips(a: Activity, level: VoiceLevel, subject: SubjectId, add: 
         });
         line(a.closing);
       }
+      break;
+    // Code Lab: the fixed instructions live in SAY; these are the item-specific lines.
+    case "concept":
+      if (level !== "keys") a.lines.forEach(line);
+      break;
+    case "recipe":
+      if (level !== "keys") a.steps.forEach((s) => (line(s.text), line(s.fail)));
+      break;
+    case "factory":
+    case "events":
+      if (level !== "keys") line(a.kind === "factory" ? a.prompt : a.story);
+      break;
+    case "logic":
+      if (level !== "keys") line(a.story);
+      break;
+    case "lab":
+      if (full && (a.spec.lab === "float" || a.spec.lab === "magnet" || a.spec.lab === "circuit")) a.spec.things.forEach((t) => (line(t.name), line(t.why)));
+      break;
+    case "predict":
+    case "loopfind":
+    case "variable":
+    case "binary":
+    case "search":
+    case "swapsort":
+    case "cipher":
+    case "machine":
+    case "plot":
+    case "coderead":
       break;
   }
 }

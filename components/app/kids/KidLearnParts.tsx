@@ -20,6 +20,7 @@ const SUBJECT_OPTIONS = [
   { value: "reading", label: "Reading", emoji: "📖" },
   { value: "math", label: "Math", emoji: "🔢" },
   { value: "code", label: "Code", emoji: "🧩" },
+  { value: "science", label: "Discovery (science)", emoji: "🔬" },
   { value: "manners", label: "Captain's Code", emoji: "⚓" },
   { value: "faith", label: "Lighthouse", emoji: "🕊️" },
 ];

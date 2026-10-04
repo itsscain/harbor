@@ -18,13 +18,14 @@ export type Skills = Record<string, SkillStat>;
 export const INTERVAL_DAYS = [0, 1, 2, 4, 9, 20];
 const DAY = 86_400_000;
 
-export const SKILL_PREFIX: Record<SubjectId, string> = { reading: "r:", math: "m:", code: "c:", manners: "h:", faith: "f:" };
+export const SKILL_PREFIX: Record<SubjectId, string> = { reading: "r:", math: "m:", code: "c:", manners: "h:", faith: "f:", science: "s:" };
 export function skillSubject(skill: string): SubjectId | null {
   if (skill.startsWith("r:")) return "reading";
   if (skill.startsWith("m:")) return "math";
   if (skill.startsWith("c:")) return "code";
   if (skill.startsWith("h:")) return "manners";
   if (skill.startsWith("f:")) return "faith";
+  if (skill.startsWith("s:")) return "science";
   return null;
 }
 

@@ -7,6 +7,10 @@ import {
   makeMap, genChannel, genCorridor, genMaze, genSeq, genMelody, genLoopSeq, genChorus,
   polygon, flower, solvePixel, pictureColors, makeBug, roverProgram, WALL_FOLLOWER, type MapSpec, type Side,
 } from "./codeGen";
+import {
+  concept, recipeAct, factoryAct, eventsAct, variableAct, loopFindAct, predictEnd, predictEndBoat, predictCount, predictPick,
+  binaryAct, searchAct, swapSortAct, cipherAct, logicAct, machineAct, plotAct, pythonRead, pythonSet, pythonBug, pythonBugSet, LAB_SKILL_LABEL,
+} from "./codeLabContent";
 
 // The Code voyage — real programming ideas through six hands-on worlds, run block by block with
 // big animations: steer a boat (Sea Navigator), make a robot dance, compose songs, draw with a
@@ -14,6 +18,15 @@ import {
 // curricula teach them: sequencing → loops → turning from the boat's view → debugging →
 // conditionals + repeat-until → functions → nested loops → algorithms. Little sailors tap
 // picture blocks; big kids see the real code their blocks make.
+//
+// The Code Lab islands teach what's going on underneath: animated concept cards (what a program,
+// a bug, a loop, an if, a variable, an event really is), "be the computer" puzzles that make you
+// predict a program before it runs, Loop Detective, Robot Chef (computers do EXACTLY what you
+// say), the Sorting Factory (if / else-if / AND), Treasure Counter (variables + trace tables),
+// Event Studio (how apps react to taps), binary lights, binary search, bubble sort, secret codes,
+// logic gates, function machines and coordinates. Python Peek / Python Pro bridge 4th–5th graders
+// from blocks to real text code: read a program, predict its output, then hunt real bugs (and
+// real crashes) line by line.
 
 const R = blk("right"), L = blk("left"), U = blk("up"), D = blk("down"), F = blk("fwd"), TL = blk("tl"), TR = blk("tr");
 const P = blk("paint");
@@ -112,13 +125,16 @@ const PICS: Record<string, string[]> = {
   rocket: ["..w..", ".wbw.", ".www.", ".www.", "o.o.o"],
 };
 
-type LessonDef = { title: string; emoji: string; kind?: LevelKind; levels: CodeLevel[] | ((r: Rng) => CodeLevel[]) };
+/** A lesson's items: block puzzles (CodeLevel) and Code Lab activities, in order. */
+type Item = CodeLevel | Activity;
+type LessonDef = { title: string; emoji: string; kind?: LevelKind; levels: Item[] | ((r: Rng) => Item[]) };
 type WorldDef = { id: string; title: string; emoji: string; grade: GradeId; blurb: string; lessons: LessonDef[] };
 
 const WORLDS: WorldDef[] = [
   // ── Pre-K ────────────────────────────────────────────────────────────────────────────────
   { id: "voyage", title: "First Voyage", emoji: "⛵", grade: "prek", blurb: "Tell the boat where to go, one arrow at a time.", lessons: [
     { title: "Set sail", emoji: "⛵", levels: [
+      concept("program", "little"),
       sea("Sail to the island!", ["S.G"], [R, R], { hint: "Sail right two times." }),
       sea("Sail to the island!", ["S...G"], [R, R, R, R], { hint: "Count the water squares." }),
       sea("Sail to the island!", ["S", ".", ".", "G"], [D, D, D], { hint: "This time, sail down." }),
@@ -168,6 +184,21 @@ const WORLDS: WorldDef[] = [
       dance("The big finale!", ["kick", "kick", "jump", "wave", "spin", "bow"]),
     ] },
   ] },
+  // ── Code Lab (Pre-K) ──
+  { id: "chef", title: "Robot Chef", emoji: "🤖", grade: "prek", blurb: "The robot does EXACTLY what you say — in the order you say it!", lessons: [
+    { title: "Breakfast bot", emoji: "🥣", levels: (r) => [recipeAct(r, "cereal"), recipeAct(r, "fish")] },
+    { title: "Bathroom bot", emoji: "🪥", levels: (r) => [recipeAct(r, "teeth"), recipeAct(r, "cereal", true)] },
+    { title: "Garden bot", emoji: "🌱", levels: (r) => [recipeAct(r, "seed"), recipeAct(r, "fish", true)] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [recipeAct(r, "teeth", true), recipeAct(r, "seed", true)] },
+    { title: "Chef's challenge", emoji: "🏆", kind: "boss", levels: (r) => [recipeAct(r, "sandwich"), recipeAct(r, "dressed")] },
+  ] },
+  { id: "patterns", title: "Pattern Parade", emoji: "🎉", grade: "prek", blurb: "Find what repeats — and squeeze it into a loop.", lessons: [
+    { title: "Spot the pattern", emoji: "👀", levels: (r) => [loopFindAct(r, "dance", [2, 2], [3, 3]), loopFindAct(r, "notes", [2, 2], [3, 3]), loopFindAct(r, "dance", [2, 2], [2, 3])] },
+    { title: "Pattern power", emoji: "💪", levels: (r) => [loopFindAct(r, "arrows", [2, 2], [3, 3]), predictCount(r, "music", false), loopFindAct(r, "dance", [2, 2], [3, 4])] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [loopFindAct(r, "notes", [2, 3], [2, 3]), predictCount(r, "dance", false), gDance(r, 4)] },
+    { title: "Parade boss", emoji: "🏆", kind: "boss", levels: (r) => [loopFindAct(r, "dance", [3, 3], [2, 3]), predictCount(r, "music", false), loopFindAct(r, "arrows", [2, 3], [3, 3])] },
+  ] },
+
   // ── Kindergarten ─────────────────────────────────────────────────────────────────────────
   { id: "music", title: "Music Maker", emoji: "🎵", grade: "k", blurb: "Program the bells to play a song.", lessons: [
     { title: "First notes", emoji: "🔔", levels: [
@@ -222,11 +253,13 @@ const WORLDS: WorldDef[] = [
   ] },
   { id: "loops", title: "Loop the Loop", emoji: "🔁", grade: "k", blurb: "A repeat block does the same thing again and again.", lessons: [
     { title: "Repeat it", emoji: "🔁", levels: [
+      concept("loop", "little"),
       sea("Use repeat to sail far!", ["S.....G"], [rep(6, R)], { loops: true, hint: "Put the right arrow inside a repeat." }),
       sea("Repeat and collect!", ["S*.*.*.G"], [rep(7, R)], { loops: true }),
       sea("Repeat down the stairs!", ["S.##", "#..#", "##..", "###G"], [rep(3, R, D)], { loops: true, hint: "Repeat: right, then down." }),
     ] },
-    { title: "Loop dances", emoji: "🕺", levels: [
+    { title: "Loop dances", emoji: "🕺", levels: (r) => [
+      loopFindAct(r, "dance", [2, 2], [3, 3]),
       dance("Use a loop!", ["clap", "clap", "clap", "jump"], [rep(3, blk("clap")), blk("jump")], { loops: true }),
       dance("Use a loop!", ["wave", "spin", "wave", "spin", "wave", "spin"], [rep(3, blk("wave"), blk("spin"))], { loops: true }),
       music("Use a loop!", ["C", "D", "E", "C", "D", "E"], [rep(2, blk("C"), blk("D"), blk("E"))], { loops: true }),
@@ -255,6 +288,7 @@ const WORLDS: WorldDef[] = [
       gSea(r, "Collect them all!", { w: 5, h: 4, rocks: 5, shells: 2, len: [7, 9], turns: 3 }),
     ] },
     { title: "Fog bank", emoji: "🌫️", levels: (r) => [
+      predictEnd(r, { w: 4, h: 3, loop: false, rocks: 1 }),
       gSea(r, "Find the way!", { w: 5, h: 5, rocks: 8, len: [8, 10], turns: 3, detour: true }),
       gChannel(r, false, [4, 5]),
       gSea(r, "Collect them all!", { w: 5, h: 5, rocks: 7, shells: 2, len: [8, 10], turns: 3 }),
@@ -265,6 +299,21 @@ const WORLDS: WorldDef[] = [
       gChannel(r, false, [5, 5]),
     ] },
   ] },
+  // ── Code Lab (K) ──
+  { id: "computer", title: "Be the Computer", emoji: "🖥️", grade: "k", blurb: "Read the program first — where will it go?", lessons: [
+    { title: "Where will it stop?", emoji: "📍", levels: (r) => [predictEnd(r, { w: 3, h: 3, loop: false, rocks: 1 }), predictEnd(r, { w: 4, h: 3, loop: false, rocks: 1 }), predictEnd(r, { w: 4, h: 3, loop: false, rocks: 2 })] },
+    { title: "Count it", emoji: "🔢", levels: (r) => [predictCount(r, "music", false), predictCount(r, "dance", false), predictEnd(r, { w: 4, h: 4, loop: false, rocks: 2 })] },
+    { title: "Which one works?", emoji: "🤔", levels: (r) => [predictPick(r, { w: 3, h: 3, rocks: 2, len: [3, 4], turns: 1 }), predictPick(r, { w: 4, h: 3, rocks: 3, len: [4, 5], turns: 2 }), predictEnd(r, { w: 4, h: 4, loop: true, rocks: 2 })] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [predictEnd(r, { w: 4, h: 4, loop: true, rocks: 2 }), predictCount(r, "music", false), predictPick(r, { w: 4, h: 3, rocks: 3, len: [4, 5], turns: 2 })] },
+    { title: "Computer boss", emoji: "🏆", kind: "boss", levels: (r) => [predictEnd(r, { w: 5, h: 4, loop: true, rocks: 3 }), predictPick(r, { w: 4, h: 4, rocks: 4, len: [5, 6], turns: 2 }), predictCount(r, "dance", false)] },
+  ] },
+  { id: "events", title: "Event Island", emoji: "⚡", grade: "k", blurb: "When you tap it, it does something — make your own app!", lessons: [
+    { title: "When I tap…", emoji: "👆", levels: (r) => [concept("event", "little"), eventsAct(r, 2), eventsAct(r, 2)] },
+    { title: "Tiny apps", emoji: "📱", levels: (r) => [eventsAct(r, 2), eventsAct(r, 3)] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [eventsAct(r, 3), recipeAct(r, "seed", true)] },
+    { title: "App boss", emoji: "🏆", kind: "boss", levels: (r) => [eventsAct(r, 3), eventsAct(r, 3)] },
+  ] },
+
   // ── 1st grade ────────────────────────────────────────────────────────────────────────────
   { id: "turtle", title: "Turtle Artist", emoji: "🐢", grade: "1", blurb: "Program a turtle to draw lines and shapes.", lessons: [
     { title: "Draw lines", emoji: "✏️", levels: [
@@ -295,12 +344,14 @@ const WORLDS: WorldDef[] = [
       view("Turn and sail!", ["S.", "#G"], [F, TR, F], { hint: "Forward, turn right, forward." }),
       view("Face the right way!", ["S.#", "..#", "G.."], [TR, F, F], { hint: "Turn to face down first." }),
     ] },
-    { title: "Twists and turns", emoji: "🌀", levels: [
+    { title: "Twists and turns", emoji: "🌀", levels: (r) => [
+      predictEndBoat(r, { w: 4, h: 3, rocks: 1 }),
       view("Sail around!", ["...G", ".##.", "S..."], [F, F, F, TL, F, F]),
       view("Zigzag!", ["S.#", "#..", "##G"], [F, TR, F, TL, F, TR, F]),
       view("U-turn!", ["S..", "##.", "G.."], [F, F, TR, F, F, TR, F, F]),
     ] },
     { title: "Open sea", emoji: "⛵", levels: (r) => [
+      predictEndBoat(r, { w: 4, h: 4, rocks: 2 }),
       gSea(r, "Find the way!", { w: 4, h: 3, rocks: 3, len: [4, 6], turns: 1, boat: true }),
       gSea(r, "Find the way!", { w: 4, h: 3, rocks: 4, len: [5, 7], turns: 2, boat: true }),
       gSea(r, "Find the way!", { w: 4, h: 4, rocks: 5, len: [6, 8], turns: 2, boat: true, detour: true }),
@@ -323,6 +374,7 @@ const WORLDS: WorldDef[] = [
   ] },
   { id: "bugs", title: "Bug Hunt", emoji: "🐞", grade: "1", blurb: "Something's wrong with the program — find it and fix it.", lessons: [
     { title: "Fix the bug", emoji: "🐞", levels: [
+      concept("bug", "middle"),
       debug(sea("", ["S...G"], [R, R, R, R]), [R, R, R], "Is it one step short?"),
       debug(sea("", ["S.", "#.", "G."], [R, D, D, L]), [D, D, L], "The rock is in the way!"),
       debug(dance("", ["wave", "jump", "spin", "bow"]), seqOf(["wave", "spin", "jump", "bow"]), "Two moves are swapped."),
@@ -344,7 +396,7 @@ const WORLDS: WorldDef[] = [
     ] },
   ] },
   { id: "lagoon", title: "Loop Lagoon", emoji: "🌀", grade: "1", blurb: "Loops + turns: find the pattern in the path.", lessons: [
-    { title: "Loop and turn", emoji: "↪️", levels: (r) => [gChannel(r, true, [2, 3]), gChannel(r, true, [3, 3]), gChannel(r, true, [3, 4])] },
+    { title: "Loop and turn", emoji: "↪️", levels: (r) => [loopFindAct(r, "arrows", [2, 2], [3, 4], true), gChannel(r, true, [2, 3]), gChannel(r, true, [3, 3]), gChannel(r, true, [3, 4])] },
     { title: "Loop the moves", emoji: "🔁", levels: (r) => [
       gLoopDance(r, { body: [2, 3], times: [3, 4], tail: 0.6 }),
       gLoopSong(r, { body: [3, 3], times: [2, 3], tail: 0.6 }),
@@ -353,6 +405,26 @@ const WORLDS: WorldDef[] = [
     { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [gChannel(r, false, [4, 5]), gPolygon(r, [4], [1, 2]), gChannel(r, true, [3, 4])] },
     { title: "Lagoon boss", emoji: "🏆", kind: "boss", levels: (r) => [gChannel(r, true, [4, 4]), gLoopDance(r, { body: [3, 3], times: [3, 4], tail: 1 }), gChannel(r, true, [4, 5])] },
   ] },
+  // ── Code Lab (1st) ──
+  { id: "factory", title: "Sorting Factory", emoji: "🏭", grade: "1", blurb: "If it's red → red bin. Else → gray bin. Build the rule!", lessons: [
+    { title: "If or else", emoji: "❓", levels: (r) => [concept("condition", "middle"), factoryAct(r, "red"), factoryAct(r, "animal")] },
+    { title: "Shape sorter", emoji: "⚪", levels: (r) => [factoryAct(r, "circle"), factoryAct(r, "wings")] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [factoryAct(r, "red"), factoryAct(r, "circle"), recipeAct(r, "sandwich", true)] },
+    { title: "Factory boss", emoji: "🏆", kind: "boss", levels: (r) => [factoryAct(r, "wings"), factoryAct(r, "animal"), factoryAct(r, "circle")] },
+  ] },
+  { id: "detective", title: "Loop Detective", emoji: "🔎", grade: "1", blurb: "Find the pattern hiding in a long program.", lessons: [
+    { title: "Case of the claps", emoji: "👏", levels: (r) => [loopFindAct(r, "dance", [2, 3], [3, 4]), loopFindAct(r, "arrows", [2, 2], [3, 4], true), predictCount(r, "music", false)] },
+    { title: "Case of the tunes", emoji: "🎵", levels: (r) => [loopFindAct(r, "notes", [3, 3], [2, 3], true), predictCount(r, "dance", false), loopFindAct(r, "arrows", [3, 3], [2, 3])] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [loopFindAct(r, "dance", [3, 3], [3, 3], true), predictEnd(r, { w: 5, h: 4, loop: true, rocks: 2 }), gLoopSong(r, { body: [2, 3], times: [2, 3] })] },
+    { title: "Detective boss", emoji: "🏆", kind: "boss", levels: (r) => [loopFindAct(r, "notes", [3, 4], [3, 4], true), predictCount(r, "music", true), loopFindAct(r, "arrows", [3, 4], [2, 3], true)] },
+  ] },
+  { id: "kitchen", title: "Robot Kitchen", emoji: "🍕", grade: "1", blurb: "Bigger recipes, trickier orders, sneakier bugs.", lessons: [
+    { title: "Lunch rush", emoji: "🥪", levels: (r) => [recipeAct(r, "sandwich"), recipeAct(r, "snowman")] },
+    { title: "Fix the robot", emoji: "🔧", levels: (r) => [recipeAct(r, "dressed", true), recipeAct(r, "pizza")] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [recipeAct(r, "dogbath"), recipeAct(r, "snowman", true)] },
+    { title: "Kitchen boss", emoji: "🏆", kind: "boss", levels: (r) => [recipeAct(r, "lemonade"), recipeAct(r, "pizza", true)] },
+  ] },
+
   // ── 2nd grade ────────────────────────────────────────────────────────────────────────────
   { id: "pixel", title: "Pixel Painter", emoji: "🎨", grade: "2", blurb: "Program a paint robot to make pixel art.", lessons: [
     { title: "First strokes", emoji: "🖌️", levels: [pixel("Paint the picture!", ["rrr"]), pixel("Paint the picture!", ["r.r"]), pixel("Paint the picture!", ["r", "r", "r"])] },
@@ -410,14 +482,38 @@ const WORLDS: WorldDef[] = [
     { title: "Bug swarm", emoji: "🐜", levels: (r) => [gBug(r, gChannel(r, true, [3, 4])), gBug(r, gPolygon(r, [5, 6], [1, 2])), gBug(r, gLoopDance(r, { body: [2, 3], times: [3, 4], tail: 0.6 }))] },
     { title: "Bug boss", emoji: "🏆", kind: "boss", levels: (r) => [gBug(r, pixel("", PICS.ell)), gBug(r, gChannel(r, true, [4, 5])), gBug(r, gSea(r, "", { w: 5, h: 5, rocks: 8, len: [9, 12], turns: 4, boat: true }))] },
   ] },
+  // ── Code Lab (2nd) ──
+  { id: "counter", title: "Treasure Counter", emoji: "🪙", grade: "2", blurb: "Variables: boxes with names that hold numbers.", lessons: [
+    { title: "The magic box", emoji: "📦", levels: (r) => [concept("variable", "middle"), variableAct(r, 1), variableAct(r, 1)] },
+    { title: "Counting in loops", emoji: "🔁", levels: (r) => [variableAct(r, 2), variableAct(r, 1), variableAct(r, 2)] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [variableAct(r, 2), predictCount(r, "music", false), variableAct(r, 2)] },
+    { title: "Counter boss", emoji: "🏆", kind: "boss", levels: (r) => [variableAct(r, 2), variableAct(r, 3), variableAct(r, 2)] },
+  ] },
+  { id: "beacons", title: "Binary Beacons", emoji: "💡", grade: "2", blurb: "Computers count with lights that are on or off.", lessons: [
+    { title: "On and off", emoji: "💡", levels: (r) => [concept("binary", "middle"), binaryAct(r, 3, "make"), binaryAct(r, 3, "make"), binaryAct(r, 3, "read")] },
+    { title: "Four lights", emoji: "🔆", levels: (r) => [binaryAct(r, 4, "make"), binaryAct(r, 4, "read"), binaryAct(r, 4, "make")] },
+    { title: "Beacon boss", emoji: "🏆", kind: "boss", levels: (r) => [binaryAct(r, 4, "make"), binaryAct(r, 4, "read"), binaryAct(r, 4, "make"), binaryAct(r, 4, "read")] },
+  ] },
+  { id: "hunt", title: "Number Hunt", emoji: "🎯", grade: "2", blurb: "Guess the middle — the fastest way to find anything.", lessons: [
+    { title: "Higher or lower?", emoji: "⬆️", levels: () => [concept("search", "middle"), searchAct(10, true), searchAct(16, true)] },
+    { title: "Halve it!", emoji: "✂️", levels: () => [searchAct(20, true), searchAct(20), searchAct(16)] },
+    { title: "Hunt boss", emoji: "🏆", kind: "boss", levels: () => [searchAct(30), searchAct(25), searchAct(32)] },
+  ] },
+  { id: "floor", title: "Factory Floor", emoji: "⚙️", grade: "2", blurb: "Three bins: if, else-if, else.", lessons: [
+    { title: "Fruit or veggie?", emoji: "🥦", levels: (r) => [factoryAct(r, "produce"), factoryAct(r, "colors")] },
+    { title: "Animal homes", emoji: "🌊", levels: (r) => [factoryAct(r, "habitat"), factoryAct(r, "produce")] },
+    { title: "Floor boss", emoji: "🏆", kind: "boss", levels: (r) => [factoryAct(r, "colors"), factoryAct(r, "habitat"), factoryAct(r, "produce")] },
+  ] },
+
   // ── 3rd grade ────────────────────────────────────────────────────────────────────────────
   { id: "rover", title: "Mars Rover", emoji: "🛸", grade: "3", blurb: "Sensors + if/else: one program that solves every map.", lessons: [
     { title: "Drive until…", emoji: "🛰️", levels: [
+      concept("until", "big"),
       rover("Drive until you reach the goal!", [["S......G"], ["S...G"]], [until("atGoal", F)], { ifs: false, hint: "Repeat until at goal: forward." }),
       rover("One program for all three maps!", [["S...", "###.", "###G"], ["S.....", "#####.", "#####G"], ["S.", "#.", "#.", "#G"]], roverProgram("right"), { hint: "If blocked, turn right — otherwise go forward." }),
       rover("Now the path turns left!", [["...G", "###.", "S..."], [".....G", "#####.", "S....."], ["#G", "#.", "#.", "S."]], roverProgram("left"), { hint: "If blocked, turn left — otherwise go forward." }),
     ] },
-    { title: "Winding canyons", emoji: "🏜️", levels: (r) => [gCorridor(r, "right", 2, [2, 3]), gCorridor(r, "left", 2, [2, 3]), gCorridor(r, "right", 3, [3, 4], {}, [1, 4])] },
+    { title: "Winding canyons", emoji: "🏜️", levels: (r) => [concept("condition", "big"), gCorridor(r, "right", 2, [2, 3]), gCorridor(r, "left", 2, [2, 3]), gCorridor(r, "right", 3, [3, 4], {}, [1, 4])] },
     { title: "Left or right?", emoji: "🤔", levels: (r) => [
       rover("Use the right sensor!", [["S..#", "##.#", "##.G"], ["...G", "###.", "S..."], ["S.#", "#.#", "#.G"]], roverProgram("mixed"), { hint: "When blocked: if it's blocked on the right too, turn left — else turn right." }),
       gCorridor(r, "mixed", 2, [2, 3]),
@@ -428,6 +524,7 @@ const WORLDS: WorldDef[] = [
   ] },
   { id: "pixel2", title: "Pixel Patterns", emoji: "🟦", grade: "3", blurb: "Loops inside loops paint whole pictures.", lessons: [
     { title: "Rows and rows", emoji: "🟦", levels: [
+      concept("nested", "big"),
       pixel("Paint two rows!", ["rrrr", "rrrr"], [rep(4, P, R), D, rep(4, P, L)], { loops: true }),
       pixel("Stripes!", ["rrrr", "....", "rrrr"], [rep(4, P, R), D, D, rep(4, P, L)], { loops: true }),
       pixel("A frame!", ["rrrr", "r..r", "r..r", "rrrr"], [rep(3, P, R), rep(3, P, D), rep(3, P, L), rep(3, P, U)], { loops: true, hint: "One loop for each side." }),
@@ -453,9 +550,32 @@ const WORLDS: WorldDef[] = [
     { title: "Remix", emoji: "🎧", levels: (r) => [gLoopSong(r, { body: [3, 4], times: [2, 3], tail: 0.5 }), gLoopSong(r, { body: [2, 3], times: [3, 4], tail: 0.7 }), gLoopDance(r, { body: [3, 4], times: [2, 3], tail: 0.7 })] },
     { title: "Song boss", emoji: "🏆", kind: "boss", levels: (r) => [gLoopSong(r, { body: [4, 4], times: [3, 3], tail: 1 }), gLoopDance(r, { body: [4, 4], times: [3, 4], tail: 1 }), gLoopSong(r, { body: [3, 4], times: [4, 4], tail: 1 })] },
   ] },
+  // ── Code Lab (3rd) ──
+  { id: "codes", title: "Secret Codes", emoji: "🕵️", grade: "3", blurb: "Encode and crack messages like a spy.", lessons: [
+    { title: "Picture codes", emoji: "🔣", levels: (r) => [concept("cipher", "big"), cipherAct(r, "symbol", 3), cipherAct(r, "symbol", 4)] },
+    { title: "Shift ciphers", emoji: "🔤", levels: (r) => [cipherAct(r, "shift", 3, 1), cipherAct(r, "shift", 4, 1), cipherAct(r, "shift", 4, 2)] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [cipherAct(r, "symbol", 4), cipherAct(r, "shift", 4, 3), cipherAct(r, "symbol", 5)] },
+    { title: "Spy boss", emoji: "🏆", kind: "boss", levels: (r) => [cipherAct(r, "shift", 5, 3), cipherAct(r, "shift", 5, 2), cipherAct(r, "symbol", 5)] },
+  ] },
+  { id: "map", title: "Treasure Map", emoji: "🗺️", grade: "3", blurb: "Coordinates: across, then up.", lessons: [
+    { title: "X marks the spot", emoji: "❌", levels: (r) => [concept("coordinates", "big"), plotAct(r, 5, 4, "place"), plotAct(r, 5, 4, "read")] },
+    { title: "Bigger maps", emoji: "🧭", levels: (r) => [plotAct(r, 7, 5, "place"), plotAct(r, 7, 5, "read"), predictEnd(r, { w: 6, h: 4, loop: true, rocks: 3 })] },
+    { title: "Map boss", emoji: "🏆", kind: "boss", levels: (r) => [plotAct(r, 8, 6, "place"), plotAct(r, 8, 6, "read"), plotAct(r, 8, 6, "place")] },
+  ] },
+  { id: "voyage-vars", title: "Variable Voyage", emoji: "📈", grade: "3", blurb: "Trace a variable through loops and ifs.", lessons: [
+    { title: "Up and down", emoji: "↕️", levels: (r) => [concept("variable", "big"), variableAct(r, 3), variableAct(r, 2), variableAct(r, 3)] },
+    { title: "If it's big…", emoji: "❓", levels: (r) => [variableAct(r, 4), variableAct(r, 3), variableAct(r, 4)] },
+    { title: "Voyage boss", emoji: "🏆", kind: "boss", levels: (r) => [variableAct(r, 4), variableAct(r, 4), variableAct(r, 3)] },
+  ] },
+  { id: "apps", title: "App Studio", emoji: "📱", grade: "3", blurb: "Bigger apps: points, sounds, hiding and showing.", lessons: [
+    { title: "Four buttons", emoji: "🎛️", levels: (r) => [concept("event", "big"), eventsAct(r, 4), eventsAct(r, 3)] },
+    { title: "Studio boss", emoji: "🏆", kind: "boss", levels: (r) => [eventsAct(r, 4), eventsAct(r, 4)] },
+  ] },
+
   // ── 4th grade ────────────────────────────────────────────────────────────────────────────
   { id: "functions", title: "Function Falls", emoji: "🧩", grade: "4", blurb: "Make your own blocks with functions.", lessons: [
     { title: "Make a block", emoji: "🧩", levels: [
+      concept("function", "big"),
       dance("Make a chorus function!", ["wave", "spin", "clap", "jump", "wave", "spin", "clap", "kick", "wave", "spin", "clap"], [def("chorus", ...seqOf(["wave", "spin", "clap"])), call("chorus"), blk("jump"), call("chorus"), blk("kick"), call("chorus")], { funcs: true, textCode: true, hint: "Define the part that repeats, then call it." }),
       music("Make a chorus function!", ["E", "D", "C", "G", "E", "D", "C", "A", "E", "D", "C"], [def("chorus", ...seqOf(["E", "D", "C"])), call("chorus"), blk("G"), call("chorus"), blk("A"), call("chorus")], { funcs: true, textCode: true }),
       view("Define a zigzag and use it!", ["S.###", "#....", "####G"], [def("zig", F, TR, F, TL), call("zig"), F, F, call("zig")], { funcs: true, textCode: true }),
@@ -483,6 +603,7 @@ const WORLDS: WorldDef[] = [
   ] },
   { id: "debug", title: "Debug Detective", emoji: "🕵️", grade: "4", blurb: "Tougher bugs in loops, turns and sensors.", lessons: [
     { title: "Find the bug", emoji: "🔎", levels: [
+      concept("bug", "big"),
       debug(rover("", [["S...", "###.", "###G"], ["S.", "#.", "#G"]], roverProgram("right"), { textCode: true }), roverProgram("left"), "Which way should it turn?"),
       debug(turtle("", polygon(6, 1), ["fd1", "rt60", "rt90", "rt120"], { textCode: true }), [rep(6, blk("fd1"), blk("rt90"))], "A hexagon turns 60 each time."),
       debug(pixel("", ["rrrr", "....", "rrrr"], [rep(4, P, R), D, D, rep(4, P, L)], { loops: true, textCode: true }), [rep(4, P, R), D, rep(4, P, L)], "Is the second stripe in the right row?"),
@@ -494,9 +615,40 @@ const WORLDS: WorldDef[] = [
       gBug(r, gSea(r, "", { w: 6, h: 5, rocks: 10, shells: 2, len: [10, 14], turns: 4, boat: true }, { textCode: true })),
     ] },
   ] },
+  // ── Code Lab (4th) ──
+  { id: "shipyard", title: "Sort Shipyard", emoji: "📊", grade: "4", blurb: "Sorting and searching algorithms, by hand.", lessons: [
+    { title: "Bubble sort", emoji: "🔃", levels: (r) => [concept("sorting", "big"), swapSortAct(r, 4), swapSortAct(r, 5)] },
+    { title: "Search smarter", emoji: "🔍", levels: (r) => [searchAct(50), swapSortAct(r, 5), searchAct(64)] },
+    { title: "Shipyard boss", emoji: "🏆", kind: "boss", levels: (r) => [swapSortAct(r, 6), searchAct(100), swapSortAct(r, 6)] },
+  ] },
+  { id: "logic", title: "Logic Lighthouse", emoji: "🔌", grade: "4", blurb: "AND, OR, NOT — the tiny switches inside every computer.", lessons: [
+    { title: "AND and OR", emoji: "🔀", levels: (r) => [concept("logic", "big"), logicAct(r, "AND", "light"), logicAct(r, "OR", "light"), logicAct(r, "AND", "predict")] },
+    { title: "NOT and more", emoji: "🔁", levels: (r) => [logicAct(r, "NOT", "light"), logicAct(r, "OR", "predict"), logicAct(r, "NOT", "predict"), logicAct(r, "AND", "predict")] },
+    { title: "Lighthouse boss", emoji: "🏆", kind: "boss", levels: (r) => [logicAct(r, "OR", "predict"), logicAct(r, "AND", "predict"), logicAct(r, "NOT", "predict"), logicAct(r, "OR", "light")] },
+  ] },
+  { id: "machines", title: "Function Machines", emoji: "⚙️", grade: "4", blurb: "Input → rule → output. Crack the rule!", lessons: [
+    { title: "What comes out?", emoji: "➡️", levels: (r) => [concept("machine", "big"), machineAct(r, 1, "output"), machineAct(r, 2, "output")] },
+    { title: "Crack the rule", emoji: "🔓", levels: (r) => [machineAct(r, 1, "rule"), machineAct(r, 2, "rule"), machineAct(r, 2, "output")] },
+    { title: "Machine boss", emoji: "🏆", kind: "boss", levels: (r) => [machineAct(r, 3, "output"), machineAct(r, 3, "rule"), machineAct(r, 3, "rule")] },
+  ] },
+  { id: "smart-factory", title: "Smart Factory", emoji: "🧠", grade: "4", blurb: "AND conditions — and why the ORDER of your rules matters.", lessons: [
+    { title: "Both at once", emoji: "🔴", levels: (r) => [factoryAct(r, "redCircle"), factoryAct(r, "redFruit")] },
+    { title: "Order matters", emoji: "🔢", levels: (r) => [factoryAct(r, "order"), factoryAct(r, "redCircle")] },
+    { title: "Factory boss", emoji: "🏆", kind: "boss", levels: (r) => [factoryAct(r, "redFruit"), factoryAct(r, "order"), factoryAct(r, "habitat")] },
+  ] },
+  { id: "python", title: "Python Peek", emoji: "🐍", grade: "4", blurb: "Real code, typed as text: read it, predict it, run it.", lessons: [
+    { title: "Hello, Python", emoji: "👋", levels: (r) => [concept("python", "big"), ...pythonSet(r, [1, 1, 1])] },
+    { title: "Boxes with names", emoji: "📦", levels: (r) => pythonSet(r, [1, 1, 1, 1]) },
+    { title: "Loops in text", emoji: "🔁", levels: (r) => pythonSet(r, [2, 2, 2, 1]) },
+    { title: "Counting from 0", emoji: "🔢", levels: (r) => pythonSet(r, [2, 2, 2, 2]) },
+    { title: "Bug hunt", emoji: "🐞", levels: (r) => pythonBugSet(r, 1, 4) },
+    { title: "Python boss", emoji: "🏆", kind: "boss", levels: (r) => [...pythonSet(r, [1, 2, 3, 2]), ...pythonBugSet(r, 1, 1)] },
+  ] },
+
   // ── 5th grade ────────────────────────────────────────────────────────────────────────────
   { id: "algorithms", title: "Algorithm Archipelago", emoji: "🧠", grade: "5", blurb: "Smarter programs: one algorithm that escapes any maze.", lessons: [
     { title: "Follow the wall", emoji: "🧱", levels: [
+      concept("algorithm", "big"),
       rover("Back to basics: until + if/else!", [["S...", "###.", "###G"], ["S..#", "##.#", "##.G"]], roverProgram("mixed"), { textCode: true, hint: "When blocked: if it's blocked on the right too, turn left — else turn right." }),
       rover("Escape any maze with one program!", [["S..#", "##.#", "#..#", "#.##", "#..G"], ["S.##", "#..#", "##.#", "##.G"]], WALL_FOLLOWER, { textCode: true, hint: "Keep your right hand on the wall: if it's open on the right, turn right and go." }),
       gMaze(rng("code:algorithms:wall"), 3, 2),
@@ -514,6 +666,25 @@ const WORLDS: WorldDef[] = [
     ] },
     { title: "Grand remix", emoji: "🎛️", levels: (r) => [gChorus(r, "music"), gMaze(r, 4, 4), gFlower(r)] },
     { title: "Master's final", emoji: "👑", kind: "boss", levels: (r) => [gMaze(r, 5, 5, 2), gBug(r, gChorus(r, "dance")), gCorridor(r, "mixed", 3, [5, 6], { textCode: true }, [1, 4])] },
+  ] },
+  // ── Code Lab (5th) ──
+  { id: "data", title: "Data Docks", emoji: "💾", grade: "5", blurb: "Bits, bytes, codes and maps: how computers store things.", lessons: [
+    { title: "Five bits", emoji: "💡", levels: (r) => [concept("binary", "big"), binaryAct(r, 5, "make"), binaryAct(r, 5, "read")] },
+    { title: "Codes and maps", emoji: "🗝️", levels: (r) => [concept("data", "big"), cipherAct(r, "shift", 5, 4), plotAct(r, 9, 6, "read"), binaryAct(r, 5, "make")] },
+    { title: "Data boss", emoji: "🏆", kind: "boss", levels: (r) => [binaryAct(r, 5, "read"), cipherAct(r, "shift", 5, 5), variableAct(r, 5)] },
+  ] },
+  { id: "academy", title: "Algorithm Academy", emoji: "🎓", grade: "5", blurb: "Efficient algorithms: fewest guesses, fewest swaps, fewest blocks.", lessons: [
+    { title: "Efficiency", emoji: "⚡", levels: (r) => [searchAct(100), swapSortAct(r, 7), variableAct(r, 5)] },
+    { title: "Read the code", emoji: "👓", levels: (r) => [predictPick(r, { w: 5, h: 5, rocks: 7, len: [7, 9], turns: 3 }), predictEnd(r, { w: 7, h: 5, loop: true, rocks: 4 }), machineAct(r, 3, "rule")] },
+    { title: "Academy final", emoji: "🏆", kind: "boss", levels: (r) => [searchAct(128), swapSortAct(r, 7), variableAct(r, 5), predictPick(r, { w: 6, h: 5, rocks: 9, len: [8, 10], turns: 4 })] },
+  ] },
+  { id: "python-pro", title: "Python Pro", emoji: "🐍", grade: "5", blurb: "If, elif, functions, lists and loops inside loops — in real Python.", lessons: [
+    { title: "Decisions", emoji: "❓", levels: (r) => [concept("python", "big"), ...pythonSet(r, [2, 3, 3, 3])] },
+    { title: "Functions and lists", emoji: "🧩", levels: (r) => pythonSet(r, [3, 3, 3, 3]) },
+    { title: "Loops inside loops", emoji: "🌀", levels: (r) => pythonSet(r, [4, 3, 4, 4]) },
+    { title: "Crash course", emoji: "💥", levels: (r) => pythonBugSet(r, 2, 4) },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [pythonRead(r, 2), predictEnd(r, { w: 6, h: 4, loop: true, rocks: 3 }), pythonBug(r, 1), variableAct(r, 5), pythonRead(r, 3)] },
+    { title: "Python master", emoji: "👑", kind: "boss", levels: (r) => [...pythonSet(r, [3, 4, 4, 3]), ...pythonBugSet(r, 2, 1)] },
   ] },
 ];
 
@@ -543,19 +714,21 @@ export const CODE_SKILL_LABEL: Record<string, string> = {
   "c:conditionals": "If/else + sensors",
   "c:functions": "Functions",
   "c:nested-loops": "Loops inside loops",
+  ...LAB_SKILL_LABEL,
 };
 
 const LITTLE: GradeId[] = ["prek", "k"];
 const BIG: GradeId[] = ["3", "4", "5"];
+const isLevel = (x: Item): x is CodeLevel => "sim" in x;
 function lessonFrom(w: WorldDef, l: LessonDef, n: number): Lesson {
-  const levels = typeof l.levels === "function" ? l.levels(rng(`code:${w.id}:${n}`)) : l.levels;
+  const items = typeof l.levels === "function" ? l.levels(rng(`code:${w.id}:${n}`)) : l.levels;
   // Big kids see the real code their blocks make; little ones get picture blocks only.
-  const acts: Activity[] = levels.map((level) => ({
-    kind: "code",
-    level: LITTLE.includes(w.grade) ? level : { ...level, textCode: level.textCode ?? BIG.includes(w.grade) },
-    skill: `c:${skillOf(level)}`,
-  }));
-  return { id: `code.${w.id}.${n}`, subject: "code", unit: `code.${w.id}`, n, kind: l.kind ?? "lesson", title: l.title, emoji: l.emoji, activities: acts, skills: [...new Set(acts.map((a) => a.skill!))] };
+  const acts: Activity[] = items.map((x) =>
+    isLevel(x)
+      ? { kind: "code", level: LITTLE.includes(w.grade) ? x : { ...x, textCode: x.textCode ?? BIG.includes(w.grade) }, skill: `c:${skillOf(x)}` }
+      : x,
+  );
+  return { id: `code.${w.id}.${n}`, subject: "code", unit: `code.${w.id}`, n, kind: l.kind ?? "lesson", title: l.title, emoji: l.emoji, activities: acts, skills: [...new Set(acts.flatMap((a) => (a.skill ? [a.skill] : [])))] };
 }
 
 const units: Unit[] = WORLDS.map((w, wi) => ({
@@ -576,7 +749,7 @@ export const CODE: Course = {
   id: "code",
   title: "Code",
   emoji: "🧩",
-  tagline: "Program boats, robots, art and music",
+  tagline: "Program boats, robots, apps and art",
   units,
   // Review: replay solved levels of the same concept (a different one each time).
   itemsFor: (skill, n, seed) => pickN(rng(seed), pool.filter((a) => a.skill === skill), n),

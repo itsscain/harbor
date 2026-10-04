@@ -96,7 +96,7 @@ export const VOWEL_TEAMS: Record<string, Pic[]> = {
   oy: [p("boy", "👦"), p("toy", "🧸"), p("oyster", "🦪")],
 };
 export const BOSSY_R: Record<string, Pic[]> = {
-  ar: [p("car", "🚗"), p("star", "⭐"), p("shark", "🦈"), p("barn", "🏚️"), p("jar", "🫙"), p("yarn", "🧶")],
+  ar: [p("car", "🚗"), p("star", "⭐"), p("shark", "🦈"), p("barn", "🏚️"), p("jar", "🍯"), p("yarn", "🧶")],
   or: [p("corn", "🌽"), p("fork", "🍴"), p("horse", "🐴"), p("storm", "⛈️"), p("horn", "📯")],
   er: [p("tiger", "🐯"), p("letter", "✉️"), p("ladder", "🪜"), p("flower", "🌸")],
   ir: [p("bird", "🐦"), p("girl", "👧"), p("shirt", "👕"), p("skirt", "👗")],
@@ -236,7 +236,7 @@ export const FACT_OPINION: { text: string; fact: boolean }[] = [
 export const RHYME_SETS: Pic[][] = [
   [p("cat", "🐱"), p("hat", "🎩"), p("bat", "🦇")], [p("dog", "🐶"), p("log", "🪵"), p("frog", "🐸")], [p("sun", "☀️"), p("bun", "🍞"), p("run", "🏃")],
   [p("bug", "🐛"), p("hug", "🤗"), p("mug", "☕")], [p("hen", "🐔"), p("pen", "🖊️"), p("ten", "🔟")], [p("cake", "🎂"), p("snake", "🐍"), p("rake", "🧹")],
-  [p("bee", "🐝"), p("tree", "🌳"), p("key", "🔑")], [p("boat", "⛵"), p("goat", "🐐"), p("coat", "🧥")], [p("car", "🚗"), p("star", "⭐"), p("jar", "🫙")],
+  [p("bee", "🐝"), p("tree", "🌳"), p("key", "🔑")], [p("boat", "⛵"), p("goat", "🐐"), p("coat", "🧥")], [p("car", "🚗"), p("star", "⭐"), p("jar", "🍯")],
   [p("fox", "🦊"), p("box", "📦"), p("socks", "🧦")], [p("moon", "🌙"), p("spoon", "🥄"), p("balloon", "🎈")], [p("mouse", "🐭"), p("house", "🏠")],
   [p("king", "🤴"), p("ring", "💍")], [p("bear", "🐻"), p("chair", "🪑"), p("pear", "🍐")], [p("light", "💡"), p("kite", "🪁"), p("night", "🌙")],
 ];

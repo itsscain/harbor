@@ -880,7 +880,7 @@ const WORLDS: WorldDef[] = [
     { title: "Remainders", emoji: "🧩", topics: [longDiv], levels: 3 },
   ] },
   { id: "fractions4", title: "Fraction Falls", emoji: "🥧", grade: "4", blurb: "Equivalent, compare, add and mixed numbers.", stages: [
-    { title: "Equal fractions", emoji: "🟰", topics: [fracEquiv], levels: 2 },
+    { title: "Equal fractions", emoji: "⚖️", topics: [fracEquiv], levels: 2 },
     { title: "Compare fractions", emoji: "⚖️", topics: [fracCompare2], levels: 2 },
     { title: "Add and subtract", emoji: "➕", topics: [fracAddLike], levels: 2 },
     { title: "Mixed numbers", emoji: "🍰", topics: [mixed], levels: 2 },

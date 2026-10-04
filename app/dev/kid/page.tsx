@@ -116,7 +116,7 @@ function learnMock(fresh: boolean): KidLearnData {
         r("x8", "read.ls1.1", "reading", 3, 74, { "r:sound:m": [4, 4], "r:write:m": [1, 1] }),
       ];
   return {
-    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
+    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "science", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
     profileSaved: !fresh,
     tz: "America/New_York",
     assignments: fresh

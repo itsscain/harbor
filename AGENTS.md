@@ -34,9 +34,9 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   (`public/sw.js`) + manifest. Parent PIN hashed locally (and adoptable from the
   account via the snapshot).
 - **Harbor Learn** (`FEATURES.learn`): a child's second wall screen (the "My Day | Learn" switch
-  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Five courses, Pre-K–5th, all code
-  bundled for offline: `lib/learn/{reading,math,code,manners,faith}.ts` (worlds of numbered
-  levels, ids `read.*`/`math.*`/`code.*`/`char.*`/`faith.*`; generated from topic defs with the
+  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Six courses, Pre-K–5th, all code
+  bundled for offline: `lib/learn/{reading,math,code,science,manners,faith}.ts` (worlds of numbered
+  levels, ids `read.*`/`math.*`/`code.*`/`sci.*`/`char.*`/`faith.*`; generated from topic defs with the
   seeded helpers in `gen.ts`) → `curriculum.ts` (`courseMap` = voyage map with pass gating ≥1★,
   `startUnitIndex` places a child a grade below theirs, `lessonsForGrade` for parents,
   `practiceLesson`/`spiralItems` = the "double back" review, `mixedPractice` = Brain Boost, an
@@ -46,16 +46,33 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   scene-by-scene Bible stories with tap/find/collect actions in `stories.ts` (`f:story:<id>`),
   hero cards in `heroes.ts`. Character content (rewind consequences + trust bridge, Truth
   Detective cases, repair-kit slots, reflections) is built by the shared factories in
-  `behavior.ts` (Captain's Code uses `h:`, Lighthouse `f:`). Every item carries a `skill`
-  (`r:`/`m:`/`c:`/`h:`/`f:`); `mastery.ts` keeps first-try stats + Leitner boxes (spaced review,
+  `behavior.ts` (Captain's Code uses `h:`, Lighthouse `f:`, Science `s:`, Code Lab `c:`). **Discovery**
+  (`science`, on by default): content banks per grade band in `lib/learn/sci/{little,middle,big}.ts`,
+  assembled with hands-on labs in `science.ts` (`LabSpec` in `types.ts`: float · magnet · circuit =
+  predict → test → explain over `LabThing` banks; states · plant · shadow · ramp = small sims;
+  UI `components/kiosk/learn/science/LabAct.tsx`). Every item carries a `skill`
+  (`r:`/`m:`/`c:`/`h:`/`f:`/`s:`); `mastery.ts` keeps first-try stats + Leitner boxes (spaced review,
   "shaky" skills); `skills.ts` turns them into parent words. Units can carry `talk` (dinner
   questions shown on the parent tab) and a `challenge` (shown after a level). Coding: `program.ts` is the engine
   (repeat/if-else/until/functions over six worlds: sea, rover, dance, music, turtle, pixel),
   `code.ts` + `codeGen.ts` the levels (generated maps are solved by search before they're kept).
+  Runs record loop passes (`Step.iters`) so the editor shows "pass 2 of 4", a step HUD and a
+  "what your program did" recap. **Code Lab** (teaching what's going on): activity kinds `concept`
+  (animated explainers, `lab/ConceptAct.tsx`), `predict` (be the computer), `loopfind`, `recipe`
+  (Robot Chef, dependency-ordered), `factory` (if/else-if/AND), `variable` (trace tables), `events`
+  (Event Studio), `binary`, `search`, `swapsort`, `cipher`, `logic`, `machine`, `plot` — pure logic
+  in `codelab.ts`, content + generators in `codeLabContent.ts`, UI in `components/kiosk/learn/lab/*`;
+  a code lesson's items may be `CodeLevel`s or these activities. **Python Peek / Python Pro**
+  (grades 4–5): `coderead` = read real Python and predict its output (`pythonSet`/`pythonRead`,
+  skill `c:python`); with `fix` it's a bug hunt — the wrong output or real crash (IndexError,
+  IndentationError, `=` vs `==`, an endless loop) is shown and the child taps the buggy line
+  (`pythonBugSet`, `c:pydebug`). check-learn runs every program (and every fix) through a small
+  Python interpreter (`scripts/learn-python.mjs`) — extend it if a lesson needs more Python.
   **After editing content run `node scripts/check-learn.mjs`** (every code answer wins, every
   bug really fails, answers are in their options, every skill is reviewable) — it catches real bugs.
   Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Treasures`
-  (reef · stickers · hero cards · trophies · verse vault)/`BrainGym`/`HarborShop`/`DailyChest`,
+  (reef · stickers · hero cards · trophies · verse vault)/`BrainGym` (the Game Arcade: brain games +
+  subject games in `ArcadeGames.tsx`, records as `gym:<game>`)/`HarborShop`/`DailyChest`,
   the child's boat in `KidBoat.tsx`, activities in `components/kiosk/learn/acts/*` (one `Visual`
   renderer for all pictures; `StoryAct`, `VerseAct`, `CharacterActs` = spot/slots/reflect) and
   `code/*` (block editor + stages). Rewards: shells (`meta.ts`), sticker sets/rarity/shiny

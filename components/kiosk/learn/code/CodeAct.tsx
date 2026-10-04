@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import type { Block, CodeLevel, Dir } from "@/lib/learn/types";
 import { DEFAULT_LOOK } from "@/lib/learn/meta";
 import {
-  blockCount, drawTarget, gridEngine, pixelEngine, runLevel, sameSeg, toText, turtleEngine,
+  blockCount, drawTarget, gridEngine, pixelEngine, runLevel, sameSeg, toPython, toText, turtleEngine,
   type GridState, type PixelState, type RunResult, type Step, type TurtleState,
 } from "@/lib/learn/program";
 import { SAY } from "@/lib/learn/script";
@@ -16,9 +16,10 @@ import { Chunk } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, usePrompt } from "../acts/common";
 import { BlockPill, Editor } from "./Editor";
+import { colorize } from "../lab/CodeReadAct";
 import { DanceStage, MusicStage, PixelStage, SeaStage, TurtleStage, type PixelView, type SeaView, type SeqView, type TurtleView } from "./Stages";
 import {
-  blockAt, condsOf, insertAt, isContainer, listAt, nextHint, paletteOf, removeAt, stepTarget, updateAt,
+  COND_LABEL, blockAt, condsOf, insertAt, isContainer, listAt, nextHint, paletteOf, removeAt, stepTarget, updateAt,
   type Cursor, type ListPath, type Sel,
 } from "./blocks";
 
@@ -73,10 +74,15 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
   const [fails, setFails] = useState(0);
   const [msg, setMsg] = useState<{ text: string; tone: "good" | "bad" | "tip"; k: number } | null>(null);
   const [showCode, setShowCode] = useState(band === "big" || !!level.textCode);
+  const [lang, setLang] = useState<"py" | "js">("py");
   const [fast, setFast] = useState(false);
   const [ghostOp, setGhostOp] = useState<string | null>(null);
   const [bad, setBad] = useState<{ list: ListPath; from: number } | null>(null);
   const [showSolution, setShowSolution] = useState(false);
+  const [loops, setLoops] = useState<{ list: ListPath; index: number; k: number; n?: number }[]>([]);
+  const [hud, setHud] = useState<Hud | null>(null);
+  const [recap, setRecap] = useState<Recap | null>(null);
+  const runStats = useRef<Recap | null>(null);
   const token = useRef(0);
   const timers = useRef<number[]>([]);
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -227,6 +233,10 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
     setPhase(demo ? "demo" : "run");
     sfx("whoosh");
     const { results, won } = runLevel(level, program);
+    runStats.current = recapOf(results, program);
+    setRecap(null);
+    setHud(null);
+    setLoops([]);
     const totalSteps = results.reduce((n, r) => n + r.steps.length, 0);
     const scale = Math.min(1, 26000 / Math.max(1, totalSteps * stepMs("act")));
     let t = 350;
@@ -248,7 +258,7 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
         if (level.sim === "turtle") angleTurtle = shortest(angleTurtle, (st.state as TurtleState).deg);
         const seaAngles = angleSea;
         const tAngle = angleTurtle;
-        later(() => showStep(program, st, m, check, prev, seaAngles, tAngle), t);
+        later(() => showStep(program, st, m, check, prev, seaAngles, tAngle, si), t);
         t += stepMs(check ? "check" : "act") * scale;
       });
       if (!res.won) {
@@ -259,9 +269,20 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
     if (t !== Infinity) later(() => (demo ? endDemo() : won ? win(program) : fail(results[results.length - 1], results.length - 1)), t + 200);
   };
 
-  const showStep = (program: Block[], st: Step<unknown>, m: number, check: boolean, prev: unknown, seaAngles: number[], tAngle: number) => {
+  const showStep = (program: Block[], st: Step<unknown>, m: number, check: boolean, prev: unknown, seaAngles: number[], tAngle: number, si: number) => {
     const tgt = stepTarget(program, st.at);
     setActive(tgt ? { ...tgt, answer: check ? (st.event as "yes" | "no") : undefined } : null);
+    // Which loop passes are running (badges on the loops), and the step line under the world.
+    const passes = (st.iters ?? []).flatMap((it) => {
+      const lt = stepTarget(program, it.at);
+      const lb = lt ? blockAt(program, lt.list, lt.index) : null;
+      return lt && lb && (lb.op === "repeat" || lb.op === "until") ? [{ ...lt, k: it.k, n: it.n }] : [];
+    });
+    setLoops(passes);
+    const blk = tgt ? blockAt(program, tgt.list, tgt.index) : undefined;
+    const inner = passes[passes.length - 1];
+    const cl = check && blk?.cond ? COND_LABEL[blk.cond] : undefined;
+    setHud({ n: si + 1, op: blk?.op ?? "", block: blk, check: cl ? { icon: cl.icon, word: cl.word, yes: st.event === "yes" } : undefined, pass: inner ? { k: inner.k, n: inner.n } : undefined });
     const ev = st.event;
     if (check) sfx("beep");
     else if (ev === "move") sfx("move");
@@ -304,6 +325,8 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
 
   const endDemo = () => {
     setActive(null);
+    setHud(null);
+    setLoops([]);
     setPhase("edit");
     setViews(initViews(level));
     setShowSolution(true);
@@ -314,6 +337,8 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
   const win = (program: Block[]) => {
     setPhase("won");
     setActive(null);
+    setHud(null);
+    setLoops([]);
     setViews((v) => (v.sea ? { sea: { ...v.sea, won: true } } : v.seq ? { seq: { ...v.seq, won: true } } : v.turtle ? { turtle: { ...v.turtle, won: true } } : v.pixel ? { pixel: { ...v.pixel, won: true } } : v));
     sfx("dock");
     const extra = level.buggy ? SAY.bugFixed : SAY.codeWin;
@@ -321,12 +346,20 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
     const n = blockCount(program);
     if (band !== "little" && n > level.best) setMsg({ text: `It works! Can you do it in ${level.best} blocks? (You used ${n}.)`, tone: "good", k: Date.now() });
     else setMsg({ text: level.buggy ? "Bug squashed! 🐞" : "It worked! 🎉", tone: "good", k: Date.now() });
-    window.setTimeout(() => onDone(fails), 2300);
+    // What the program actually did — the "aha" of loops, checks and functions.
+    const rc = runStats.current;
+    if (rc) {
+      setRecap(rc);
+      if (fx.voice === "all") window.setTimeout(() => void say(rc.line), 1500);
+    }
+    window.setTimeout(() => onDone(fails), rc && rc.kind !== "steps" ? 3600 : 2600);
   };
 
   const fail = (res: RunResult<unknown>, m: number) => {
     setPhase("failed");
     setActive(null);
+    setHud(null);
+    setLoops([]);
     const n = fails + 1;
     setFails(n);
     fx.miss();
@@ -394,6 +427,8 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
     clearTimers();
     setPhase("edit");
     setActive(null);
+    setHud(null);
+    setLoops([]);
     setViews(initViews(level));
   };
 
@@ -414,7 +449,7 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
   const n = blockCount(prog);
   const calls = prog.filter((b) => b.op === "def" && b.name).map((b) => b.name!);
   const running = phase === "run" || phase === "demo";
-  const text = showCode ? toText(prog) : [];
+  const text = showCode ? (lang === "py" ? toPython(prog) : toText(prog)) : [];
 
   return (
     <div className="flex h-full w-full flex-col gap-4 lg:flex-row lg:items-stretch">
@@ -425,6 +460,8 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
           {stage}
           {phase === "demo" && <span className="l-pop-in pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--l-violet)] px-5 py-2 font-display text-xl font-extrabold text-white shadow-[0_5px_0_var(--l-violet-edge)]">👀 Watch!</span>}
         </div>
+        {running && hud && <StepHud hud={hud} band={band} />}
+        {recap && phase === "won" && <RecapCard recap={recap} band={band} />}
         {msg && (
           <p key={msg.k} className={cn("l-pop-in max-w-[640px] rounded-[20px] px-5 py-3 text-center font-display text-xl font-bold", msg.tone === "good" ? "bg-[#dcfce7] text-[#166534]" : msg.tone === "bad" ? "bg-white text-[var(--l-coral-edge)]" : "bg-[#fff7d6] text-[#7a5200]")}>
             {msg.text}
@@ -470,16 +507,26 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
             {prog.length === 0 && cursor.list.length === 0 && (
               <p className="px-2 pb-1 pt-2 font-display text-base font-bold text-[var(--l-ink-2)]">{band === "little" ? "Tap a block below 👇" : "Tap blocks below to build your program."}</p>
             )}
-            <Editor prog={prog} cursor={cursor} sel={sel} band={band} running={running} active={active} bad={bad} onCursor={(c) => (touch(), setCursor(c), setSel(null))} onSelect={setSel} onDelete={del} onCount={count} onCond={cond} />
+            <Editor prog={prog} cursor={cursor} sel={sel} band={band} running={running} active={active} bad={bad} loops={loops} onCursor={(c) => (touch(), setCursor(c), setSel(null))} onSelect={setSel} onDelete={del} onCount={count} onCond={cond} />
           </div>
           {showCode && text.length > 0 && (
-            <pre className="min-h-[150px] overflow-auto rounded-2xl bg-[#0f172a] p-3 font-mono text-[15px] leading-relaxed text-[#e2e8f0]">
-              {text.map((ln, i) => (
-                <div key={i} className="whitespace-pre">
-                  {colorize(ln)}
-                </div>
-              ))}
-            </pre>
+            <div className="flex min-h-[150px] min-w-0 flex-col overflow-hidden rounded-2xl bg-[#0f172a]">
+              {/* The same blocks in two real languages. */}
+              <div className="flex gap-1 bg-[#1e293b] p-1.5">
+                {(["py", "js"] as const).map((l) => (
+                  <button key={l} type="button" onClick={() => (sfx("tap"), setLang(l))} className={cn("rounded-lg px-2.5 py-1 font-mono text-xs font-bold", lang === l ? "bg-[#334155] text-white" : "text-[#94a3b8]")}>
+                    {l === "py" ? "Python" : "JavaScript"}
+                  </button>
+                ))}
+              </div>
+              <pre className="flex-1 overflow-auto p-3 font-mono text-[15px] leading-relaxed text-[#e2e8f0]">
+                {text.map((ln, i) => (
+                  <div key={i} className="whitespace-pre">
+                    {colorize(ln)}
+                  </div>
+                ))}
+              </pre>
+            </div>
           )}
         </div>
 
@@ -540,18 +587,70 @@ function flat(p: Block[]): string[] {
   return out;
 }
 
-const KW = /\b(for|while|if|else|function|let)\b/g;
-function colorize(line: string) {
-  const parts = line.split(KW);
-  return parts.map((p, i) =>
-    /^(for|while|if|else|function|let)$/.test(p) ? (
-      <span key={i} className="text-[#f472b6]">
-        {p}
-      </span>
-    ) : (
-      <span key={i} className={/\(\)/.test(p) ? "text-[#7dd3fc]" : undefined}>
-        {p}
-      </span>
-    ),
+
+// ── Teaching what happened ───────────────────────────────────────────────────────────────────
+type Hud = { n: number; op: string; block?: Block; check?: { icon: string; word: string; yes: boolean }; pass?: { k: number; n?: number } };
+type Recap = { kind: "steps" | "loop" | "check" | "func"; blocks: number; actions: number; passes: number; checks: number; calls: number; line: string; text: string };
+
+/** Count what a run really did: actions, loop passes, decisions, function calls. */
+function recapOf(results: RunResult<unknown>[], program: Block[]): Recap {
+  const steps = results.flatMap((r) => r.steps);
+  const actions = steps.filter((st) => st.event !== "yes" && st.event !== "no").length;
+  const checks = steps.length - actions;
+  const passSet = new Set<string>();
+  steps.forEach((st) => st.iters?.forEach((it) => it.n && passSet.add(`${it.at.join(".")}:${it.k}`)));
+  const calls = countCalls(program);
+  const blocks = blockCount(program);
+  const base = { blocks, actions, passes: passSet.size, checks, calls };
+  if (program.some((b) => b.op === "def") && calls > 1) return { kind: "func", ...base, line: SAY.recapFunc, text: `🧩 Your function ran ${calls} times — one name, lots of steps!` };
+  if (checks > 0) return { kind: "check", ...base, line: SAY.recapCheck, text: `🧠 Your program checked ${checks} times and decided what to do — all by itself!` };
+  if (passSet.size > 1) return { kind: "loop", ...base, line: SAY.recapLoop, text: `🔁 ${blocks} blocks did ${actions} moves — the loop did the repeating!` };
+  return { kind: "steps", ...base, line: SAY.recapSteps, text: `✅ ${actions} steps, one at a time, in order. That's a program!` };
+}
+function countCalls(p: Block[], mult = 1): number {
+  return p.reduce((n, b) => {
+    if (b.op === "call") return n + mult;
+    if (b.op === "def") return n;
+    if (b.op === "repeat") return n + countCalls(b.body ?? [], mult * (b.n ?? 2));
+    return n + countCalls(b.body ?? [], mult) + countCalls(b.else ?? [], mult);
+  }, 0);
+}
+
+function RecapCard({ recap, band }: { recap: Recap; band: Band }) {
+  const chips: [string, number, string][] = [["👣", recap.actions, recap.actions === 1 ? "step" : "steps"]];
+  if (recap.passes > 1) chips.push(["🔁", recap.passes, "loop passes"]);
+  if (recap.checks > 0) chips.push(["❓", recap.checks, recap.checks === 1 ? "check" : "checks"]);
+  if (recap.calls > 1) chips.push(["🧩", recap.calls, "function calls"]);
+  chips.push(["🧱", recap.blocks, recap.blocks === 1 ? "block" : "blocks"]);
+  return (
+    <div className="l-card-in flex max-w-[680px] flex-col items-center gap-2 rounded-[22px] bg-white/95 px-5 py-3 shadow-[0_6px_0_rgba(0,40,80,0.16)]">
+      <span className="font-display text-sm font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">What your program did</span>
+      <div className="flex flex-wrap justify-center gap-2">
+        {chips.map(([icon, n, label], i) => (
+          <span key={label} className="l-pop-in flex items-center gap-1.5 rounded-full bg-[var(--l-card-2)] px-3 py-1 font-display text-lg font-extrabold text-[var(--l-ink)]" style={{ animationDelay: `${i * 110}ms` }}>
+            <span className="text-xl">{icon}</span> {n} {band !== "little" && <span className="text-base font-bold text-[var(--l-ink-2)]">{label}</span>}
+          </span>
+        ))}
+      </div>
+      {band !== "little" && <p className="text-balance text-center font-display text-lg font-bold text-[var(--l-ink)]">{recap.text}</p>}
+    </div>
+  );
+}
+
+function StepHud({ hud, band }: { hud: Hud; band: Band }) {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2 rounded-full bg-black/25 px-3 py-1.5 font-display font-extrabold text-white">
+      <span className="rounded-full bg-white/20 px-3 py-0.5 text-base">{band === "little" ? `👣 ${hud.n}` : `Step ${hud.n}`}</span>
+      {hud.check ? (
+        <span key={hud.n} className={cn("l-pop-in flex items-center gap-1.5 rounded-full px-3 py-0.5 text-base", hud.check.yes ? "bg-[#16a34a]" : "bg-[#dc2626]")}>
+          {hud.check.icon} {band !== "little" && `${hud.check.word}?`} {hud.check.yes ? "✓ yes" : "✗ no"}
+        </span>
+      ) : hud.op && hud.op !== "def" ? (
+        <span key={hud.n} className="l-pop-in">
+          <BlockPill op={hud.op} block={hud.block} band={band} size="sm" />
+        </span>
+      ) : null}
+      {hud.pass && <span className="rounded-full bg-[#ff9149] px-3 py-0.5 text-base">🔁 {hud.pass.n ? `${hud.pass.k} of ${hud.pass.n}` : `#${hud.pass.k}`}</span>}
+    </div>
   );
 }

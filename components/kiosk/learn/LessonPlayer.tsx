@@ -7,7 +7,7 @@ import type { Activity, Lesson } from "@/lib/learn/types";
 import type { BoatLook } from "@/lib/learn/meta";
 import type { Skills } from "@/lib/learn/mastery";
 import type { Creature } from "@/lib/learn/reef";
-import { spiralItems } from "@/lib/learn/curriculum";
+import { COURSES, SUBJECT_LOOK, levelLabel, spiralItems } from "@/lib/learn/curriculum";
 import { rng, int } from "@/lib/learn/gen";
 import { COMBO, PRAISE, RETRY, SAY, lessonClipKeys, type VoiceLevel } from "@/lib/learn/script";
 import { preload, say, stopVoice, type Part } from "@/lib/learn/audio";
@@ -24,6 +24,16 @@ import { StoryAct } from "./acts/StoryAct";
 import { VerseAct } from "./acts/VerseAct";
 import { SpotAct, SlotsAct, ReflectAct } from "./acts/CharacterActs";
 import { CodeAct } from "./code/CodeAct";
+import { ConceptAct } from "./lab/ConceptAct";
+import { PredictAct } from "./lab/PredictAct";
+import { LoopFindAct } from "./lab/LoopFindAct";
+import { RecipeAct } from "./lab/RecipeAct";
+import { FactoryAct } from "./lab/FactoryAct";
+import { VariableAct } from "./lab/VariableAct";
+import { EventsAct } from "./lab/EventsAct";
+import { BinaryAct, SearchAct, SwapSortAct, CipherAct, LogicAct, MachineAct, PlotAct } from "./lab/PuzzleActs";
+import { LabAct } from "./science/LabAct";
+import { CodeReadAct } from "./lab/CodeReadAct";
 
 // One level, start to finish. Proven learning moves, built in:
 //  • first-try accuracy decides the stars (60% passes) — honest, so the map means something;
@@ -53,7 +63,10 @@ const secondsSince = (t: number) => Math.round((Date.now() - t) / 1000);
 const nowMs = () => Date.now();
 /** Introductions (meet a letter, hear a story or a verse) and reflections have nothing to get
  *  wrong — they teach, and the items after them check. */
-const isScored = (a: Activity) => a.kind !== "meet" && a.kind !== "story" && a.kind !== "reflect" && !(a.kind === "verse" && a.v.step === "listen");
+const isScored = (a: Activity) => a.kind !== "meet" && a.kind !== "story" && a.kind !== "reflect" && a.kind !== "concept" && !(a.kind === "verse" && a.v.step === "listen");
+/** Big hands-on activities (a whole program, a factory, an experiment) aren't replayed in the
+ *  retry round — the level's next items and later reviews bring the skill back instead. */
+const LONG_KINDS = new Set<Activity["kind"]>(["code", "predict", "loopfind", "recipe", "factory", "variable", "events", "search", "swapsort", "lab", "concept"]);
 
 function ActView({ act: a, ...props }: { act: Activity; fx: LessonFx; onDone: (m: number) => void }): ReactNode {
   switch (a.kind) {
@@ -83,6 +96,22 @@ function ActView({ act: a, ...props }: { act: Activity; fx: LessonFx; onDone: (m
     case "spot": return <SpotAct act={a} {...props} />;
     case "slots": return <SlotsAct act={a} {...props} />;
     case "reflect": return <ReflectAct act={a} {...props} />;
+    case "concept": return <ConceptAct act={a} {...props} />;
+    case "predict": return <PredictAct act={a} {...props} />;
+    case "loopfind": return <LoopFindAct act={a} {...props} />;
+    case "recipe": return <RecipeAct act={a} {...props} />;
+    case "factory": return <FactoryAct act={a} {...props} />;
+    case "variable": return <VariableAct act={a} {...props} />;
+    case "events": return <EventsAct act={a} {...props} />;
+    case "binary": return <BinaryAct act={a} {...props} />;
+    case "search": return <SearchAct act={a} {...props} />;
+    case "swapsort": return <SwapSortAct act={a} {...props} />;
+    case "cipher": return <CipherAct act={a} {...props} />;
+    case "logic": return <LogicAct act={a} {...props} />;
+    case "machine": return <MachineAct act={a} {...props} />;
+    case "plot": return <PlotAct act={a} {...props} />;
+    case "lab": return <LabAct act={a} {...props} />;
+    case "coderead": return <CodeReadAct act={a} {...props} />;
   }
 }
 
@@ -126,11 +155,14 @@ export function LessonPlayer({
   const [comboFlash, setComboFlash] = useState<{ n: number; k: number } | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [ready, setReady] = useState(false);
+  // The level card stays up for a moment (a beat of anticipation), even when everything is cached.
+  const [introDone, setIntroDone] = useState(false);
   const [why, setWhy] = useState<{ text: string; k: number } | null>(null);
   const [bossHit, setBossHit] = useState(0);
   const [fish, setFish] = useState<{ k: number; caught: boolean } | null>(null);
   const [fishShells, setFishShells] = useState(0);
   const [cheer, setCheer] = useState(0);
+  const [glow, setGlow] = useState<{ k: number; gold: boolean } | null>(null);
   const promptRef = useRef<Part[]>([]);
   const comboRef = useRef(0);
   const praiseRef = useRef(0);
@@ -145,6 +177,11 @@ export function LessonPlayer({
     const r = rng(`fish:${playId}`);
     return r() < 0.34 && lesson.activities.length >= 4 ? int(r, 2, lesson.activities.length - 2) : -1;
   }, [playId, lesson.activities.length]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setIntroDone(true), reduced ? 300 : 1400);
+    return () => window.clearTimeout(t);
+  }, [reduced]);
 
   // Warm every sound this level needs before the first activity speaks.
   useEffect(() => {
@@ -181,6 +218,7 @@ export function LessonPlayer({
       buzz([0, 18, 30, 18]);
       fireAt(el ?? null, "star", n >= 3 ? 14 : 10);
       setCheer((c) => c + 1);
+      setGlow({ k: Date.now(), gold: n >= 5 });
       let line: string;
       if (n === 3 || n === 5 || n === 8 || n === 12) {
         line = COMBO[(n === 3 ? 2 : n === 5 ? 0 : n === 8 ? 1 : 3) % COMBO.length];
@@ -266,7 +304,7 @@ export function LessonPlayer({
     let q = queue;
     if (all.length >= q.length) {
       // Retry round: the ones missed on the first try come back once (not code — those were solved).
-      const again = !retryAnnounced ? q.filter((it, k) => it.kind !== "retry" && all[k] > 0 && it.act.kind !== "code" && isScored(it.act)).slice(0, 3) : [];
+      const again = !retryAnnounced ? q.filter((it, k) => it.kind !== "retry" && all[k] > 0 && !LONG_KINDS.has(it.act.kind) && isScored(it.act)).slice(0, 3) : [];
       if (again.length) {
         q = [...q, ...again.map((it) => ({ act: it.act, kind: "retry" as const, scored: false }))];
         setQueue(q);
@@ -304,6 +342,8 @@ export function LessonPlayer({
   return (
     <div className="fixed inset-0 z-[45] flex flex-col overflow-hidden" style={{ background: "var(--l-bg)" }}>
       <BurstLayer bursts={bursts} />
+      {/* A right answer warms the edges of the screen (gold when the streak is hot). */}
+      {glow && !reduced && <div key={glow.k} className={cn("l-edge-glow pointer-events-none fixed inset-0 z-[60]", glow.gold && "l-edge-glow-gold")} aria-hidden />}
       {/* Top bar: leave · the boat sailing the lane · combo · hear again */}
       <div className="flex items-center gap-4 px-5 pb-2 pt-4 sm:px-8">
         <Chunk tone="ghost" aria-label="Stop the level" onClick={() => (sfx("tap"), setConfirmExit(true), void say(SAY.wantToLeave))} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
@@ -318,6 +358,7 @@ export function LessonPlayer({
           <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 text-4xl drop-shadow-[0_3px_0_rgba(0,40,80,0.2)]">{boss ? "🐙" : "🏝️"}</span>
           <span className="absolute top-1/2 transition-[left] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ left: `calc(${progress * 100}% - 34px)`, transform: "translateY(-62%)" }}>
             <SideBoat look={look} size={64} bob={!reduced} />
+            {combo >= 5 && !reduced && <span className="l-flame pointer-events-none absolute -left-7 top-4 text-3xl" aria-hidden>🔥</span>}
           </span>
         </div>
         <div className={cn("flex h-14 min-w-14 items-center justify-center gap-1 rounded-full px-3 font-display text-2xl font-extrabold text-white transition-all", combo >= 2 ? "bg-[var(--l-orange)] shadow-[0_5px_0_var(--l-orange-edge)]" : "bg-white/20")} aria-label={`${combo} in a row`}>
@@ -346,7 +387,7 @@ export function LessonPlayer({
 
       {/* The activity */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 pb-6 pt-2 sm:px-8">
-        {ready && cur ? (
+        {ready && introDone && cur ? (
           <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-3">
             {kindBadge && <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">{kindBadge}</span>}
             {/* my-auto (not align-items) centers it, so a tall activity overflows downward and scrolls instead of losing its top */}
@@ -357,10 +398,7 @@ export function LessonPlayer({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-4 text-white">
-            <span className="l-bob text-7xl">{lesson.emoji}</span>
-            <p className="font-display text-3xl font-extrabold drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">{lesson.title}</p>
-          </div>
+          <LevelCard lesson={lesson} items={scoredMain} boss={boss} />
         )}
         {comboFlash && (
           <div key={comboFlash.k} className="l-pop-in pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-full bg-[var(--l-orange)] px-7 py-3 font-display text-3xl font-extrabold text-white shadow-[0_6px_0_var(--l-orange-edge)]">
@@ -398,7 +436,7 @@ export function LessonPlayer({
       {confirmExit && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0b2340]/55 p-6 backdrop-blur-sm">
           <div className="l-pop-in w-full max-w-md rounded-[32px] bg-white p-7 text-center shadow-[0_10px_0_var(--l-line)]">
-            <div className="text-6xl">🛟</div>
+            <div className="text-6xl">⚓</div>
             <p className="mt-3 font-display text-3xl font-extrabold text-[var(--l-ink)]">Stop this level?</p>
             <p className="mt-1 text-lg text-[var(--l-ink-2)]">You&rsquo;re doing great — you can finish it later.</p>
             <div className="mt-6 flex flex-col gap-3">
@@ -412,6 +450,33 @@ export function LessonPlayer({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The card a level opens with: which level, what it's called, how many challenges, and three
+ *  stars waiting to be won (boss and review levels get their own banners). */
+function LevelCard({ lesson, items, boss }: { lesson: Lesson; items: number; boss: boolean }) {
+  const sl = SUBJECT_LOOK[lesson.subject];
+  const isPractice = lesson.id.startsWith("practice:");
+  return (
+    <div className="l-card-in relative flex min-w-[360px] flex-col items-center gap-3 overflow-hidden rounded-[38px] bg-white/95 px-12 pb-8 pt-7 text-center shadow-[0_12px_0_rgba(0,40,80,0.22)]">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-90" style={{ background: `linear-gradient(160deg, ${sl.from}, ${sl.to})` }} />
+      <span className="relative rounded-full bg-white px-4 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)]" style={{ color: sl.ink }}>
+        {isPractice ? "Practice" : `Level ${levelLabel(lesson)}`} · {COURSES[lesson.subject].title}
+      </span>
+      <span className="l-bob relative text-[96px] leading-none drop-shadow-[0_6px_0_rgba(0,40,80,0.12)]">{lesson.emoji}</span>
+      <p className="max-w-[520px] text-balance font-display text-4xl font-extrabold leading-tight text-[var(--l-ink)]">{lesson.title}</p>
+      {boss && <span className="l-stamp rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-coral-edge)]">🐙 BOSS LEVEL</span>}
+      {lesson.kind === "review" && <span className="l-stamp rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_4px_0_var(--l-gold-edge)]">🗺️ Treasure review</span>}
+      <span className="flex gap-2 text-5xl" aria-label="three stars to win">
+        {[0, 1, 2].map((k) => (
+          <span key={k} className="l-star-in opacity-30 grayscale" style={{ animationDelay: `${250 + k * 160}ms` }}>
+            ⭐
+          </span>
+        ))}
+      </span>
+      {items > 0 && <span className="font-display text-lg font-bold text-[var(--l-ink-2)]">{items} challenge{items === 1 ? "" : "s"}</span>}
     </div>
   );
 }

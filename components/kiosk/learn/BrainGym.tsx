@@ -9,6 +9,7 @@ import { say } from "@/lib/learn/audio";
 import { note, sfx, buzz } from "@/lib/learn/sfx";
 import { Shape } from "./acts/Visual";
 import { Chunk } from "./kit";
+import { AnimalGroups, BiggerWins, BinaryBlitz, BugSquash, CoinCounter, LoopSpotter, MakeTen, NumberHop, Opposites, PySpeed, RhymeTime, RobotPath, SinkFloat, WordRocket } from "./ArcadeGames";
 
 // The Brain Gym: short, fun workouts for the skills behind all learning — holding things in mind
 // (working memory), stopping yourself (inhibitory control), switching rules (flexible thinking),
@@ -16,14 +17,39 @@ import { Chunk } from "./kit";
 // your own best (beating your past self, not other kids). A few rounds a day pay shells.
 // Honest framing: these are practice for focus and memory, not magic IQ boosters — the deep
 // learning lives in the lessons, the spacing and the review.
+//
+// The Game Arcade around it adds learning games by subject (numbers, words, code, science) —
+// quick fluency rounds with the same rules: under a minute, beat your own best.
 
-export type GymGame = "lights" | "fish" | "switch" | "count" | "grid";
-export const GYM: { id: GymGame; name: string; emoji: string; skill: string; how: string; color: string; intro: string }[] = [
-  { id: "lights", name: "Lighthouse Lights", emoji: "💡", skill: "Memory", how: "Watch the lights flash, then tap them in the same order.", color: "#ffc83d", intro: SAY.gymLights },
-  { id: "fish", name: "Fish or Shark?", emoji: "🐟", skill: "Focus", how: "Tap every fish — but DON'T tap the sharks!", color: "#1cb0f6", intro: SAY.gymFish },
-  { id: "switch", name: "Switch!", emoji: "🔀", skill: "Flexible thinking", how: "Sort each card by color or by shape. Watch the rule — it switches!", color: "#8b6cff", intro: SAY.gymSwitch },
-  { id: "count", name: "Quick Count", emoji: "⚡", skill: "Number sense", how: "How many? Look fast — then tap the answer.", color: "#3ccf6e", intro: SAY.gymCount },
-  { id: "grid", name: "Star Grid", emoji: "✨", skill: "Picture memory", how: "Remember where the stars light up, then tap those spots.", color: "#ff9149", intro: SAY.gymGrid },
+export type GymGame = "lights" | "fish" | "switch" | "count" | "grid" | "ten" | "bigger" | "hop" | "coins" | "rocket" | "rhyme" | "opposites" | "bits" | "bugsquash" | "robot" | "loopspot" | "pyspeed" | "sinkfloat" | "animals";
+export type ArcadeCat = "brain" | "numbers" | "words" | "code" | "science";
+export const ARCADE_CATS: { id: ArcadeCat; label: string; emoji: string }[] = [
+  { id: "brain", label: "Brain", emoji: "🧠" },
+  { id: "numbers", label: "Numbers", emoji: "🔢" },
+  { id: "words", label: "Words", emoji: "🔤" },
+  { id: "code", label: "Code", emoji: "💻" },
+  { id: "science", label: "Science", emoji: "🔬" },
+];
+export const GYM: { id: GymGame; cat: ArcadeCat; name: string; emoji: string; skill: string; how: string; color: string; intro: string; bands?: Band[] }[] = [
+  { id: "lights", cat: "brain", name: "Lighthouse Lights", emoji: "💡", skill: "Memory", how: "Watch the lights flash, then tap them in the same order.", color: "#ffc83d", intro: SAY.gymLights },
+  { id: "fish", cat: "brain", name: "Fish or Shark?", emoji: "🐟", skill: "Focus", how: "Tap every fish — but DON'T tap the sharks!", color: "#1cb0f6", intro: SAY.gymFish },
+  { id: "switch", cat: "brain", name: "Switch!", emoji: "🔀", skill: "Flexible thinking", how: "Sort each card by color or by shape. Watch the rule — it switches!", color: "#8b6cff", intro: SAY.gymSwitch },
+  { id: "count", cat: "brain", name: "Quick Count", emoji: "⚡", skill: "Number sense", how: "How many? Look fast — then tap the answer.", color: "#3ccf6e", intro: SAY.gymCount },
+  { id: "grid", cat: "brain", name: "Star Grid", emoji: "✨", skill: "Picture memory", how: "Remember where the stars light up, then tap those spots.", color: "#ff9149", intro: SAY.gymGrid },
+  { id: "ten", cat: "numbers", name: "Make Ten", emoji: "🔟", skill: "Number bonds", how: "Tap two bubbles that add up to the goal number.", color: "#ff6aa2", intro: SAY.gameTen },
+  { id: "bigger", cat: "numbers", name: "Bigger Wins", emoji: "⚖️", skill: "Comparing", how: "Two numbers — tap the bigger one, fast!", color: "#8b6cff", intro: SAY.gameBigger },
+  { id: "hop", cat: "numbers", name: "Number Line Hop", emoji: "📏", skill: "Estimation", how: "Tap where the number belongs on the line. Closer = more stars.", color: "#22c59b", intro: SAY.gameHop },
+  { id: "coins", cat: "numbers", name: "Coin Counter", emoji: "🪙", skill: "Money", how: "Count the coins and tap the total.", color: "#ffc83d", intro: SAY.gameCoins },
+  { id: "rocket", cat: "words", name: "Word Rocket", emoji: "🚀", skill: "Reading", how: "Listen to the word, then tap the right rocket.", color: "#1cb0f6", intro: SAY.gameRocket },
+  { id: "rhyme", cat: "words", name: "Rhyme Time", emoji: "🎵", skill: "Rhyming", how: "Tap every picture that rhymes with the word.", color: "#ff9149", intro: SAY.gameRhyme, bands: ["little", "middle"] },
+  { id: "opposites", cat: "words", name: "Opposites", emoji: "🔄", skill: "Vocabulary", how: "Tap the word that means the opposite.", color: "#8b6cff", intro: SAY.gameOpposites, bands: ["middle", "big"] },
+  { id: "bits", cat: "code", name: "Binary Blitz", emoji: "💡", skill: "Binary", how: "Turn on lights to make the number. How many can you make?", color: "#ffc83d", intro: SAY.gameBits },
+  { id: "bugsquash", cat: "code", name: "Bug Squash", emoji: "🐞", skill: "Debugging", how: "One arrow in the program is wrong. Find it and squash it!", color: "#ff5d5d", intro: SAY.gameBugs },
+  { id: "robot", cat: "code", name: "Robot Path", emoji: "🤖", skill: "Sequencing", how: "Three programs — which one gets the robot to the star? Trace each step!", color: "#1cb0f6", intro: SAY.gameRobot },
+  { id: "loopspot", cat: "code", name: "Loop Spotter", emoji: "🔁", skill: "Loops", how: "Find the part that repeats. Which loop makes the pattern?", color: "#ff9149", intro: SAY.gameLoops },
+  { id: "pyspeed", cat: "code", name: "Python Speed Run", emoji: "🐍", skill: "Reading code", how: "One line of real Python — tap what it prints. Go fast!", color: "#22c59b", intro: SAY.gamePython, bands: ["big"] },
+  { id: "sinkfloat", cat: "science", name: "Sink or Float?", emoji: "⛵", skill: "Science", how: "Will it sink or float? Decide fast!", color: "#1cb0f6", intro: SAY.gameFloat },
+  { id: "animals", cat: "science", name: "Animal Groups", emoji: "🐾", skill: "Life science", how: "Put each animal in its group.", color: "#3ccf6e", intro: SAY.gameAnimals },
 ];
 export const GYM_PAID_PER_DAY = 3;
 export const gymShells = (score: number) => Math.min(15, 5 + Math.floor(score / 2));
@@ -51,13 +77,14 @@ function makeQuestion(band: Band): Question {
 
 export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: { band: Band; bests: Record<string, number>; paidToday: number; reduced: boolean; onBack: () => void; onResult: (game: GymGame, score: number, shells: number) => void }) {
   const [game, setGame] = useState<GymGame | null>(null);
+  const [cat, setCat] = useState<ArcadeCat>("brain");
   const [phase, setPhase] = useState<"intro" | "play" | "done">("intro");
   const [score, setScore] = useState(0);
   const [paid, setPaid] = useState(0);
   const g = GYM.find((x) => x.id === game);
 
   useEffect(() => {
-    void say(SAY.gym);
+    void say(SAY.arcade);
   }, []);
 
   const finish = (s: number) => {
@@ -79,12 +106,19 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
             <ArrowLeft className="h-7 w-7 text-[var(--l-ink)]" strokeWidth={3} />
           </Chunk>
           <div>
-            <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">🧠 Brain Gym</p>
+            <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">🕹️ Game Arcade</p>
             <p className="font-display text-base font-bold text-white/90">Beat your own best! {paidToday < GYM_PAID_PER_DAY ? `${GYM_PAID_PER_DAY - paidToday} shell round${GYM_PAID_PER_DAY - paidToday === 1 ? "" : "s"} left today` : "Shell rounds done today — play for records!"}</p>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {ARCADE_CATS.map((c) => (
+            <Chunk key={c.id} tone={cat === c.id ? "gold" : "ghost"} onClick={() => (sfx("tap"), setCat(c.id))} className="flex h-14 items-center gap-2 px-5 font-display text-xl font-extrabold">
+              <span className="text-2xl">{c.emoji}</span> {c.label}
+            </Chunk>
+          ))}
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {GYM.map((x, i) => (
+          {GYM.filter((x) => x.cat === cat && (!x.bands || x.bands.includes(band))).map((x, i) => (
             <Chunk
               key={x.id}
               tone="white"
@@ -140,6 +174,20 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
         {phase === "play" && g.id === "switch" && <Switch band={band} onEnd={finish} />}
         {phase === "play" && g.id === "count" && <QuickCount band={band} onEnd={finish} />}
         {phase === "play" && g.id === "grid" && <StarGrid band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "ten" && <MakeTen band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "bigger" && <BiggerWins band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "hop" && <NumberHop band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "coins" && <CoinCounter band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "rocket" && <WordRocket band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "rhyme" && <RhymeTime band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "opposites" && <Opposites band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "bits" && <BinaryBlitz band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "bugsquash" && <BugSquash band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "robot" && <RobotPath band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "loopspot" && <LoopSpotter band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "pyspeed" && <PySpeed band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "sinkfloat" && <SinkFloat band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "animals" && <AnimalGroups band={band} onEnd={finish} />}
         {phase === "done" && (
           <div className="l-pop-in flex max-w-lg flex-col items-center gap-4 rounded-[34px] bg-white p-8 text-center shadow-[0_10px_0_var(--l-line)]">
             <p className="font-display text-xl font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">{SAY.timesUp.replace("!", "")}</p>
@@ -162,7 +210,7 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
 }
 
 /** A countdown bar for timed games. */
-function useClock(seconds: number, onEnd: () => void) {
+export function useClock(seconds: number, onEnd: () => void) {
   const [left, setLeft] = useState(seconds);
   const end = useRef(onEnd);
   useEffect(() => {
@@ -182,7 +230,7 @@ function useClock(seconds: number, onEnd: () => void) {
   }, [seconds]);
   return left;
 }
-function ClockBar({ left, total }: { left: number; total: number }) {
+export function ClockBar({ left, total }: { left: number; total: number }) {
   return (
     <div className="h-4 w-full max-w-[720px] overflow-hidden rounded-full bg-white/25">
       <div className={cn("h-full rounded-full transition-[width] duration-100", left < 8 ? "bg-[var(--l-coral)]" : "bg-[var(--l-gold)]")} style={{ width: `${(left / total) * 100}%` }} />

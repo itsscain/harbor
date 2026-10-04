@@ -1,4 +1,5 @@
 import type { SubjectId } from "./types";
+import { SCIENCE } from "./science";
 import { CODE_SKILL_LABEL } from "./code";
 import { VERSE_BY_ID } from "./bible";
 import { STORY_BY_ID } from "./stories";
@@ -57,6 +58,18 @@ const FAITH: Record<string, string> = {
 const CHARACTER_STORIES: Record<string, string> = { wolf: "The Boy Who Cried Wolf", toothpaste: "The Toothpaste Test" };
 const COMP: Record<string, string> = { detail: "details", cause: "cause & effect", feeling: "characters' feelings", infer: "inferring", sequence: "sequence", main: "main idea", vocab: "vocabulary" };
 
+/** Science skills are named after the lesson that teaches them ("Which sense?", "Magnet lab"). */
+let SCI_NAMES: Map<string, string> | null = null;
+function sciName(skill: string): string | null {
+  if (!SCI_NAMES) {
+    SCI_NAMES = new Map();
+    for (const u of SCIENCE.units)
+      for (const l of u.lessons)
+        if (l.kind === "lesson") for (const k of l.skills) if (!SCI_NAMES.has(k)) SCI_NAMES.set(k, l.title.replace(/\s+\d+$/, ""));
+  }
+  return SCI_NAMES.get(skill) ?? null;
+}
+
 export function skillLabel(skill: string): string {
   const parts = skill.split(":");
   const fam = parts.slice(0, 2).join(":");
@@ -67,6 +80,7 @@ export function skillLabel(skill: string): string {
   if (fam === "f:verse") return `Verse: ${VERSE_BY_ID.get(rest)?.ref ?? rest}`;
   if (fam === "f:story") return `Story: ${STORY_BY_ID.get(rest)?.title ?? rest}`;
   if (skill.startsWith("f:")) return FAITH[parts[1]] ?? parts[1].replace(/-/g, " ");
+  if (skill.startsWith("s:")) return sciName(skill) ?? parts[1].replace(/-/g, " ");
   switch (fam) {
     case "m:add": return rest ? rest.replace("+", " + ") : FAMILY[fam];
     case "m:sub": return rest ? rest.replace("-", " − ") : FAMILY[fam];

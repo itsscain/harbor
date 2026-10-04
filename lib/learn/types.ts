@@ -5,7 +5,7 @@
 // sails through. Every item practices a tagged skill, so the mastery engine can tell what's
 // solid, what's shaky, and what to bring back for review.
 
-export type SubjectId = "reading" | "math" | "code" | "manners" | "faith";
+export type SubjectId = "reading" | "math" | "code" | "manners" | "faith" | "science";
 export type GradeId = "prek" | "k" | "1" | "2" | "3" | "4" | "5";
 
 export const GRADES: { id: GradeId; label: string; short: string; age: string }[] = [
@@ -135,6 +135,48 @@ export type CodeLevel = {
   picture?: string[];
 };
 
+// ── Code Lab: the ideas behind the blocks, and coding games beyond the block editor ──────────
+export type ConceptId =
+  | "program" | "bug" | "loop" | "condition" | "until" | "function" | "variable" | "event" | "algorithm"
+  | "binary" | "sorting" | "search" | "coordinates" | "machine" | "logic" | "cipher" | "nested" | "data" | "python";
+/** Robot Chef: one instruction. `needs` = steps that must already be done; `fail` = the funny
+ *  thing that happens if the robot tries it too early (it does EXACTLY what it's told). */
+export type RecipeStep = { id: string; text: string; emoji: string; needs?: string[]; fail?: string; failEmoji?: string };
+/** Sorting Factory: a thing on the conveyor (tags = what the sensor can check). */
+export type FactoryItem = { id: string; emoji: string; name: string; tags: string[] };
+/** A sensor check: true when the item has ALL of `tags` (two tags = an AND). */
+export type FactoryCond = { id: string; label: string; icon: string; tags: string[] };
+export type FactoryRule = { cond: string; bin: string };
+/** A line of a variable program ("coins = coins + 2"); repeat and if hold more lines. */
+export type VarLine =
+  | { op: "set" | "add" | "sub" | "mul"; n: number }
+  | { op: "repeat"; n: number; body: VarLine[] }
+  | { op: "if"; cmp: ">" | "<" | "=="; n: number; body: VarLine[] };
+export type EvSprite = { id: string; emoji: string; name: string };
+export type EvFx = "jump" | "spin" | "grow" | "shake" | "glow" | "sing" | "hide" | "count" | "rain" | "color";
+export type EvAction = { id: string; label: string; icon: string; fx: EvFx };
+export type EvRule = { sprite: string; action: string };
+export type LogicGate = "AND" | "OR" | "NOT";
+export type MachineStep = { op: "+" | "-" | "×" | "÷"; n: number };
+
+// ── Discovery labs: hands-on science (predict → test → explain) ──────────────────────────────
+export type LabThing = { id: string; name: string; emoji: string; yes: boolean; why: string };
+export type LabSpec =
+  /** Drop things in the water: predict sink or float, then test. */
+  | { lab: "float"; things: LabThing[] }
+  /** Bring the magnet close: predict sticks or not, then test. */
+  | { lab: "magnet"; things: LabThing[] }
+  /** Put something in the gap of the circuit: does the bulb light (conductor) or not? */
+  | { lab: "circuit"; things: LabThing[] }
+  /** Heat or cool the water to reach a state (ice · water · steam). */
+  | { lab: "states"; goal: "solid" | "liquid" | "gas"; start: "solid" | "liquid" | "gas" }
+  /** Give the plant what it needs (light, water, air, soil) and watch it grow. */
+  | { lab: "plant"; need: ("sun" | "water" | "air" | "soil")[] }
+  /** Move the sun: make the shadow long, short, or point a way. */
+  | { lab: "shadow"; goal: "short" | "long" | "left" | "right" }
+  /** Ramp + surface: make the car roll farthest (or shortest). */
+  | { lab: "ramp"; goal: "far" | "near" };
+
 // ── Activities ───────────────────────────────────────────────────────────────────────────────
 export type Activity = (
   /** Meet a letter: see it big, hear its sound, tap pictures that start with it. */
@@ -189,6 +231,42 @@ export type Activity = (
   | { kind: "slots"; prompt: string; scene?: string; story?: string; slots: { label?: string; options: string[]; answer: string; why?: string }[]; say?: string[] }
   /** No wrong answers: think about your own life (or pick what to thank God for). */
   | { kind: "reflect"; prompt: string; scene?: string; options: { id: string; text: string; emoji?: string; reply?: string }[]; multi?: boolean; closing?: string; say?: string[] }
+  /** Code Lab: an animated explainer — what a program, a bug, a loop, an if, a variable… really is. */
+  | { kind: "concept"; concept: ConceptId; title: string; lines: string[] }
+  /** Be the computer: read a program and predict what it will do — then watch it run.
+   *  end = tap where the boat/rover stops · count = how many notes/moves · pick = which program works. */
+  | { kind: "predict"; level: CodeLevel; program: Block[]; ask: "end" | "count" | "pick"; options?: Block[][]; answer?: number }
+  /** Loop Detective: find the part that repeats, count the repeats, squeeze it into a loop. */
+  | { kind: "loopfind"; ops: string[]; unit: number; times: number; decoys: string[][] }
+  /** Robot Chef: order the instructions so the robot (which does EXACTLY what it's told) succeeds.
+   *  Any order that respects every step's `needs` works. `buggy` = a starting order to fix. */
+  | { kind: "recipe"; title: string; scene: string; steps: RecipeStep[]; done: string; doneEmoji: string; buggy?: string[] }
+  /** Sorting Factory: build the if / else-if / else rule that sends every item to the right bin. */
+  | { kind: "factory"; prompt: string; items: FactoryItem[]; bins: { id: string; label: string; emoji: string }[]; conds: FactoryCond[]; answer: FactoryRule[]; elseBin: string }
+  /** Treasure Counter: follow a little program that changes a variable — what is it at the end? */
+  | { kind: "variable"; name: string; emoji: string; lines: VarLine[]; options: number[]; answer: number }
+  /** Event Studio: wire "when ___ is tapped → ___", then play the little app you made. */
+  | { kind: "events"; prompt: string; story: string; sprites: EvSprite[]; actions: EvAction[]; goal: EvRule[] }
+  /** Binary Beacons: each light that's ON adds its number (8 · 4 · 2 · 1). */
+  | { kind: "binary"; bits: number; mode: "make" | "read"; target: number; options?: number[] }
+  /** Number Hunt: find the hidden number in as few guesses as you can (higher / lower). */
+  | { kind: "search"; max: number; limit: number; coach?: boolean }
+  /** Swap Sort: order the cards by swapping neighbors (the bubble-sort idea). */
+  | { kind: "swapsort"; values: number[]; emoji?: string; unit?: string }
+  /** Secret Codes: decode a message using the key. */
+  | { kind: "cipher"; mode: "shift" | "symbol"; shift?: number; key?: [string, string][]; coded: string; answer: string; options: string[] }
+  /** Logic Lab: switches → AND / OR / NOT → a light. light = make it shine · predict = will it? */
+  | { kind: "logic"; gate: LogicGate; mode: "light" | "predict"; a?: boolean; b?: boolean; story: string; labels?: [string, string] }
+  /** Function Machines: numbers go in, the rule changes them. output = what comes out · rule = which rule? */
+  | { kind: "machine"; steps: MachineStep[]; mode: "output" | "rule"; examples: [number, number][]; input?: number; options: string[]; answer: string }
+  /** Python Peek: read a few lines of real Python, predict what happens — then see it print.
+   *  With `fix` it's a bug hunt: `output` is what the buggy code does now, the answer is the
+   *  buggy line ("Line 2"), and `fix` is that line corrected plus the output it then gives. */
+  | { kind: "coderead"; lines: string[]; question: string; options: string[]; answer: string; output: string[]; why: string; fix?: { line: number; code: string; output: string[] } }
+  /** Treasure Map: coordinates. place = tap (x, y) · read = which coordinates? */
+  | { kind: "plot"; cols: number; rows: number; target: [number, number]; emoji: string; mode: "place" | "read"; options?: string[] }
+  /** Discovery lab: a hands-on science experiment. */
+  | { kind: "lab"; prompt: string; spec: LabSpec }
 ) & {
   /** The skill this item practices (mastery tracking + review). */
   skill?: string;

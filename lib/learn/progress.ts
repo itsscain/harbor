@@ -202,4 +202,6 @@ export const subjectOfLesson = (id: string): SubjectId =>
         ? "manners"
         : id.startsWith("faith.") || id.startsWith("practice:faith")
           ? "faith"
-          : "reading";
+          : id.startsWith("sci.") || id.startsWith("practice:science")
+            ? "science"
+            : "reading";

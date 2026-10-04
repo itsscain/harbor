@@ -11,9 +11,10 @@ import type { Story } from "./stories";
 // consequence thinking, practiced scripts and self-reflection are the moves social-emotional
 // learning research keeps finding actually change behavior.
 //
-// These factories are shared by Captain's Code ("h:" skills) and the Lighthouse course ("f:").
+// These factories are shared by Captain's Code ("h:" skills), the Lighthouse course ("f:"), the
+// Discovery science course ("s:") and the Code Lab's unplugged activities ("c:").
 
-export type Ns = "h" | "f";
+export type Ns = "h" | "f" | "s" | "c";
 const voice = (on: boolean, ...t: string[]) => (on ? t : undefined);
 
 // ── Scenarios (a story, a choice, and why) ─────────────────────────────────────────────────
@@ -275,7 +276,7 @@ export const TATTLE_SORT: SortBank = { prompt: "Tell a grown-up now, or try to s
 export const TATTLE: Pol[] = [
   { q: "What's the difference between tattling and telling?", e: "📢🤔", a: "Tattling tries to get someone IN trouble; telling tries to get someone OUT of trouble or danger", w: ["There's no difference", "Telling is for grown-ups only"], why: "If someone is hurt or in danger, telling a grown-up is always right." },
   { q: "Your sister keeps singing the same song and it's annoying. What should you do?", e: "🎶😖", a: "Ask her kindly to sing somewhere else", w: ["Run and tell Mom right away", "Yell at her to stop"], why: "Small problems are chances to use your words first." },
-  { q: "A kid on the playground pushes your friend down, and your friend is crying. What should you do?", e: "🛝😢", a: "Help your friend and tell a teacher", w: ["Push the kid back", "Do nothing — it's not your business"], why: "When someone is hurt, telling a grown-up is the right move." },
+  { q: "A kid on the playground pushes your friend down, and your friend is crying. What should you do?", e: "🎠😢", a: "Help your friend and tell a teacher", w: ["Push the kid back", "Do nothing — it's not your business"], why: "When someone is hurt, telling a grown-up is the right move." },
   { q: "Your friend says, “Don't tell anyone, but someone at home hurts me.” What should you do?", e: "🤫💔", a: "Tell a trusted grown-up — this secret isn't safe to keep", w: ["Keep the secret forever", "Tell other kids"], why: "Secrets about someone getting hurt must be told to a trusted adult. That's how you help." },
 ];
 
@@ -292,7 +293,7 @@ export const TONE: Pol[] = [
   { q: "Mom asks you to help. Which shows a good attitude?", e: "🧺🙋", a: "“Sure! What should I do?”", w: ["*big sigh* “Whaaat?”", "“Why do I have to?”"], why: "A cheerful helper makes chores go faster for everyone." },
   { q: "Which is a respectful way to disagree with a grown-up?", e: "🤔🗣️", a: "“Can I tell you what I think?” (calm voice)", w: ["“You're wrong!”", "“That's dumb.”"], why: "You can share your ideas — respectfully." },
   { q: "Your sister asks to borrow your markers. Which answer sounds kind?", e: "🖍️👧", a: "😊 “Sure, here you go!”", w: ["😒 “Ugh, fine, take them.”", "🙄 “Whatever.”"], why: "Even a yes can feel like a no when the tone is grumpy." },
-  { q: "Dad says it's time to leave the park. Which shows a good attitude?", e: "🛝⏰", a: "“Okay! Can I do one more slide?”", w: ["*stomps feet* “NO!”", "Run away and hide."], why: "Asking calmly — and listening to the answer — shows respect." },
+  { q: "Dad says it's time to leave the park. Which shows a good attitude?", e: "🎠⏰", a: "“Okay! Can I do one more slide?”", w: ["*stomps feet* “NO!”", "Run away and hide."], why: "Asking calmly — and listening to the answer — shows respect." },
 ];
 export const RESPECT_KIT: Kit[] = [
   { e: "🎮⏰", story: "Mom says it's time to stop playing and come to dinner.", slots: [["Start calm", "“Okay, Mom.”", ["“Ugh!”", "“Fine…”"], "A calm start keeps everyone calm."], ["Ask kindly", "“Could I save my game first?”", ["“I'm NOT done!”", "“You never let me finish!”"], "Asking kindly gets better answers than demanding."], ["Follow through", "“Then I'll come right away.”", ["“Maybe I'll come.”", "“Leave me alone.”"], "Doing what you said builds trust."]] },

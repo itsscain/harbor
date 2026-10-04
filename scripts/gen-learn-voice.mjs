@@ -32,8 +32,9 @@ const ts = require("typescript");
 const build = join(tmpdir(), "harbor-learn-voice-build");
 rmSync(build, { recursive: true, force: true });
 mkdirSync(build, { recursive: true });
-for (const f of readdirSync(join(ROOT, "lib", "learn")).filter((f) => f.endsWith(".ts"))) {
+for (const f of readdirSync(join(ROOT, "lib", "learn"), { recursive: true }).map(String).filter((f) => f.endsWith(".ts"))) {
   const src = readFileSync(join(ROOT, "lib", "learn", f), "utf8");
+  mkdirSync(dirname(join(build, f)), { recursive: true });
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   writeFileSync(join(build, f.replace(/\.ts$/, ".js")), js);
 }

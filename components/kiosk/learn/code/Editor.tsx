@@ -23,6 +23,8 @@ export type EditorProps = {
   ghost?: { list: ListPath; index: number } | null;
   /** From here on, the blocks aren't right yet (a hint marks them red). */
   bad?: { list: ListPath; from: number } | null;
+  /** Loops that are running right now, and which pass they're on (shown on the loop). */
+  loops?: { list: ListPath; index: number; k: number; n?: number }[];
   onCursor: (c: Cursor) => void;
   onSelect: (s: Sel) => void;
   onDelete: (list: ListPath, index: number) => void;
@@ -94,6 +96,7 @@ function Row({ p, list, index, b, depth }: { p: EditorProps; list: ListPath; ind
   const isSel = !!p.sel && sameList(p.sel.list, list) && p.sel.index === index;
   const isGhost = !!p.ghost && sameList(p.ghost.list, list) && p.ghost.index === index;
   const isBad = !!p.bad && sameList(p.bad.list, list) && index >= p.bad.from;
+  const pass = p.running ? p.loops?.find((l) => sameList(l.list, list) && l.index === index) : undefined;
   const lk = lookOf(b.op);
   const select = () => !p.running && p.onSelect(isSel ? null : { list, index });
   const toolbar = isSel && !p.running && (
@@ -148,6 +151,21 @@ function Row({ p, list, index, b, depth }: { p: EditorProps; list: ListPath; ind
         <button type="button" disabled={p.running} onClick={() => p.onCount(list, index, 1)} className="rounded-xl bg-white px-3 py-1 font-display text-xl font-extrabold text-[#e26f27] shadow-[0_3px_0_rgba(0,0,0,0.15)]" aria-label={`${b.n} times — tap to change`}>
           ×{b.n}
         </button>
+      )}
+      {pass && (
+        // The loop counts its passes out loud (well, in big friendly numbers) while it runs.
+        <span key={pass.k} className="l-pop-in flex items-center gap-1 rounded-xl bg-[#fff7d6] px-2.5 py-1 font-display text-base font-extrabold text-[#7a5200] shadow-[0_3px_0_rgba(0,0,0,0.15)]" aria-label={pass.n ? `pass ${pass.k} of ${pass.n}` : `check number ${pass.k}`}>
+          {pass.n ? (
+            <>
+              <span className="text-xl">{pass.k}</span>
+              <span className="opacity-60">of {pass.n}</span>
+            </>
+          ) : (
+            <>
+              <span className="opacity-60">check</span> <span className="text-xl">#{pass.k}</span>
+            </>
+          )}
+        </span>
       )}
       {cond && (
         <button

@@ -174,7 +174,7 @@ const EMERGENCY: Scn[] = [
   scn("Your friend cuts their finger and it's bleeding a little.", "🩸🤕", "What's a good first step?", "Get a grown-up and press a clean cloth on it.", ["Ignore it.", "Put dirt on it."], "Pressure and a grown-up's help stop bleeding.", ["Even small cuts should be cleaned.", "Dirt can cause infection."]),
   scn("Thunder is booming while you're swimming outside.", "⛈️🏊", "What should you do?", "Get out of the water and go inside.", ["Keep swimming.", "Stand under a tall tree."], "Water and lightning are dangerous together. Get inside.", ["Lightning can strike water.", "Tall trees attract lightning."]),
   scn("You smell gas in the kitchen.", "👃🏠", "What should you do?", "Get out of the house and tell a grown-up right away.", ["Turn on the stove to check.", "Ignore it."], "A gas smell means danger — get out and get help.", ["That could start a fire!", "Gas smells always need a grown-up."]),
-  scn("Your friend falls off the monkey bars and can't move their arm.", "🛝🤕🧑", "What should you do first?", "Stay with them and get an adult right away.", ["Pull their arm to fix it.", "Tell them to walk it off."], "Don't move an injury — get a grown-up fast.", ["Moving it could make it worse.", "An injury needs help, not walking off."]),
+  scn("Your friend falls off the monkey bars and can't move their arm.", "🎠🤕🧑", "What should you do first?", "Stay with them and get an adult right away.", ["Pull their arm to fix it.", "Tell them to walk it off."], "Don't move an injury — get a grown-up fast.", ["Moving it could make it worse.", "An injury needs help, not walking off."]),
 ];
 const COMMON_SENSE_SORT: SortBank = { prompt: "Smart choice or risky choice?", bins: ["Smart", "Risky", "🧠", "⚠️"], items: [["Wearing a helmet on a bike", 1, "🚲"], ["Telling a parent where you're going", 1, "🗺️"], ["Washing hands before eating", 1, "🧼"], ["Wearing sunscreen at the beach", 1, "🧴"], ["Charging the tablet before a trip", 1, "🔋"], ["Swimming without a grown-up", 0, "🏊"], ["Sharing your password", 0, "🔑"], ["Touching a hot stove", 0, "🔥"], ["Riding in a car without a seatbelt", 0, "🚗"], ["Petting a dog you don't know without asking", 0, "🐕"]] };
 
@@ -229,8 +229,8 @@ const WORLDS: WorldDef[] = [
     { title: "Respectful or not?", emoji: "👍", topics: [sortT("respect", RESPECT_SORT, true)], levels: 2 },
     { title: "Saying sorry", emoji: "🙏", topics: [orderT("apology", "Put the steps of a real apology in order", APOLOGY_STEPS, true), scenarioT("responsibility", RESPONSIBLE, true)], levels: 2 },
   ] },
-  { id: "safety", title: "Safety Shoals", emoji: "🛟", grade: "1", blurb: "Strangers, streets, fire and getting lost.", stages: [
-    { title: "Stay safe", emoji: "🛟", topics: [scenarioT("safety", SAFETY, true)], levels: 3 },
+  { id: "safety", title: "Safety Shoals", emoji: "⛑️", grade: "1", blurb: "Strangers, streets, fire and getting lost.", stages: [
+    { title: "Stay safe", emoji: "⛑️", topics: [scenarioT("safety", SAFETY, true)], levels: 3 },
     { title: "Crossing the street", emoji: "🚦", topics: [orderT("crossing", "Put the street-crossing steps in order", CROSS_STEPS, true), scenarioT("safety", SAFETY, true)], levels: 1 },
   ] },
   { id: "trust-bridge", title: "Trust Bridge", emoji: "🌉", grade: "1", blurb: "How lies break trust — and how honesty builds it back.",

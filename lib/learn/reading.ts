@@ -577,7 +577,7 @@ const WORLDS: WorldDef[] = [
     { title: "-er and -est", emoji: "🏆", topics: [suffixT(B.SUFFIXES.slice(2, 4))], levels: 1 },
   ] },
   { id: "wordpairs", title: "Word Pair Pier", emoji: "🔀", grade: "2", blurb: "Synonyms, antonyms and words that sound alike.", stages: [
-    { title: "Same meaning", emoji: "🟰", topics: [synAntT("synonym"), matchPairsT("synonym")], levels: 2 },
+    { title: "Same meaning", emoji: "⚖️", topics: [synAntT("synonym"), matchPairsT("synonym")], levels: 2 },
     { title: "Opposites", emoji: "↔️", topics: [synAntT("antonym"), matchPairsT("antonym")], levels: 2 },
     { title: "Sound-alikes", emoji: "👂", topics: [homophoneT], levels: 2 },
   ] },

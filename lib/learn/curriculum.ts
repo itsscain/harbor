@@ -5,6 +5,7 @@ import { MATH } from "./math";
 import { CODE } from "./code";
 import { MANNERS } from "./manners";
 import { FAITH } from "./faith";
+import { SCIENCE } from "./science";
 import { pickReview, SKILL_PREFIX, type Skills } from "./mastery";
 import { rng, shuffle } from "./gen";
 
@@ -12,10 +13,10 @@ import { rng, shuffle } from "./gen";
 // (worlds of numbered levels, each unlocked by passing the one before), and build the "double
 // back" practice that brings shaky skills around again.
 
-export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, manners: MANNERS, faith: FAITH };
-export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "manners", "faith"];
+export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, science: SCIENCE, manners: MANNERS, faith: FAITH };
+export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners", "faith"];
 /** What a child gets before a grown-up chooses. Lighthouse (faith) is opt-in, family by family. */
-export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "manners"];
+export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners"];
 export const isSubject = (s: unknown): s is SubjectId => typeof s === "string" && (SUBJECTS as string[]).includes(s);
 
 /** Kid-facing look for each subject. */
@@ -23,6 +24,7 @@ export const SUBJECT_LOOK: Record<SubjectId, { name: string; from: string; to: s
   reading: { name: "Reading", from: "#FFB86B", to: "#FF7A59", ink: "#7A2E12", island: "📖" },
   math: { name: "Math", from: "#A89BFF", to: "#6E5BFF", ink: "#2A1F7A", island: "🔢" },
   code: { name: "Code", from: "#7CE0C3", to: "#2BB3A3", ink: "#0B4A44", island: "🧩" },
+  science: { name: "Discovery", from: "#9BE15D", to: "#22A06B", ink: "#0E4429", island: "🔬" },
   manners: { name: "Captain's Code", from: "#FFD66B", to: "#F2A93B", ink: "#6B4206", island: "⚓" },
   faith: { name: "Lighthouse", from: "#8AD4FF", to: "#4A6CF7", ink: "#0E2A6B", island: "🕊️" },
 };

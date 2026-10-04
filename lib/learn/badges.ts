@@ -35,6 +35,11 @@ export type BadgeStats = {
   code: number;
   manners: number;
   faith: number;
+  science: number;
+  /** Discovery lab levels passed. */
+  labs: number;
+  /** Code Lab levels passed (concepts, predicting, factories, apps…). */
+  codelab: number;
 };
 
 const b = (id: string, name: string, emoji: string, desc: string, tier: BadgeTier, stat: keyof BadgeStats, goal: number, subject?: SubjectId): Badge => ({ id, name, emoji, desc, tier, stat, goal, subject });
@@ -68,6 +73,11 @@ export const BADGES: Badge[] = [
   b("math1", "Mathlete", "🔢", "Finish a math island", "bronze", "math", 1, "math"),
   b("code1", "Coder", "🧩", "Finish a code island", "bronze", "code", 1, "code"),
   b("char1", "Captain's Honor", "⚓", "Finish a Captain's Code island", "bronze", "manners", 1, "manners"),
+  b("sci1", "Junior Scientist", "🔬", "Finish a Discovery island", "bronze", "science", 1, "science"),
+  b("lab5", "Lab Explorer", "🧪", "Pass 5 lab levels", "bronze", "labs", 5, "science"),
+  b("lab20", "Master Scientist", "🥽", "Pass 20 lab levels", "silver", "labs", 20, "science"),
+  b("codelab5", "Computer Thinker", "🖥️", "Pass 5 Code Lab levels", "bronze", "codelab", 5, "code"),
+  b("codelab25", "Software Engineer", "👩‍💻", "Pass 25 Code Lab levels", "gold", "codelab", 25, "code"),
   b("faith1", "Light Bearer", "✝️", "Finish a Lighthouse island", "bronze", "faith", 1, "faith"),
   b("verse1", "Hidden in My Heart", "📜", "Master your first memory verse", "bronze", "verses", 1, "faith"),
   b("verse10", "Verse Keeper", "💎", "Master 10 memory verses", "silver", "verses", 10, "faith"),
@@ -81,8 +91,9 @@ export const BADGES: Badge[] = [
   b("reef1", "Reef Keeper", "🐠", "Hatch your first creature", "bronze", "creatures", 1),
   b("reef10", "Aquarium", "🐬", "Hatch 10 creatures", "silver", "creatures", 10),
   b("reef25", "Ocean Zoo", "🐳", "Hatch 25 creatures", "gold", "creatures", 25),
-  b("gym1", "Brain Gym Member", "🏋️", "Set a record in the Brain Gym", "bronze", "gym", 1),
-  b("gym5", "Record Breaker", "🥇", "Set a record in all five Brain Gym games", "silver", "gym", 5),
+  b("gym1", "Arcade Rookie", "🏋️", "Set a record in the Game Arcade", "bronze", "gym", 1),
+  b("gym5", "Record Breaker", "🥇", "Set records in 5 arcade games", "silver", "gym", 5),
+  b("gym12", "Arcade Legend", "🕹️", "Set records in 12 arcade games", "gold", "gym", 12),
 ];
 export const TIER_COLOR: Record<BadgeTier, string> = { bronze: "#d38b4f", silver: "#9aa9bd", gold: "#e0a21a" };
 
@@ -129,6 +140,9 @@ export function badgeStats(kid: Pick<KidLearn, "lessons" | "days" | "skills" | "
     code: by("code"),
     manners: by("manners"),
     faith: by("faith"),
+    science: by("science"),
+    labs: passed.filter(([id]) => lessonOf(id)?.activities.some((a) => a.kind === "lab")).length,
+    codelab: passed.filter(([id]) => lessonOf(id)?.subject === "code" && lessonOf(id)?.activities.some((a) => a.kind !== "code")).length,
   };
 }
 

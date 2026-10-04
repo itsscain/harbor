@@ -19,7 +19,7 @@ import { practiceMission, type KidLearnView } from "./learnData";
 // goal at a glance; today's mission front and center (a grown-up's pick, or simply what's next);
 // then one island per subject showing which island of the voyage they're on. The daily chest,
 // Treasures (reef, stickers, hero cards, trophies, verses), Brain Boost (mixed review of what's
-// due), the Brain Gym and the Harbor Shop are one big tap away.
+// due), the Game Arcade and the Harbor Shop are one big tap away.
 
 const nowMs = () => Date.now();
 
@@ -75,6 +75,7 @@ export function LearnHome({
   const due = boostSkills(profile.subjects, kid.skills, nowMs()).length;
   const limitHit = left === 0;
   const compact = profile.subjects.length >= 5;
+  const six = profile.subjects.length >= 6;
 
   useEffect(() => {
     if (!greet) return;
@@ -141,7 +142,7 @@ export function LearnHome({
         <QuickTile emoji="🎁" title={chestReady ? "Daily chest!" : "Chest opened"} sub={chestReady ? "Tap to open" : "Back tomorrow"} glow={chestReady} reduced={reduced} onClick={() => (sfx("pick"), onOpenChest())} />
         <QuickTile emoji={eggs ? "🥚" : "💰"} title="Treasures" sub={eggs ? `${eggs} egg${eggs === 1 ? "" : "s"} to hatch!` : `${kid.hatched.length} reef friend${kid.hatched.length === 1 ? "" : "s"}`} glow={eggs > 0} reduced={reduced} badge={eggs || undefined} onClick={() => (sfx("pick"), onOpenTreasures())} />
         <QuickTile emoji="⚡" title="Brain Boost" sub={due ? `${due} to refresh` : "All fresh!"} glow={due >= 4} reduced={reduced} disabled={due < 3 || limitHit} onClick={() => (sfx("pick"), onBoost())} />
-        <QuickTile emoji="🧠" title="Brain Gym" sub="Beat your best!" onClick={() => (sfx("pick"), onOpenGym())} />
+        <QuickTile emoji="🕹️" title="Arcade" sub="15+ games!" onClick={() => (sfx("pick"), onOpenGym())} />
         <QuickTile emoji="🛍️" title="Shop" sub={`${kid.shells} 🐚 to spend`} onClick={() => (sfx("pick"), void say(SAY.shop), onOpenShop())} />
       </div>
 
@@ -210,7 +211,7 @@ export function LearnHome({
       )}
 
       {/* Subject islands */}
-      <div className={cn("grid gap-4", profile.subjects.length >= 5 ? "sm:grid-cols-2 lg:grid-cols-5" : profile.subjects.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3")}>
+      <div className={cn("grid gap-4", profile.subjects.length >= 6 ? "sm:grid-cols-2 lg:grid-cols-3" : profile.subjects.length === 5 ? "sm:grid-cols-2 lg:grid-cols-5" : profile.subjects.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3")}>
         {profile.subjects.map((s, i) => {
           const sl = SUBJECT_LOOK[s];
           const map = courseMap(s, profile.grade, best, new Set(assignedIds));
@@ -226,15 +227,15 @@ export function LearnHome({
                 void say(SAY[s]);
                 onOpenSubject(s);
               }}
-              className="l-rise relative flex min-h-[230px] flex-col overflow-hidden p-5 text-left text-white"
+              className={cn("l-rise relative flex flex-col overflow-hidden text-left text-white", six ? "min-h-[150px] p-4" : "min-h-[230px] p-5")}
               style={{ "--f": sl.to, "--e": sl.ink, background: `linear-gradient(160deg, ${sl.from}, ${sl.to})`, animationDelay: `${140 + i * 70}ms` } as React.CSSProperties}
             >
               <span className={cn("absolute -right-3 -top-2 opacity-95 drop-shadow-[0_6px_0_rgba(0,0,0,0.12)]", compact ? "text-[60px]" : "text-[80px]", !reduced && "l-bob")} style={{ animationDelay: `${i * 0.4}s` }} aria-hidden>
                 {sl.island}
               </span>
               <span className={cn("max-w-[72%] font-display font-extrabold leading-none drop-shadow-[0_2px_0_rgba(0,0,0,0.15)]", compact ? "text-[25px]" : "text-[30px]")}>{COURSES[s].title}</span>
-              <span className={cn("mt-1 font-display font-bold text-white/90", compact ? "max-w-[80%] text-sm" : "max-w-[64%] text-base")}>{COURSES[s].tagline}</span>
-              <span className="mt-auto pt-4">
+              {!six && <span className={cn("mt-1 font-display font-bold text-white/90", compact ? "max-w-[80%] text-sm" : "max-w-[64%] text-base")}>{COURSES[s].tagline}</span>}
+              <span className={cn("mt-auto", six ? "pt-2" : "pt-4")}>
                 {here && (
                   <span className={cn("block truncate font-display font-extrabold", compact ? "text-base" : "text-lg")}>
                     Island {here.unit.n}: {here.unit.emoji} {here.unit.title}
