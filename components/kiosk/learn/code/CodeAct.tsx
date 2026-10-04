@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import type { Block, CodeLevel, Dir } from "@/lib/learn/types";
 import { DEFAULT_LOOK } from "@/lib/learn/meta";
 import {
-  blockCount, drawTarget, gridEngine, pixelEngine, runLevel, sameSeg, toPython, toText, turtleEngine,
+  blockCount, drawTarget, gridEngine, parseGrid, pixelEngine, runLevel, sameSeg, toPython, toText, turtleEngine,
   type GridState, type PixelState, type RunResult, type Step, type TurtleState,
 } from "@/lib/learn/program";
 import { SAY } from "@/lib/learn/script";
@@ -16,6 +16,7 @@ import { Chunk } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, usePrompt } from "../acts/common";
 import { BlockPill, Editor } from "./Editor";
+import { BoatSchool } from "./BoatSchool";
 import { colorize } from "../lab/CodeReadAct";
 import { DanceStage, MusicStage, PixelStage, SeaStage, TurtleStage, type PixelView, type SeaView, type SeqView, type TurtleView } from "./Stages";
 import {
@@ -39,6 +40,25 @@ const shortest = (from: number, to: number) => {
 };
 
 type Phase = "edit" | "demo" | "run" | "won" | "failed";
+
+const isCheck = (st: Step<unknown>) => st.event === "yes" || st.event === "no";
+const sameAt = (a: number[], b: number[]) => a.length === b.length && a.every((v, i) => v === b[i]);
+/** A run that reached the goal and then kept going (too many blocks): where the extra moves
+ *  start (a top-level block), whether a loop that was already running kept going, and how many
+ *  moves came after arriving. */
+function overshootOf(res: RunResult<unknown>, map: string[], facing: Dir) {
+  if (res.won || !map.length) return null;
+  const eng = gridEngine(map, facing);
+  const k = res.steps.findIndex((st) => eng.won(st.state as GridState));
+  if (k < 0) return null;
+  const after = res.steps.slice(k + 1).filter((x) => !isCheck(x));
+  if (!after.length) return null;
+  const arrived = res.steps[k];
+  const inLoop = !!arrived.iters?.some((a) => after[0].iters?.some((b) => sameAt(a.at, b.at)));
+  return { arrive: k, from: after[0].at[0], inLoop, extra: after.length };
+}
+/** The moves so far match the target from the start (so the only trouble is extras at the end). */
+const prefixMatches = (done: string[], target: string[]) => target.every((t, i) => done[i] === t);
 type Views = { sea?: SeaView; seq?: SeqView; turtle?: TurtleView; pixel?: PixelView };
 
 function initViews(level: CodeLevel): Views {
@@ -61,7 +81,29 @@ function initViews(level: CodeLevel): Views {
   }
 }
 
-export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
+/** A coding puzzle. Before a child's first boat puzzle comes Boat School — once, and it can't be
+ *  skipped (leaving the level just means it starts again next time). */
+export function CodeAct(props: ActProps<"code">) {
+  const { act, fx } = props;
+  const [schooled, setSchooled] = useState(false);
+  if (act.level.sim === "sea" && !schooled && !fx.tutorialDone("boat")) {
+    const band = fx.voice === "all" ? "little" : fx.voice === "core" ? "middle" : "big";
+    return (
+      <BoatSchool
+        fx={fx}
+        look={fx.look ?? DEFAULT_LOOK}
+        band={band}
+        onDone={() => {
+          fx.completeTutorial("boat");
+          setSchooled(true);
+        }}
+      />
+    );
+  }
+  return <CodeLevel {...props} />;
+}
+
+function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
   const level = act.level;
   const band: Band = fx.voice === "all" ? "little" : fx.voice === "core" ? "middle" : "big";
   const look = fx.look ?? DEFAULT_LOOK;
@@ -72,6 +114,10 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
   const [views, setViews] = useState<Views>(() => initViews(level));
   const [active, setActive] = useState<{ list: ListPath; index: number; answer?: "yes" | "no" } | null>(null);
   const [fails, setFails] = useState(0);
+  // "Show me" waits for three DIFFERENT programs that didn't work — pressing Play on the same
+  // broken program again (or mashing) doesn't unlock the answer.
+  const [attempts, setAttempts] = useState(0);
+  const lastTried = useRef("");
   const [msg, setMsg] = useState<{ text: string; tone: "good" | "bad" | "tip"; k: number } | null>(null);
   const [showCode, setShowCode] = useState(band === "big" || !!level.textCode);
   const [lang, setLang] = useState<"py" | "js">("py");
@@ -247,6 +293,9 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
         later(() => setViews((v) => (v.sea ? { sea: { ...v.sea, active: m, bump: null, sensor: null } } : v)), t);
         t += 500;
       }
+      // The moment it arrives with blocks still to go: point it out as it happens.
+      const over = !demo && (level.sim === "sea" || level.sim === "rover") ? overshootOf(res, level.maps?.[m] ?? [], level.facing ?? "right") : null;
+      const arriveAt = over ? over.arrive : -1;
       res.steps.forEach((st, si) => {
         const check = st.event === "yes" || st.event === "no";
         const prev = si > 0 ? res.steps[si - 1].state : null;
@@ -259,6 +308,11 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
         const seaAngles = angleSea;
         const tAngle = angleTurtle;
         later(() => showStep(program, st, m, check, prev, seaAngles, tAngle, si), t);
+        if (si === arriveAt)
+          later(() => {
+            setMsg({ text: "🏝️ It made it… but there are more blocks!", tone: "tip", k: si });
+            if (band !== "big") void say(SAY.stillGoing);
+          }, t);
         t += stepMs(check ? "check" : "act") * scale;
       });
       if (!res.won) {
@@ -288,6 +342,14 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
     else if (ev === "move") sfx("move");
     else if (ev === "turn") sfx("turn");
     else if (ev === "shell") sfx("shell");
+    else if (ev === "key") sfx("coin");
+    else if (ev === "unlock") sfx("unlock");
+    else if (ev === "button") sfx("snap");
+    else if (ev === "warp") sfx("whoosh");
+    else if (ev === "drift") sfx("splash");
+    else if (ev === "catch") sfx("fish");
+    else if (ev === "wait") sfx("tick");
+    else if (ev === "shark") sfx("hit");
     else if (ev === "bump") sfx(level.sim === "sea" ? "splash" : "bump");
     else if (ev === "draw") sfx("draw");
     else if (ev === "paint") sfx("paint");
@@ -309,7 +371,7 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
             sensor = { map: m, dir, blocked: c === "clear" ? !yes : yes, k: Date.now() };
           }
         }
-        const bump = ev === "bump" ? { map: m, x: gs.x + (gs.facing === "right" ? 0.5 : gs.facing === "left" ? -0.5 : 0), y: gs.y + (gs.facing === "down" ? 0.5 : gs.facing === "up" ? -0.5 : 0), k: Date.now() } : v.sea.bump;
+        const bump = ev === "bump" ? { map: m, x: gs.x + (gs.facing === "right" ? 0.5 : gs.facing === "left" ? -0.5 : 0), y: gs.y + (gs.facing === "down" ? 0.5 : gs.facing === "up" ? -0.5 : 0), k: Date.now() } : ev === "shark" ? { map: m, x: gs.x, y: gs.y, k: Date.now() } : v.sea.bump;
         return { sea: { ...v.sea, states, trails, angles: seaAngles, sensor, bump, active: m } };
       }
       if (v.seq) {
@@ -362,16 +424,49 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
     setLoops([]);
     const n = fails + 1;
     setFails(n);
+    const sig = JSON.stringify(prog);
+    if (sig !== lastTried.current) {
+      lastTried.current = sig;
+      setAttempts((a) => a + 1);
+    }
     fx.miss();
     let line: string = SAY.notThere;
     const final = res.final;
+    // Too many blocks: it got there, and then the program kept going. Say exactly that, and turn
+    // every block after the arrival red.
+    const over = level.sim === "sea" || level.sim === "rover" ? overshootOf(res, level.maps?.[m] ?? [], level.facing ?? "right") : null;
+    const extraMoves = isSeq && res.fail?.reason === "extra" && prefixMatches((final as { done: string[] }).done, level.target ?? []);
+    if (over || extraMoves) {
+      const loop = over ? over.inLoop : !!res.steps[res.steps.length - 1]?.iters?.length;
+      setBad({ list: [], from: over ? over.from : res.fail!.at[0] });
+      setGhostOp(null);
+      setCursor({ list: [], index: prog.length });
+      if (isSeq) setViews((v) => (v.seq ? { seq: { ...v.seq, mismatch: null } } : v));
+      const who = level.sim === "sea" ? "boat" : level.sim === "rover" ? "rover" : level.sim === "music" ? "song" : "robot";
+      const extra = over ? over.extra : 1;
+      line = loop ? SAY.overshootLoop : level.sim === "music" ? SAY.tooManyNotes : level.sim === "dance" ? SAY.tooManyMoves : level.sim === "sea" ? SAY.overshoot : SAY.overshootGoal;
+      const place = level.sim === "sea" ? "the island" : "the flag";
+      const text = loop
+        ? `🔁 Your loop went around too many times! The ${who} ${over ? `reached ${place}` : "finished"} — then the loop kept going. Make its number smaller.`
+        : over
+          ? `⛵ The ${who} reached ${place} — then kept going! It does EVERY block you give it, even ${extra === 1 ? "the extra one" : `the ${extra} extra ones`}. Take away the red ${extra === 1 ? "block" : "blocks"}.`
+          : `🔢 Too many! The ${who} does every block — the red ones are extra. Take them away.`;
+      void say(line);
+      setMsg({ text, tone: "bad", k: Date.now() });
+      return;
+    }
     if (level.sim === "sea" || level.sim === "rover") {
       const gs = final as GridState;
       const goal = (level.maps?.[m] ?? []).findIndex((r) => r.includes("G"));
       const atGoal = goal >= 0 && level.maps![m][goal].indexOf("G") === gs.x && goal === gs.y;
+      const grid = parseGrid(level.maps?.[m] ?? []);
       if (res.fail?.reason === "rock") line = SAY.bumped;
       else if (res.fail?.reason === "edge") line = SAY.outOfBounds;
-      else if (atGoal) line = SAY.missedShells;
+      else if (res.fail?.reason === "locked") line = SAY.lockedGate;
+      else if (res.fail?.reason === "bridge") line = SAY.bridgeUp;
+      else if (res.fail?.reason === "shark") line = SAY.sharkGotYou;
+      else if (res.fail?.reason === "nofish") line = SAY.noFish;
+      else if (atGoal) line = (gs.caught?.length ?? 0) < grid.fish.size ? SAY.missedFish : SAY.missedShells;
       else if (res.overflow) line = "Your program never stopped! Check your loop.";
       if ((level.maps?.length ?? 0) > 1) line = `${line} (map ${m + 1})`;
     } else if (isSeq) {
@@ -473,7 +568,7 @@ export function CodeAct({ act, fx, onDone }: ActProps<"code">) {
               <Eye className="h-5 w-5" strokeWidth={2.8} /> {level.sim === "music" ? "Listen again" : "Watch again"}
             </Chunk>
           )}
-          {fails >= 3 && !showSolution && phase !== "won" && (
+          {attempts >= 3 && !showSolution && phase !== "won" && (
             <Chunk tone="gold" disabled={running} onClick={() => (sfx("pick"), void say(SAY.showMe), play(level.solution, true))} className="l-pulse flex h-12 items-center gap-2 px-5 font-display text-lg font-extrabold">
               <Lightbulb className="h-5 w-5" strokeWidth={2.8} /> Show me
             </Chunk>

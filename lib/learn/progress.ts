@@ -10,8 +10,9 @@ export type LearnEvent = {
   op_id: string;
   child_id: string;
   /** earn: chest/fish/set bonus · spend: shop purchase · look: boat change · daily: daily chest ·
-   *  collect: an egg hatched ("hatch:<egg>", data {creature, xp}) or a reef buddy picked
-   *  ("buddy:<creature>") · best: a Brain Gym record ("gym:<game>", amount = score). */
+   *  collect: an egg hatched ("hatch:<egg>", data {creature, xp}), a reef buddy picked
+   *  ("buddy:<creature>") or a tutorial finished ("tutorial:<id>") · best: a Brain Gym record
+   *  ("gym:<game>", amount = score). */
   type: "earn" | "spend" | "look" | "daily" | "collect" | "best";
   amount?: number;
   item?: string;
@@ -77,6 +78,8 @@ export type KidLearn = {
   bests: Record<string, number>;
   /** Brain Gym rounds that paid shells today. */
   gymToday: number;
+  /** Tutorials this child has finished (e.g. "boat" — Boat School). */
+  tutorials: Set<string>;
 };
 
 export const XP_PER_LEVEL = 150;
@@ -125,9 +128,11 @@ export function mergeKid(
   const bests: Record<string, number> = { ...(base?.bests ?? {}) };
   const serverGym = base?.gym_today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.gym_today : 0;
   let gymToday = serverGym ?? 0;
+  const tutorials = new Set<string>();
   const collect = (item: string, data: { creature?: string; xp?: number } | null | undefined, at: string) => {
     if (item.startsWith("hatch:") && data?.creature && !hatched.some((h) => h.egg === item.slice(6))) hatched.push({ egg: item.slice(6), creature: data.creature, xp: Math.max(0, Number(data.xp) || 0), at });
     if (item.startsWith("buddy:")) buddy = item.slice(6) || null;
+    if (item.startsWith("tutorial:")) tutorials.add(item.slice(9));
   };
   for (const [item, data, at] of base?.collected ?? []) collect(item, data, at);
   const serverToday = base?.today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.today : null;
@@ -183,6 +188,7 @@ export function mergeKid(
     buddy,
     bests,
     gymToday,
+    tutorials,
   };
 }
 

@@ -8,7 +8,7 @@ import { SAY } from "@/lib/learn/script";
 import { clipMs, stopIfStill, voiceToken, type Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, shuffleSeeded, useShuffled, useShuffledApart } from "../kit";
-import { ChoiceTile, MiniSpeaker, PromptRow, tileState, useChoice, useLater, usePrompt, type ActProps, type LessonFx } from "./common";
+import { ChoiceTile, Hearable, PromptRow, tileState, useChoice, useLater, usePrompt, type ActProps, type LessonFx } from "./common";
 
 // Scripture memory, one rung of the ladder at a time. The verse sits on a scroll with its
 // reference ribbon. Listen: the Harbor voice reads it while each word lights up (karaoke), then
@@ -246,19 +246,20 @@ function Blanks({ act: a, fx, onDone, v }: ActProps<"verse"> & { v: Step<"blanks
         <div className="grid w-full max-w-[860px] gap-4" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
           {opts.map((o, i) => (
             <div key={`${k}:${o}`} className="l-rise relative" style={{ animationDelay: `${80 + i * 60}ms` }}>
-              <ChoiceTile
-                state={misses >= 2 && wrong.length >= 1 && o === words[cur.at].core ? "hint" : shake?.id === o ? "wrong" : wrong.includes(o) ? "tried" : "idle"}
-                shakeKey={shake?.id === o ? shake.n : undefined}
-                onPick={(el) => (sfx("pick"), pick(o, el))}
-                label={o}
-                className="min-h-[112px] w-full text-[var(--l-ink)]"
-              >
-                <span className="flex flex-col items-center gap-1">
-                  {voiced && WORD_PIC[o] && <span className="text-[44px] leading-none">{WORD_PIC[o]}</span>}
-                  <span className="font-reading text-[32px] font-bold">{o}</span>
-                </span>
-              </ChoiceTile>
-              {voiced && <MiniSpeaker parts={[o]} className="-left-2 -top-2" />}
+              <Hearable parts={voiced ? [o] : null} side="below">
+                <ChoiceTile
+                  state={misses >= 2 && wrong.length >= 1 && o === words[cur.at].core ? "hint" : shake?.id === o ? "wrong" : wrong.includes(o) ? "tried" : "idle"}
+                  shakeKey={shake?.id === o ? shake.n : undefined}
+                  onPick={(el) => (sfx("pick"), pick(o, el))}
+                  label={o}
+                  className="min-h-[112px] w-full text-[var(--l-ink)]"
+                >
+                  <span className="flex flex-col items-center gap-1">
+                    {voiced && WORD_PIC[o] && <span className="text-[44px] leading-none">{WORD_PIC[o]}</span>}
+                    <span className="font-reading text-[32px] font-bold">{o}</span>
+                  </span>
+                </ChoiceTile>
+              </Hearable>
             </div>
           ))}
         </div>
@@ -315,14 +316,13 @@ function Tiles({ act: a, fx, onDone, v }: ActProps<"verse"> & { v: Step<"tiles">
         <div className="flex max-w-[1000px] flex-wrap justify-center gap-3">
           {pool.map((t) =>
             placed.includes(t.id) ? null : (
-              <div key={t.id} className="relative">
-                <Chunk tone="white" onClick={(e) => (sfx("pick"), tap(t, e.currentTarget))} className={cn("flex min-h-[78px] items-center px-5 py-3", hintText === t.text && "l-hint")}>
+              <Hearable key={t.id} parts={voiced ? [t.text] : null} side="below">
+                <Chunk tone="white" onClick={(e) => (sfx("pick"), tap(t, e.currentTarget))} className={cn("flex min-h-[78px] w-full items-center justify-center px-5 py-3", hintText === t.text && "l-hint")}>
                   <span key={shake?.id === t.id ? shake.n : 0} className={cn("font-reading text-[26px] font-bold text-[var(--l-ink)]", shake?.id === t.id && "l-shake")}>
                     {t.text}
                   </span>
                 </Chunk>
-                {voiced && <MiniSpeaker parts={[t.text]} className="-right-2 -top-3" />}
-              </div>
+              </Hearable>
             ),
           )}
         </div>
@@ -346,10 +346,11 @@ function RefPick({ act: a, fx, onDone, v }: ActProps<"verse"> & { v: Step<"ref">
       <div className="grid w-full max-w-[900px] gap-4" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
         {opts.map((o, i) => (
           <div key={o} className="l-rise relative" style={{ animationDelay: `${100 + i * 60}ms` }}>
-            <ChoiceTile state={tileState(o, c, a.ref)} shakeKey={c.shake?.id === o ? c.shake.n : undefined} onPick={(el) => (sfx("pick"), c.choose(o, el))} label={o} className="min-h-[104px] w-full text-[var(--l-ink)]">
-              <span className="font-display text-[28px] font-extrabold">📖 {o}</span>
-            </ChoiceTile>
-            {voiced && <MiniSpeaker parts={[refSpoken(o)]} className="-left-2 -top-2" />}
+            <Hearable parts={voiced ? [refSpoken(o)] : null} side="below">
+              <ChoiceTile state={tileState(o, c, a.ref)} shakeKey={c.shake?.id === o ? c.shake.n : undefined} onPick={(el) => (sfx("pick"), c.choose(o, el))} label={o} className="min-h-[104px] w-full text-[var(--l-ink)]">
+                <span className="font-display text-[28px] font-extrabold">📖 {o}</span>
+              </ChoiceTile>
+            </Hearable>
           </div>
         ))}
       </div>
@@ -372,10 +373,11 @@ function MeaningPick({ act: a, fx, onDone, v }: ActProps<"verse"> & { v: Step<"m
       <div className="grid w-full max-w-[860px] grid-cols-1 gap-3">
         {opts.map((o, i) => (
           <div key={o} className="l-rise relative" style={{ animationDelay: `${100 + i * 70}ms` }}>
-            <ChoiceTile state={tileState(o, c, v.answer)} shakeKey={c.shake?.id === o ? c.shake.n : undefined} onPick={(el) => (sfx("pick"), c.choose(o, el))} label={o} className="min-h-[80px] w-full justify-start py-3 pl-5 pr-14 text-left text-[var(--l-ink)]">
-              <span className="w-full font-reading text-[24px] font-bold leading-snug">{o}</span>
-            </ChoiceTile>
-            {voiced && <MiniSpeaker parts={[o]} className="right-3 top-1/2 -translate-y-1/2" />}
+            <Hearable parts={voiced ? [o] : null}>
+              <ChoiceTile state={tileState(o, c, v.answer)} shakeKey={c.shake?.id === o ? c.shake.n : undefined} onPick={(el) => (sfx("pick"), c.choose(o, el))} label={o} className="min-h-[80px] w-full justify-start px-5 py-3 text-left text-[var(--l-ink)]">
+                <span className="w-full font-reading text-[24px] font-bold leading-snug">{o}</span>
+              </ChoiceTile>
+            </Hearable>
           </div>
         ))}
       </div>

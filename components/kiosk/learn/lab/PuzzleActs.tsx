@@ -7,7 +7,7 @@ import { applyMachine, bitValues, gate, shiftLetter, toBits } from "@/lib/learn/
 import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
-import { useShuffled } from "../kit";
+import { Chunk, useShuffled } from "../kit";
 import type { ActProps } from "../acts/common";
 import { ChoiceTile, PromptRow, tileState, useChoice, useLater, usePrompt } from "../acts/common";
 
@@ -27,24 +27,27 @@ export function BinaryAct({ act, fx, onDone }: ActProps<"binary">) {
   const make = act.mode === "make";
   usePrompt(fx, [make ? SAY.binaryMake : SAY.binaryRead], fx.voice === "keys" ? -1 : 420);
   const [on, setOn] = useState<number[]>(() => (make ? vals.map(() => 0) : toBits(act.target, act.bits)));
-  const [flips, setFlips] = useState(0);
+  const [misses, setMisses] = useState(0);
   const [done, setDone] = useState(false);
   const later = useLater();
   const total = vals.reduce((s, v, i) => s + (on[i] ? v : 0), 0);
   const opts = useShuffled(act.options ?? [], fx.seed);
   const c = useChoice(String(act.target), fx, onDone, { why: `The lights that are on add up: ${vals.filter((_, i) => on[i]).join(" + ")} = ${act.target}.` });
-  const needed = toBits(act.target, act.bits).filter(Boolean).length;
-  const flip = (i: number, el: HTMLElement) => {
+  const flip = (i: number) => {
     if (!make || done) return;
     sfx("tick");
-    const next = on.map((b, k) => (k === i ? 1 - b : b));
-    setOn(next);
-    setFlips((f) => f + 1);
-    const sum = vals.reduce((s, v, k) => s + (next[k] ? v : 0), 0);
-    if (sum === act.target) {
+    setOn(on.map((b, k) => (k === i ? 1 - b : b)));
+  };
+  // Flipping lights until something happens isn't the idea: set them, add them up, then check.
+  const check = (el: HTMLElement) => {
+    if (done) return;
+    if (total === act.target) {
       setDone(true);
       fx.right(el);
-      later(() => onDone(Math.max(0, Math.floor((flips + 1 - needed) / 3))), 1600);
+      later(() => onDone(misses), 1600);
+    } else {
+      setMisses((m) => m + 1);
+      fx.wrong(el);
     }
   };
   return (
@@ -52,7 +55,7 @@ export function BinaryAct({ act, fx, onDone }: ActProps<"binary">) {
       <PromptRow parts={[make ? SAY.binaryMake : SAY.binaryRead]}>{make ? <>Make <b className="rounded-xl bg-white px-3 text-[var(--l-ink)]">{act.target}</b> with the lights</> : "What number do the lights show?"}</PromptRow>
       <div className="flex flex-wrap justify-center gap-6 rounded-[32px] bg-gradient-to-b from-[#1e293b] to-[#0f172a] px-10 py-8 shadow-[0_10px_0_rgba(0,0,0,0.3)]">
         {vals.map((v, i) => (
-          <button key={v} type="button" disabled={!make || done} onClick={(e) => flip(i, e.currentTarget)} className={cn("flex flex-col items-center gap-2 rounded-3xl px-3 py-3 transition-colors", make && !done && "hover:bg-white/5 active:bg-white/10")} aria-label={`light worth ${v}, ${on[i] ? "on" : "off"}`}>
+          <button key={v} type="button" disabled={!make || done} onClick={() => flip(i)} className={cn("flex flex-col items-center gap-2 rounded-3xl px-3 py-3 transition-colors", make && !done && "hover:bg-white/5 active:bg-white/10")} aria-label={`light worth ${v}, ${on[i] ? "on" : "off"}`}>
             <span className={cn("text-[96px] leading-none transition-all duration-200", on[i] ? "drop-shadow-[0_0_34px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")}>💡</span>
             <span className={cn("font-mono text-4xl font-bold", on[i] ? "text-[#fde047]" : "text-[#64748b]")}>{on[i]}</span>
             <span className="rounded-full bg-white/15 px-4 py-1 font-display text-2xl font-extrabold text-white">{v}</span>
@@ -60,9 +63,14 @@ export function BinaryAct({ act, fx, onDone }: ActProps<"binary">) {
         ))}
       </div>
       {make ? (
-        <span key={total} className={cn("l-pop-in rounded-full px-6 py-2 font-display text-3xl font-extrabold", done ? "bg-[#dcfce7] text-[#166534]" : "bg-white text-[var(--l-ink)]")}>
-          {vals.filter((_, i) => on[i]).join(" + ") || "0"} {on.some(Boolean) && `= ${total}`}
-        </span>
+        <div className="flex items-center gap-4">
+          <span key={total} className={cn("l-pop-in rounded-full px-6 py-2 font-display text-3xl font-extrabold", done ? "bg-[#dcfce7] text-[#166534]" : "bg-white text-[var(--l-ink)]")}>
+            {vals.filter((_, i) => on[i]).join(" + ") || "0"} {on.some(Boolean) && `= ${total}`}
+          </span>
+          <Chunk tone="green" disabled={done} onClick={(e) => check(e.currentTarget)} className="flex h-16 items-center px-8 font-display text-2xl font-extrabold">
+            ✓ Check
+          </Chunk>
+        </div>
       ) : (
         <div className="flex gap-4">
           {opts.map((n) => (

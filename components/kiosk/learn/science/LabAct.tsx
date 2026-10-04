@@ -203,14 +203,16 @@ function StatesLab({ prompt, spec, fx, onDone }: LabProps<"states">) {
   const [temp, setTemp] = useState<number>(START_T[spec.start]);
   const [change, setChange] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [presses, setPresses] = useState(0);
+  const [wrongWay, setWrongWay] = useState(0);
   const state = STATE_OF(temp);
+  const RANK = { solid: 0, liquid: 1, gas: 2 } as const;
   const press = (dir: 1 | -1) => {
     if (done) return;
     const before = STATE_OF(temp);
+    // Heating when it needs cooling (or the other way round) is a guess, not an experiment.
+    const away = (RANK[before] < RANK[spec.goal] && dir < 0) || (RANK[before] > RANK[spec.goal] && dir > 0);
     const t = Math.max(-40, Math.min(140, temp + dir * 45));
     setTemp(t);
-    setPresses((p) => p + 1);
     const after = STATE_OF(t);
     sfx(dir > 0 ? "whoosh" : "tick");
     if (before !== after) {
@@ -218,10 +220,14 @@ function StatesLab({ prompt, spec, fx, onDone }: LabProps<"states">) {
       setChange(word);
       void say(word);
     } else setChange(null);
+    if (away) {
+      setWrongWay((w) => w + 1);
+      fx.miss();
+    }
     if (after === spec.goal) {
       setDone(true);
       fx.right(null);
-      later(() => onDone(presses + 1 > 6 ? 1 : 0), 2000);
+      later(() => onDone(Math.min(2, wrongWay + (away ? 1 : 0))), 2000);
     }
   };
   const dots = Array.from({ length: 16 }, (_, k) => k);
@@ -425,7 +431,7 @@ function RampLab({ prompt, spec, fx, onDone }: LabProps<"ramp">) {
         later(() => onDone(Math.min(2, misses)), 2000);
       } else {
         setMisses((m) => m + 1);
-        sfx("soft-fail");
+        fx.miss();
         void say(spec.goal === "far" ? SAY.rampFarther : SAY.rampSooner);
       }
     }, 1500);

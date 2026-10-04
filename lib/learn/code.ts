@@ -1,11 +1,11 @@
 import type { Activity, Block, CodeLevel, Course, GradeId, Lesson, LevelKind, Unit } from "./types";
 import { themeFor } from "./meta";
 import { blockCount } from "./program";
-import { type Rng, rng, int, pick, pickN } from "./gen";
+import { type Rng, rng, int, pick, pickN, shuffle } from "./gen";
 import {
-  ARROWS, BOAT, MOVES, NOTES, blk, seqOf, rep, until, def, call,
-  makeMap, genChannel, genCorridor, genMaze, genSeq, genMelody, genLoopSeq, genChorus,
-  polygon, flower, solvePixel, pictureColors, makeBug, roverProgram, WALL_FOLLOWER, type MapSpec, type Side,
+  ARROWS, BOAT, MOVES, NOTES, blk, seqOf, rep, until, def, call, iff,
+  makeMap, makeAdventure, solveGrid, genChannel, genCorridor, genMaze, genSeq, genMelody, genLoopSeq, genChorus,
+  polygon, flower, solvePixel, pictureColors, makeBug, roverProgram, WALL_FOLLOWER, type AdventureSpec, type MapSpec, type Side,
 } from "./codeGen";
 import {
   concept, recipeAct, factoryAct, eventsAct, variableAct, loopFindAct, predictEnd, predictEndBoat, predictCount, predictPick,
@@ -33,8 +33,31 @@ const P = blk("paint");
 
 type Extra = Partial<CodeLevel>;
 const withBest = (l: Omit<CodeLevel, "best"> & { best?: number }): CodeLevel => ({ ...l, best: l.best ?? blockCount(l.solution) });
-const sea = (goal: string, map: string[], solution: Block[], x: Extra = {}) => withBest({ sim: "sea", goal, palette: ARROWS, maps: [map], facing: "right", solution, ...x });
-const view = (goal: string, map: string[], solution: Block[], x: Extra = {}) => withBest({ sim: "sea", goal, palette: BOAT, maps: [map], facing: "right", solution, ...x });
+/** A sea with fish gets the Catch block; a sea with sharks gets Wait. */
+const actsFor = (maps: string[][]) => [...(maps.some((m) => m.join("").includes("f")) ? ["catch"] : []), ...(maps.some((m) => /[HN]/.test(m.join(""))) ? ["wait"] : [])];
+const sea = (goal: string, map: string[], solution: Block[], x: Extra = {}) => withBest({ sim: "sea", goal, palette: [...ARROWS, ...actsFor([map])], maps: [map], facing: "right", solution, ...x });
+const view = (goal: string, map: string[], solution: Block[], x: Extra = {}) => withBest({ sim: "sea", goal, palette: [...BOAT, ...actsFor([map])], maps: [map], facing: "right", solution, ...x });
+/** A hand-drawn adventure sea, its answer found by the solver (right by construction). */
+const chart = (goal: string, map: string[], x: Extra & { boat?: boolean } = {}) => {
+  const { boat, ...rest } = x;
+  return (boat ? view : sea)(goal, map, seqOf(solveGrid(map, boat ? BOAT : ARROWS) ?? []), rest);
+};
+/** A generated adventure sea built around one feature. */
+const gAdv = (r: Rng, goal: string, spec: AdventureSpec, x: Extra = {}): CodeLevel => {
+  const { map, ops } = makeAdventure(r, spec);
+  return (spec.boat ? view : sea)(goal, map, seqOf(ops), x);
+};
+/** Smart Nets: rows of sea with fish in different places — ONE program has to catch them all, so
+ *  it has to look before it nets ("if on a fish: catch"). */
+const gNets = (r: Rng, n: number, len: number): CodeLevel => {
+  const maps = Array.from({ length: n }, () => {
+    const cells = Array.from({ length: len - 1 }, () => ".");
+    const fish = shuffle(r, Array.from({ length: len - 1 }, (_, i) => i)).slice(0, int(r, 1, Math.min(3, len - 2)));
+    fish.forEach((i) => (cells[i] = "f"));
+    return [`S${cells.join("")}G`];
+  });
+  return withBest({ sim: "sea", goal: "One program for every row: look before you net!", palette: ["right", "catch"], maps, facing: "right", loops: true, ifs: true, solution: [rep(len, R, iff("fish", blk("catch")))], hint: "Move, then check: if you're on a fish, catch it." });
+};
 const rover = (goal: string, maps: string[][], solution: Block[], x: Extra = {}) => withBest({ sim: "rover", goal, palette: BOAT, maps, facing: "right", solution, ifs: true, untils: true, ...x });
 const dance = (goal: string, target: string[], solution: Block[] = seqOf(target), x: Extra = {}) => withBest({ sim: "dance", goal, palette: MOVES, target, solution, ...x });
 const music = (goal: string, target: string[], solution: Block[] = seqOf(target), x: Extra = {}) => withBest({ sim: "music", goal, palette: NOTES, target, solution, ...x });
@@ -128,7 +151,8 @@ const PICS: Record<string, string[]> = {
 /** A lesson's items: block puzzles (CodeLevel) and Code Lab activities, in order. */
 type Item = CodeLevel | Activity;
 type LessonDef = { title: string; emoji: string; kind?: LevelKind; levels: Item[] | ((r: Rng) => Item[]) };
-type WorldDef = { id: string; title: string; emoji: string; grade: GradeId; blurb: string; lessons: LessonDef[] };
+/** `story`: the island's setup, told on the opening card of its first level. */
+type WorldDef = { id: string; title: string; emoji: string; grade: GradeId; blurb: string; story?: string; lessons: LessonDef[] };
 
 const WORLDS: WorldDef[] = [
   // ── Pre-K ────────────────────────────────────────────────────────────────────────────────
@@ -197,6 +221,17 @@ const WORLDS: WorldDef[] = [
     { title: "Pattern power", emoji: "💪", levels: (r) => [loopFindAct(r, "arrows", [2, 2], [3, 3]), predictCount(r, "music", false), loopFindAct(r, "dance", [2, 2], [3, 4])] },
     { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [loopFindAct(r, "notes", [2, 3], [2, 3]), predictCount(r, "dance", false), gDance(r, 4)] },
     { title: "Parade boss", emoji: "🏆", kind: "boss", levels: (r) => [loopFindAct(r, "dance", [3, 3], [2, 3]), predictCount(r, "music", false), loopFindAct(r, "arrows", [2, 3], [3, 3])] },
+  ] },
+  // ── Adventure seas (Pre-K) ──
+  { id: "keys", title: "Key Cove", emoji: "🔑", grade: "prek", blurb: "Grab the key, open the gate, sail home.", story: "A locked gate blocks the way to the island! Sail over the golden key first — then the gate opens for your boat.", lessons: [
+    { title: "The golden key", emoji: "🔑", levels: [
+      chart("Grab the key, then sail through the gate!", ["S.kDG"]),
+      chart("Key first, then the gate!", ["S", "k", ".", "D", "G"]),
+      chart("Get the key, open the gate, find the island!", ["Sk.", "##D", "..G"]),
+    ] },
+    { title: "Key hunt", emoji: "🔍", levels: (r) => [chart("The key is off the path — go get it!", ["S..#.G", ".k.D.."]), gAdv(r, "Find the key, open the gate!", { w: 4, h: 3, kind: "key", len: [4, 7] }), gAdv(r, "Find the key, open the gate!", { w: 4, h: 3, kind: "key", len: [4, 7] })] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [gAdv(r, "Key, gate, island!", { w: 5, h: 3, kind: "key", len: [5, 8] }), gSea(r, "Sail to the island!", { w: 4, h: 3, rocks: 3, len: [4, 6], turns: 1 })] },
+    { title: "Key boss", emoji: "🏆", kind: "boss", levels: (r) => [gAdv(r, "Key, gate, island!", { w: 5, h: 3, kind: "key", len: [6, 9] }), gAdv(r, "Key, gate, island!", { w: 5, h: 3, kind: "key", len: [6, 9], shells: 1 }), gAdv(r, "Key, gate, island!", { w: 5, h: 3, kind: "key", len: [6, 9] })] },
   ] },
 
   // ── Kindergarten ─────────────────────────────────────────────────────────────────────────
@@ -313,6 +348,25 @@ const WORLDS: WorldDef[] = [
     { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [eventsAct(r, 3), recipeAct(r, "seed", true)] },
     { title: "App boss", emoji: "🏆", kind: "boss", levels: (r) => [eventsAct(r, 3), eventsAct(r, 3)] },
   ] },
+  // ── Adventure seas (K) ──
+  { id: "bridges", title: "Bridge Bay", emoji: "🌉", grade: "k", blurb: "Press the button to lower the drawbridge.", story: "The drawbridge is up — no boat can pass! Sail over the red button to bring it down, then cross.", lessons: [
+    { title: "Press the button", emoji: "🔘", levels: [
+      chart("Press the button, then cross the bridge!", ["Sb=G"]),
+      chart("Button first — then the bridge!", ["S.b", "##.", "G=."]),
+      chart("Find the button, cross the bridge!", ["Sb.#.", "...=G", "#..#."]),
+    ] },
+    { title: "Bridge builder", emoji: "🛠️", levels: (r) => [gAdv(r, "Button, bridge, island!", { w: 5, h: 3, kind: "bridge", len: [4, 8] }), gAdv(r, "Button, bridge, island!", { w: 5, h: 3, kind: "bridge", len: [4, 8] }), gAdv(r, "Grab the key, open the gate!", { w: 5, h: 3, kind: "key", len: [5, 8] })] },
+    { title: "Bridge boss", emoji: "🏆", kind: "boss", levels: (r) => [gAdv(r, "Button, bridge, island!", { w: 6, h: 3, kind: "bridge", len: [6, 10] }), gAdv(r, "Button, bridge — and a shell!", { w: 6, h: 3, kind: "bridge", len: [6, 10], shells: 1 }), gAdv(r, "Key, gate, island!", { w: 6, h: 3, kind: "key", len: [6, 10] })] },
+  ] },
+  { id: "pools", title: "Whirlpool Way", emoji: "🌀", grade: "k", blurb: "Whirlpools are secret tunnels under the rocks.", story: "Rocks wall off the island — but whirlpools are secret tunnels! Sail into one whirlpool and you pop out of the other.", lessons: [
+    { title: "Secret tunnels", emoji: "🌀", levels: [
+      chart("Sail into the whirlpool!", ["S@#@G"]),
+      chart("Whirlpool — then the island!", ["S.@#G", "...#@"]),
+      chart("Which way is the tunnel?", ["S..#..", ".@.#.@", "...#.G"]),
+    ] },
+    { title: "Pop out!", emoji: "💫", levels: (r) => [gAdv(r, "Find the secret tunnel!", { w: 5, h: 3, kind: "pool", len: [3, 7] }), gAdv(r, "Find the secret tunnel!", { w: 5, h: 3, kind: "pool", len: [3, 7] }), gAdv(r, "Find the secret tunnel — and a shell!", { w: 5, h: 3, kind: "pool", len: [4, 8], shells: 1 })] },
+    { title: "Whirlpool boss", emoji: "🏆", kind: "boss", levels: (r) => [gAdv(r, "Through the tunnel!", { w: 6, h: 3, kind: "pool", len: [5, 9], shells: 1 }), gAdv(r, "Button, bridge, island!", { w: 6, h: 3, kind: "bridge", len: [5, 9] }), gAdv(r, "Through the tunnel!", { w: 6, h: 4, kind: "pool", len: [5, 9], rocks: 1 })] },
+  ] },
 
   // ── 1st grade ────────────────────────────────────────────────────────────────────────────
   { id: "turtle", title: "Turtle Artist", emoji: "🐢", grade: "1", blurb: "Program a turtle to draw lines and shapes.", lessons: [
@@ -424,6 +478,31 @@ const WORLDS: WorldDef[] = [
     { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [recipeAct(r, "dogbath"), recipeAct(r, "snowman", true)] },
     { title: "Kitchen boss", emoji: "🏆", kind: "boss", levels: (r) => [recipeAct(r, "lemonade"), recipeAct(r, "pizza", true)] },
   ] },
+  // ── Adventure seas (1st) ──
+  { id: "fishing", title: "Fishing Village", emoji: "🎣", grade: "1", blurb: "A new block: Catch. Net every fish, then dock.", story: "The village needs fish for dinner! Sail right onto a fish, then use the Catch block to net it. Catch every fish, then dock at the island.", lessons: [
+    { title: "Catch!", emoji: "🎣", levels: [
+      chart("Sail onto the fish and catch it!", ["S.f.G"]),
+      chart("Catch both fish, then dock!", ["Sf", ".f", ".G"]),
+      chart("Two fish for dinner!", ["S.f.f.G"]),
+    ] },
+    { title: "Fish in a loop", emoji: "🔁", levels: [
+      sea("Use a loop to catch every fish!", ["S.f.f.f.G"], [rep(3, R, R, blk("catch")), R, R], { loops: true, hint: "Right, right, catch — that happens three times." }),
+      sea("Find the pattern, then loop it!", ["Sf.f.f.G"], [rep(3, R, blk("catch"), R), R], { loops: true, hint: "Right, catch, right… again and again." }),
+      sea("Loop down the river!", ["S", "f", "f", "f", "G"], [rep(3, D, blk("catch")), D], { loops: true }),
+    ] },
+    { title: "Fishing trip", emoji: "🐟", levels: (r) => [gAdv(r, "Catch every fish, then dock!", { w: 5, h: 3, kind: "fish", fish: 2, len: [6, 10] }), gAdv(r, "Catch every fish, then dock!", { w: 5, h: 3, kind: "fish", fish: 3, len: [7, 12], rocks: 1 }), gAdv(r, "Get the key — and the fish!", { w: 5, h: 3, kind: "key", fish: 1, len: [6, 11] })] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [gAdv(r, "Catch every fish, then dock!", { w: 5, h: 3, kind: "fish", fish: 2, len: [6, 10], rocks: 1 }), gAdv(r, "Through the tunnel!", { w: 5, h: 3, kind: "pool", len: [3, 7] })] },
+    { title: "Fishing boss", emoji: "🏆", kind: "boss", levels: (r) => [sea("Loop it!", ["S.f.f.f.f.G"], [rep(4, R, R, blk("catch")), R, R], { loops: true }), gAdv(r, "Catch every fish!", { w: 6, h: 3, kind: "fish", fish: 3, len: [8, 13], rocks: 2 }), gAdv(r, "Button, bridge, fish!", { w: 6, h: 3, kind: "bridge", fish: 1, len: [7, 12] })] },
+  ] },
+  { id: "rapids", title: "Current Rapids", emoji: "🌊", grade: "1", blurb: "Currents push your boat. Ride them — or go around!", story: "Whoosh! The white arrows in the water are currents. Sail onto one and it carries you along — sometimes that's a shortcut, sometimes it's the wrong way!", lessons: [
+    { title: "Ride the current", emoji: "🏄", levels: [
+      chart("Ride the current to the island!", ["S>>>.G"]),
+      chart("One block is all it takes!", ["S....", "v####", ">>>>G"]),
+      chart("This current goes the wrong way — sail around it!", ["S.<<.G", "......"]),
+    ] },
+    { title: "Rapids run", emoji: "💦", levels: (r) => [gAdv(r, "Use the currents!", { w: 6, h: 3, kind: "current", len: [2, 8] }), gAdv(r, "Use the currents!", { w: 6, h: 3, kind: "current", len: [2, 8], rocks: 1 }), gAdv(r, "Use the currents — get the shell!", { w: 6, h: 3, kind: "current", len: [3, 9], shells: 1 })] },
+    { title: "Rapids boss", emoji: "🏆", kind: "boss", levels: (r) => [gAdv(r, "Ride the currents!", { w: 6, h: 4, kind: "current", len: [3, 9], rocks: 2 }), chart("Current, key, gate!", ["S>>.#G", "...k#.", "#.#.D."]), gAdv(r, "Ride the currents — steer like a captain!", { w: 5, h: 3, kind: "current", len: [3, 10], boat: true })] },
+  ] },
 
   // ── 2nd grade ────────────────────────────────────────────────────────────────────────────
   { id: "pixel", title: "Pixel Painter", emoji: "🎨", grade: "2", blurb: "Program a paint robot to make pixel art.", lessons: [
@@ -504,6 +583,25 @@ const WORLDS: WorldDef[] = [
     { title: "Animal homes", emoji: "🌊", levels: (r) => [factoryAct(r, "habitat"), factoryAct(r, "produce")] },
     { title: "Floor boss", emoji: "🏆", kind: "boss", levels: (r) => [factoryAct(r, "colors"), factoryAct(r, "habitat"), factoryAct(r, "produce")] },
   ] },
+  // ── Adventure seas (2nd) ──
+  { id: "sharks", title: "Shark Shallows", emoji: "🦈", grade: "2", blurb: "Timing! Wait for the shark to swim by.", story: "A shark patrols the bay, back and forth, one square every time your boat does a block. Watch its path — and use the new Wait block to let it swim by!", lessons: [
+    { title: "Wait for it…", emoji: "⏳", levels: [
+      chart("Wait for the shark to pass!", ["#N#", "S.G", "#.#"]),
+      chart("Time it right — then cross!", ["##.##", "S.N.G", "##.##"]),
+      chart("Watch the shark, wait, then go!", ["###.###", "S.....G", "###N###"]),
+    ] },
+    { title: "Two sharks", emoji: "🦈", levels: (r) => [chart("Two sharks — time both crossings!", ["#.##.#", "S....G", "#N##N#"]), gAdv(r, "Don't get chomped!", { w: 5, h: 3, kind: "shark", len: [5, 10] }), gAdv(r, "Don't get chomped!", { w: 5, h: 3, kind: "shark", len: [5, 10] })] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [gAdv(r, "Don't get chomped!", { w: 5, h: 4, kind: "shark", len: [5, 11] }), gAdv(r, "Catch every fish!", { w: 5, h: 3, kind: "fish", fish: 2, len: [6, 10] })] },
+    { title: "Shark boss", emoji: "🏆", kind: "boss", levels: (r) => [gAdv(r, "Sneak past the shark!", { w: 6, h: 3, kind: "shark", len: [6, 12], shells: 1 }), gAdv(r, "Sneak past — and catch a fish!", { w: 6, h: 4, kind: "shark", len: [6, 13], fish: 1 }), chart("Two sharks — time both crossings!", ["#.##.#", "S....G", "#N##N#"], { boat: true })] },
+  ] },
+  { id: "vault", title: "Treasure Vault", emoji: "🗝️", grade: "2", blurb: "Two gates, two keys — plan the whole trip.", story: "The pirate's treasure island is behind TWO locked gates. Find a key for each one — and plan your trip before you press Play.", lessons: [
+    { title: "Two keys", emoji: "🗝️", levels: (r) => [gAdv(r, "Two keys, two gates!", { w: 7, h: 3, kind: "keys2", len: [8, 14] }), gAdv(r, "Two keys, two gates!", { w: 7, h: 3, kind: "keys2", len: [8, 14] })] },
+    { title: "Everything at once", emoji: "🧭", levels: [
+      chart("Key, gate, button, bridge!", ["S.k#..", "##.D.b", "G=.#.."]),
+      chart("Tunnel, button, bridge!", ["S@.#k.", "##.#D#", "@..=.G", "b....."]),
+    ] },
+    { title: "Vault boss", emoji: "🏆", kind: "boss", levels: (r) => [gAdv(r, "Two keys, two gates — and a shell!", { w: 7, h: 3, kind: "keys2", len: [9, 15], shells: 1 }), gAdv(r, "Two keys, two gates!", { w: 7, h: 4, kind: "keys2", len: [9, 16] }), chart("Current, key, gate!", ["S>>.#G", "...k#.", "#.#.D."])] },
+  ] },
 
   // ── 3rd grade ────────────────────────────────────────────────────────────────────────────
   { id: "rover", title: "Mars Rover", emoji: "🛸", grade: "3", blurb: "Sensors + if/else: one program that solves every map.", lessons: [
@@ -571,6 +669,13 @@ const WORLDS: WorldDef[] = [
     { title: "Four buttons", emoji: "🎛️", levels: (r) => [concept("event", "big"), eventsAct(r, 4), eventsAct(r, 3)] },
     { title: "Studio boss", emoji: "🏆", kind: "boss", levels: (r) => [eventsAct(r, 4), eventsAct(r, 4)] },
   ] },
+  // ── Adventure seas (3rd) ──
+  { id: "nets", title: "Smart Nets", emoji: "🐟", grade: "3", blurb: "If/then: one program that catches fish wherever they are.", story: "The fish swim somewhere new every day! Write ONE program that works for every row: move, look — and only cast your net if you're on a fish.", lessons: [
+    { title: "Look, then net", emoji: "👀", levels: (r) => [concept("condition", "big"), gNets(r, 2, 4), gNets(r, 3, 4)] },
+    { title: "Every row", emoji: "🐟", levels: (r) => [gNets(r, 3, 5), gNets(r, 3, 6), gNets(r, 4, 5)] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [gNets(r, 3, 5), gAdv(r, "Don't get chomped!", { w: 5, h: 3, kind: "shark", len: [5, 10] })] },
+    { title: "Nets boss", emoji: "🏆", kind: "boss", levels: (r) => [gNets(r, 4, 6), gNets(r, 4, 7), gAdv(r, "Two keys, two gates!", { w: 7, h: 3, kind: "keys2", len: [8, 15] })] },
+  ] },
 
   // ── 4th grade ────────────────────────────────────────────────────────────────────────────
   { id: "functions", title: "Function Falls", emoji: "🧩", grade: "4", blurb: "Make your own blocks with functions.", lessons: [
@@ -636,6 +741,11 @@ const WORLDS: WorldDef[] = [
     { title: "Order matters", emoji: "🔢", levels: (r) => [factoryAct(r, "order"), factoryAct(r, "redCircle")] },
     { title: "Factory boss", emoji: "🏆", kind: "boss", levels: (r) => [factoryAct(r, "redFruit"), factoryAct(r, "order"), factoryAct(r, "habitat")] },
   ] },
+  { id: "grand", title: "Grand Voyage", emoji: "🧭", grade: "4", blurb: "Captain's view through keys, bridges, tunnels, currents and sharks.", story: "Captain, the Grand Voyage begins! Steer from the boat's own view — forward, turn left, turn right — through locked gates, drawbridges, whirlpools, currents and shark water.", lessons: [
+    { title: "Captain's keys", emoji: "🔑", levels: (r) => [gAdv(r, "Key, gate, island — steer like a captain!", { w: 5, h: 3, kind: "key", len: [6, 12], boat: true }), gAdv(r, "Button, bridge, island!", { w: 5, h: 3, kind: "bridge", len: [6, 12], boat: true }), gAdv(r, "Through the tunnel!", { w: 5, h: 3, kind: "pool", len: [4, 10], boat: true })] },
+    { title: "Rough water", emoji: "🌊", levels: (r) => [gAdv(r, "Ride the currents!", { w: 6, h: 3, kind: "current", len: [3, 11], boat: true }), gAdv(r, "Sneak past the shark!", { w: 6, h: 3, kind: "shark", len: [6, 13], boat: true }), gAdv(r, "Catch every fish!", { w: 5, h: 3, kind: "fish", fish: 2, len: [7, 13], boat: true })] },
+    { title: "Voyage boss", emoji: "🏆", kind: "boss", levels: (r) => [chart("Key, gate, button, bridge!", ["S.k#..", "##.D.b", "G=.#.."], { boat: true }), gAdv(r, "Two keys, two gates!", { w: 7, h: 3, kind: "keys2", len: [10, 18], boat: true }), gNets(r, 4, 6)] },
+  ] },
   { id: "python", title: "Python Peek", emoji: "🐍", grade: "4", blurb: "Real code, typed as text: read it, predict it, run it.", lessons: [
     { title: "Hello, Python", emoji: "👋", levels: (r) => [concept("python", "big"), ...pythonSet(r, [1, 1, 1])] },
     { title: "Boxes with names", emoji: "📦", levels: (r) => pythonSet(r, [1, 1, 1, 1]) },
@@ -686,6 +796,11 @@ const WORLDS: WorldDef[] = [
     { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [pythonRead(r, 2), predictEnd(r, { w: 6, h: 4, loop: true, rocks: 3 }), pythonBug(r, 1), variableAct(r, 5), pythonRead(r, 3)] },
     { title: "Python master", emoji: "👑", kind: "boss", levels: (r) => [...pythonSet(r, [3, 4, 4, 3]), ...pythonBugSet(r, 2, 1)] },
   ] },
+  { id: "legend", title: "Legend of the Deep", emoji: "🐙", grade: "5", blurb: "The hardest seas: everything at once, from the captain's view.", story: "Legend says a golden treasure lies past the Kraken's waters. Only a master captain can plan the whole trip — keys, bridges, tunnels, currents and sharks — in one perfect program.", lessons: [
+    { title: "The Kraken's maze", emoji: "🐙", levels: (r) => [chart("Tunnel, button, bridge!", ["S@.#k.", "##.#D#", "@..=.G", "b....."], { boat: true }), gAdv(r, "Two keys, two gates!", { w: 7, h: 4, kind: "keys2", len: [10, 20], boat: true }), gAdv(r, "Sneak past the shark — catch the fish!", { w: 6, h: 4, kind: "shark", fish: 1, len: [8, 16], boat: true })] },
+    { title: "Master captain", emoji: "⚓", levels: (r) => [chart("Current, key, gate!", ["S>>.#G", "...k#.", "#.#.D."], { boat: true }), gAdv(r, "Ride the currents — get the shells!", { w: 7, h: 4, kind: "current", len: [5, 14], shells: 2, boat: true }), gAdv(r, "Through the tunnel — every fish!", { w: 6, h: 4, kind: "pool", fish: 2, len: [7, 16], boat: true })] },
+    { title: "Legend boss", emoji: "👑", kind: "boss", levels: (r) => [gAdv(r, "Two keys, two gates — and a shell!", { w: 7, h: 4, kind: "keys2", len: [12, 22], shells: 1, boat: true }), chart("Two sharks — time both crossings!", ["#.##.#", "S....G", "#N##N#"], { boat: true }), gNets(r, 5, 7)] },
+  ] },
 ];
 
 /** The concept a level practices (parent progress + review). */
@@ -728,7 +843,18 @@ function lessonFrom(w: WorldDef, l: LessonDef, n: number): Lesson {
       ? { kind: "code", level: LITTLE.includes(w.grade) ? x : { ...x, textCode: x.textCode ?? BIG.includes(w.grade) }, skill: `c:${skillOf(x)}` }
       : x,
   );
-  return { id: `code.${w.id}.${n}`, subject: "code", unit: `code.${w.id}`, n, kind: l.kind ?? "lesson", title: l.title, emoji: l.emoji, activities: acts, skills: [...new Set(acts.flatMap((a) => (a.skill ? [a.skill] : [])))] };
+  return {
+    id: `code.${w.id}.${n}`,
+    subject: "code",
+    unit: `code.${w.id}`,
+    n,
+    kind: l.kind ?? "lesson",
+    title: l.title,
+    emoji: l.emoji,
+    activities: acts,
+    skills: [...new Set(acts.flatMap((a) => (a.skill ? [a.skill] : [])))],
+    ...(n === 1 && w.story ? { intro: w.story } : {}),
+  };
 }
 
 const units: Unit[] = WORLDS.map((w, wi) => ({

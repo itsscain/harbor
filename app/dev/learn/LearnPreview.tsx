@@ -70,6 +70,8 @@ function makeState(grade: string, fresh: boolean): KioskState {
             owned: ["sail-stripes"],
             look: { hull: "hull-coral", sail: "sail-stripes", flag: "flag-pennant", pet: null, trail: null },
             daily: null,
+            // A returning learner has been through Boat School (a fresh one gets it first).
+            collected: [["tutorial:boat", null, now]],
           },
         },
     server_time: now,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import { Volume2 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { say, type Part } from "@/lib/learn/audio";
+import { partsKey, say, speakingNow, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 
 // Harbor Learn's building blocks: chunky press-down tiles, the replay-the-voice button, star
@@ -43,20 +43,24 @@ export function Chunk({
   );
 }
 
-/** The round "hear it again" button. */
+/** The round "hear it again" button. It lights up while its words are being spoken — the question
+ *  read on arrival, or replayed — so a child who can't read sees where the voice comes from. */
 export function SpeakerButton({ parts, className, size = 56 }: { parts: Part[] | null; className?: string; size?: number }) {
+  const now = useSyncExternalStore(subscribeVoice, speakingNow, () => null);
+  const on = !!parts?.length && now === partsKey(parts);
   return (
     <Chunk
-      tone="blue"
+      tone={on ? "violet" : "blue"}
       aria-label="Hear it again"
-      className={cn("flex shrink-0 items-center justify-center rounded-full", className)}
+      className={cn("relative flex shrink-0 items-center justify-center rounded-full", className)}
       style={{ width: size, height: size, borderRadius: 999 }}
       onClick={() => {
         sfx("tap");
         if (parts?.length) void say(parts);
       }}
     >
-      <Volume2 style={{ width: size * 0.48, height: size * 0.48 }} strokeWidth={2.6} />
+      {on && <span className="l-hear-ring pointer-events-none absolute inset-0 rounded-full" aria-hidden />}
+      <Volume2 style={{ width: size * 0.48, height: size * 0.48 }} strokeWidth={2.6} className={cn(on && "l-hear-wiggle")} />
     </Chunk>
   );
 }

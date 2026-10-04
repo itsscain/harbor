@@ -382,6 +382,9 @@ function Switch({ band, onEnd }: { band: Band; onEnd: (score: number) => void })
       setScore(scoreRef.current);
       sfx("snap");
     } else {
+      // A wrong sort costs a point, so tapping left-right-left can't climb the score.
+      scoreRef.current = Math.max(0, scoreRef.current - 1);
+      setScore(scoreRef.current);
       setShake((s) => s + 1);
       sfx("wrong");
       buzz(30);
@@ -425,6 +428,7 @@ function QuickCount({ band, onEnd }: { band: Band; onEnd: (score: number) => voi
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
   const [shake, setShake] = useState(0);
+  const [locked, setLocked] = useState(false);
   const left = useClock(total, () => onEnd(scoreRef.current));
   const [opts, setOpts] = useState<number[]>(() => optionsFor(q.answer));
   const dots = Array.from({ length: q.show === "dots" ? q.n : 0 }, (_, i) => ({ x: 18 + ((i * 47) % 64), y: 18 + ((i * 29) % 64) }));
@@ -434,6 +438,7 @@ function QuickCount({ band, onEnd }: { band: Band; onEnd: (score: number) => voi
     return () => window.clearTimeout(t);
   }, [q]);
   const answer = (v: number) => {
+    if (locked) return;
     if (v === q.answer) {
       scoreRef.current += 1;
       setScore(scoreRef.current);
@@ -443,8 +448,14 @@ function QuickCount({ band, onEnd }: { band: Band; onEnd: (score: number) => voi
       setVisible(true);
       setOpts(optionsFor(nq.answer));
     } else {
+      // A miss costs a point and freezes the buttons for a moment: tapping all three is slower
+      // than looking.
+      scoreRef.current = Math.max(0, scoreRef.current - 1);
+      setScore(scoreRef.current);
       setShake((s) => s + 1);
       sfx("wrong");
+      setLocked(true);
+      window.setTimeout(() => setLocked(false), 700);
     }
   };
   return (

@@ -10,11 +10,11 @@ import type { Creature } from "@/lib/learn/reef";
 import { COURSES, SUBJECT_LOOK, levelLabel, spiralItems } from "@/lib/learn/curriculum";
 import { rng, int } from "@/lib/learn/gen";
 import { COMBO, PRAISE, RETRY, SAY, lessonClipKeys, type VoiceLevel } from "@/lib/learn/script";
-import { preload, say, stopVoice, type Part } from "@/lib/learn/audio";
+import { partsKey, preload, say, speakingNow, stopVoice, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { BurstLayer, Chunk, useBursts } from "./kit";
 import { SideBoat } from "./KidBoat";
-import type { LessonFx } from "./acts/common";
+import { VoiceCtx, type LessonFx } from "./acts/common";
 import { MeetAct, FindLetterAct, FirstSoundAct, RhymeAct, ReadWordAct, BuildAct, BlendAct, PopAct, SentenceAct } from "./acts/ReadingActs";
 import { TraceAct } from "./acts/TraceAct";
 import { CountAct, MakeAct, AddAct } from "./acts/MathActs";
@@ -43,6 +43,10 @@ import { CodeReadAct } from "./lab/CodeReadAct";
 //  • per-skill results go home, so the next practice targets exactly what's shaky.
 // And the fun: a boat that sails the progress lane, combos that climb, boss levels with a sea
 // monster to beat, and the occasional golden fish worth bonus shells.
+//
+// And no winning by tapping everything: a child who can't read hears the question before the
+// answers wake up; a wrong answer pauses taps for a moment; two quick misses in a row ("tapping
+// without looking") bring a coach that stops everything and asks the question again.
 
 export type LessonOutcome = {
   correct: number;
@@ -57,7 +61,7 @@ export type LessonOutcome = {
 
 type Item = { act: Activity; kind: "main" | "spiral" | "retry"; scored: boolean };
 
-const FLOW_CLIPS = [...PRAISE, ...RETRY, ...COMBO, SAY.wantToLeave, SAY.keepGoing, SAY.fromBefore, SAY.retryRound, SAY.goldenFish, SAY.bossTime, SAY.reviewTime, SAY.hint, SAY.listenAgain, SAY.lessonDone, SAY.perfect, SAY.almost];
+const FLOW_CLIPS = [...PRAISE, ...RETRY, ...COMBO, SAY.wantToLeave, SAY.keepGoing, SAY.fromBefore, SAY.retryRound, SAY.goldenFish, SAY.lookFirst, SAY.bossTime, SAY.reviewTime, SAY.hint, SAY.listenAgain, SAY.lessonDone, SAY.perfect, SAY.almost];
 /** Seconds since a moment (helpers, so the clock stays out of render). */
 const secondsSince = (t: number) => Math.round((Date.now() - t) / 1000);
 const nowMs = () => Date.now();
@@ -123,6 +127,8 @@ export function LessonPlayer({
   look,
   reduced,
   buddy,
+  tutorials,
+  onTutorial,
   onExit,
   onComplete,
 }: {
@@ -136,6 +142,9 @@ export function LessonPlayer({
   reduced: boolean;
   /** The reef buddy who cheers from the corner. */
   buddy?: { creature: Creature; scale: number } | null;
+  /** Tutorials this child has finished ("boat,…"), and how to record one. */
+  tutorials: string;
+  onTutorial: (id: string) => void;
   onExit: () => void;
   onComplete: (o: LessonOutcome) => void;
 }) {
@@ -159,10 +168,21 @@ export function LessonPlayer({
   const [introDone, setIntroDone] = useState(false);
   const [why, setWhy] = useState<{ text: string; k: number } | null>(null);
   const [bossHit, setBossHit] = useState(0);
-  const [fish, setFish] = useState<{ k: number; caught: boolean } | null>(null);
+  const [fish, setFish] = useState<{ k: number; caught: boolean; x?: number; y?: number; n?: number } | null>(null);
   const [fishShells, setFishShells] = useState(0);
   const [cheer, setCheer] = useState(0);
   const [glow, setGlow] = useState<{ k: number; gold: boolean } | null>(null);
+  // The guessing guard: which activity has been heard, a short pause after a miss, the coach.
+  const [heardAt, setHeardAt] = useState(-1);
+  const [cooling, setCooling] = useState(false);
+  const [coach, setCoach] = useState<number | null>(null);
+  const missTimes = useRef<number[]>([]);
+  const coolTimer = useRef<number | undefined>(undefined);
+  // The latest "record a tutorial" callback (a stable fx doesn't change every time the app renders).
+  const tutorialRef = useRef(onTutorial);
+  useEffect(() => {
+    tutorialRef.current = onTutorial;
+  });
   const promptRef = useRef<Part[]>([]);
   const comboRef = useRef(0);
   const praiseRef = useRef(0);
@@ -178,10 +198,24 @@ export function LessonPlayer({
     return r() < 0.34 && lesson.activities.length >= 4 ? int(r, 2, lesson.activities.length - 2) : -1;
   }, [playId, lesson.activities.length]);
 
+  // A level with a story waits on its card until the story's been told (then "Let's go!").
+  const [storyTold, setStoryTold] = useState(false);
   useEffect(() => {
+    if (lesson.intro) return;
     const t = window.setTimeout(() => setIntroDone(true), reduced ? 300 : 1400);
     return () => window.clearTimeout(t);
-  }, [reduced]);
+  }, [reduced, lesson.intro]);
+  useEffect(() => {
+    if (!lesson.intro || !ready) return;
+    const told = () => setStoryTold(true);
+    if (voice === "keys") {
+      const t = window.setTimeout(told, 1200);
+      return () => window.clearTimeout(t);
+    }
+    const cap = window.setTimeout(told, 14000);
+    void say(lesson.intro).then(told);
+    return () => window.clearTimeout(cap);
+  }, [lesson.intro, ready, voice]);
 
   // Warm every sound this level needs before the first activity speaks.
   useEffect(() => {
@@ -228,19 +262,44 @@ export function LessonPlayer({
     },
     [fireAt],
   );
+  // A miss pauses taps for a moment (no machine-gunning every answer). Two misses within a few
+  // seconds = tapping without looking: the coach stops everything and asks the question again.
+  // Returns true when the coach takes over (it does the talking).
+  const guard = useCallback((): boolean => {
+    const now = Date.now();
+    const recent = [...missTimes.current.filter((t) => now - t < 4000), now];
+    missTimes.current = recent;
+    window.clearTimeout(coolTimer.current);
+    if (recent.length >= 2) {
+      missTimes.current = [];
+      setCoach(now);
+      const off = () => setCoach((c) => (c === now ? null : c));
+      window.setTimeout(() => void say([SAY.lookFirst, { gap: 250 }, ...promptRef.current]).then(() => window.setTimeout(off, 350)), 600);
+      window.setTimeout(off, 9000); // never stuck
+      return true;
+    }
+    setCooling(true);
+    coolTimer.current = window.setTimeout(() => setCooling(false), 900);
+    return false;
+  }, []);
   const miss = useCallback(() => {
     comboRef.current = 0;
     setCombo(0);
     sfx("wrong");
     buzz([0, 30, 40, 30]);
-  }, []);
+    guard();
+  }, [guard]);
   const wrong = useCallback(
     (el?: Element | null, reprompt: Part[] = []) => {
-      miss();
+      comboRef.current = 0;
+      setCombo(0);
+      sfx("wrong");
+      buzz([0, 30, 40, 30]);
+      if (guard()) return;
       void say([RETRY[praiseRef.current++ % RETRY.length], ...(reprompt.length ? [{ gap: 250 }, ...reprompt] : [])]);
       void el;
     },
-    [miss],
+    [guard],
   );
   const explain = useCallback(async (text: string, parts?: Part[]) => {
     setWhy({ text, k: Date.now() });
@@ -267,8 +326,10 @@ export function LessonPlayer({
       reduced,
       voice,
       look,
+      tutorialDone: (id) => tutorials.split(",").includes(id),
+      completeTutorial: (id) => tutorialRef.current(id),
     }),
-    [right, wrong, miss, explain, fireAt, firstTime, playId, i, reduced, voice, look],
+    [right, wrong, miss, explain, fireAt, firstTime, playId, i, reduced, voice, look, tutorials],
   );
 
   const finish = (all: number[], q: Item[]) => {
@@ -296,11 +357,14 @@ export function LessonPlayer({
     const all = [...results, m];
     setResults(all);
     if (boss && cur?.kind === "main" && cur.scored && m === 0) setBossHit((h) => h + 1);
-    if (i === fishAt) window.setTimeout(() => {
-      setFish({ k: Date.now(), caught: false });
-      sfx("fish");
-      void say(SAY.goldenFish);
-    }, 700);
+    // The fish swims by a little after the next question has been asked — and only speaks up if
+    // nothing else is being said (it must never talk over a question).
+    if (i === fishAt)
+      window.setTimeout(() => {
+        setFish({ k: Date.now(), caught: false });
+        sfx("fish");
+        if (!speakingNow()) void say(SAY.goldenFish);
+      }, 2600);
     let q = queue;
     if (all.length >= q.length) {
       // Retry round: the ones missed on the first try come back once (not code — those were solved).
@@ -322,19 +386,46 @@ export function LessonPlayer({
   }, [comboFlash]);
   useEffect(() => {
     if (!fish || fish.caught) return;
-    const t = window.setTimeout(() => setFish(null), 6600);
+    const t = window.setTimeout(() => setFish(null), 8200);
     return () => window.clearTimeout(t);
   }, [fish]);
 
-  const catchFish = (el: Element) => {
+  // Caught the moment a finger touches it (a tap that waits for the finger to lift misses a fish
+  // that's already swum on). The prize pops right where it was caught, and the button stays put
+  // under the finger, so lifting it can't land on an answer underneath.
+  const catchFish = (el: HTMLElement) => {
     if (!fish || fish.caught) return;
+    const r = el.getBoundingClientRect();
     const n = 8 + Math.floor(rng(`fishv:${playId}`)() * 13);
-    setFish({ ...fish, caught: true });
+    setFish({ ...fish, caught: true, x: r.left + r.width / 2, y: r.top + r.height / 2, n });
     setFishShells((s) => s + n);
     sfx("coin");
+    buzz([0, 20, 30, 20]);
     fireAt(el, "sea", 16);
-    window.setTimeout(() => setFish(null), 1400);
+    window.setTimeout(() => setFish(null), 1600);
   };
+
+  // Listen first: a child who can't read hears each question before its answers wake up (until
+  // the question has been said, or a few seconds pass).
+  const listening = voice === "all" && ready && introDone && !!cur && heardAt !== i;
+  useEffect(() => {
+    if (!listening) return;
+    let started = false;
+    const heard = () => setHeardAt(i);
+    const unsub = subscribeVoice(() => {
+      const now = speakingNow();
+      const asked = promptRef.current.length > 0 && now === partsKey(promptRef.current);
+      if (asked) started = true;
+      else if (started) window.setTimeout(heard, 200);
+    });
+    const quiet = window.setTimeout(() => !started && heard(), 1800);
+    const cap = window.setTimeout(heard, 6500);
+    return () => {
+      unsub();
+      window.clearTimeout(quiet);
+      window.clearTimeout(cap);
+    };
+  }, [listening, i]);
 
   const progress = Math.min(1, results.length / queue.length);
   const kindBadge = cur?.kind === "spiral" ? "🗺️ From before!" : cur?.kind === "retry" ? "🔁 Try again!" : null;
@@ -386,28 +477,50 @@ export function LessonPlayer({
       )}
 
       {/* The activity */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 pb-6 pt-2 sm:px-8">
-        {ready && introDone && cur ? (
-          <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-3">
-            {kindBadge && <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">{kindBadge}</span>}
-            {/* my-auto (not align-items) centers it, so a tall activity overflows downward and scrolls instead of losing its top */}
-            <div className="flex min-h-0 w-full flex-1 justify-center">
-              <div className="my-auto flex w-full justify-center">
-                <ActView act={cur.act} fx={fx} onDone={onDone} />
+      <div className="relative flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 pb-6 pt-2 sm:px-8">
+          {ready && introDone && cur ? (
+            <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-3">
+              {kindBadge && <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">{kindBadge}</span>}
+              {/* my-auto (not align-items) centers it, so a tall activity overflows downward and scrolls instead of losing its top */}
+              <div className="flex min-h-0 w-full flex-1 justify-center">
+                <div className={cn("my-auto flex w-full justify-center transition-opacity duration-300", (listening || coach !== null) && "opacity-80")}>
+                  <VoiceCtx.Provider value={voice}>
+                    <ActView act={cur.act} fx={fx} onDone={onDone} />
+                  </VoiceCtx.Provider>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <LevelCard lesson={lesson} items={scoredMain} boss={boss} />
-        )}
-        {comboFlash && (
-          <div key={comboFlash.k} className="l-pop-in pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-full bg-[var(--l-orange)] px-7 py-3 font-display text-3xl font-extrabold text-white shadow-[0_6px_0_var(--l-orange-edge)]">
-            🔥 {comboFlash.n} in a row!
-          </div>
-        )}
-        {why && (
-          <div key={why.k} className="l-pop-in pointer-events-none absolute bottom-6 left-1/2 z-[5] w-[min(92%,760px)] -translate-x-1/2 rounded-[26px] bg-white px-6 py-4 text-center font-display text-2xl font-bold leading-snug text-[var(--l-ink)] shadow-[0_8px_0_var(--l-line)]">
-            💡 {why.text}
+          ) : (
+            <LevelCard lesson={lesson} items={scoredMain} boss={boss} onGo={lesson.intro && storyTold ? () => setIntroDone(true) : undefined} />
+          )}
+          {comboFlash && (
+            <div key={comboFlash.k} className="l-pop-in pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-full bg-[var(--l-orange)] px-7 py-3 font-display text-3xl font-extrabold text-white shadow-[0_6px_0_var(--l-orange-edge)]">
+              🔥 {comboFlash.n} in a row!
+            </div>
+          )}
+          {why && (
+            <div key={why.k} className="l-pop-in pointer-events-none absolute bottom-6 left-1/2 z-[5] w-[min(92%,760px)] -translate-x-1/2 rounded-[26px] bg-white px-6 py-4 text-center font-display text-2xl font-bold leading-snug text-[var(--l-ink)] shadow-[0_8px_0_var(--l-line)]">
+              💡 {why.text}
+            </div>
+          )}
+        </div>
+        {/* The guard: while the question is being asked, for a moment after a miss, and while the
+            coach talks, taps on the activity are held (the top bar still works). */}
+        {ready && introDone && cur && (listening || cooling || coach !== null) && (
+          <div className="absolute inset-0 z-[20]" aria-hidden>
+            {listening && coach === null && (
+              <span className="l-pop-in absolute left-1/2 top-2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-5 py-2 font-display text-xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_rgba(0,40,80,0.15)]">
+                <span className="l-hear-wiggle inline-block">👂</span> Listen…
+              </span>
+            )}
+            {coach !== null && (
+              <div key={coach} className="l-coach-in absolute left-1/2 top-[22%] flex w-[min(90%,560px)] flex-col items-center gap-2 rounded-[32px] bg-white px-7 py-6 text-center shadow-[0_10px_0_var(--l-line)]">
+                <span className="text-[72px] leading-none">👀</span>
+                <p className="font-display text-3xl font-extrabold text-[var(--l-ink)]">Stop and look first!</p>
+                <p className="font-display text-xl font-bold text-[var(--l-ink-2)]">Listen to the question again, then choose.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -426,10 +539,21 @@ export function LessonPlayer({
         </div>
       )}
 
-      {/* The golden fish */}
+      {/* The golden fish (a big invisible net around it, so a small finger can catch it) */}
       {fish && (
-        <button key={fish.k} type="button" onClick={(e) => catchFish(e.currentTarget)} className={cn("fixed left-0 top-[38%] z-[60] text-[84px] leading-none drop-shadow-[0_0_24px_rgba(255,200,61,0.9)]", fish.caught ? "l-pop-in" : "l-swim")} aria-label="Catch the golden fish">
-          {fish.caught ? <span className="font-display text-5xl font-extrabold text-[var(--l-gold)] drop-shadow-[0_3px_0_rgba(0,40,80,0.4)]">+🐚</span> : "🐠"}
+        <button
+          key={fish.k}
+          type="button"
+          onPointerDown={(e) => catchFish(e.currentTarget)}
+          className={cn("fixed z-[60] flex touch-none select-none items-center justify-center p-7 leading-none", !fish.caught && "l-swim left-0 top-[30%]")}
+          style={fish.caught ? { left: fish.x, top: fish.y, transform: "translate(-50%, -50%)" } : undefined}
+          aria-label="Catch the golden fish"
+        >
+          {fish.caught ? (
+            <span className="l-pop-in whitespace-nowrap rounded-full bg-white/95 px-5 py-2 font-display text-4xl font-extrabold text-[var(--l-gold-edge)] shadow-[0_5px_0_var(--l-gold-edge)]">+{fish.n} 🐚</span>
+          ) : (
+            <span className="text-[96px] drop-shadow-[0_0_26px_rgba(255,200,61,0.95)]">🐠</span>
+          )}
         </button>
       )}
 
@@ -456,7 +580,7 @@ export function LessonPlayer({
 
 /** The card a level opens with: which level, what it's called, how many challenges, and three
  *  stars waiting to be won (boss and review levels get their own banners). */
-function LevelCard({ lesson, items, boss }: { lesson: Lesson; items: number; boss: boolean }) {
+function LevelCard({ lesson, items, boss, onGo }: { lesson: Lesson; items: number; boss: boolean; onGo?: () => void }) {
   const sl = SUBJECT_LOOK[lesson.subject];
   const isPractice = lesson.id.startsWith("practice:");
   return (
@@ -477,6 +601,12 @@ function LevelCard({ lesson, items, boss }: { lesson: Lesson; items: number; bos
         ))}
       </span>
       {items > 0 && <span className="font-display text-lg font-bold text-[var(--l-ink-2)]">{items} challenge{items === 1 ? "" : "s"}</span>}
+      {lesson.intro && <p className="l-rise max-w-[600px] text-balance rounded-[22px] bg-[#fff7d6] px-5 py-3 font-display text-xl font-bold leading-snug text-[#5a3b00] shadow-[0_4px_0_#f2d27a]">📜 {lesson.intro}</p>}
+      {onGo && (
+        <Chunk tone="green" onClick={() => (sfx("pick"), onGo())} className="l-pop-in l-pulse flex h-16 items-center gap-2 px-10 font-display text-2xl font-extrabold">
+          Let&apos;s go! ⛵
+        </Chunk>
+      )}
     </div>
   );
 }

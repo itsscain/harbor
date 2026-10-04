@@ -81,6 +81,7 @@ export const COND_LABEL: Record<string, { icon: string; word: string }> = {
   blockedLeft: { icon: "⬅️⛔", word: "blocked on the left" },
   blockedRight: { icon: "⛔➡️", word: "blocked on the right" },
   atGoal: { icon: "🏁", word: "at the goal" },
+  fish: { icon: "🐟", word: "on a fish" },
 };
 
 export function lookOf(op: string): BlockLook {
@@ -95,6 +96,8 @@ export function lookOf(op: string): BlockLook {
     case "paint": return { icon: "🖌️", word: "Paint", ...PAINT };
     case "penup": return { icon: "✏️", word: "Pen up", ...PEN };
     case "pendown": return { icon: "🖊️", word: "Pen down", ...PEN };
+    case "catch": return { icon: "🎣", word: "Catch", color: "#14b8a6", edge: "#0d9488" };
+    case "wait": return { icon: "⏳", word: "Wait", color: "#94a3b8", edge: "#64748b" };
     case "repeat": return { icon: "🔁", word: "Repeat", color: "#ff9149", edge: "#e26f27" };
     case "until": return { icon: "🔁", word: "Repeat until", color: "#ff9149", edge: "#e26f27" };
     case "if": return { icon: "❓", word: "If", color: "#a855f7", edge: "#7e22ce" };
@@ -118,7 +121,12 @@ export function paletteOf(level: CodeLevel, solution: Block[]): { op: string; ma
   const out: { op: string; make: () => Block }[] = level.palette.map((op) => ({ op, make: () => ({ op }) }));
   if (level.loops) out.push({ op: "repeat", make: () => ({ op: "repeat", n: 3, body: [] }) });
   if (level.untils) out.push({ op: "until", make: () => ({ op: "until", cond: "atGoal", body: [] }) });
-  if (level.ifs) out.push({ op: "ifelse", make: () => ({ op: "ifelse", cond: "blocked", body: [], else: [] }) });
+  if (level.ifs) {
+    // A plain "if" (no else) when that's what the answer uses — e.g. "if on a fish: catch".
+    const plain = JSON.stringify(solution).includes('"op":"if"');
+    const cond = condsOf(solution, "if")[0] ?? "blocked";
+    out.push(plain ? { op: "if", make: () => ({ op: "if", cond, body: [] }) } : { op: "ifelse", make: () => ({ op: "ifelse", cond: "blocked", body: [], else: [] }) });
+  }
   if (level.funcs) {
     const name = solution.find((b) => b.op === "def")?.name ?? "myBlock";
     out.push({ op: "def", make: () => ({ op: "def", name, body: [] }) });
@@ -135,8 +143,9 @@ export function condsOf(solution: Block[], kind: "if" | "until"): string[] {
     if (b.else) walk(b.else);
   });
   walk(solution);
-  if (kind === "if") ["blocked", "blockedRight", "blockedLeft"].forEach((c) => found.add(c));
-  else found.add("atGoal");
+  // A level about fish asks about fish (wall sensors would just be noise there).
+  if (kind === "if" && !found.has("fish")) ["blocked", "blockedRight", "blockedLeft"].forEach((c) => found.add(c));
+  else if (kind === "until") found.add("atGoal");
   return [...found];
 }
 

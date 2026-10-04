@@ -168,6 +168,27 @@ function speakable(key: string): string {
     .trim();
 }
 
+// ── Who's speaking (so a speaker button — and its answer — can light up while it plays) ──────
+let speaking: string | null = null;
+const voiceListeners = new Set<() => void>();
+function setSpeaking(v: string | null) {
+  if (speaking === v) return;
+  speaking = v;
+  voiceListeners.forEach((l) => l());
+}
+/** A stable key for what's being said (the words, not the callbacks). */
+export function partsKey(parts: Part | Part[]): string {
+  return (Array.isArray(parts) ? parts : [parts]).map((p) => (typeof p === "string" ? p : "key" in p ? p.key : `~${p.gap}`)).join("|");
+}
+/** What's being said right now (its partsKey), or null when Learn is quiet. */
+export const speakingNow = () => speaking;
+export function subscribeVoice(l: () => void) {
+  voiceListeners.add(l);
+  return () => {
+    voiceListeners.delete(l);
+  };
+}
+
 // ── Playback ─────────────────────────────────────────────────────────────────────────────
 let seq = 0;
 let sources: AudioBufferSourceNode[] = [];
@@ -176,6 +197,7 @@ let finish: ((done: boolean) => void) | null = null;
 
 /** Stop whatever Learn is saying (a new line always interrupts the old one). */
 export function stopVoice() {
+  setSpeaking(null);
   seq++;
   for (const s of sources) {
     try {
@@ -208,6 +230,7 @@ export function say(parts: Part | Part[]): Promise<boolean> {
   const list = (Array.isArray(parts) ? parts : [parts]).map((p) => (p === "~" ? { gap: 300 } : p));
   stopVoice();
   const my = ++seq;
+  setSpeaking(partsKey(parts));
   return new Promise<boolean>((resolve) => {
     finish = resolve;
     void (async () => {
@@ -254,6 +277,7 @@ export function say(parts: Part | Part[]): Promise<boolean> {
       }
       if (my !== seq) return;
       finish = null;
+      setSpeaking(null);
       resolve(true);
     })();
   });

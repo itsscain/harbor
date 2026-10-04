@@ -30,7 +30,9 @@ const ROUND = 50;
 
 type GameProps = { band: Band; onEnd: (score: number) => void };
 
-function Frame({ left, score, children, top }: { left: number; score: number; children: ReactNode; top?: ReactNode }) {
+/** `locked`: a wrong tap just happened — the board ignores taps for a moment, so hammering every
+ *  answer is slower than thinking. */
+function Frame({ left, score, children, top, locked }: { left: number; score: number; children: ReactNode; top?: ReactNode; locked?: boolean }) {
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-5">
       <ClockBar left={left} total={ROUND} />
@@ -38,14 +40,20 @@ function Frame({ left, score, children, top }: { left: number; score: number; ch
         <span key={score} className="l-pop-in rounded-full bg-white px-5 py-1.5 font-display text-2xl font-extrabold text-[var(--l-ink)]">⭐ {score}</span>
         {top}
       </div>
-      {children}
+      <div className={cn("relative flex w-full flex-col items-center gap-5 transition-opacity", locked && "opacity-70")}>
+        {children}
+        {locked && <div className="absolute inset-0 z-10" aria-hidden />}
+      </div>
     </div>
   );
 }
 
-/** Right/wrong feedback shared by the quick-answer games. */
-function useHit(onRight: () => void) {
+const LOCK_MS = 650;
+/** Right/wrong feedback shared by the quick-answer games. A wrong tap costs a star (never below
+ *  zero) and freezes the board for a moment: tapping everything can't beat thinking. */
+function useHit(onRight: () => void, onWrong?: () => void) {
   const [flash, setFlash] = useState<{ ok: boolean; k: number } | null>(null);
+  const [locked, setLocked] = useState(false);
   const hit = (ok: boolean) => {
     setFlash({ ok, k: Date.now() });
     if (ok) {
@@ -54,9 +62,12 @@ function useHit(onRight: () => void) {
     } else {
       sfx("soft-fail");
       buzz(25);
+      onWrong?.();
+      setLocked(true);
+      window.setTimeout(() => setLocked(false), LOCK_MS);
     }
   };
-  return { flash, hit };
+  return { flash, hit, locked };
 }
 
 // ── Make Ten ─────────────────────────────────────────────────────────────────────────────────
@@ -74,9 +85,10 @@ export function MakeTen({ band, onEnd }: GameProps) {
   const [nums, setNums] = useState(() => freshBubbles(band));
   const [sel, setSel] = useState<number | null>(null);
   const [pop, setPop] = useState<number[]>([]);
+  const [locked, setLocked] = useState(false);
   const left = useClock(ROUND, () => onEnd(score));
   const tap = (i: number) => {
-    if (pop.length) return;
+    if (pop.length || locked) return;
     if (sel === null) {
       sfx("pick");
       setSel(i);
@@ -97,11 +109,14 @@ export function MakeTen({ band, onEnd }: GameProps) {
     } else {
       sfx("soft-fail");
       buzz(25);
+      setScore((s) => Math.max(0, s - 1));
+      setLocked(true);
+      window.setTimeout(() => setLocked(false), LOCK_MS);
     }
     setSel(null);
   };
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-2xl font-extrabold text-[#5a3b00]">Make {goal}!</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-2xl font-extrabold text-[#5a3b00]">Make {goal}!</span>}>
       <div className="grid grid-cols-4 gap-4">
         {nums.map((n, i) => (
           <button key={`${i}-${n}`} type="button" onClick={() => tap(i)} className={cn("flex h-28 w-28 items-center justify-center rounded-full font-display text-4xl font-extrabold text-white shadow-[inset_0_-8px_0_rgba(0,0,0,0.15),0_6px_0_rgba(0,40,80,0.2)] transition-transform", sel === i && "scale-110 ring-[6px] ring-[var(--l-gold)]", pop.includes(i) && "scale-0 opacity-0 duration-300")} style={{ background: `hsl(${(n * 37) % 360} 70% 55%)` }}>
@@ -145,14 +160,14 @@ function makePair(band: Band): Pair {
 export function BiggerWins({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [p, setP] = useState(() => makePair(band));
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const pick = (which: "a" | "b") => {
     hit(which === "a" ? p.a > p.b : p.b > p.a);
     setP(makePair(band));
   };
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">Tap the BIGGER one!</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">Tap the BIGGER one!</span>}>
       <div className="flex gap-8">
         {(["a", "b"] as const).map((w) => (
           <Chunk key={`${w}${p.la}${p.lb}`} tone="white" onClick={() => pick(w)} className="l-pop-in flex h-56 w-56 items-center justify-center font-display text-7xl font-extrabold text-[var(--l-ink)]">
@@ -181,8 +196,12 @@ export function NumberHop({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [target, setTarget] = useState(() => 1 + rand(max - 1));
   const [mark, setMark] = useState<{ at: number; pts: number; k: number } | null>(null);
+  // Each guess gets a moment to show where the number really is (and taps wait for it).
+  const [busy, setBusy] = useState(false);
   const left = useClock(ROUND, () => onEnd(score));
   const tap = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (busy) return;
+    setBusy(true);
     const r = e.currentTarget.getBoundingClientRect();
     const at = Math.round(((e.clientX - r.left) / r.width) * max);
     const off = Math.abs(at - target) / max;
@@ -190,7 +209,10 @@ export function NumberHop({ band, onEnd }: GameProps) {
     sfx(pts >= 2 ? "correct" : pts === 1 ? "pick" : "soft-fail");
     setMark({ at: target, pts, k: Date.now() });
     setScore((s) => s + pts);
-    window.setTimeout(() => setTarget(1 + rand(max - 1)), 650);
+    window.setTimeout(() => {
+      setTarget(1 + rand(max - 1));
+      setBusy(false);
+    }, 900);
   };
   return (
     <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-3xl font-extrabold text-[#5a3b00]">Where is {target}?</span>}>
@@ -229,10 +251,10 @@ function makeCoins(band: Band): { coins: (keyof typeof COIN_VAL)[]; total: numbe
 export function CoinCounter({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => makeCoins(band));
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-green)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">How much money?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-green)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">How much money?</span>}>
       <div key={q.coins.join("")} className="l-pop-in flex max-w-[760px] flex-wrap justify-center gap-3 rounded-[28px] bg-white/95 p-5">
         {q.coins.map((c, i) => (
           <span key={i} className={cn("flex items-center justify-center rounded-full font-display font-extrabold shadow-[0_4px_0_rgba(0,0,0,0.2)]", c === "p" ? "bg-[#c2410c] text-white" : "bg-[#cbd5e1] text-[#334155]")} style={{ width: c === "q" ? 92 : c === "n" ? 80 : c === "p" ? 70 : 64, height: c === "q" ? 92 : c === "n" ? 80 : c === "p" ? 70 : 64, fontSize: 22 }}>
@@ -284,7 +306,7 @@ function makeWord(band: Band): WordQ {
 export function WordRocket({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => makeWord(band));
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const next = () => {
     const n = makeWord(band);
@@ -292,7 +314,7 @@ export function WordRocket({ band, onEnd }: GameProps) {
     window.setTimeout(() => void say(n.say), 250);
   };
   return (
-    <Frame left={left} score={score} top={<Chunk tone="blue" onClick={() => (sfx("tap"), void say(q.say))} className="flex h-14 items-center px-5 font-display text-xl font-extrabold">🔊 Hear it</Chunk>}>
+    <Frame left={left} score={score} locked={locked} top={<Chunk tone="blue" onClick={() => (sfx("tap"), void say(q.say))} className="flex h-14 items-center px-5 font-display text-xl font-extrabold">🔊 Hear it</Chunk>}>
       <span className="font-display text-2xl font-extrabold text-white">{band === "big" ? "Which one is spelled right?" : band === "middle" ? "Tap the word you hear!" : "Tap the picture you hear!"}</span>
       <div className="flex gap-5">
         {q.options.map((o) => (
@@ -332,9 +354,10 @@ export function RhymeTime({ onEnd }: GameProps) {
   const [q, setQ] = useState(makeRhyme);
   const [found, setFound] = useState<string[]>([]);
   const [miss, setMiss] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
   const left = useClock(ROUND, () => onEnd(score));
   const tap = (c: RhymeQ["cards"][number]) => {
-    if (found.includes(c.word)) return;
+    if (found.includes(c.word) || locked) return;
     void say(c.word);
     if (c.yes) {
       sfx("correct");
@@ -351,10 +374,13 @@ export function RhymeTime({ onEnd }: GameProps) {
     } else {
       sfx("soft-fail");
       setMiss(c.word);
+      setScore((s) => Math.max(0, s - 1));
+      setLocked(true);
+      window.setTimeout(() => setLocked(false), LOCK_MS);
     }
   };
   return (
-    <Frame left={left} score={score} top={<Chunk tone="blue" onClick={() => void say(q.target.word)} className="flex h-14 items-center gap-2 px-5 font-display text-xl font-extrabold">🔊 {q.target.emoji} {q.target.word}</Chunk>}>
+    <Frame left={left} score={score} locked={locked} top={<Chunk tone="blue" onClick={() => void say(q.target.word)} className="flex h-14 items-center gap-2 px-5 font-display text-xl font-extrabold">🔊 {q.target.emoji} {q.target.word}</Chunk>}>
       <span className="font-display text-2xl font-extrabold text-white">Tap everything that rhymes with “{q.target.word}”!</span>
       <div className="grid grid-cols-3 gap-4">
         {q.cards.map((c) => (
@@ -381,10 +407,10 @@ function makeOpp() {
 export function Opposites({ onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(makeOpp);
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">What&apos;s the opposite?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">What&apos;s the opposite?</span>}>
       <span key={q.word} className="l-pop-in rounded-[28px] bg-white px-10 py-5 font-reading text-6xl font-bold text-[var(--l-ink)] shadow-[0_8px_0_var(--l-line)]">{q.word}</span>
       <div className="flex gap-4">
         {q.options.map((o) => (
@@ -406,26 +432,27 @@ export function BinaryBlitz({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [target, setTarget] = useState(() => 1 + rand(max));
   const [on, setOn] = useState<number[]>(() => vals.map(() => 0));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   // Little sailors count lit bulbs; older kids add place values.
   const total = band === "little" ? on.reduce((s, b) => s + b, 0) : vals.reduce((s, v, i) => s + (on[i] ? v : 0), 0);
   const goal = band === "little" ? Math.min(bits, target) : target;
   const flip = (i: number) => {
     sfx("tick");
-    const next = on.map((b, k) => (k === i ? 1 - b : b));
-    setOn(next);
-    const t = band === "little" ? next.reduce((s, b) => s + b, 0) : vals.reduce((s, v, k) => s + (next[k] ? v : 0), 0);
-    if (t === goal) {
-      sfx("correct");
-      setScore((s) => s + 1);
+    setOn(on.map((b, k) => (k === i ? 1 - b : b)));
+  };
+  // Set the lights, then press Go — flipping until something happens doesn't score.
+  const go = () => {
+    const ok = total === goal;
+    hit(ok);
+    if (ok)
       window.setTimeout(() => {
         setOn(vals.map(() => 0));
         setTarget(1 + rand(max));
       }, 300);
-    }
   };
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-3xl font-extrabold text-[#5a3b00]">Make {goal}!</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-3xl font-extrabold text-[#5a3b00]">Make {goal}!</span>}>
       <div className="flex gap-5 rounded-[28px] bg-[#1e293b] px-6 py-6">
         {vals.map((v, i) => (
           <button key={v} type="button" onClick={() => flip(i)} className="flex flex-col items-center gap-2">
@@ -434,7 +461,13 @@ export function BinaryBlitz({ band, onEnd }: GameProps) {
           </button>
         ))}
       </div>
-      <span className="rounded-full bg-white px-5 py-1.5 font-display text-2xl font-extrabold text-[var(--l-ink)]">= {total}</span>
+      <div className="flex items-center gap-4">
+        <span className="rounded-full bg-white px-5 py-1.5 font-display text-2xl font-extrabold text-[var(--l-ink)]">= {total}</span>
+        <Chunk tone="green" onClick={go} className="flex h-16 items-center px-8 font-display text-2xl font-extrabold">
+          ✓ Go
+        </Chunk>
+      </div>
+      {flash && <span key={flash.k} className="l-pop-in text-4xl">{flash.ok ? "✅" : "❌"}</span>}
     </Frame>
   );
 }
@@ -453,10 +486,10 @@ function makeBug(band: Band) {
 export function BugSquash({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => makeBug(band));
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🐞 Tap the bug!</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🐞 Tap the bug!</span>}>
       <div className="flex flex-col items-center gap-2 rounded-[24px] bg-white/95 px-6 py-4">
         <span className="font-display text-lg font-extrabold text-[var(--l-ink-2)]">The path should go:</span>
         <div className="flex gap-2 text-5xl">{q.path.map((d, k) => <span key={k}>{ARROW[d]}</span>)}</div>
@@ -483,7 +516,7 @@ export function SinkFloat({ onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => pickOne(FLOATERS));
   const [drop, setDrop] = useState<{ floats: boolean; k: number } | null>(null);
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const guess = (floats: boolean) => {
     if (drop) return;
@@ -496,7 +529,7 @@ export function SinkFloat({ onEnd }: GameProps) {
     }, 700);
   };
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">Sink or float?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">Sink or float?</span>}>
       <div className="relative h-[280px] w-[420px] overflow-hidden rounded-[28px]" style={{ background: "linear-gradient(#f0f9ff 0 32%, #7dd3fc 32%, #0284c7)" }}>
         <span key={`${q[1]}${drop?.k ?? ""}`} className="absolute left-1/2 text-7xl" style={{ top: drop ? (drop.floats ? "20%" : "72%") : "4%", transform: "translateX(-50%)", transition: drop ? "top 600ms cubic-bezier(0.34,1.4,0.64,1)" : "none" }}>
           {q[0]}
@@ -563,7 +596,7 @@ export function RobotPath({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => makePathQ(band));
   const [walking, setWalking] = useState<{ prog: string[]; step: number } | null>(null);
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const C = band === "little" ? 96 : 80;
   const pick = (i: number) => {
@@ -585,7 +618,7 @@ export function RobotPath({ band, onEnd }: GameProps) {
   };
   const bot = walking ? (walkTo(q.size, q.start, walking.prog.slice(0, walking.step)) ?? q.start) : q.start;
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🤖 Which program reaches the ⭐?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🤖 Which program reaches the ⭐?</span>}>
       <div className="relative rounded-[20px] bg-white/95 p-2 shadow-[0_6px_0_rgba(0,40,80,0.16)]" style={{ width: q.size * C + 16, height: q.size * C + 16 }}>
         {Array.from({ length: q.size * q.size }, (_, i) => (
           <span key={i} className="absolute rounded-xl bg-[#e0f2fe]" style={{ left: 8 + (i % q.size) * C + 3, top: 8 + Math.floor(i / q.size) * C + 3, width: C - 6, height: C - 6 }} />
@@ -637,11 +670,11 @@ function makeLoopQ(band: Band): LoopQ {
 export function LoopSpotter({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => makeLoopQ(band));
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const id = q.seq.join("");
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[#ff9149] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🔁 Which loop makes this?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[#ff9149] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🔁 Which loop makes this?</span>}>
       <div key={id} className="l-pop-in flex max-w-[900px] flex-wrap justify-center gap-1.5 rounded-[24px] bg-white/95 px-5 py-4 text-5xl shadow-[0_6px_0_rgba(0,40,80,0.16)]">
         {q.seq.map((x, i) => (
           <span key={i}>{x}</span>
@@ -737,7 +770,7 @@ export function PySpeed({ onEnd }: GameProps) {
   const [q, setQ] = useState(() => makePyQ());
   // The last miss, with its right answer (a new question every time, so it doubles as a key).
   const [miss, setMiss] = useState<string | null>(null);
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const answer = (o: string) => {
     const ok = o === q.answer;
@@ -746,7 +779,7 @@ export function PySpeed({ onEnd }: GameProps) {
     setQ(makePyQ(q.code));
   };
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[#0f172a] px-5 py-1.5 font-display text-2xl font-extrabold text-[#86efac]">▶ What does it print?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[#0f172a] px-5 py-1.5 font-display text-2xl font-extrabold text-[#86efac]">▶ What does it print?</span>}>
       <div key={q.code} className="l-pop-in whitespace-pre rounded-[24px] bg-[#0f172a] px-8 py-5 font-mono text-[40px] text-[#e2e8f0] shadow-[0_8px_0_rgba(0,0,0,0.3)]">
         {colorize(q.code)}
       </div>
@@ -776,12 +809,12 @@ const CLASS_GROUPS = [["mammal", "🐾 Mammal"], ["bird", "🪶 Bird"], ["fish",
 export function AnimalGroups({ band, onEnd }: GameProps) {
   const [score, setScore] = useState(0);
   const [q, setQ] = useState(() => pickOne(ANIMALS));
-  const { flash, hit } = useHit(() => setScore((s) => s + 1));
+  const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   const groups = band === "little" ? LITTLE_GROUPS : CLASS_GROUPS;
   const answer = band === "little" ? q[2] : q[3];
   return (
-    <Frame left={left} score={score} top={<span className="rounded-full bg-[var(--l-green)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">{band === "little" ? "Where does it live?" : "Which animal group?"}</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-green)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">{band === "little" ? "Where does it live?" : "Which animal group?"}</span>}>
       <div key={q[1]} className="l-pop-in flex flex-col items-center gap-1">
         <span className="text-9xl">{q[0]}</span>
         <span className="font-display text-3xl font-extrabold text-white">{q[1]}</span>

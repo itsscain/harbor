@@ -316,6 +316,8 @@ export function LearnApp({
         look={look}
         reduced={reduced}
         buddy={buddyCreature && buddyHatch ? { creature: buddyCreature, scale: growth(kid.xp, buddyHatch).stage.scale } : null}
+        tutorials={[...kid.tutorials].sort().join(",")}
+        onTutorial={(id) => event({ op_id: `tutorial:${child.id}:${id}`, type: "collect", item: `tutorial:${id}` })}
         onExit={() => setScreen(here.back)}
         onComplete={(o) => complete(here.lesson, here.playId, o, here.back)}
       />

@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import type { Dir } from "@/lib/learn/types";
 import type { BoatLook } from "@/lib/learn/meta";
-import { cellKey, parseGrid, type GridState, type PixelState, type Seg, type TurtleState } from "@/lib/learn/program";
+import { cellKey, parseGrid, sharksAt, type GridState, type PixelState, type Seg, type TurtleState } from "@/lib/learn/program";
 import { TopBoat } from "../KidBoat";
 import { MOVE_EMOJI, NOTE_COLOR, PIXEL_COLOR } from "./blocks";
 
@@ -25,11 +25,41 @@ export type SeaView = {
 };
 
 const DIR_STEP: Record<Dir, [number, number]> = { up: [0, -1], right: [1, 0], down: [0, 1], left: [-1, 0] };
+const CURRENT_TURN: Record<string, number> = { ">": 0, v: 90, "<": 180, "^": 270 };
+
+/** The mission, ticking off as the program runs: keys, gates, buttons, fish, shells, the island. */
+function Mission({ map, s }: { map: string[]; s?: GridState }) {
+  const g = parseGrid(map);
+  const items: { icon: string; have: number; need: number }[] = [];
+  if (g.keys.size) items.push({ icon: "🔑", have: s?.keys?.length ?? 0, need: g.keys.size });
+  if (g.gates.size) items.push({ icon: "🚪", have: s?.opened?.length ?? 0, need: g.gates.size });
+  if (g.buttons.size) items.push({ icon: "🔘", have: s?.bridge ? 1 : 0, need: 1 });
+  if (g.fish.size) items.push({ icon: "🐟", have: s?.caught?.length ?? 0, need: g.fish.size });
+  if (g.shells.size) items.push({ icon: "🐚", have: s?.got.length ?? 0, need: g.shells.size });
+  if (!items.length) return null;
+  const home = !!s && s.x === g.goal.x && s.y === g.goal.y;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2" aria-label="Mission">
+      {items.map((it) => (
+        <span key={it.icon} className={cn("flex items-center gap-1 rounded-full px-3 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)] transition-colors", it.have >= it.need ? "bg-[#dcfce7] text-[#166534]" : "bg-white text-[var(--l-ink)]")}>
+          <span className="text-xl">{it.icon}</span>
+          {it.need > 1 ? `${Math.min(it.have, it.need)}/${it.need}` : it.have >= it.need ? "✓" : ""}
+        </span>
+      ))}
+      <span className="text-lg font-extrabold text-white/80">→</span>
+      <span className={cn("flex items-center gap-1 rounded-full px-3 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)]", home ? "bg-[#dcfce7] text-[#166534]" : "bg-white text-[var(--l-ink)]")}>
+        <span className="text-xl">🏝️</span>
+        {home ? "✓" : ""}
+      </span>
+    </div>
+  );
+}
 
 export function SeaStage({ maps, view, look, mars, width = 560, height = 440 }: { maps: string[][]; view: SeaView; look: BoatLook; mars: boolean; width?: number; height?: number }) {
   const multi = maps.length > 1;
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+      <Mission map={maps[view.active]} s={view.states[view.active]} />
       <OneMap map={maps[view.active]} mapIndex={view.active} view={view} look={look} mars={mars} maxW={width} maxH={multi ? height - 92 : height} />
       {multi && (
         <div className="flex items-center gap-3">
@@ -67,6 +97,26 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
               {/* Obstacles never look like the goal island. */}
               {ch === "#" && <span style={{ fontSize: cell * 0.72, lineHeight: 1 }}>{mars && (x + y) % 3 === 0 ? "⛰️" : "🪨"}</span>}
               {ch === "*" && !got && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🐚</span>}
+              {ch === "k" && !s?.keys?.includes(k) && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🔑</span>}
+              {ch === "D" && (
+                <span className={cn("flex items-center justify-center rounded-lg transition-all duration-500", s?.opened?.includes(k) ? "opacity-30" : "")} style={{ width: cell * 0.86, height: cell * 0.86, background: "repeating-linear-gradient(90deg, #a16207 0 18%, #854d0e 18% 24%)", boxShadow: "inset 0 0 0 3px #713f12", fontSize: cell * 0.42 }}>
+                  {s?.opened?.includes(k) ? "🔓" : "🔒"}
+                </span>
+              )}
+              {ch === "b" && <span className="flex items-center justify-center rounded-full transition-colors" style={{ width: cell * 0.56, height: cell * 0.56, background: s?.bridge ? "#22c55e" : "#ef4444", boxShadow: `0 ${cell * 0.06}px 0 ${s?.bridge ? "#15803d" : "#b91c1c"}`, transform: s?.bridge ? `translateY(${cell * 0.05}px)` : undefined }} />}
+              {ch === "=" &&
+                (s?.bridge ? (
+                  <span className="l-pop-in rounded-md" style={{ width: cell, height: cell * 0.62, background: "repeating-linear-gradient(90deg, #b45309 0 22%, #92400e 22% 26%)", boxShadow: "inset 0 3px 0 rgba(255,255,255,0.25), 0 3px 0 rgba(0,0,0,0.25)" }} />
+                ) : (
+                  <span style={{ fontSize: cell * 0.6, lineHeight: 1 }}>🚧</span>
+                ))}
+              {ch === "@" && <span className={cn(!thumb && "l-spin-slow")} style={{ fontSize: cell * 0.7, lineHeight: 1 }}>🌀</span>}
+              {CURRENT_TURN[ch] !== undefined && (
+                <span className="font-display font-extrabold text-white/80" style={{ fontSize: cell * 0.5, lineHeight: 1, transform: `rotate(${CURRENT_TURN[ch]}deg)` }}>
+                  ➜
+                </span>
+              )}
+              {ch === "f" && !s?.caught?.includes(k) && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🐟</span>}
               {ch === "G" && <span className={cn(!thumb && view.won && mapIndex === view.active && "l-boing")} style={{ fontSize: cell * 0.7, lineHeight: 1 }}>{mars ? "🚩" : "🏝️"}</span>}
               {ch === "G" && !thumb && <span className="absolute inset-1 rounded-xl ring-4 ring-[var(--l-gold)]/70" />}
             </span>
@@ -109,6 +159,13 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
           </span>
         </span>
       )}
+      {/* sharks on patrol (one cell per tick) — drawn over the boat, so a chomp is plain to see */}
+      {g.sharks.length > 0 &&
+        sharksAt(map, s?.t ?? 0).map((c, i) => (
+          <span key={`shark${i}`} className="pointer-events-none absolute flex items-center justify-center" style={{ left: 0, top: 0, width: cell, height: cell, transform: `translate(${c.x * cell}px, ${c.y * cell}px)`, transition: thumb ? "none" : "transform 300ms ease-in-out", fontSize: cell * 0.7 }}>
+            🦈
+          </span>
+        ))}
       {bump && !thumb && (
         <span key={`b${bump.k}`} className="l-pop-in pointer-events-none absolute flex items-center justify-center" style={{ left: bump.x * cell, top: bump.y * cell, width: cell, height: cell, fontSize: cell * 0.6 }}>
           {mars ? "💥" : "💦"}

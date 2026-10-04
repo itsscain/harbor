@@ -123,8 +123,10 @@ export type CodeLevel = {
   /** Show the "real code" view (older kids). */
   textCode?: boolean;
   // Simulator data
-  /** sea / rover: map rows ("." water/ground, "#" rock, "S" start, "G" goal, "*" shell). Rover may
-   *  list several maps that ONE program must solve (why you need if/until). */
+  /** sea / rover: map rows ("." water/ground, "#" rock, "S" start, "G" goal, "*" shell; adventure
+   *  seas add "k" key, "D" gate, "b" button, "=" drawbridge, "@" whirlpool, "> < ^ v" currents,
+   *  "f" fish, "H"/"N" sharks — see program.ts). Several maps = ONE program must solve them all
+   *  (why you need if/until). */
   maps?: string[][];
   facing?: Dir;
   /** dance / music: the sequence to copy. */
@@ -289,6 +291,8 @@ export type Lesson = {
   skills: string[];
   /** A Bible hero card earned the first time it's passed. */
   card?: string;
+  /** A short story that sets up the level (shown on its opening card, read to little ones). */
+  intro?: string;
 };
 
 export type ThemeId = "shallows" | "coral" | "kelp" | "pirate" | "ice" | "volcano" | "jungle" | "night" | "storm" | "sky" | "deep" | "candy";

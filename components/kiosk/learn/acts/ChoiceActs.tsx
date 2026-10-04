@@ -9,7 +9,7 @@ import { SAY } from "@/lib/learn/script";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, useShuffled } from "../kit";
 import { Visual } from "./Visual";
-import { ChoiceTile, MiniSpeaker, PromptRow, tileState, useChoice, useLater, usePrompt, useSpokenPrompt, type ActProps } from "./common";
+import { ChoiceTile, Hearable, PromptRow, tileState, useChoice, useLater, usePrompt, useSpokenPrompt, type ActProps } from "./common";
 
 // The workhorse activities: pick the answer (pictures, words, numbers, shapes — whatever the item
 // shows), type a number on a big keypad, and the manners scenes where every choice shows what
@@ -61,23 +61,21 @@ export function ChoiceAct({ act: a, fx, onDone }: ActProps<"choice">) {
         </div>
       )}
       <div className={cn("grid w-full gap-4", layout === "list" ? "max-w-[820px] grid-cols-1" : layout === "row" ? "max-w-[980px]" : "max-w-[900px] grid-cols-2")} style={layout === "row" ? { gridTemplateColumns: `repeat(${Math.min(4, opts.length)}, minmax(0, 1fr))` } : undefined}>
-        {opts.map((o, i) => {
-          const sp = speakable(o);
-          return (
-            <div key={o.id} className="l-rise relative" style={{ animationDelay: `${120 + i * 60}ms` }}>
+        {opts.map((o, i) => (
+          <div key={o.id} className="l-rise relative" style={{ animationDelay: `${120 + i * 60}ms` }}>
+            <Hearable parts={speakable(o)} side={layout === "list" ? "left" : "below"}>
               <ChoiceTile
                 state={tileState(o.id, c, a.answer)}
                 shakeKey={c.shake?.id === o.id ? c.shake.n : undefined}
                 onPick={(el) => (sfx("pick"), c.choose(o.id, el))}
                 label={o.text ?? o.id}
-                className={cn("w-full text-[var(--l-ink)]", layout === "list" ? "min-h-[84px] justify-start py-3 pl-4 pr-14" : o.visual || o.emoji ? "min-h-[170px]" : "min-h-[128px]")}
+                className={cn("w-full text-[var(--l-ink)]", layout === "list" ? "min-h-[84px] justify-start px-4 py-3" : o.visual || o.emoji ? "min-h-[170px]" : "min-h-[128px]")}
               >
                 <OptionFace o={o} layout={layout} />
               </ChoiceTile>
-              {sp && <MiniSpeaker parts={sp} className={layout === "list" ? "right-3 top-1/2 -translate-y-1/2" : "-left-2 -top-2"} />}
-            </div>
-          );
-        })}
+            </Hearable>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -239,11 +237,12 @@ function RewindScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
               const wasTried = tried.includes(o.id);
               return (
                 <div key={o.id} className="l-rise relative" style={{ animationDelay: `${120 + i * 70}ms` }}>
-                  <Chunk tone="white" disabled={wasTried} onClick={(e) => pick(o, e.currentTarget)} className={cn("flex min-h-[84px] w-full items-center gap-3 py-3 pl-4 pr-14 text-left", wasTried && "opacity-45")}>
-                    {wasTried && <span className="text-2xl">⏪</span>}
-                    <span className={cn("font-reading text-[24px] font-bold leading-snug text-[var(--l-ink)]", wasTried && "line-through decoration-2")}>{o.text}</span>
-                  </Chunk>
-                  {voiced && (o.say?.length || o.text) && <MiniSpeaker parts={o.say?.length ? o.say : [o.text!]} className="right-3 top-1/2 -translate-y-1/2" />}
+                  <Hearable parts={voiced ? (o.say?.length ? o.say : o.text ? [o.text] : null) : null}>
+                    <Chunk tone="white" disabled={wasTried} onClick={(e) => pick(o, e.currentTarget)} className={cn("flex min-h-[84px] w-full items-center gap-3 px-4 py-3 text-left", wasTried && "opacity-45")}>
+                      {wasTried && <span className="text-2xl">⏪</span>}
+                      <span className={cn("font-reading text-[24px] font-bold leading-snug text-[var(--l-ink)]", wasTried && "line-through decoration-2")}>{o.text}</span>
+                    </Chunk>
+                  </Hearable>
                 </div>
               );
             })}
@@ -288,10 +287,11 @@ function PlainScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
       fx.right(el);
       later(() => void (o.why ? fx.explain(o.why, whyParts) : Promise.resolve()).then(() => onDone(tried.length)), 1100);
     } else {
-      setTried((t) => (t.includes(o.id) ? t : [...t, o.id]));
       setShake((s) => ({ id: o.id, n: (s?.n ?? 0) + 1 }));
-      sfx("wrong");
-      buzz([0, 30, 40, 30]);
+      // Tapping a choice that was already tried isn't another guess.
+      if (tried.includes(o.id)) return;
+      setTried((t) => [...t, o.id]);
+      fx.miss();
       // The consequence is the lesson: "That would hurt her feelings." (shown beside the choices)
       if (whyParts) void fx.say(whyParts);
     }
@@ -310,18 +310,19 @@ function PlainScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
           const wasTried = tried.includes(o.id);
           return (
             <div key={o.id} className="l-rise relative" style={{ animationDelay: `${150 + i * 70}ms` }}>
-              <Chunk
-                tone={isRight ? "green" : "white"}
-                disabled={found}
-                onClick={(e) => pick(o, e.currentTarget)}
-                className={cn("flex min-h-[84px] w-full items-center gap-3 py-3 pl-4 pr-14 text-left", wasTried && !isRight && "opacity-60", isRight && "l-boing", found && !isRight && "opacity-40")}
-              >
-                <span key={shake?.id === o.id ? shake.n : 0} className={cn("flex w-full items-center gap-3", shake?.id === o.id && "l-shake")}>
-                  {o.emoji && <span className="text-[40px] leading-none">{o.emoji}</span>}
-                  <span className={cn("font-reading text-[24px] font-bold leading-snug", isRight ? "text-white" : "text-[var(--l-ink)]")}>{o.text}</span>
-                </span>
-              </Chunk>
-              {fx.voice !== "keys" && (o.say?.length || o.text) && <MiniSpeaker parts={o.say?.length ? o.say : [o.text!]} className="right-3 top-1/2 -translate-y-1/2" />}
+              <Hearable parts={fx.voice !== "keys" ? (o.say?.length ? o.say : o.text ? [o.text] : null) : null}>
+                <Chunk
+                  tone={isRight ? "green" : "white"}
+                  disabled={found}
+                  onClick={(e) => pick(o, e.currentTarget)}
+                  className={cn("flex min-h-[84px] w-full items-center gap-3 px-4 py-3 text-left", wasTried && !isRight && "opacity-60", isRight && "l-boing", found && !isRight && "opacity-40")}
+                >
+                  <span key={shake?.id === o.id ? shake.n : 0} className={cn("flex w-full items-center gap-3", shake?.id === o.id && "l-shake")}>
+                    {o.emoji && <span className="text-[40px] leading-none">{o.emoji}</span>}
+                    <span className={cn("font-reading text-[24px] font-bold leading-snug", isRight ? "text-white" : "text-[var(--l-ink)]")}>{o.text}</span>
+                  </span>
+                </Chunk>
+              </Hearable>
             </div>
           );
         })}

@@ -1,5 +1,5 @@
 import type { Block, CodeLevel, Dir } from "./types";
-import { parseGrid, runLevel } from "./program";
+import { gridEngine, parseGrid, runLevel, sharkPeriod, type GridState } from "./program";
 import { type Rng, int, pick, shuffle } from "./gen";
 
 // Level generators for the Code voyage. Every generated level is solved by a search (or run
@@ -114,6 +114,149 @@ export function makeMap(r: Rng, o: MapSpec): { map: string[]; ops: string[] } {
       if (moves <= Math.abs(s[0] - g[0]) + Math.abs(s[1] - g[1])) continue;
     }
     return { map, ops };
+  }
+  genStats.fallbacks++;
+  const n = Math.max(2, o.w - 1);
+  return { map: ["S" + ".".repeat(n - 1) + "G"], ops: Array(n).fill(o.boat ? "fwd" : "right") };
+}
+
+// ── Adventure seas: keys + gates, buttons + drawbridges, whirlpools, currents, fish, sharks ──
+/** The shortest program (fewest blocks, no loops) for ANY sea map, found by searching the engine
+ *  itself — so the answer is right by construction, whatever the map holds. `ops` are the moves
+ *  allowed (arrows, or forward + turns); Catch and Wait join in when there are fish or sharks. */
+export function solveGrid(map: string[], ops: readonly string[], facing: Dir = "right", maxDepth = 44): string[] | null {
+  const eng = gridEngine(map, facing);
+  const g = parseGrid(map);
+  const period = sharkPeriod(map);
+  const acts = [...ops, ...(g.fish.size ? ["catch"] : []), ...(period ? ["wait"] : [])];
+  const boat = ops.includes("fwd");
+  const sorted = (xs?: string[]) => [...(xs ?? [])].sort().join(";");
+  const key = (s: GridState) => [s.x, s.y, boat ? s.facing : "", sorted(s.got), sorted(s.keys), sorted(s.opened), s.bridge ? 1 : 0, sorted(s.caught), period ? (s.t ?? 0) % period : ""].join("|");
+  const prev: Prev = new Map([[key(eng.init), null]]);
+  if (eng.won(eng.init)) return [];
+  let frontier: GridState[] = [eng.init];
+  for (let depth = 0; depth < maxDepth && frontier.length; depth++) {
+    const next: GridState[] = [];
+    for (const s of frontier) {
+      const k = key(s);
+      for (const op of acts) {
+        if (op === "catch" && !eng.test("fish", s)) continue;
+        const r = eng.exec(op, s);
+        if (r.fail) continue;
+        const nk = key(r.s);
+        if (prev.has(nk)) continue;
+        prev.set(nk, [k, op]);
+        if (eng.won(r.s)) return trace(prev, nk);
+        next.push(r.s);
+      }
+    }
+    frontier = next;
+    if (prev.size > 400000) break;
+  }
+  return null;
+}
+
+export type AdventureSpec = {
+  w: number;
+  h: number;
+  /** The feature this sea is about. */
+  kind: "key" | "keys2" | "bridge" | "pool" | "current" | "fish" | "shark";
+  /** Extra scattered rocks, shells and fish. */
+  rocks?: number;
+  shells?: number;
+  fish?: number;
+  /** Solution length range (blocks, no loops). */
+  len: [number, number];
+  /** Forward/turn steering instead of arrows. */
+  boat?: boolean;
+};
+
+/** A random sea built around one feature, checked by the solver: the gate / bridge / whirlpool
+ *  really has to be used (the sea can't be crossed without it), a shark really is in the way. */
+export function makeAdventure(r: Rng, o: AdventureSpec): { map: string[]; ops: string[] } {
+  const ops = o.boat ? BOAT : ARROWS;
+  for (let attempt = 0; attempt < 500; attempt++) {
+    const grid = Array.from({ length: o.h }, () => Array.from({ length: o.w }, () => "."));
+    const set = (x: number, y: number, ch: string) => (grid[y][x] = ch);
+    const at = (x: number, y: number) => grid[y]?.[x];
+    // A wall across the sea (down a column) splits it: left side and right side.
+    const wallAt = (col: number, opening: string | null) => {
+      const gap = int(r, 0, o.h - 1);
+      for (let y = 0; y < o.h; y++) set(col, y, y === gap && opening ? opening : "#");
+      return gap;
+    };
+    const freeIn = (x0: number, x1: number): [number, number][] => {
+      const out: [number, number][] = [];
+      for (let y = 0; y < o.h; y++) for (let x = x0; x <= x1; x++) if (at(x, y) === ".") out.push([x, y]);
+      return shuffle(r, out);
+    };
+    const place = (x0: number, x1: number, ch: string) => {
+      const c = freeIn(x0, x1)[0];
+      if (!c) return false;
+      set(c[0], c[1], ch);
+      return true;
+    };
+    const mid = int(r, 2, o.w - 3);
+    const L: [number, number] = [0, mid - 1];
+    const R: [number, number] = [mid + 1, o.w - 1];
+    let ok = true;
+    if (o.kind === "key" || o.kind === "bridge") {
+      wallAt(mid, o.kind === "key" ? "D" : "=");
+      ok = place(...L, "S") && place(...L, o.kind === "key" ? "k" : "b") && place(...R, "G");
+    } else if (o.kind === "keys2") {
+      const m2 = int(r, mid + 2, o.w - 2);
+      if (m2 >= o.w - 1 || m2 - mid < 2) continue;
+      wallAt(mid, "D");
+      wallAt(m2, "D");
+      ok = place(...L, "S") && place(...L, "k") && place(mid + 1, m2 - 1, "k") && place(m2 + 1, o.w - 1, "G");
+    } else if (o.kind === "pool") {
+      wallAt(mid, null);
+      ok = place(...L, "S") && place(...L, "@") && place(...R, "@") && place(...R, "G");
+    } else if (o.kind === "current") {
+      // A current along the boat's row: it carries you to the island (ride it!) or pushes you
+      // back (go around it!).
+      const row = int(r, 0, o.h - 1);
+      const dir = pick(r, [">", "<"]);
+      const from = int(r, 1, Math.max(1, o.w - 4));
+      const len = int(r, 2, Math.max(2, Math.min(4, o.w - 1 - from)));
+      for (let x = from; x < from + len && x < o.w - 1; x++) set(x, row, dir);
+      set(0, row, "S");
+      set(o.w - 1, int(r, 0, o.h - 1), "G");
+    } else if (o.kind === "fish") {
+      ok = place(0, o.w - 1, "S") && place(0, o.w - 1, "G");
+    } else if (o.kind === "shark") {
+      // A shark swims up and down a column the boat must cross.
+      wallAt(mid, null);
+      for (let y = 0; y < o.h; y++) set(mid, y, ".");
+      set(mid, int(r, 0, o.h - 1), "N");
+      ok = place(...L, "S") && place(...R, "G");
+    }
+    if (!ok) continue;
+    for (let i = 0; i < (o.fish ?? 0); i++) ok = ok && place(0, o.w - 1, "f");
+    for (let i = 0; i < (o.shells ?? 0); i++) ok = ok && place(0, o.w - 1, "*");
+    for (let i = 0; i < (o.rocks ?? 0); i++) ok = ok && place(0, o.w - 1, "#");
+    if (!ok) continue;
+    const map = grid.map((row) => row.join(""));
+    // Searches stop at the longest answer allowed (a sea that needs more isn't kept anyway).
+    const sol = solveGrid(map, ops, "right", o.len[1]);
+    if (!sol || sol.length < o.len[0]) continue;
+    // The feature has to matter.
+    const deep = o.len[1] * 2;
+    if (o.kind === "pool" || o.kind === "key" || o.kind === "keys2" || o.kind === "bridge") {
+      const without = map.map((row) => row.replace(/[@D=]/g, "#"));
+      if (solveGrid(without, ops, "right", deep)) continue;
+    }
+    if (o.kind === "current") {
+      const calm = map.map((row) => row.replace(/[<>^v]/g, "."));
+      const plain = solveGrid(calm, ops, "right", deep);
+      if (!plain || plain.length === sol.length) continue; // the current must change the best route
+    }
+    if (o.kind === "shark") {
+      const safe = map.map((row) => row.replace(/[HN]/g, "."));
+      const plain = solveGrid(safe, ops, "right", deep);
+      if (plain && plain.length >= sol.length) continue; // the shark must make you wait or dodge
+    }
+    return { map, ops: sol };
   }
   genStats.fallbacks++;
   const n = Math.max(2, o.w - 1);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SAY, numberWord, plusLine, putInNet } from "@/lib/learn/script";
 import { say, type Part } from "@/lib/learn/audio";
@@ -95,38 +96,55 @@ export function CountAct({ act, fx, onDone }: ActProps<"count">) {
   );
 }
 
-// ── Make: drag things into the net until it holds the number ─────────────────────────────
+// ── Make: put things in the net, then check — exactly the number ─────────────────────────
+// The net never fills itself up or stops at the number: more can go in than you need, and the
+// child decides when it's right and taps the check. Tapping everything gives "Too many!", so the
+// only way through is to count.
 export function MakeAct({ act, fx, onDone }: ActProps<"make">) {
   const total = act.n + 3;
   const [inNet, setInNet] = useState<number[]>([]);
   const [done, setDone] = useState(false);
+  const [misses, setMisses] = useState(0);
+  const [note, setNote] = useState<string | null>(null);
   const netRef = useRef<HTMLDivElement>(null);
   const later = useLater();
-  const parts: Part[] = [putInNet(act.n)];
+  const parts: Part[] = [putInNet(act.n), { gap: 250 }, SAY.netCheck];
   usePrompt(fx, parts);
 
   const add = (id: number) => {
     if (done || inNet.includes(id)) return;
     const next = [...inNet, id];
     setInNet(next);
+    setNote(null);
     sfx("count", next.length);
     void say(numberWord(next.length));
-    if (next.length === act.n) {
-      setDone(true);
-      later(() => fx.right(netRef.current, [numberWord(act.n)]), 650);
-      later(() => onDone(0), 2200);
-    }
   };
   const remove = (id: number) => {
     if (done) return;
     sfx("lift");
-    setInNet((l) => l.filter((x) => x !== id));
+    const next = inNet.filter((x) => x !== id);
+    setInNet(next);
+    setNote(null);
+    if (next.length) void say(numberWord(next.length));
+  };
+  const check = (el: HTMLElement) => {
+    if (done || !inNet.length) return;
+    if (inNet.length === act.n) {
+      setDone(true);
+      fx.right(netRef.current ?? el, [numberWord(act.n)]);
+      later(() => onDone(misses), 2000);
+      return;
+    }
+    setMisses((m) => m + 1);
+    const over = inNet.length - act.n;
+    setNote(over > 0 ? `Too many! Take ${over} out.` : `Not enough — put ${-over} more in.`);
+    fx.wrong(el, [over > 0 ? SAY.netTooMany : SAY.netNotEnough]);
   };
 
   return (
-    <div className="flex w-full flex-col items-center gap-6">
+    <div className="flex w-full flex-col items-center gap-5">
       <PromptRow parts={parts}>
-        Put <span className="font-display">{act.n}</span> in the net
+        Put <span className="font-display">{act.n}</span> in the net, then tap ✓
       </PromptRow>
       <div
         ref={netRef}
@@ -153,6 +171,16 @@ export function MakeAct({ act, fx, onDone }: ActProps<"make">) {
             <Thing key={id} emoji={act.emoji} onPut={(target) => target?.dataset.drop === "net" && add(id)} onTap={() => add(id)} disabled={done} />
           ),
         )}
+      </div>
+      <div className="flex items-center gap-4">
+        {note && !done && (
+          <span key={`${note}${misses}`} className="l-pop-in rounded-full bg-white px-5 py-2.5 font-display text-2xl font-extrabold text-[var(--l-coral-edge)] shadow-[0_4px_0_var(--l-line)]">
+            {note}
+          </span>
+        )}
+        <Chunk tone="green" disabled={done || !inNet.length} onClick={(e) => check(e.currentTarget)} aria-label="Check" className={cn("flex h-20 items-center gap-2 px-9 font-display text-3xl font-extrabold", (done || !inNet.length) && "opacity-50")}>
+          <Check className="h-9 w-9" strokeWidth={3.5} /> Check
+        </Chunk>
       </div>
     </div>
   );

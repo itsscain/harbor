@@ -494,7 +494,7 @@ export function PopAct({ act, fx, onDone }: ActProps<"pop">) {
     } else {
       setMisses((m) => m + 1);
       setShake((s) => ({ id: b.id, n: (s?.n ?? 0) + 1 }));
-      sfx("wrong");
+      fx.miss();
       void say(b.word);
     }
   };

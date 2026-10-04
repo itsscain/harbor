@@ -7,7 +7,7 @@ import { SAY } from "@/lib/learn/script";
 import type { Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, shuffleSeeded } from "../kit";
-import { MiniSpeaker, PromptRow, useLater, usePrompt, useSpokenPrompt, type ActProps } from "./common";
+import { Hearable, PromptRow, useLater, usePrompt, useSpokenPrompt, type ActProps } from "./common";
 
 // Character in action: the Truth Detective's case file, the Repair Kit (build better words one
 // piece at a time), and "think about it" moments with no wrong answer — including choosing what
@@ -63,24 +63,25 @@ export function SpotAct({ act: a, fx, onDone }: ActProps<"spot">) {
             const isFound = found.includes(i);
             const isHonest = honest.includes(i);
             return (
-              <li key={i} className="relative">
-                <button
-                  type="button"
-                  onClick={(e) => tap(i, e.currentTarget)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-[18px] border-[3px] px-4 py-3 text-left transition-colors",
-                    isFound ? "border-[var(--l-coral)] bg-[var(--l-coral)]/12" : isHonest ? "border-[var(--l-green)]/50 bg-[var(--l-green)]/8" : "border-[#efe3c4] bg-white hover:border-[var(--l-gold)]",
-                  )}
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5ead0] font-display text-lg font-extrabold text-[#7a5a1c]">{i + 1}</span>
-                  {l.emoji && <span className="text-[34px] leading-none">{l.emoji}</span>}
-                  <span key={shake?.i === i ? shake.n : 0} className={cn("flex-1 font-reading text-[23px] font-bold leading-snug text-[var(--l-ink)]", shake?.i === i && "l-shake", isFound && "line-through decoration-[var(--l-coral)] decoration-[3px]")}>
-                    {l.text}
-                  </span>
-                  {isFound && <span className="l-stamp shrink-0 rotate-[-10deg] rounded-lg border-[3px] border-[var(--l-coral)] px-2 py-0.5 font-display text-sm font-extrabold uppercase text-[var(--l-coral-edge)]">Found!</span>}
-                  {isHonest && !isFound && <span className="shrink-0 text-2xl">✅</span>}
-                </button>
-                {voiced && <MiniSpeaker parts={[l.text]} className="-right-2 -top-2" />}
+              <li key={i}>
+                <Hearable parts={voiced ? [l.text] : null}>
+                  <button
+                    type="button"
+                    onClick={(e) => tap(i, e.currentTarget)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-[18px] border-[3px] px-4 py-3 text-left transition-colors",
+                      isFound ? "border-[var(--l-coral)] bg-[var(--l-coral)]/12" : isHonest ? "border-[var(--l-green)]/50 bg-[var(--l-green)]/8" : "border-[#efe3c4] bg-white hover:border-[var(--l-gold)]",
+                    )}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5ead0] font-display text-lg font-extrabold text-[#7a5a1c]">{i + 1}</span>
+                    {l.emoji && <span className="text-[34px] leading-none">{l.emoji}</span>}
+                    <span key={shake?.i === i ? shake.n : 0} className={cn("flex-1 font-reading text-[23px] font-bold leading-snug text-[var(--l-ink)]", shake?.i === i && "l-shake", isFound && "line-through decoration-[var(--l-coral)] decoration-[3px]")}>
+                      {l.text}
+                    </span>
+                    {isFound && <span className="l-stamp shrink-0 rotate-[-10deg] rounded-lg border-[3px] border-[var(--l-coral)] px-2 py-0.5 font-display text-sm font-extrabold uppercase text-[var(--l-coral-edge)]">Found!</span>}
+                    {isHonest && !isFound && <span className="shrink-0 text-2xl">✅</span>}
+                  </button>
+                </Hearable>
               </li>
             );
           })}
@@ -130,7 +131,6 @@ export function SlotsAct({ act: a, fx, onDone }: ActProps<"slots">) {
       setShake({ id: o, n: (shake?.n ?? 0) + 1 });
       setTip(cur.why ?? null);
       fx.miss();
-      sfx("wrong");
     }
   };
   return (
@@ -152,14 +152,13 @@ export function SlotsAct({ act: a, fx, onDone }: ActProps<"slots">) {
             ) : i === k ? (
               <div className="mt-2 flex flex-col gap-2">
                 {opts.map((o) => (
-                  <div key={`${k}:${o}`} className="relative">
-                    <Chunk tone="white" disabled={tried.includes(o)} onClick={(e) => (sfx("pick"), pick(o, e.currentTarget))} className={cn("flex min-h-[64px] w-full items-center py-2 pl-4 pr-12 text-left", tried.includes(o) && "opacity-50", misses >= 2 && tried.length >= 1 && o === cur.answer && "l-hint")}>
+                  <Hearable key={`${k}:${o}`} parts={voiced ? [o] : null}>
+                    <Chunk tone="white" disabled={tried.includes(o)} onClick={(e) => (sfx("pick"), pick(o, e.currentTarget))} className={cn("flex min-h-[64px] w-full items-center px-4 py-2 text-left", tried.includes(o) && "opacity-50", misses >= 2 && tried.length >= 1 && o === cur.answer && "l-hint")}>
                       <span key={shake?.id === o ? shake.n : 0} className={cn("font-reading text-[22px] font-bold leading-snug text-[var(--l-ink)]", shake?.id === o && "l-shake")}>
                         {o}
                       </span>
                     </Chunk>
-                    {voiced && <MiniSpeaker parts={[o]} className="right-2 top-1/2 -translate-y-1/2" />}
-                  </div>
+                  </Hearable>
                 ))}
               </div>
             ) : (
@@ -224,11 +223,13 @@ export function ReflectAct({ act: a, fx, onDone }: ActProps<"reflect">) {
               const on = picked.includes(o.id);
               return (
                 <div key={o.id} className="l-rise relative" style={{ animationDelay: `${80 + i * 50}ms` }}>
-                  <Chunk tone={on ? "violet" : "white"} onClick={(e) => tap(o.id, e.currentTarget)} className={cn("flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left", on && "l-boing")}>
-                    {o.emoji && <span className="text-[44px] leading-none">{o.emoji}</span>}
-                    <span className={cn("flex-1 font-reading text-[22px] font-bold leading-snug", on ? "text-white" : "text-[var(--l-ink)]")}>{o.text}</span>
-                    {a.multi && <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px]", on ? "border-white bg-white text-[var(--l-violet)]" : "border-[var(--l-line)]")}>{on && <Check className="h-5 w-5" strokeWidth={4} />}</span>}
-                  </Chunk>
+                  <Hearable parts={voiced ? [o.text] : null}>
+                    <Chunk tone={on ? "violet" : "white"} onClick={(e) => tap(o.id, e.currentTarget)} className={cn("flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left", on && "l-boing")}>
+                      {o.emoji && <span className="text-[44px] leading-none">{o.emoji}</span>}
+                      <span className={cn("flex-1 font-reading text-[22px] font-bold leading-snug", on ? "text-white" : "text-[var(--l-ink)]")}>{o.text}</span>
+                      {a.multi && <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px]", on ? "border-white bg-white text-[var(--l-violet)]" : "border-[var(--l-line)]")}>{on && <Check className="h-5 w-5" strokeWidth={4} />}</span>}
+                    </Chunk>
+                  </Hearable>
                 </div>
               );
             })}

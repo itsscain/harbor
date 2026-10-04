@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { Volume2 } from "lucide-react";
 import type { Activity } from "@/lib/learn/types";
 import type { VoiceLevel } from "@/lib/learn/script";
 import type { BoatLook } from "@/lib/learn/meta";
-import { say, type Part } from "@/lib/learn/audio";
+import { partsKey, say, speakingNow, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { cn } from "@/lib/cn";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk, SpeakerButton, type Tone } from "../kit";
@@ -36,6 +36,9 @@ export type LessonFx = {
   /** Seed for shuffles — different every play. */
   seed: string;
   reduced: boolean;
+  /** Has this child finished a tutorial (e.g. "boat")? Unskippable tutorials run until they have. */
+  tutorialDone: (id: string) => boolean;
+  completeTutorial: (id: string) => void;
 };
 
 export type ActProps<K extends Activity["kind"]> = {
@@ -82,7 +85,56 @@ export function useSpokenPrompt(fx: LessonFx, say: Part[] | undefined, text: str
   return parts;
 }
 
-/** A little round "hear this one" button that sits on a tile (a sibling, never inside it). */
+/** How much this child hears (set by the lesson player), so shared pieces can size themselves:
+ *  a child who can't read gets bigger speaker buttons. */
+export const VoiceCtx = createContext<VoiceLevel>("keys");
+
+/** True while exactly these words are being spoken. */
+export function useSpeaking(parts: Part[] | null | undefined): boolean {
+  const now = useSyncExternalStore(subscribeVoice, speakingNow, () => null);
+  return !!parts?.length && now === partsKey(parts);
+}
+
+/** A big "hear it" button. It lights up (rings ripple out) while its words play. */
+export function HearButton({ parts, size = 64, label = "Hear this answer", className }: { parts: Part[]; size?: number; label?: string; className?: string }) {
+  const on = useSpeaking(parts);
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        sfx("tap");
+        void say(parts);
+      }}
+      className={cn("relative flex shrink-0 items-center justify-center rounded-full text-white transition-transform active:translate-y-1", on ? "bg-[var(--l-violet)] shadow-[0_5px_0_var(--l-violet-edge)]" : "bg-[var(--l-blue)] shadow-[0_5px_0_var(--l-blue-edge)]", className)}
+      style={{ width: size, height: size }}
+    >
+      {on && <span className="l-hear-ring pointer-events-none absolute inset-0 rounded-full" aria-hidden />}
+      <Volume2 style={{ width: size * 0.5, height: size * 0.5 }} strokeWidth={2.6} className={cn(on && "l-hear-wiggle")} />
+    </button>
+  );
+}
+
+/** An answer with its own "hear it" button OUTSIDE it — beside it (`left`) or under it (`below`),
+ *  with a real gap — so a child who can't read can listen to every choice without picking one by
+ *  accident. While its words play, the answer glows too, so the sound and the choice connect. */
+export function Hearable({ parts, side = "left", children, className }: { parts: Part[] | null | undefined; side?: "left" | "below"; children: ReactNode; className?: string }) {
+  const voice = useContext(VoiceCtx);
+  const on = useSpeaking(parts);
+  if (!parts?.length) return <div className={cn("relative", className)}>{children}</div>;
+  const size = voice === "all" ? 64 : 56;
+  return (
+    <div className={cn("flex", side === "left" ? "flex-row items-center gap-3" : "flex-col items-center gap-2.5", className)}>
+      {side === "left" && <HearButton parts={parts} size={size} />}
+      <div className={cn("relative w-full min-w-0 flex-1 rounded-[24px] transition-shadow duration-200", on && "shadow-[0_0_0_5px_var(--l-violet),0_0_28px_rgba(139,108,255,0.55)]")}>{children}</div>
+      {side === "below" && <HearButton parts={parts} size={size} />}
+    </div>
+  );
+}
+
+/** A little round "hear this one" button that sits on a card that ISN'T an answer (a sentence, a
+ *  story line). Answers use Hearable, which keeps the button clear of the thing you tap to answer. */
 export function MiniSpeaker({ parts, className, light }: { parts: Part[]; className?: string; light?: boolean }) {
   return (
     <button
@@ -102,9 +154,11 @@ export function MiniSpeaker({ parts, className, light }: { parts: Part[]; classN
 
 /** The instruction row: replay button + a short line of text (for grown-ups watching, and readers). */
 export function PromptRow({ parts, children, className }: { parts: Part[] | null; children: ReactNode; className?: string }) {
+  // A child who can't read leans on this button the most: make it big.
+  const voice = useContext(VoiceCtx);
   return (
     <div className={cn("flex items-center justify-center gap-4", className)}>
-      <SpeakerButton parts={parts} />
+      <SpeakerButton parts={parts} size={voice === "all" ? 72 : voice === "core" ? 62 : 56} />
       <p className="min-w-0 text-balance font-display text-2xl font-bold leading-tight text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)] sm:text-[28px]">{children}</p>
     </div>
   );
@@ -125,6 +179,12 @@ export function useChoice(answer: string, fx: LessonFx, onDone: (mistakes: numbe
   const later = useLater();
   const choose = (id: string, el: Element | null) => {
     if (found) return;
+    // Tapping an answer that already turned out wrong just wiggles it — it isn't another guess.
+    if (wrongIds.includes(id)) {
+      setShake((s) => ({ id, n: (s?.n ?? 0) + 1 }));
+      sfx("soft-fail");
+      return;
+    }
     if (id === answer) {
       setFound(id);
       fx.right(el, opts?.extra);

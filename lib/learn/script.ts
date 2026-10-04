@@ -42,6 +42,10 @@ export const SAY = {
   bossTime: "Boss level! You can do it!",
   reviewTime: "Treasure review! Let's remember what we learned.",
   goldenFish: "A golden fish! Tap it, quick!",
+  lookFirst: "Whoa, slow down! Stop and look first. Listen.",
+  netCheck: "Then tap the check.",
+  netTooMany: "Too many! Take some out.",
+  netNotEnough: "Not enough yet. Put more in.",
   fromBefore: "Here's one from before!",
   retryRound: "Let's try the tricky ones again!",
   greatTry: "Great try! Every mistake helps your brain grow.",
@@ -104,7 +108,32 @@ export const SAY = {
   codePlay: "Press play to run your program!",
   bumped: "Bonk! Try a different way.",
   notThere: "Not there yet! Add more blocks.",
+  overshoot: "Your boat got to the island, then kept going! It does every block, even the extra ones.",
+  overshootLoop: "Your loop went around too many times! It got there, then kept going.",
+  overshootGoal: "It got to the goal, then kept going! It does every block, even the extra ones.",
+  tooManyMoves: "Too many! The robot does every move, even the extra ones.",
+  tooManyNotes: "Too many! The bells play every note, even the extra ones.",
+  stillGoing: "It made it… but there are more blocks!",
+  // Boat School (the one tutorial nobody skips)
+  bsMeet: "This is your boat. It goes where your blocks tell it to go. Tap the arrow block!",
+  bsPlay1: "You made a program! Now press Play.",
+  bsOneStep: "See? One block, one step.",
+  bsCount: "The island is three steps away. Count the squares with me.",
+  bsAddTwo: "Add two more arrows, so you have three.",
+  bsPlay3: "Three blocks! Press Play.",
+  bsMadeIt: "Three blocks, three steps. You made it!",
+  bsTooMany: "Now watch what happens with too many blocks. Add two more arrows!",
+  bsPlayExtra: "Press Play, and watch closely!",
+  bsCrash: "Oh no! The boat did every block, even the extra ones. It sailed right past the island and crashed into the rock!",
+  bsRemove: "Tap the red blocks to take the extra ones away.",
+  bsTryAgain: "Now press Play again.",
+  bsRule: "The boat does exactly what your blocks say. Not more, not less. Count the squares, then use that many blocks!",
   missedShells: "Get all the shells first!",
+  missedFish: "Catch all the fish first!",
+  lockedGate: "The gate is locked! Get the key first.",
+  bridgeUp: "The bridge is up! Press the button first.",
+  sharkGotYou: "Chomp! The shark got you. Watch where it swims, and wait for it to pass.",
+  noFish: "No fish here! Catch when you're right on a fish.",
   outOfBounds: "Whoa, that's off the map! Try again.",
   codeWin: "It worked! You're a coder!",
   danceWrong: "Oops, that's not the same dance. Watch again!",
@@ -355,7 +384,8 @@ function activityClips(a: Activity, level: VoiceLevel, subject: SubjectId, add: 
       break;
     case "make":
       line(putInNet(a.n));
-      for (let i = 1; i <= a.n + 1; i++) word(numberWord(i));
+      [SAY.netCheck, SAY.netTooMany, SAY.netNotEnough].forEach(line);
+      for (let i = 1; i <= a.n + 3; i++) word(numberWord(i));
       break;
     case "add":
       line(plusLine(a.a, a.b));
@@ -495,6 +525,7 @@ const lessonVoice = (l: Lesson): VoiceLevel => {
 export function lessonClipKeys(lesson: Lesson): string[] {
   const keys = new Set<string>();
   const level = lessonVoice(lesson);
+  if (lesson.intro && level !== "keys") keys.add(lesson.intro);
   for (const a of lesson.activities) activityClips(a, level, lesson.subject, (c) => keys.add(c.key));
   return [...keys];
 }
@@ -521,7 +552,10 @@ export function allClips(): Clip[] {
   for (const course of Object.values(COURSES))
     for (const u of course.units) {
       const level = voiceLevelFor(u.grade);
-      for (const l of u.lessons) for (const a of l.activities) activityClips(a, level, course.id, add);
+      for (const l of u.lessons) {
+        if (l.intro && level !== "keys") add({ key: l.intro, text: l.intro, kind: "line" });
+        for (const a of l.activities) activityClips(a, level, course.id, add);
+      }
       if (u.challenge && level !== "keys") add({ key: u.challenge, text: u.challenge, kind: "line" });
     }
   return [...out.values()];

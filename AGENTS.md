@@ -57,7 +57,16 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   (repeat/if-else/until/functions over six worlds: sea, rover, dance, music, turtle, pixel),
   `code.ts` + `codeGen.ts` the levels (generated maps are solved by search before they're kept).
   Runs record loop passes (`Step.iters`) so the editor shows "pass 2 of 4", a step HUD and a
-  "what your program did" recap. **Code Lab** (teaching what's going on): activity kinds `concept`
+  "what your program did" recap. **The boat does every block**: there is no stop-at-the-goal —
+  extra blocks sail past the island (or crash), and CodeAct explains the overshoot and turns the
+  extra blocks red. Before a child's first boat level comes **Boat School** (`code/BoatSchool.tsx`),
+  an unskippable hands-on tutorial; finishing it is a ledger `collect` event `tutorial:boat`
+  (accepted by `rpc_learn_sync` since migration 0077) → `kid.tutorials` → `fx.tutorialDone`.
+  **Adventure seas** (map legend in `program.ts`): keys + gates, buttons + drawbridges,
+  whirlpools, currents, fish (Catch block, `if fish`), patrolling sharks (Wait block; one tick per
+  acting block). `solveGrid` (codeGen) is a BFS over the engine itself, so hand maps (`chart()`)
+  and generated seas (`makeAdventure`, which also proves the feature really matters) are right by
+  construction. A world's `story` becomes its first lesson's `intro` (shown on the level card). **Code Lab** (teaching what's going on): activity kinds `concept`
   (animated explainers, `lab/ConceptAct.tsx`), `predict` (be the computer), `loopfind`, `recipe`
   (Robot Chef, dependency-ordered), `factory` (if/else-if/AND), `variable` (trace tables), `events`
   (Event Studio), `binary`, `search`, `swapsort`, `cipher`, `logic`, `machine`, `plot` — pure logic
@@ -70,6 +79,12 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   Python interpreter (`scripts/learn-python.mjs`) — extend it if a lesson needs more Python.
   **After editing content run `node scripts/check-learn.mjs`** (every code answer wins, every
   bug really fails, answers are in their options, every skill is reviewable) — it catches real bugs.
+  **No winning by tapping everything**: LessonPlayer holds taps while a non-reader's question is
+  read, pauses them after a miss, and two quick misses bring the "stop and look" coach; answers
+  that need checking (the net, binary lights) have a Check button instead of finishing themselves;
+  arcade misses cost a point. **Hear buttons sit OUTSIDE answers** (`Hearable`/`HearButton` in
+  `acts/common.tsx`; `useSpeaking` lights whatever is being said) — never put a speaker on or
+  inside an answer tile.
   Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Treasures`
   (reef · stickers · hero cards · trophies · verse vault)/`BrainGym` (the Game Arcade: brain games +
   subject games in `ArcadeGames.tsx`, records as `gym:<game>`)/`HarborShop`/`DailyChest`,
