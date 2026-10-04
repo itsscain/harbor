@@ -77,8 +77,8 @@ export async function assignLesson(childId: string, lessonId: string, note: stri
     .select("id")
     .single();
   if (error || !data) return { ok: false, error: "Couldn't assign that lesson. Try again." };
-  // Assigning from a subject that's switched off (Lighthouse is opt-in) switches it on, so its
-  // island shows up on the wall next to the mission.
+  // Assigning from a subject that's been switched off switches it back on, so its island shows up
+  // on the wall next to the mission.
   let turnedOn = false;
   const { data: prof } = await supabase.from("learn_profiles").select("subjects").eq("child_id", childId).maybeSingle();
   if (prof && !prof.subjects.includes(lesson.subject)) {

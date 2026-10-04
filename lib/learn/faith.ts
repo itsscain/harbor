@@ -8,10 +8,10 @@ import {
   TRUTH_LITTLE, HAPPY_STEPS,
 } from "./behavior";
 
-// Lighthouse — Jesus & the Bible, for families who want it (it's opt-in per child). Built on the
-// shape of the classic children's Bible clubs (Awana and friends): three age tracks that grow with
-// the child, the gospel first and often, Bible stories children can retell, and memory verses said
-// again and again until they're "hid in the heart" (Psalm 119:11).
+// Lighthouse — Jesus & the Bible, on every child's wall by default (a parent can switch it off per
+// child). Built on the shape of the classic children's Bible clubs (Awana and friends): three age
+// tracks that grow with the child, the gospel first and often, Bible stories children can retell,
+// and memory verses said again and again until they're "hid in the heart" (Psalm 119:11).
 //
 //   Little Lights (Pre-K–K)      — God made me, God loves me, Jesus helps; stories acted out,
 //                                  short verses heard and said, obeying with a happy heart.

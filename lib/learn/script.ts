@@ -5,6 +5,8 @@ import { COURSES, unitById } from "./curriculum";
 import { THEMES } from "./meta";
 import { numberWord as numberWordFull } from "./gen";
 import { refSpoken, verseSpeech } from "./bible";
+import { CREATURES, EGG_LOOK } from "./reef";
+import { DECOR, FOODS, TANKS } from "./aquarium";
 
 // Everything Harbor Learn says out loud. Lines are pre-recorded in the Harbor voice
 // (scripts/gen-learn-voice.mjs → /public/learn-voice), so a child who can't read yet always hears
@@ -243,7 +245,6 @@ export const SAY = {
   newEgg: "You found an egg!",
   hatchIt: "Tap the egg to hatch it!",
   hatched: "It hatched! Say hello to your new friend!",
-  reef: "Welcome to your reef!",
   pickBuddy: "Pick a buddy to come along on your voyage!",
   buddyGrew: "Your buddy is growing!",
   newCard: "A new hero card!",
@@ -252,6 +253,34 @@ export const SAY = {
   newBadge: "You earned a badge!",
   trophies: "Your trophy room!",
   verseVault: "Your verse vault! Every gem is a verse in your heart.",
+  // My Aquarium
+  aquarium: "Welcome to your aquarium!",
+  aqFood: "Pick a food. Then tap a friend to feed them!",
+  aqTapFriend: "Now tap a friend to feed them!",
+  aqYumFlakes: "Yum, flakes!",
+  aqYumShrimp: "Shrimp! What a treat!",
+  aqYumGolden: "Golden pellets! Sparkly and yummy!",
+  aqFull: "I'm full! Thank you! Come back tomorrow.",
+  aqOneBite: "Chomp, chomp! One bite at a time.",
+  aqNoFood: "Out of that food! You can buy more with your shells.",
+  aqNoFriends: "Hatch an egg first. Then you can feed your new friend!",
+  aqGrew: "Look! Your friend grew bigger!",
+  aqEggs: "Pick an egg! Every egg hatches a new friend.",
+  aqNewEgg: "A new egg for your nest! Tap it to hatch it.",
+  aqMachine: "The Mystery Egg machine! What will you get?",
+  aqRollSea: "A Sea egg!",
+  aqRollRare: "Wow! A Rare egg!",
+  aqRollGolden: "Amazing! A Golden egg!",
+  aqDecor: "Decorate your tank! Tap something to try it.",
+  aqTanks: "Pick a tank for your friends!",
+  aqNewTank: "A whole new tank!",
+  aqPutAway: "Put away.",
+  aqInTank: "It's in your tank!",
+  aqBook: "Your fish book! Can you find every friend?",
+  aqBuddy: "Your buddy will come along on your voyage!",
+  aqNotFound: "Keep hatching eggs to find this friend!",
+  aqTapAgain: "Tap again to buy it.",
+  levelLock: "Keep learning to unlock this one!",
   // Brain Gym + Brain Boost
   gym: "Welcome to the Brain Gym!",
   ready: "Ready? Go!",
@@ -549,6 +578,13 @@ export function allClips(): Clip[] {
   // Every number word to 100 (and the math words), so any equation can be stitched together.
   for (let i = 0; i <= 100; i++) add({ key: numberWordFull(i), text: numberWordFull(i), kind: "word" });
   for (const w of MATH_WORDS) add({ key: w, text: w, kind: "word" });
+  // My Aquarium: every friend, food, egg, decoration and tank says its name when it's tapped, and
+  // every friend's ocean fact can be heard.
+  for (const cr of CREATURES) {
+    add({ key: cr.name, text: cr.name, kind: "word" });
+    add({ key: cr.fact, text: cr.fact, kind: "line" });
+  }
+  for (const x of [...Object.values(FOODS), ...Object.values(EGG_LOOK), ...DECOR, ...TANKS]) add({ key: x.name, text: x.name, kind: "word" });
   for (const course of Object.values(COURSES))
     for (const u of course.units) {
       const level = voiceLevelFor(u.grade);

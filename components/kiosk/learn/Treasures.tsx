@@ -10,49 +10,34 @@ import { TIER_COLOR, badgeStats, badgesFor, earned, heroCards } from "@/lib/lear
 import { VERSE_BY_ID, refSpoken } from "@/lib/learn/bible";
 import { boxOf, isMastered } from "@/lib/learn/mastery";
 import { albumProgress, STICKERS } from "@/lib/learn/stickers";
-import type { Creature, Egg } from "@/lib/learn/reef";
 import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk } from "./kit";
-import { Reef } from "./Reef";
 import { StickerAlbum } from "./StickerAlbum";
 
-// Treasures: everything a child has collected, one tap from Learn home. The reef (creatures that
-// hatch from earned eggs and grow), the sticker album, Bible hero cards (flip them over), the
-// trophy room (badges for effort as much as for winning), and the verse vault — every memory
-// verse as a gem that glows brighter as it's mastered.
+// Treasures: everything a child has collected, one tap from Learn home. The sticker album, Bible
+// hero cards (flip them over), the trophy room (badges for effort as much as for winning), and the
+// verse vault — every memory verse as a gem that glows brighter as it's mastered. (The creatures
+// live in My Aquarium.)
 
-export type TreasureTab = "reef" | "stickers" | "heroes" | "trophies" | "verses";
+export type TreasureTab = "stickers" | "heroes" | "trophies" | "verses";
 
 export function Treasures({
   kid,
   subjects,
-  eggs,
-  childId,
   reduced,
-  accent,
   tab: initial,
-  autoHatch,
   onBack,
-  onHatch,
-  onBuddy,
 }: {
   kid: KidLearn;
   subjects: SubjectId[];
-  eggs: Egg[];
-  childId: string;
   reduced: boolean;
-  accent: string;
   tab?: TreasureTab;
-  /** Open straight into hatching this egg (from a level's finish screen). */
-  autoHatch?: string;
   onBack: () => void;
-  onHatch: (egg: Egg, creature: Creature) => void;
-  onBuddy: (id: string) => void;
 }) {
   const faith = subjects.includes("faith") || Object.keys(kid.skills).some((k) => k.startsWith("f:"));
-  const [tab, setTab] = useState<TreasureTab>(initial ?? "reef");
+  const [tab, setTab] = useState<TreasureTab>(initial ?? "stickers");
   const cards = useMemo(() => heroCards(kid.lessons), [kid.lessons]);
   const stats = useMemo(() => badgeStats(kid), [kid]);
   const badges = badgesFor(subjects);
@@ -60,7 +45,6 @@ export function Treasures({
   const verses = Object.keys(kid.skills).filter((k) => k.startsWith("f:verse:")).length;
   const found = albumProgress(kid.stickers).reduce((n, s) => n + s.found, 0);
   const TABS: { id: TreasureTab; label: string; emoji: string; sub: string; show: boolean }[] = [
-    { id: "reef", label: "My Reef", emoji: "🐠", sub: eggs.length ? `${eggs.length} egg${eggs.length === 1 ? "" : "s"}!` : `${kid.hatched.length} friend${kid.hatched.length === 1 ? "" : "s"}`, show: true },
     { id: "stickers", label: "Stickers", emoji: "📒", sub: `${found}/${STICKERS.length}`, show: true },
     { id: "heroes", label: "Hero Cards", emoji: "🃏", sub: `${cards.length}/${HEROES.length}`, show: faith },
     { id: "trophies", label: "Trophies", emoji: "🏆", sub: `${badgeCount}/${badges.length}`, show: true },
@@ -83,7 +67,7 @@ export function Treasures({
             onClick={() => {
               sfx("pick");
               setTab(t.id);
-              void say(t.id === "reef" ? SAY.reef : t.id === "stickers" ? SAY.stickerBook : t.id === "heroes" ? SAY.heroBinder : t.id === "trophies" ? SAY.trophies : SAY.verseVault);
+              void say(t.id === "stickers" ? SAY.stickerBook : t.id === "heroes" ? SAY.heroBinder : t.id === "trophies" ? SAY.trophies : SAY.verseVault);
             }}
             className="flex shrink-0 items-center gap-2 px-4 py-2.5"
           >
@@ -96,8 +80,7 @@ export function Treasures({
         ))}
       </div>
 
-      {tab === "reef" && <Reef hatched={kid.hatched} xp={kid.xp} eggs={eggs} buddy={kid.buddy} childId={childId} reduced={reduced} accent={accent} autoHatch={autoHatch} onHatch={onHatch} onBuddy={onBuddy} />}
-      {tab === "stickers" && <StickerAlbum stickers={kid.stickers} onBack={() => setTab("reef")} bare />}
+      {tab === "stickers" && <StickerAlbum stickers={kid.stickers} onBack={onBack} bare />}
       {tab === "heroes" && <HeroBinder cards={cards} reduced={reduced} />}
       {tab === "trophies" && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

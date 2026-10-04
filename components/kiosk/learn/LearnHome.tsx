@@ -15,11 +15,12 @@ import { Chunk, Ring } from "./kit";
 import { SideBoat } from "./KidBoat";
 import { practiceMission, type KidLearnView } from "./learnData";
 
-// The Learn home: the child's own boat (and reef buddy), their shells, streak, level and today's
-// goal at a glance; today's mission front and center (a grown-up's pick, or simply what's next);
-// then one island per subject showing which island of the voyage they're on. The daily chest,
-// Treasures (reef, stickers, hero cards, trophies, verses), Brain Boost (mixed review of what's
-// due), the Game Arcade and the Harbor Shop are one big tap away.
+// The Learn home: the child's own boat (and aquarium buddy), their shells, streak, level and
+// today's goal at a glance; today's mission front and center (a grown-up's pick, or simply what's
+// next); then one island per subject showing which island of the voyage they're on. The daily
+// chest, My Aquarium (eggs, food, decorations), Treasures (stickers, hero cards, trophies,
+// verses), Brain Boost (mixed review of what's due), the Game Arcade and the Harbor Shop are one
+// big tap away.
 
 const nowMs = () => Date.now();
 
@@ -29,9 +30,11 @@ export function LearnHome({
   reduced,
   look,
   eggs = 0,
+  snack = false,
   buddy,
   onStart,
   onOpenSubject,
+  onOpenAquarium,
   onOpenTreasures,
   onOpenShop,
   onOpenGym,
@@ -45,11 +48,14 @@ export function LearnHome({
   view: KidLearnView;
   reduced: boolean;
   look: BoatLook;
-  /** Eggs earned and waiting to hatch. */
+  /** Eggs in the aquarium nest, waiting to hatch. */
   eggs?: number;
+  /** A friend in the aquarium hasn't had a treat today (and there's food). */
+  snack?: boolean;
   buddy?: Creature | null;
   onStart: (lesson: Lesson) => void;
   onOpenSubject: (s: SubjectId) => void;
+  onOpenAquarium: () => void;
   onOpenTreasures: () => void;
   onOpenShop: () => void;
   onOpenGym: () => void;
@@ -138,9 +144,18 @@ export function LearnHome({
       </div>
 
       {/* Quick row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <QuickTile emoji="🎁" title={chestReady ? "Daily chest!" : "Chest opened"} sub={chestReady ? "Tap to open" : "Back tomorrow"} glow={chestReady} reduced={reduced} onClick={() => (sfx("pick"), onOpenChest())} />
-        <QuickTile emoji={eggs ? "🥚" : "💰"} title="Treasures" sub={eggs ? `${eggs} egg${eggs === 1 ? "" : "s"} to hatch!` : `${kid.hatched.length} reef friend${kid.hatched.length === 1 ? "" : "s"}`} glow={eggs > 0} reduced={reduced} badge={eggs || undefined} onClick={() => (sfx("pick"), onOpenTreasures())} />
+        <QuickTile
+          emoji={eggs ? "🥚" : "🐠"}
+          title="Aquarium"
+          sub={eggs ? `${eggs} egg${eggs === 1 ? "" : "s"} to hatch!` : snack ? "Snack time! 😋" : kid.hatched.length ? `${kid.hatched.length} friend${kid.hatched.length === 1 ? "" : "s"}` : "Get an egg!"}
+          glow={eggs > 0}
+          reduced={reduced}
+          badge={eggs || undefined}
+          onClick={() => (sfx("pick"), onOpenAquarium())}
+        />
+        <QuickTile emoji="💰" title="Treasures" sub="Stickers & more" onClick={() => (sfx("pick"), onOpenTreasures())} />
         <QuickTile emoji="⚡" title="Brain Boost" sub={due ? `${due} to refresh` : "All fresh!"} glow={due >= 4} reduced={reduced} disabled={due < 3 || limitHit} onClick={() => (sfx("pick"), onBoost())} />
         <QuickTile emoji="🕹️" title="Arcade" sub="15+ games!" onClick={() => (sfx("pick"), onOpenGym())} />
         <QuickTile emoji="🛍️" title="Shop" sub={`${kid.shells} 🐚 to spend`} onClick={() => (sfx("pick"), void say(SAY.shop), onOpenShop())} />
@@ -276,12 +291,12 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 
 function QuickTile({ emoji, title, sub, onClick, glow, reduced, disabled, badge }: { emoji: string; title: string; sub: string; onClick: () => void; glow?: boolean; reduced?: boolean; disabled?: boolean; badge?: number }) {
   return (
-    <Chunk tone="white" disabled={disabled} onClick={onClick} className={cn("l-rise relative flex items-center gap-3 p-3 text-left", disabled && "opacity-60")}>
+    <Chunk tone="white" disabled={disabled} onClick={onClick} className={cn("l-rise relative flex items-center gap-3 p-3 text-left lg:gap-2 lg:px-2.5", disabled && "opacity-60")}>
       {badge ? <span className="absolute -right-2 -top-2 flex h-8 min-w-8 items-center justify-center rounded-full bg-[var(--l-coral)] px-2 font-display text-lg font-extrabold text-white shadow-[0_3px_0_var(--l-coral-edge)]">{badge}</span> : null}
-      <span className={cn("text-[44px] leading-none", glow && !reduced && "l-chest")}>{emoji}</span>
+      <span className={cn("text-[44px] leading-none lg:text-[36px]", glow && !reduced && "l-chest")}>{emoji}</span>
       <span className="min-w-0">
-        <span className="block truncate font-display text-xl font-extrabold text-[var(--l-ink)]">{title}</span>
-        <span className="block truncate font-display text-sm font-bold text-[var(--l-ink-2)]">{sub}</span>
+        <span className="block truncate font-display text-xl font-extrabold text-[var(--l-ink)] lg:text-base">{title}</span>
+        <span className="block truncate font-display text-sm font-bold text-[var(--l-ink-2)] lg:text-xs">{sub}</span>
       </span>
     </Chunk>
   );

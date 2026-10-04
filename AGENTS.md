@@ -40,8 +40,9 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   seeded helpers in `gen.ts`) → `curriculum.ts` (`courseMap` = voyage map with pass gating ≥1★,
   `startUnitIndex` places a child a grade below theirs, `lessonsForGrade` for parents,
   `practiceLesson`/`spiralItems` = the "double back" review, `mixedPractice` = Brain Boost, an
-  interleaved review of what's due across subjects). **Lighthouse** (`faith`) is opt-in per child
-  (`DEFAULT_SUBJECTS` leaves it out; assigning a faith level switches it on): KJV memory verses
+  interleaved review of what's due across subjects). **Lighthouse** (`faith`) is on for every child
+  by default (`DEFAULT_SUBJECTS`, the `learn_profiles.subjects` default and migration 0078; a parent
+  can switch it off per child, and assigning a level switches its subject back on): KJV memory verses
   with kid meanings in `bible.ts` (vanishing-cue ladder `verseLadder`; skill `f:verse:<id>`),
   scene-by-scene Bible stories with tap/find/collect actions in `stories.ts` (`f:story:<id>`),
   hero cards in `heroes.ts`. Character content (rewind consequences + trust bridge, Truth
@@ -85,18 +86,27 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   arcade misses cost a point. **Hear buttons sit OUTSIDE answers** (`Hearable`/`HearButton` in
   `acts/common.tsx`; `useSpeaking` lights whatever is being said) — never put a speaker on or
   inside an answer tile.
-  Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Treasures`
-  (reef · stickers · hero cards · trophies · verse vault)/`BrainGym` (the Game Arcade: brain games +
+  Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Aquarium`/`Treasures`
+  (stickers · hero cards · trophies · verse vault)/`BrainGym` (the Game Arcade: brain games +
   subject games in `ArcadeGames.tsx`, records as `gym:<game>`)/`HarborShop`/`DailyChest`,
   the child's boat in `KidBoat.tsx`, activities in `components/kiosk/learn/acts/*` (one `Visual`
   renderer for all pictures; `StoryAct`, `VerseAct`, `CharacterActs` = spot/slots/reflect) and
   `code/*` (block editor + stages). Rewards: shells (`meta.ts`), sticker sets/rarity/shiny
-  (`stickers.ts`), reef creatures (`reef.ts`: eggs are DERIVED from milestones, only hatches are
-  stored; creatures grow with XP since hatching; one is the lesson "buddy"), badges (`badges.ts`,
-  derived). Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill
-  stats, kind, shells) + a ledger (`earn`/`spend`/`look`/`daily`/`collect` = hatch or buddy,
-  `best` = Brain Gym record; spends balance-checked, gym shells capped at 3 rounds/day) in
-  `learnOutbox`/`learnEvents`, `finishLesson`/`learnEvent` in `useKiosk`.
+  (`stickers.ts`), creatures (`reef.ts`: earned eggs are DERIVED from milestones, only hatches are
+  stored; creatures grow with XP since hatching plus treats; one is the lesson "buddy"), badges
+  (`badges.ts`, derived). **My Aquarium** (`components/kiosk/learn/Aquarium.tsx`, catalog +
+  derivation in `lib/learn/aquarium.ts`) is where shells go: food packs (feeding = hearts + growth,
+  3 treats per creature per day, never sickness or guilt), the Egg Shop + Mystery Egg machine (odds
+  printed, every 10th roll Rare+; buying is never worse than rolling), decorations (try on in the
+  tank, put away / bring back) and tank themes, and the Fish Book. Every buy is two taps ("tap
+  again to buy it"). Purchases are ordinary `spend` events whose item carries a unique id
+  (`food:<kind>:<id>`, `egg:<tier>:<id>`, `roll:<n>:<id>`, `decor:<id>`, `tank:<id>`) so the
+  snapshot's distinct `owned` list still counts them; meals are `collect` `feed:<food>:<egg>`
+  (summed per creature as `fed` in `learn_snapshot`, not in `collected`); tank and decoration
+  choices are `collect` `aq:tank:<id>` / `aq:off:<id>` / `aq:on:<id>`. Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill
+  stats, kind, shells) + a ledger (`earn`/`spend`/`look`/`daily`/`collect` = hatch, buddy,
+  tutorial, meal or aquarium choice, `best` = Brain Gym record; spends balance-checked, gym shells
+  capped at 3 rounds/day) in `learnOutbox`/`learnEvents`, `finishLesson`/`learnEvent` in `useKiosk`.
   Parent side: Learn tab (`KidLearnView`, `KidLearnParts`, `children/learn-actions.ts`,
   `lib/learn/parent.ts`; missions can be a level or `practice:<subject>`; the tab also shows
   memory verses and "talk about it" prompts); alerts via the `learn_notify` trigger →

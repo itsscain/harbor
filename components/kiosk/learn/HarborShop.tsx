@@ -119,7 +119,7 @@ export function HarborShop({
               const on = equipped(it);
               const locked = !have && (it.level ?? 0) > level;
               return (
-                <Chunk key={it.id} tone="white" onClick={() => tapItem(it)} className={cn("relative flex flex-col items-center gap-2 p-3", preview?.id === it.id && "ring-[5px] ring-[var(--l-gold)]", on && "ring-[5px] ring-[var(--l-green)]")}>
+                <Chunk key={it.id} tone="white" onClick={() => tapItem(it)} className={cn("relative flex flex-col items-center gap-2 p-3", preview?.id === it.id && "outline-[5px] outline-[var(--l-gold)]", on && "outline-[5px] outline-[var(--l-green)]")}>
                   <ItemSwatch it={it} />
                   <span className="text-center font-display text-base font-extrabold leading-tight text-[var(--l-ink)]">{it.name}</span>
                   {on ? (

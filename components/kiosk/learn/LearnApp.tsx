@@ -13,6 +13,7 @@ import { prefetchLibrary, say, stopVoice } from "@/lib/learn/audio";
 import { setSfx } from "@/lib/learn/sfx";
 import { badgeStats, badgesFor, earned, heroCards } from "@/lib/learn/badges";
 import { CREATURE_BY_ID, eggsEarned, eggsWaiting, growth, type Creature, type Egg } from "@/lib/learn/reef";
+import { FOOD_ORDER, aquariumOf, foodGrowth, type FoodKind } from "@/lib/learn/aquarium";
 import { dayKeyInTz } from "@/lib/tz";
 import { LearnHome } from "./LearnHome";
 import { VoyageMap } from "./VoyageMap";
@@ -21,6 +22,7 @@ import { DailyChest, dailyPrize } from "./DailyChest";
 import { LessonPlayer, type LessonOutcome } from "./LessonPlayer";
 import { LessonDone, type DoneInfo } from "./LessonDone";
 import { Treasures, type TreasureTab } from "./Treasures";
+import { Aquarium } from "./Aquarium";
 import { BrainGym, type GymGame } from "./BrainGym";
 import { kidLearnView, starsForLesson } from "./learnData";
 
@@ -36,7 +38,8 @@ type Kiosk = ReturnType<typeof useKiosk>;
 type Screen =
   | { s: "home" }
   | { s: "map"; subject: SubjectId; sailFrom?: string | null }
-  | { s: "treasures"; tab?: TreasureTab; hatch?: string }
+  | { s: "treasures"; tab?: TreasureTab }
+  | { s: "aquarium"; hatch?: string }
   | { s: "shop" }
   | { s: "gym" }
   | { s: "lesson"; lesson: Lesson; playId: string; back: Screen }
@@ -124,9 +127,14 @@ export function LearnApp({
       start(p, back);
     } else void say(SAY.keepGoing);
   };
-  const eggs = eggsWaiting(kid, kid.hatched);
+  const aq = aquariumOf(kid.owned, kid.fed, kid.tank);
+  const eggs = eggsWaiting(kid, kid.hatched, aq.eggs);
   const buddyHatch = kid.hatched.find((h) => h.creature === (kid.buddy ?? kid.hatched[0]?.creature)) ?? null;
   const buddyCreature = buddyHatch ? (CREATURE_BY_ID.get(buddyHatch.creature) ?? null) : null;
+  // Treats help a creature grow, on top of the XP the child earns.
+  const buddyBonus = buddyHatch ? foodGrowth(kid.fed[buddyHatch.egg]) : 0;
+  /** Someone hasn't had a treat today and there's food to give. */
+  const snack = kid.hatched.some((h) => (kid.fed[h.egg]?.today ?? 0) === 0) && FOOD_ORDER.some((k) => aq.food[k] > 0);
 
   const complete = (lesson: Lesson, playId: string, o: LessonOutcome, back: Screen) => {
     const isPractice = lesson.kind === "practice";
@@ -190,7 +198,7 @@ export function LearnApp({
     const statsBefore = badgeStats(kid);
     const statsAfter = badgeStats(after);
     const newBadges = badgesFor(profile.subjects).filter((b) => !earned(b, statsBefore) && earned(b, statsAfter));
-    const grew = buddyHatch ? growth(kid.xp + xpGain, buddyHatch).index > growth(kid.xp, buddyHatch).index : false;
+    const grew = buddyHatch ? growth(kid.xp + xpGain, buddyHatch, buddyBonus).index > growth(kid.xp, buddyHatch, buddyBonus).index : false;
     const info: DoneInfo = {
       passed,
       stars,
@@ -216,7 +224,7 @@ export function LearnApp({
       eggs: newEggs,
       badges: newBadges,
       challenge: passed && unit?.challenge ? unit.challenge : null,
-      buddy: buddyCreature && passed ? { creature: buddyCreature, grew: grew && buddyHatch ? growth(kid.xp + xpGain, buddyHatch).stage.name : null } : null,
+      buddy: buddyCreature && passed ? { creature: buddyCreature, grew: grew && buddyHatch ? growth(kid.xp + xpGain, buddyHatch, buddyBonus).stage.name : null } : null,
     };
     const best = (id: string) => (id === lesson.id ? Math.max(prevBest, stars) : kid.lessons[id] ? kid.lessons[id].stars : null);
     const stillAssigned = assignments.map((a) => a.lesson_id).filter((id) => id !== lesson.id || !passed);
@@ -240,6 +248,12 @@ export function LearnApp({
   };
   const hatch = (egg: Egg, creature: Creature) => event({ op_id: `hatch:${child.id}:${egg.id}`, type: "collect", item: `hatch:${egg.id}`, data: { creature: creature.id, xp: kid.xp } });
   const pickBuddy = (id: string) => event({ op_id: `buddy:${child.id}:${newPlayId()}`, type: "collect", item: `buddy:${id}` });
+  // My Aquarium. Every purchase's item is unique (packs, eggs and rolls carry their own id), so the
+  // op id is too — and a second tap on the same decoration or tank can't charge twice.
+  const aqSpend = (item: string, price: number) => event({ op_id: `buy:${child.id}:${item}`, type: "spend", amount: price, item });
+  const aqFeed = (food: FoodKind, egg: string) => event({ op_id: `feed:${child.id}:${egg}:${newPlayId()}`, type: "collect", item: `feed:${food}:${egg}` });
+  const aqTank = (id: string) => event({ op_id: `aq:${child.id}:${newPlayId()}`, type: "collect", item: `aq:tank:${id}` });
+  const aqDecor = (id: string, on: boolean) => event({ op_id: `aq:${child.id}:${newPlayId()}`, type: "collect", item: `aq:${on ? "on" : "off"}:${id}` });
   const gymResult = (game: GymGame, score: number, shells: number) => {
     if (score > (kid.bests[game] ?? 0)) event({ op_id: `best:${child.id}:${game}:${newPlayId()}`, type: "best", item: `gym:${game}`, amount: Math.min(1000, score) });
     if (shells > 0) event({ op_id: `gym:${child.id}:${newPlayId()}`, type: "earn", amount: shells, reason: "gym" });
@@ -255,9 +269,11 @@ export function LearnApp({
         reduced={reduced}
         look={look}
         eggs={eggs.length}
+        snack={snack}
         buddy={buddyCreature}
         onStart={(l) => start(l, { s: "home" })}
         onOpenSubject={(subject) => setScreen({ s: "map", subject })}
+        onOpenAquarium={() => setScreen({ s: "aquarium" })}
         onOpenTreasures={() => setScreen({ s: "treasures" })}
         onOpenShop={() => setScreen({ s: "shop" })}
         onOpenGym={() => setScreen({ s: "gym" })}
@@ -284,18 +300,22 @@ export function LearnApp({
       />
     );
   } else if (screen.s === "treasures") {
+    body = <Treasures key={screen.tab ?? "stickers"} kid={kid} subjects={profile.subjects} reduced={reduced} tab={screen.tab} onBack={() => setScreen({ s: "home" })} />;
+  } else if (screen.s === "aquarium") {
     body = (
-      <Treasures
-        key={screen.tab ?? "reef"}
+      <Aquarium
+        key={screen.hatch ?? "tank"}
         kid={kid}
-        subjects={profile.subjects}
         eggs={eggs}
         childId={child.id}
         reduced={reduced}
         accent={accent}
-        tab={screen.tab}
         autoHatch={screen.hatch}
         onBack={() => setScreen({ s: "home" })}
+        onSpend={aqSpend}
+        onFeed={aqFeed}
+        onTank={aqTank}
+        onDecor={aqDecor}
         onHatch={hatch}
         onBuddy={pickBuddy}
       />
@@ -315,7 +335,7 @@ export function LearnApp({
         voice={voice}
         look={look}
         reduced={reduced}
-        buddy={buddyCreature && buddyHatch ? { creature: buddyCreature, scale: growth(kid.xp, buddyHatch).stage.scale } : null}
+        buddy={buddyCreature && buddyHatch ? { creature: buddyCreature, scale: growth(kid.xp, buddyHatch, buddyBonus).stage.scale } : null}
         tutorials={[...kid.tutorials].sort().join(",")}
         onTutorial={(id) => event({ op_id: `tutorial:${child.id}:${id}`, type: "collect", item: `tutorial:${id}` })}
         onExit={() => setScreen(here.back)}
@@ -337,7 +357,7 @@ export function LearnApp({
         onRetry={() => start(here.lesson, here.back)}
         onPractice={() => practice(here.lesson.subject, here.back, here.missed)}
         onHome={() => setScreen(here.back)}
-        onHatch={() => setScreen({ s: "treasures", tab: "reef", hatch: here.info.eggs?.[0]?.id })}
+        onHatch={() => setScreen({ s: "aquarium", hatch: here.info.eggs?.[0]?.id })}
       />
     );
   }

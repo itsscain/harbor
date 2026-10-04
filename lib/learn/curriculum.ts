@@ -15,8 +15,9 @@ import { rng, shuffle } from "./gen";
 
 export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, science: SCIENCE, manners: MANNERS, faith: FAITH };
 export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners", "faith"];
-/** What a child gets before a grown-up chooses. Lighthouse (faith) is opt-in, family by family. */
-export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners"];
+/** What a child gets before a grown-up chooses: every course, Lighthouse (faith) included. A
+ *  parent can still switch any course off for a child. */
+export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners", "faith"];
 export const isSubject = (s: unknown): s is SubjectId => typeof s === "string" && (SUBJECTS as string[]).includes(s);
 
 /** Kid-facing look for each subject. */

@@ -1,6 +1,7 @@
 import type { LearnResult, LessonProgress, SubjectId } from "./types";
 import { mergeSkills, type Skills } from "./mastery";
 import { DEFAULT_LOOK, STARTER_ITEMS, TITLES, lookFrom, type BoatLook } from "./meta";
+import { FOOD_ORDER, type Fed, type FoodKind } from "./aquarium";
 
 // A kid's Learn progress, merged from what the server knows and what this screen finished but
 // hasn't synced yet — so stars, streaks, shells, stickers and skills are right even offline.
@@ -11,8 +12,9 @@ export type LearnEvent = {
   child_id: string;
   /** earn: chest/fish/set bonus · spend: shop purchase · look: boat change · daily: daily chest ·
    *  collect: an egg hatched ("hatch:<egg>", data {creature, xp}), a reef buddy picked
-   *  ("buddy:<creature>") or a tutorial finished ("tutorial:<id>") · best: a Brain Gym record
-   *  ("gym:<game>", amount = score). */
+   *  ("buddy:<creature>"), a tutorial finished ("tutorial:<id>"), a creature fed
+   *  ("feed:<food>:<egg>"), a tank chosen ("aq:tank:<id>") or a decoration put away / back
+   *  ("aq:off:<id>" / "aq:on:<id>") · best: a Brain Gym record ("gym:<game>", amount = score). */
   type: "earn" | "spend" | "look" | "daily" | "collect" | "best";
   amount?: number;
   item?: string;
@@ -47,6 +49,8 @@ export type LearnSnapshot = {
       bests?: Record<string, number>;
       /** Brain Gym rounds that paid shells today (family day). */
       gym_today?: number;
+      /** Meals per creature (by egg): [flakes, shrimp, golden, last meal, meals today]. */
+      fed?: Record<string, [number, number, number, string | null, number]>;
     }
   >;
   server_time?: string;
@@ -80,6 +84,10 @@ export type KidLearn = {
   gymToday: number;
   /** Tutorials this child has finished (e.g. "boat" — Boat School). */
   tutorials: Set<string>;
+  /** Every creature's meals (by egg), the aquarium tank in use, and decorations put away. */
+  fed: Record<string, Fed>;
+  tank: string | null;
+  decorOff: Set<string>;
 };
 
 export const XP_PER_LEVEL = 150;
@@ -129,10 +137,28 @@ export function mergeKid(
   const serverGym = base?.gym_today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.gym_today : 0;
   let gymToday = serverGym ?? 0;
   const tutorials = new Set<string>();
+  let tank: string | null = null;
+  const decorOff = new Set<string>();
+  // Meals: the server's totals (a meal from before today doesn't count toward today), then
+  // anything eaten on this screen since the last sync.
+  const fed: Record<string, Fed> = {};
+  for (const [egg, [flakes, shrimp, golden, last, today]] of Object.entries(base?.fed ?? {}))
+    fed[egg] = { n: { flakes, shrimp, golden }, last, today: last && dayOf(last) === todayKey ? today : 0 };
   const collect = (item: string, data: { creature?: string; xp?: number } | null | undefined, at: string) => {
     if (item.startsWith("hatch:") && data?.creature && !hatched.some((h) => h.egg === item.slice(6))) hatched.push({ egg: item.slice(6), creature: data.creature, xp: Math.max(0, Number(data.xp) || 0), at });
     if (item.startsWith("buddy:")) buddy = item.slice(6) || null;
     if (item.startsWith("tutorial:")) tutorials.add(item.slice(9));
+    if (item.startsWith("aq:tank:")) tank = item.slice(8) || null;
+    if (item.startsWith("aq:off:")) decorOff.add(item.slice(7));
+    if (item.startsWith("aq:on:")) decorOff.delete(item.slice(6));
+  };
+  /** A meal eaten on this screen (not in the server's totals yet). */
+  const eat = (item: string, at: string) => {
+    const kind = item.split(":")[1] as FoodKind;
+    if (!FOOD_ORDER.includes(kind)) return;
+    const egg = item.slice(6 + kind.length);
+    const f = fed[egg] ?? { n: { flakes: 0, shrimp: 0, golden: 0 }, last: null, today: 0 };
+    fed[egg] = { n: { ...f.n, [kind]: f.n[kind] + 1 }, last: !f.last || at > f.last ? at : f.last, today: f.today + (dayOf(at) === todayKey ? 1 : 0) };
   };
   for (const [item, data, at] of base?.collected ?? []) collect(item, data, at);
   const serverToday = base?.today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.today : null;
@@ -160,7 +186,8 @@ export function mergeKid(
       const id = e.item.slice(8);
       stickers[id] = (stickers[id] ?? 0) + 1;
     }
-    if (e.type === "collect" && e.item) collect(e.item, e.data, e.at);
+    if (e.type === "collect" && e.item?.startsWith("feed:")) eat(e.item, e.at);
+    else if (e.type === "collect" && e.item) collect(e.item, e.data, e.at);
     if (e.type === "best" && e.item?.startsWith("gym:")) bests[e.item.slice(4)] = Math.max(bests[e.item.slice(4)] ?? 0, e.amount ?? 0);
     if (e.type === "earn" && e.reason === "gym" && dayOf(e.at) === todayKey) gymToday++;
   }
@@ -189,6 +216,9 @@ export function mergeKid(
     bests,
     gymToday,
     tutorials,
+    fed,
+    tank,
+    decorOff,
   };
 }
 

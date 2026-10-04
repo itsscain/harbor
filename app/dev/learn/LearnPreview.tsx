@@ -66,12 +66,20 @@ function makeState(grade: string, fresh: boolean): KioskState {
               "f:story:creation": [4, 4, now, "1"],
               "f:verse:gen1-1": [3, 4, now, "0"],
             },
-            shells: 240,
-            owned: ["sail-stripes"],
+            shells: 640,
+            // A few aquarium things: two eggs bought (hatched below), a flakes pack, three decorations.
+            owned: ["sail-stripes", "egg:sea:dev002", "egg:rare:dev003", "food:flakes:dev001", "decor:grass", "decor:castle", "decor:balloon"],
             look: { hull: "hull-coral", sail: "sail-stripes", flag: "flag-pennant", pet: null, trail: null },
             daily: null,
-            // A returning learner has been through Boat School (a fresh one gets it first).
-            collected: [["tutorial:boat", null, now]],
+            // A returning learner has been through Boat School (a fresh one gets it first) and has
+            // three aquarium friends, one of which had two treats today.
+            collected: [
+              ["tutorial:boat", null, now],
+              ["hatch:welcome", { creature: "sunny", xp: 0 }, now],
+              ["hatch:egg:sea:dev002", { creature: "inky", xp: 40 }, now],
+              ["hatch:egg:rare:dev003", { creature: "shelly", xp: 100 }, now],
+            ],
+            fed: { welcome: [2, 0, 0, now, 2] },
           },
         },
     server_time: now,

@@ -4,16 +4,17 @@ import { isMastered, type Skills } from "./mastery";
 import { albumProgress } from "./stickers";
 import type { Hatch } from "./progress";
 
-// My Reef — a living aquarium the child fills by learning. Eggs are EARNED by real milestones
-// (finishing an island, a perfect boss, a streak, a filled sticker set, verses hidden in the
-// heart, skills mastered) — so every creature stands for something the child did. Tap an egg to
-// hatch it; the creature that comes out swims in the reef forever and grows up as the child keeps
-// learning (it never gets sick or sad — no guilt mechanics, ever). One creature can be the
-// "buddy" that cheers from the corner of every lesson. Each one comes with a true ocean fact.
+// The creatures of My Aquarium — a living tank the child fills by learning. Eggs are EARNED by
+// real milestones (finishing an island, a perfect boss, a streak, a filled sticker set, verses
+// hidden in the heart, skills mastered) — so every creature stands for something the child did —
+// or bought with shells (aquarium.ts). Tap an egg to hatch it; the creature that comes out swims in
+// the tank forever and grows up as the child keeps learning and treats it to food (it never gets
+// sick or sad — no guilt mechanics, ever). One creature can be the "buddy" that cheers from the
+// corner of every lesson. Each one comes with a true ocean fact.
 //
-// Eggs are derived from progress (nothing to store, and a child who already did the work finds
-// eggs waiting); only the hatching — which creature, and the XP it started growing from — is
-// stored, as a "collect" ledger event.
+// Earned eggs are derived from progress (nothing to store, and a child who already did the work
+// finds eggs waiting); only the hatching — which creature, and the XP it started growing from —
+// is stored, as a "collect" ledger event.
 
 export type CreatureRarity = "common" | "rare" | "epic" | "legendary";
 export type Creature = { id: string; name: string; kind: string; emoji: string; rarity: CreatureRarity; fact: string; /** a color twist (CSS filter) for rare variants */ tint?: string };
@@ -117,7 +118,8 @@ function hash(s: string): number {
   return (h >>> 0) / 4294967296;
 }
 
-const WEIGHTS: Record<EggTier, Record<CreatureRarity, number>> = {
+/** The chance (in %) of each rarity hatching from each egg — shown on the eggs in the shop. */
+export const EGG_ODDS: Record<EggTier, Record<CreatureRarity, number>> = {
   sea: { common: 70, rare: 25, epic: 5, legendary: 0 },
   rare: { common: 25, rare: 50, epic: 20, legendary: 5 },
   golden: { common: 0, rare: 35, epic: 45, legendary: 20 },
@@ -125,7 +127,7 @@ const WEIGHTS: Record<EggTier, Record<CreatureRarity, number>> = {
 
 /** What hatches from an egg: rarity by the egg's tier, and something new when possible. */
 export function hatchCreature(seed: string, tier: EggTier, owned: string[]): Creature {
-  const w = WEIGHTS[tier];
+  const w = EGG_ODDS[tier];
   const total = w.common + w.rare + w.epic + w.legendary;
   const roll = hash(`${seed}:r`) * total;
   const rarity: CreatureRarity = roll < w.legendary ? "legendary" : roll < w.legendary + w.epic ? "epic" : roll < w.legendary + w.epic + w.rare ? "rare" : "common";
@@ -142,17 +144,18 @@ export const GROWTH = [
   { at: 500, name: "Grown", scale: 1.15 },
   { at: 1200, name: "Royal", scale: 1.3 },
 ];
-/** A creature's stage from the XP earned since it hatched (each level passed feeds every creature). */
-export function growth(xpNow: number, h: Hatch) {
-  const gained = Math.max(0, xpNow - h.xp);
+/** A creature's stage from the XP earned since it hatched (each level passed feeds every creature)
+ *  plus `bonus` — the growth from treats it's been fed in the aquarium. */
+export function growth(xpNow: number, h: Hatch, bonus = 0) {
+  const gained = Math.max(0, xpNow - h.xp) + bonus;
   let i = 0;
   while (i + 1 < GROWTH.length && gained >= GROWTH[i + 1].at) i++;
   const next = GROWTH[i + 1];
   return { stage: GROWTH[i], index: i, gained, next, toNext: next ? next.at - gained : 0, royal: i === GROWTH.length - 1 };
 }
 
-/** Eggs earned but not hatched yet. */
-export function eggsWaiting(p: Progress, hatched: Hatch[]): Egg[] {
+/** Eggs earned (and `bought` in the aquarium) but not hatched yet. */
+export function eggsWaiting(p: Progress, hatched: Hatch[], bought: Egg[] = []): Egg[] {
   const done = new Set(hatched.map((h) => h.egg));
-  return eggsEarned(p).filter((e) => !done.has(e.id));
+  return [...eggsEarned(p), ...bought].filter((e) => !done.has(e.id));
 }
