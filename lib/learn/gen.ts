@@ -114,6 +114,8 @@ export type Stage = {
   /** Per-level titles (overrides "Title 1, Title 2…"). */
   titles?: string[];
   emojis?: string[];
+  /** Per-level Bible hero cards (earned the first time that level is passed). */
+  cards?: (string | undefined)[];
 };
 
 export type WorldDef = {
@@ -126,25 +128,56 @@ export type WorldDef = {
   /** Items per lesson (default 7). */
   items?: number;
   theme?: ThemeId;
+  /** Dinner-table questions for grown-ups. */
+  talk?: string[];
+  /** A real-world mission shown after its levels. */
+  challenge?: string;
 };
 
-const keyOf = (a: Activity) => JSON.stringify(a);
+/** What makes two items "the same" inside one level: the situation, not the order its choices
+ *  happen to be shuffled in (so a lesson never shows the same story twice). */
+export function keyOf(a: Activity): string {
+  switch (a.kind) {
+    case "scenario":
+      return `scenario|${a.story}`;
+    case "choice":
+      return `choice|${a.prompt}|${a.answer}|${a.visual ? JSON.stringify(a.visual) : ""}`;
+    case "slots":
+      return `slots|${a.story ?? ""}|${a.prompt}`;
+    case "spot":
+      return `spot|${a.title ?? ""}|${a.lines.map((l) => l.text).join("|")}`;
+    case "reflect":
+      return `reflect|${a.prompt}`;
+    case "sort":
+      return `sort|${a.prompt}|${a.items.map((i) => i.id).sort().join(",")}`;
+    case "match":
+      return `match|${a.prompt}|${a.pairs.map((p) => p.a.id).sort().join(",")}`;
+    default:
+      return JSON.stringify(a);
+  }
+}
 
-/** Generate n distinct items cycling through topics. */
+/** Generate n distinct items cycling through topics (a topic that has run out of fresh items
+ *  just yields its turn — it never blocks the others). */
+/** A sort is a whole pile of cards to drag — four from the same bank is plenty for one level. */
+const SORT_CAP = 4;
+
 export function items(r: Rng, topics: Topic[], n: number, d0: number, d1: number): Activity[] {
   const out: Activity[] = [];
   const seen = new Set<string>();
+  const sorts = new Map<string, number>();
   let i = 0;
   let guard = 0;
   while (out.length < n && guard++ < n * 12) {
-    const t = topics[i % topics.length];
+    const t = topics[i++ % topics.length];
     const d = n <= 1 ? d1 : d0 + ((d1 - d0) * out.length) / (n - 1);
     const a = t.gen(r, Math.max(0, Math.min(1, d)));
+    if (a.kind === "sort" && (sorts.get(t.key) ?? 0) >= SORT_CAP) continue;
     const k = keyOf(a);
     if (!seen.has(k)) {
       seen.add(k);
       out.push(a);
-      i++;
+      if (a.kind === "sort") sorts.set(t.key, (sorts.get(t.key) ?? 0) + 1);
     }
   }
   return out;
@@ -167,7 +200,8 @@ export function buildWorlds(subject: SubjectId, prefix: string, defs: WorldDef[]
         const d1 = Math.min(1, d0 + 0.35);
         const acts = st.fixed ? st.fixed(r, li) : items(r, st.topics, st.items ?? w.items ?? 7, d0, d1);
         const title = st.titles?.[li] ?? (st.levels > 1 ? `${st.title} ${li + 1}` : st.title);
-        add({ kind: "lesson", title, emoji: st.emojis?.[li] ?? st.emoji, activities: acts, skills: [...new Set(acts.map((a) => a.skill ?? ""))].filter(Boolean) });
+        const card = st.cards?.[li];
+        add({ kind: "lesson", title, emoji: st.emojis?.[li] ?? st.emoji, activities: acts, skills: [...new Set(acts.map((a) => a.skill ?? ""))].filter(Boolean), ...(card ? { card } : {}) });
       }
       done.push(...st.topics);
       if (si % 2 === 1 && si < w.stages.length - 1) {
@@ -179,7 +213,19 @@ export function buildWorlds(subject: SubjectId, prefix: string, defs: WorldDef[]
     const rb = rng(`${w.id}:boss`);
     const boss = items(rb, shuffle(rb, done), 10, 0.6, 1);
     add({ kind: "boss", title: `${w.title} boss`, emoji: "🐙", activities: boss, skills: [...new Set(boss.map((a) => a.skill ?? ""))].filter(Boolean) });
-    return { id: `${prefix}.${w.id}`, subject, n: worldOffset + wi + 1, title: w.title, emoji: w.emoji, grade: w.grade, theme: w.theme ?? themeFor(worldOffset + wi), blurb: w.blurb, lessons };
+    return {
+      id: `${prefix}.${w.id}`,
+      subject,
+      n: worldOffset + wi + 1,
+      title: w.title,
+      emoji: w.emoji,
+      grade: w.grade,
+      theme: w.theme ?? themeFor(worldOffset + wi),
+      blurb: w.blurb,
+      lessons,
+      ...(w.talk ? { talk: w.talk } : {}),
+      ...(w.challenge ? { challenge: w.challenge } : {}),
+    };
   });
 }
 

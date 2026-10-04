@@ -233,6 +233,15 @@ export function useShuffled<T>(items: T[], seed: string): T[] {
   return out;
 }
 
+/** Shuffled, but never in the original order (for "put these in order" — it can't start solved). */
+export function useShuffledApart<T>(items: T[], seed: string): T[] {
+  const [out] = useState(() => {
+    const s = shuffleSeeded(items, seed);
+    return items.length > 1 && s.every((x, i) => x === items[i]) ? [...s.slice(1), s[0]] : s;
+  });
+  return out;
+}
+
 export function shuffleSeeded<T>(items: T[], seed: string): T[] {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);

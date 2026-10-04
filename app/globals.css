@@ -1218,6 +1218,58 @@ html[data-sheet-open] .toast-host {
 /* After a win, the boat sails down the lane to the next level, then bobs there. */
 @keyframes l-sail-in { 0% { transform: translate(40px, -150px) rotate(-6deg); opacity: 0.4; } 55% { transform: translate(-6px, 10px) rotate(4deg); opacity: 1; } 100% { transform: none; } }
 .l-sail-in { animation: l-sail-in 1.5s cubic-bezier(0.22, 1, 0.36, 1) both, l-sail 2.4s ease-in-out 1.5s infinite; }
+/* Stories: each scene sweeps in; things float in the sky, sway on the ground; stars twinkle. */
+@keyframes l-scene-in { 0% { transform: translateX(40px) scale(0.97); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.l-scene-in { animation: l-scene-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes l-float { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-10px) translateX(6px); } }
+.l-float { display: inline-block; animation: l-float 4.2s ease-in-out infinite; }
+@keyframes l-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.l-sway { display: inline-block; transform-origin: 50% 100%; animation: l-sway 3.1s ease-in-out infinite; }
+@keyframes l-twinkle { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.25); } }
+.l-twinkle { animation: l-twinkle 2.4s ease-in-out infinite; }
+@keyframes l-rain { to { background-position: -40px 220px; } }
+.l-rain { background-image: repeating-linear-gradient(105deg, rgba(255,255,255,0.0) 0 14px, rgba(255,255,255,0.55) 14px 15px, rgba(255,255,255,0) 15px 30px); background-size: 120px 220px; animation: l-rain 0.6s linear infinite; }
+/* Scripture: the scroll glows when a verse is complete; the active blank breathes; first-letter
+   cues dissolve into the real words; a caret waits for the next piece. */
+@keyframes l-verse-glow { 0%, 100% { box-shadow: 0 9px 0 #e3c98e, 0 0 0 0 rgba(255, 200, 61, 0); } 50% { box-shadow: 0 9px 0 #e3c98e, 0 0 34px 8px rgba(255, 200, 61, 0.55); } }
+.l-verse-glow { animation: l-verse-glow 1.8s ease-in-out infinite; }
+@keyframes l-blank { 0%, 100% { background-color: rgba(255, 200, 61, 0.18); } 50% { background-color: rgba(255, 200, 61, 0.45); } }
+.l-blank { animation: l-blank 1.3s ease-in-out infinite; }
+@keyframes l-reveal { 0% { opacity: 0.2; filter: blur(3px); } 100% { opacity: 1; filter: none; } }
+.l-reveal { animation: l-reveal 0.7s ease-out both; }
+@keyframes l-caret { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+.l-caret { animation: l-caret 1s step-end infinite; }
+/* Truth Detective: the FOUND stamp thumps down. */
+@keyframes l-stamp { 0% { transform: scale(2.4) rotate(-10deg); opacity: 0; } 60% { transform: scale(0.9) rotate(-10deg); opacity: 1; } 100% { transform: scale(1) rotate(-10deg); } }
+.l-stamp { animation: l-stamp 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+/* Rewind: the whole scene spins back like a tape. */
+@keyframes l-rewind { 0% { transform: none; filter: none; } 30% { transform: translateX(-26px) skewX(6deg); filter: saturate(0.3) contrast(1.2) blur(1px); } 60% { transform: translateX(22px) skewX(-5deg); filter: saturate(0.3) blur(2px); } 100% { transform: none; filter: none; } }
+.l-rewind { animation: l-rewind 0.75s ease-in-out; }
+@keyframes l-droop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.05) rotate(-4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+.l-droop { animation: l-droop 0.6s ease-out both; }
+@keyframes l-plank-in { 0% { transform: translateY(-30px) rotate(-30deg); opacity: 0; } 70% { transform: translateY(3px) rotate(4deg); opacity: 1; } 100% { transform: none; } }
+.l-plank-in { animation: l-plank-in 0.7s cubic-bezier(0.3, 1.3, 0.5, 1) 0.3s both; }
+@keyframes l-plank-fall { 0% { transform: none; opacity: 1; background-color: #c98a4a; } 100% { transform: translateY(40px) rotate(35deg); opacity: 0; background-color: #c98a4a; } }
+.l-plank-fall { animation: l-plank-fall 0.9s ease-in 0.3s both; }
+/* The reef buddy hops for joy on a right answer. */
+@keyframes l-hop { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-28px) rotate(-12deg) scale(1.1); } 60% { transform: translateY(0) rotate(8deg); } 80% { transform: translateY(-8px); } }
+.l-hop { animation: l-hop 0.7s cubic-bezier(0.3, 1.4, 0.5, 1); }
+/* A hero card flips into view. */
+@keyframes l-card-in { 0% { transform: perspective(800px) rotateY(-100deg) scale(0.7); opacity: 0; } 60% { transform: perspective(800px) rotateY(12deg) scale(1.04); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.l-card-in { animation: l-card-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* My Reef: deep water with light rippling down, rising bubbles, and creatures that swim back and
+   forth across the tank (turning to face the way they go — the flip runs at twice the swim's
+   period, so it turns exactly at each end). */
+.reef-tank { background: radial-gradient(120% 70% at 50% -10%, #8ee6ff 0%, transparent 55%), linear-gradient(180deg, #3cc4ee 0%, #1691cf 45%, #0b5fa5 100%); }
+@keyframes reef-rays { 0% { background-position: 0 0; opacity: 0.35; } 50% { opacity: 0.55; } 100% { background-position: 240px 0; opacity: 0.35; } }
+.reef-rays { background: repeating-linear-gradient(100deg, rgba(255,255,255,0) 0 60px, rgba(255,255,255,0.18) 60px 90px, rgba(255,255,255,0) 90px 160px); -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 75%); mask-image: linear-gradient(180deg, #000 0%, transparent 75%); animation: reef-rays 12s linear infinite; }
+@keyframes reef-bubble { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(-560px) translateX(14px); opacity: 0; } }
+.reef-bubble { animation: reef-bubble 9s linear infinite; }
+@keyframes reef-x { from { transform: translateX(calc(var(--x0) * 1cqw)); } to { transform: translateX(calc(var(--x1) * 1cqw)); } }
+.reef-swim { animation: reef-x var(--dur, 18s) ease-in-out infinite alternate; }
+@keyframes reef-face { 0%, 49.99% { transform: scaleX(-1); } 50%, 100% { transform: scaleX(1); } }
+.reef-face { animation: reef-face calc(var(--dur, 18s) * 2) linear infinite; }
+.learn-root[data-reduced="true"] .reef-swim, .learn-root[data-reduced="true"] .reef-face, .learn-root[data-reduced="true"] .reef-bubble, .learn-root[data-reduced="true"] .reef-rays { animation: none !important; }
 /* Reduced motion: every Learn animation holds still. */
 .learn-root[data-reduced="true"] [class*="l-"] { animation: none !important; }
 .learn-root[data-reduced="true"] .robot * { animation: none !important; }

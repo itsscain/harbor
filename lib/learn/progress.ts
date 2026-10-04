@@ -9,14 +9,20 @@ import { DEFAULT_LOOK, STARTER_ITEMS, TITLES, lookFrom, type BoatLook } from "./
 export type LearnEvent = {
   op_id: string;
   child_id: string;
-  /** earn: chest/fish/set bonus · spend: shop purchase · look: boat change · daily: daily chest. */
-  type: "earn" | "spend" | "look" | "daily";
+  /** earn: chest/fish/set bonus · spend: shop purchase · look: boat change · daily: daily chest ·
+   *  collect: an egg hatched ("hatch:<egg>", data {creature, xp}) or a reef buddy picked
+   *  ("buddy:<creature>") · best: a Brain Gym record ("gym:<game>", amount = score). */
+  type: "earn" | "spend" | "look" | "daily" | "collect" | "best";
   amount?: number;
   item?: string;
   reason?: string;
   look?: BoatLook;
+  data?: { creature?: string; xp?: number };
   at: string;
 };
+
+/** A hatched egg: which creature came out, and the child's XP at that moment (it grows from there). */
+export type Hatch = { egg: string; creature: string; xp: number; at: string };
 
 /** What rpc_learn_sync returns. */
 export type LearnSnapshot = {
@@ -35,6 +41,11 @@ export type LearnSnapshot = {
       owned?: string[];
       look?: unknown;
       daily?: string | null;
+      /** [item, data, at] for every "collect" event, oldest first. */
+      collected?: [string, { creature?: string; xp?: number } | null, string][];
+      bests?: Record<string, number>;
+      /** Brain Gym rounds that paid shells today (family day). */
+      gym_today?: number;
     }
   >;
   server_time?: string;
@@ -58,6 +69,14 @@ export type KidLearn = {
   look: BoatLook;
   /** The family-day the daily chest was last opened. */
   dailyChest: string | null;
+  /** Eggs hatched into reef creatures. */
+  hatched: Hatch[];
+  /** The reef creature riding along in lessons. */
+  buddy: string | null;
+  /** Brain Gym personal bests by game. */
+  bests: Record<string, number>;
+  /** Brain Gym rounds that paid shells today. */
+  gymToday: number;
 };
 
 export const XP_PER_LEVEL = 150;
@@ -101,6 +120,16 @@ export function mergeKid(
   const owned = new Set<string>([...STARTER_ITEMS, ...(base?.owned ?? [])]);
   let look = lookFrom(base?.look ?? DEFAULT_LOOK);
   let dailyChest = base?.daily ?? null;
+  const hatched: Hatch[] = [];
+  let buddy: string | null = null;
+  const bests: Record<string, number> = { ...(base?.bests ?? {}) };
+  const serverGym = base?.gym_today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.gym_today : 0;
+  let gymToday = serverGym ?? 0;
+  const collect = (item: string, data: { creature?: string; xp?: number } | null | undefined, at: string) => {
+    if (item.startsWith("hatch:") && data?.creature && !hatched.some((h) => h.egg === item.slice(6))) hatched.push({ egg: item.slice(6), creature: data.creature, xp: Math.max(0, Number(data.xp) || 0), at });
+    if (item.startsWith("buddy:")) buddy = item.slice(6) || null;
+  };
+  for (const [item, data, at] of base?.collected ?? []) collect(item, data, at);
   const serverToday = base?.today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.today : null;
   let todayCount = serverToday ?? Object.values(lessons).filter((l) => dayOf(l.last) === todayKey).length;
 
@@ -126,6 +155,9 @@ export function mergeKid(
       const id = e.item.slice(8);
       stickers[id] = (stickers[id] ?? 0) + 1;
     }
+    if (e.type === "collect" && e.item) collect(e.item, e.data, e.at);
+    if (e.type === "best" && e.item?.startsWith("gym:")) bests[e.item.slice(4)] = Math.max(bests[e.item.slice(4)] ?? 0, e.amount ?? 0);
+    if (e.type === "earn" && e.reason === "gym" && dayOf(e.at) === todayKey) gymToday++;
   }
 
   const level = levelOf(xp);
@@ -147,6 +179,10 @@ export function mergeKid(
     owned,
     look,
     dailyChest,
+    hatched,
+    buddy,
+    bests,
+    gymToday,
   };
 }
 
@@ -158,4 +194,12 @@ export function starsFor(right: number, total: number): number {
 }
 
 export const subjectOfLesson = (id: string): SubjectId =>
-  id.startsWith("code.") || id.startsWith("practice:code") ? "code" : id.startsWith("math.") || id.startsWith("practice:math") ? "math" : id.startsWith("char.") || id.startsWith("practice:manners") ? "manners" : "reading";
+  id.startsWith("code.") || id.startsWith("practice:code")
+    ? "code"
+    : id.startsWith("math.") || id.startsWith("practice:math")
+      ? "math"
+      : id.startsWith("char.") || id.startsWith("practice:manners")
+        ? "manners"
+        : id.startsWith("faith.") || id.startsWith("practice:faith")
+          ? "faith"
+          : "reading";

@@ -9,7 +9,8 @@ import type { LearnResult, SubjectId } from "./types";
 //   • "shaky" = missed last time, or right less than 70% of the time → the lesson player doubles
 //     back on it (review items mixed into lessons, and a Practice Cove detour when it piles up);
 //   • "mastered" = 3+ solid sessions in a row.
-// Skill keys are namespaced by subject: "r:" reading, "m:" math, "c:" code, "h:" manners.
+// Skill keys are namespaced by subject: "r:" reading, "m:" math, "c:" code, "h:" manners,
+// "f:" Lighthouse (faith — memory verses are "f:verse:<id>", so they're spaced like any skill).
 
 export type SkillStat = { right: number; total: number; last: string | null; recent: string };
 export type Skills = Record<string, SkillStat>;
@@ -17,12 +18,13 @@ export type Skills = Record<string, SkillStat>;
 export const INTERVAL_DAYS = [0, 1, 2, 4, 9, 20];
 const DAY = 86_400_000;
 
-export const SKILL_PREFIX: Record<SubjectId, string> = { reading: "r:", math: "m:", code: "c:", manners: "h:" };
+export const SKILL_PREFIX: Record<SubjectId, string> = { reading: "r:", math: "m:", code: "c:", manners: "h:", faith: "f:" };
 export function skillSubject(skill: string): SubjectId | null {
   if (skill.startsWith("r:")) return "reading";
   if (skill.startsWith("m:")) return "math";
   if (skill.startsWith("c:")) return "code";
   if (skill.startsWith("h:")) return "manners";
+  if (skill.startsWith("f:")) return "faith";
   return null;
 }
 

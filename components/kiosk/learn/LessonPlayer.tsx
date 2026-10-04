@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import type { Activity, Lesson } from "@/lib/learn/types";
 import type { BoatLook } from "@/lib/learn/meta";
 import type { Skills } from "@/lib/learn/mastery";
+import type { Creature } from "@/lib/learn/reef";
 import { spiralItems } from "@/lib/learn/curriculum";
 import { rng, int } from "@/lib/learn/gen";
 import { COMBO, PRAISE, RETRY, SAY, lessonClipKeys, type VoiceLevel } from "@/lib/learn/script";
@@ -19,6 +20,9 @@ import { TraceAct } from "./acts/TraceAct";
 import { CountAct, MakeAct, AddAct } from "./acts/MathActs";
 import { ChoiceAct, KeypadAct, ScenarioAct } from "./acts/ChoiceActs";
 import { SortAct, OrderAct, MatchAct, PlaceAct } from "./acts/DragActs";
+import { StoryAct } from "./acts/StoryAct";
+import { VerseAct } from "./acts/VerseAct";
+import { SpotAct, SlotsAct, ReflectAct } from "./acts/CharacterActs";
 import { CodeAct } from "./code/CodeAct";
 
 // One level, start to finish. Proven learning moves, built in:
@@ -47,8 +51,9 @@ const FLOW_CLIPS = [...PRAISE, ...RETRY, ...COMBO, SAY.wantToLeave, SAY.keepGoin
 /** Seconds since a moment (helpers, so the clock stays out of render). */
 const secondsSince = (t: number) => Math.round((Date.now() - t) / 1000);
 const nowMs = () => Date.now();
-/** "Meet" just introduces something — nothing to get wrong. */
-const isScored = (a: Activity) => a.kind !== "meet";
+/** Introductions (meet a letter, hear a story or a verse) and reflections have nothing to get
+ *  wrong — they teach, and the items after them check. */
+const isScored = (a: Activity) => a.kind !== "meet" && a.kind !== "story" && a.kind !== "reflect" && !(a.kind === "verse" && a.v.step === "listen");
 
 function ActView({ act: a, ...props }: { act: Activity; fx: LessonFx; onDone: (m: number) => void }): ReactNode {
   switch (a.kind) {
@@ -73,6 +78,11 @@ function ActView({ act: a, ...props }: { act: Activity; fx: LessonFx; onDone: (m
     case "match": return <MatchAct act={a} {...props} />;
     case "place": return <PlaceAct act={a} {...props} />;
     case "code": return <CodeAct act={a} {...props} />;
+    case "story": return <StoryAct act={a} {...props} />;
+    case "verse": return <VerseAct act={a} {...props} />;
+    case "spot": return <SpotAct act={a} {...props} />;
+    case "slots": return <SlotsAct act={a} {...props} />;
+    case "reflect": return <ReflectAct act={a} {...props} />;
   }
 }
 
@@ -83,6 +93,7 @@ export function LessonPlayer({
   voice,
   look,
   reduced,
+  buddy,
   onExit,
   onComplete,
 }: {
@@ -94,6 +105,8 @@ export function LessonPlayer({
   voice: VoiceLevel;
   look: BoatLook;
   reduced: boolean;
+  /** The reef buddy who cheers from the corner. */
+  buddy?: { creature: Creature; scale: number } | null;
   onExit: () => void;
   onComplete: (o: LessonOutcome) => void;
 }) {
@@ -117,6 +130,7 @@ export function LessonPlayer({
   const [bossHit, setBossHit] = useState(0);
   const [fish, setFish] = useState<{ k: number; caught: boolean } | null>(null);
   const [fishShells, setFishShells] = useState(0);
+  const [cheer, setCheer] = useState(0);
   const promptRef = useRef<Part[]>([]);
   const comboRef = useRef(0);
   const praiseRef = useRef(0);
@@ -166,6 +180,7 @@ export function LessonPlayer({
       sfx("correct", n - 1);
       buzz([0, 18, 30, 18]);
       fireAt(el ?? null, "star", n >= 3 ? 14 : 10);
+      setCheer((c) => c + 1);
       let line: string;
       if (n === 3 || n === 5 || n === 8 || n === 12) {
         line = COMBO[(n === 3 ? 2 : n === 5 ? 0 : n === 8 ? 1 : 3) % COMBO.length];
@@ -251,7 +266,7 @@ export function LessonPlayer({
     let q = queue;
     if (all.length >= q.length) {
       // Retry round: the ones missed on the first try come back once (not code — those were solved).
-      const again = !retryAnnounced ? q.filter((it, k) => it.kind !== "retry" && all[k] > 0 && it.act.kind !== "code" && it.act.kind !== "meet").slice(0, 3) : [];
+      const again = !retryAnnounced ? q.filter((it, k) => it.kind !== "retry" && all[k] > 0 && it.act.kind !== "code" && isScored(it.act)).slice(0, 3) : [];
       if (again.length) {
         q = [...q, ...again.map((it) => ({ act: it.act, kind: "retry" as const, scored: false }))];
         setQueue(q);
@@ -334,8 +349,11 @@ export function LessonPlayer({
         {ready && cur ? (
           <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-3">
             {kindBadge && <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">{kindBadge}</span>}
-            <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-              <ActView act={cur.act} fx={fx} onDone={onDone} />
+            {/* my-auto (not align-items) centers it, so a tall activity overflows downward and scrolls instead of losing its top */}
+            <div className="flex min-h-0 w-full flex-1 justify-center">
+              <div className="my-auto flex w-full justify-center">
+                <ActView act={cur.act} fx={fx} onDone={onDone} />
+              </div>
             </div>
           </div>
         ) : (
@@ -355,6 +373,20 @@ export function LessonPlayer({
           </div>
         )}
       </div>
+
+      {/* The reef buddy, cheering from the corner */}
+      {buddy && ready && (
+        <div className="pointer-events-none fixed bottom-4 left-4 z-[44] flex flex-col items-center" aria-hidden>
+          {cheer > 0 && (
+            <span key={`s${cheer}`} className="l-float-num absolute -top-6 left-1/2 text-2xl">
+              {["✨", "💖", "⭐", "🎉"][cheer % 4]}
+            </span>
+          )}
+          <span key={cheer} className={cn("block leading-none drop-shadow-[0_5px_5px_rgba(0,30,60,0.3)]", cheer > 0 ? "l-hop" : !reduced && "l-bob")} style={{ fontSize: 58 * buddy.scale, filter: buddy.creature.tint }}>
+            {buddy.creature.emoji}
+          </span>
+        </div>
+      )}
 
       {/* The golden fish */}
       {fish && (

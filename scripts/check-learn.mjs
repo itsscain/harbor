@@ -96,6 +96,47 @@ for (const c of Object.values(COURSES)) {
         if (a.kind === "count" && !a.options.includes(a.n)) bad(where, "count: answer missing");
         if (a.kind === "add" && !a.options.includes(a.a + a.b)) bad(where, "add: answer missing");
         if (a.kind === "blend" && !a.options.some((o) => o.word === a.word.word)) bad(where, "blend: answer missing");
+        if (a.kind === "verse") {
+          const words = a.text.split(/\s+/).filter(Boolean).map((t) => t.replace(/^[^A-Za-z']*|[^A-Za-z']*$/g, ""));
+          const v = a.v;
+          if (v.step === "blanks") {
+            if (!v.blanks.length) bad(where, "verse: no blanks");
+            for (const b of v.blanks) {
+              if (!v.blanks.every((x, i, all) => i === 0 || all[i - 1].at < x.at)) bad(where, "verse: blanks out of order");
+              if (!b.options.includes(words[b.at])) bad(where, `verse: blank ${b.at} answer "${words[b.at]}" not in ${b.options}`);
+              if (new Set(b.options.map((o) => o.toLowerCase())).size !== b.options.length) bad(where, `verse: duplicate blank options ${b.options}`);
+              if (b.options.length < 2) bad(where, "verse: fewer than 2 blank options");
+            }
+          }
+          if (v.step === "tiles") {
+            if (v.chunks.join(" ") !== a.text.split(/\s+/).filter(Boolean).join(" ")) bad(where, `verse: tiles don't rebuild the verse`);
+            if (v.chunks.length < 2) bad(where, "verse: fewer than 2 tiles");
+            for (const d of v.decoys ?? []) if (v.chunks.includes(d)) bad(where, "verse: a decoy is also a real piece");
+          }
+          if (v.step === "ref" && (!v.options.includes(a.ref) || new Set(v.options).size !== v.options.length || v.options.length < 2)) bad(where, `verse: bad ref options ${v.options}`);
+          if (v.step === "meaning" && (!v.options.includes(v.answer) || new Set(v.options).size !== v.options.length)) bad(where, "verse: bad meaning options");
+        }
+        if (a.kind === "spot") {
+          if (a.lines.length < 2) bad(where, "spot: fewer than 2 lines");
+          if (!a.answer.length || a.answer.some((i) => i < 0 || i >= a.lines.length) || new Set(a.answer).size !== a.answer.length) bad(where, `spot: bad answer ${a.answer}`);
+          if (a.answer.length >= a.lines.length) bad(where, "spot: every line is an answer");
+        }
+        if (a.kind === "slots") {
+          if (!a.slots.length) bad(where, "slots: none");
+          for (const s of a.slots) if (!s.options.includes(s.answer) || new Set(s.options).size !== s.options.length || s.options.length < 2) bad(where, `slots: bad options ${s.options}`);
+        }
+        if (a.kind === "reflect" && a.options.length < 2) bad(where, "reflect: fewer than 2 options");
+        if (a.kind === "story") {
+          if (a.scenes.length < 2) bad(where, "story: fewer than 2 scenes");
+          for (const sc of a.scenes) {
+            const act = sc.act;
+            if (!act) continue;
+            if (act.type === "tap" && !(act.n >= 1)) bad(where, "story: tap needs n ≥ 1");
+            if (act.type === "find" && (act.decoys.includes(act.target) || act.decoys.length < 2)) bad(where, "story: find target is also a decoy (or too few decoys)");
+            if (act.type === "collect" && !act.items.length) bad(where, "story: collect has no items");
+          }
+        }
+        if (a.kind === "scenario") for (const o of a.options) if (o.then && !o.then.text) bad(where, "scenario: empty consequence");
       });
     }
   if (c.itemsFor) {

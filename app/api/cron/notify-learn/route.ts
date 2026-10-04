@@ -4,6 +4,7 @@ import { notify } from "@/lib/notifications/dispatch";
 import { tzFromSettings, dayKeyInTz } from "@/lib/tz";
 import { COURSES, isPractice, lessonById, levelLabel, unitById } from "@/lib/learn/curriculum";
 import { streakFrom } from "@/lib/learn/progress";
+import { VERSE_BY_ID } from "@/lib/learn/bible";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -11,8 +12,8 @@ export const maxDuration = 30;
 // Fired by a DB trigger (learn_notify → net.http_post) for each level a child finishes on the
 // wall. Only the moments a parent wants in their pocket become notifications — a mission they
 // assigned is done, their child is stuck on a level, today's goal is hit, a whole island is
-// finished, a streak milestone — each sent exactly once (notification_dispatch_log). Bearer
-// matches the pulse (Vault → PULSE_SECRET).
+// finished, a memory verse is memorized, a streak milestone — each sent exactly once
+// (notification_dispatch_log). Bearer matches the pulse (Vault → PULSE_SECRET).
 
 function authorized(req: Request): boolean {
   const secret = process.env.PULSE_SECRET || process.env.CRON_SECRET;
@@ -44,7 +45,7 @@ async function handle(req: Request) {
   if (!resultId) return Response.json({ ok: false, error: "no result_id" }, { status: 400 });
 
   const admin = createAdminClient() as unknown as SupabaseClient;
-  const { data: r } = await admin.from("learn_results").select("id, household_id, child_id, lesson_id, stars, completed_at").eq("id", resultId).maybeSingle();
+  const { data: r } = await admin.from("learn_results").select("id, household_id, child_id, lesson_id, stars, completed_at, skills").eq("id", resultId).maybeSingle();
   if (!r) return Response.json({ ok: true, skipped: "not found" });
   const practice = isPractice(r.lesson_id as string);
 
@@ -139,6 +140,35 @@ async function handle(req: Request) {
         route,
       });
       sent.push("unit");
+    }
+  }
+
+  // 3b) A memory verse "hidden in the heart": its third solid review in a row (how the wall's
+  // mastery engine defines memorized), announced once per verse.
+  const verseKeys = Object.entries(((r as { skills?: unknown }).skills ?? {}) as Record<string, [number, number]>)
+    .filter(([k, v]) => k.startsWith("f:verse:") && Array.isArray(v) && v[1] > 0 && v[0] >= v[1])
+    .map(([k]) => k);
+  if (verseKeys.length) {
+    const { data: hist } = await admin.from("learn_results").select("skills, completed_at").eq("child_id", r.child_id).lte("completed_at", r.completed_at).order("completed_at", { ascending: false }).limit(80);
+    for (const key of verseKeys) {
+      const sessions = (hist ?? [])
+        .map((h) => ((h.skills ?? {}) as Record<string, [number, number]>)[key])
+        .filter((v): v is [number, number] => Array.isArray(v) && v[1] > 0);
+      const solid = (v: [number, number]) => v[0] >= v[1];
+      const total = sessions.reduce((n, v) => n + v[1], 0);
+      const memorized = sessions.length >= 3 && sessions.slice(0, 3).every(solid) && total >= 3 && !(sessions[3] && solid(sessions[3]));
+      const verse = VERSE_BY_ID.get(key.slice(8));
+      if (memorized && verse && (await claim(admin, r.household_id, "learn-verse", r.child_id as string, key))) {
+        await notify({
+          householdId: r.household_id,
+          category: "learning",
+          childId: r.child_id,
+          title: `📜 ${name} memorized ${verse.ref}`,
+          body: `“${verse.text}” Ask them to say it for you!`,
+          route,
+        });
+        sent.push("verse");
+      }
     }
   }
 

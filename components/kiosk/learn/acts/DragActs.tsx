@@ -8,7 +8,7 @@ import { numberWord } from "@/lib/learn/gen";
 import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
-import { Chunk, useDrag, useShuffled } from "../kit";
+import { Chunk, useDrag, useShuffled, useShuffledApart } from "../kit";
 import { Visual } from "./Visual";
 import { PromptRow, useLater, useSpokenPrompt, type ActProps } from "./common";
 
@@ -34,8 +34,8 @@ function SortCard({ it, selected, onTap, onDrop }: { it: SortItem; selected: boo
       className={cn("l-drag l-chunk relative flex min-h-[78px] min-w-[120px] items-center justify-center gap-2 px-4 py-2", selected && "ring-[5px] ring-[var(--l-gold)]")}
       style={{ "--f": "var(--l-card)", "--e": "var(--l-line)" } as React.CSSProperties}
     >
-      {it.emoji && <span className="text-[44px] leading-none">{it.emoji}</span>}
-      {it.text && <span className="font-reading text-[26px] font-bold text-[var(--l-ink)]">{it.text}</span>}
+      {it.emoji && <span className={cn("leading-none", (it.text?.length ?? 0) > 22 ? "text-[34px]" : "text-[44px]")}>{it.emoji}</span>}
+      {it.text && <span className={cn("font-reading font-bold leading-tight text-[var(--l-ink)]", it.text.length > 30 ? "max-w-[300px] text-[19px]" : it.text.length > 22 ? "text-[21px]" : "text-[26px]")}>{it.text}</span>}
     </div>
   );
 }
@@ -101,7 +101,7 @@ export function SortAct({ act: a, fx, onDone }: ActProps<"sort">) {
                 const it = items.find((x) => x.id === selected);
                 if (it) tryPlace(it, b.id, e.currentTarget);
               }}
-              className={cn("flex min-h-[220px] flex-col items-center gap-3 rounded-[28px] border-[4px] border-dashed border-white/80 bg-white/25 p-4 transition-colors", selected && "bg-white/40")}
+              className={cn("flex flex-col items-center gap-3 rounded-[28px] border-[4px] border-dashed border-white/80 bg-white/25 p-4 transition-colors", a.items.some((x) => (x.text?.length ?? 0) > 22) ? "min-h-[170px]" : "min-h-[220px]", selected && "bg-white/40")}
             >
               <span key={shakeBin?.id === b.id ? shakeBin.n : 0} className={cn("flex items-center gap-2 rounded-full bg-white px-5 py-2 font-display text-2xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_var(--l-line)]", shakeBin?.id === b.id && "l-shake")}>
                 {b.emoji && <span className="text-3xl">{b.emoji}</span>}
@@ -126,7 +126,7 @@ export function SortAct({ act: a, fx, onDone }: ActProps<"sort">) {
 // ── Order ────────────────────────────────────────────────────────────────────────────────────
 export function OrderAct({ act: a, fx, onDone }: ActProps<"order">) {
   const parts = useSpokenPrompt(fx, a.say, a.prompt);
-  const shuffled = useShuffled(a.items, fx.seed);
+  const shuffled = useShuffledApart(a.items, fx.seed);
   const [n, setN] = useState(0); // how many are in place
   const [misses, setMisses] = useState(0);
   const [shake, setShake] = useState<{ id: string; k: number } | null>(null);
@@ -152,36 +152,40 @@ export function OrderAct({ act: a, fx, onDone }: ActProps<"order">) {
     }
   };
   const hintId = misses >= 2 && n < a.items.length ? a.items[n].id : null;
+  // Long step lists sit side by side (answers left, cards right) so they fit a landscape wall.
+  const side = column && a.items.length >= 4 && a.items.some((it) => (it.text?.length ?? 0) > 16);
   return (
-    <div className="flex w-full max-w-[1100px] flex-col items-center gap-6">
+    <div className={cn("flex w-full flex-col items-center", side ? "max-w-[1180px] gap-5" : "max-w-[1100px] gap-6")}>
       <PromptRow parts={parts}>{a.prompt}</PromptRow>
-      {/* The answer row fills up in order */}
-      <div className={cn("flex gap-3", column ? "w-full max-w-[560px] flex-col" : "flex-wrap justify-center")}>
-        {a.items.map((it, i) => (
-          <div key={it.id} className={cn("flex items-center gap-3 rounded-[22px] border-[4px] border-dashed px-4 py-2", i < n ? "border-transparent bg-white shadow-[0_5px_0_var(--l-green-edge)]" : "border-white/70 bg-white/20", column ? "min-h-[70px]" : "min-h-[92px] min-w-[140px] justify-center")}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--l-gold)] font-display text-lg font-extrabold text-[#5a3b00]">{i + 1}</span>
-            {i < n && (
-              <span className="l-pop-in flex items-center gap-2">
-                {it.emoji && <span className="text-[38px] leading-none">{it.emoji}</span>}
-                {it.text && <span className="font-reading text-[24px] font-bold text-[var(--l-ink)]">{it.text}</span>}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap justify-center gap-3">
-        {shuffled.map((it) => {
-          const used = a.items.findIndex((x) => x.id === it.id) < n;
-          if (used) return null;
-          return (
-            <Chunk key={it.id} tone="white" onClick={(e) => (sfx("pick"), tap(it.id, e.currentTarget))} className={cn("flex min-h-[84px] items-center gap-2 px-5 text-[var(--l-ink)]", hintId === it.id && "l-hint")}>
-              <span key={shake?.id === it.id ? shake.k : 0} className={cn("flex items-center gap-2", shake?.id === it.id && "l-shake")}>
-                {it.emoji && <span className="text-[40px] leading-none">{it.emoji}</span>}
-                {it.text && <span className="font-reading text-[26px] font-bold">{it.text}</span>}
-              </span>
-            </Chunk>
-          );
-        })}
+      <div className={side ? "flex w-full items-start justify-center gap-6" : "contents"}>
+        {/* The answer row fills up in order */}
+        <div className={cn("flex", column ? (side ? "w-[min(52%,600px)] flex-col gap-2.5" : "w-full max-w-[560px] flex-col gap-3") : "flex-wrap justify-center gap-3")}>
+          {a.items.map((it, i) => (
+            <div key={it.id} className={cn("flex items-center gap-3 rounded-[22px] border-[4px] border-dashed px-4 py-2", i < n ? "border-transparent bg-white shadow-[0_5px_0_var(--l-green-edge)]" : "border-white/70 bg-white/20", column ? (side ? "min-h-[62px]" : "min-h-[70px]") : "min-h-[92px] min-w-[140px] justify-center")}>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--l-gold)] font-display text-lg font-extrabold text-[#5a3b00]">{i + 1}</span>
+              {i < n && (
+                <span className="l-pop-in flex items-center gap-2">
+                  {it.emoji && <span className={cn("leading-none", side ? "text-[32px]" : "text-[38px]")}>{it.emoji}</span>}
+                  {it.text && <span className={cn("font-reading font-bold leading-tight text-[var(--l-ink)]", side ? "text-[21px]" : "text-[24px]")}>{it.text}</span>}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className={cn("flex", side ? "w-[min(44%,520px)] flex-col gap-2.5" : "flex-wrap justify-center gap-3")}>
+          {shuffled.map((it) => {
+            const used = a.items.findIndex((x) => x.id === it.id) < n;
+            if (used) return null;
+            return (
+              <Chunk key={it.id} tone="white" onClick={(e) => (sfx("pick"), tap(it.id, e.currentTarget))} className={cn("flex items-center gap-2 text-[var(--l-ink)]", side ? "min-h-[62px] justify-start px-4 text-left" : "min-h-[84px] px-5", hintId === it.id && "l-hint")}>
+                <span key={shake?.id === it.id ? shake.k : 0} className={cn("flex items-center gap-2", shake?.id === it.id && "l-shake")}>
+                  {it.emoji && <span className={cn("leading-none", side ? "text-[32px]" : "text-[40px]")}>{it.emoji}</span>}
+                  {it.text && <span className={cn("font-reading font-bold leading-tight", side ? "text-[21px]" : "text-[26px]")}>{it.text}</span>}
+                </span>
+              </Chunk>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

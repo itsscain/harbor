@@ -5,6 +5,7 @@ import { Delete, Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Option } from "@/lib/learn/types";
 import type { Part } from "@/lib/learn/audio";
+import { SAY } from "@/lib/learn/script";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, useShuffled } from "../kit";
 import { Visual } from "./Visual";
@@ -154,7 +155,118 @@ export function KeypadAct({ act: a, fx, onDone }: ActProps<"keypad">) {
 }
 
 // ── Scenario (Captain's Code) ────────────────────────────────────────────────────────────────
-export function ScenarioAct({ act: a, fx, onDone }: ActProps<"scenario">) {
+export function ScenarioAct(props: ActProps<"scenario">) {
+  return props.act.options.some((o) => o.then) ? <RewindScenario {...props} /> : <PlainScenario {...props} />;
+}
+
+/** The trust bridge: planks appear with honesty and fall with lies. */
+function TrustBridge({ delta }: { delta: number }) {
+  const base = 3;
+  const n = base + delta;
+  return (
+    <div className="flex items-center gap-3 rounded-[20px] bg-white px-5 py-3 shadow-[0_4px_0_rgba(0,40,80,0.12)]" aria-label={`Trust ${delta > 0 ? "goes up" : "goes down"}`}>
+      <span className="flex flex-col items-start">
+        <span className="font-display text-xs font-extrabold uppercase tracking-wider text-[var(--l-ink-2)]">Trust bridge</span>
+        <span className="relative mt-1 flex items-end gap-1.5 border-b-[4px] border-[#8a5a2b] px-1 pb-0.5">
+          {Array.from({ length: 5 }, (_, k) => {
+            const on = k < n;
+            const changed = delta > 0 ? k === n - 1 : k === n;
+            return <span key={k} className={cn("block h-9 w-6 rounded-[5px]", on ? "bg-[#c98a4a] shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]" : "border-2 border-dashed border-[#c98a4a]/50 bg-transparent", changed && (delta > 0 ? "l-plank-in" : "l-plank-fall"))} />;
+          })}
+        </span>
+      </span>
+      <span className={cn("font-display text-2xl font-extrabold", delta > 0 ? "text-[var(--l-green-edge)]" : "text-[var(--l-coral-edge)]")}>{delta > 0 ? "+1" : "−1"}</span>
+    </div>
+  );
+}
+
+/** Choose, watch what happens next, and rewind time if it didn't go well. */
+function RewindScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
+  const storyParts = a.say?.length ? a.say : fx.voice !== "keys" ? [a.story] : [];
+  const askParts = a.askSay?.length ? a.askSay : fx.voice !== "keys" ? [a.question] : [];
+  const all: Part[] = [...storyParts, ...(askParts.length ? [{ gap: 350 }, ...askParts] : [])];
+  usePrompt(fx, all.length ? all : [a.story, { gap: 300 }, a.question], all.length ? 380 : -1);
+  const opts = useShuffled(a.options, fx.seed);
+  const [picked, setPicked] = useState<Option | null>(null);
+  const [tried, setTried] = useState<string[]>([]);
+  const [rewinding, setRewinding] = useState(false);
+  const later = useLater();
+  const voiced = fx.voice !== "keys";
+  const right = picked?.id === a.answer;
+
+  const pick = (o: Option, el: Element | null) => {
+    if (picked || rewinding) return;
+    sfx("pick");
+    setPicked(o);
+    const then = o.then!;
+    if (o.id === a.answer) {
+      fx.right(el);
+      later(() => {
+        void (voiced ? fx.say([then.text]) : Promise.resolve(true)).then(() =>
+          later(() => void (o.why ? fx.explain(o.why, voiced ? [o.why] : undefined) : Promise.resolve()).then(() => onDone(tried.length)), voiced ? 300 : 1800),
+        );
+      }, 900);
+    } else {
+      setTried((t) => (t.includes(o.id) ? t : [...t, o.id]));
+      fx.miss();
+      later(() => {
+        sfx("soft-fail");
+        if (voiced) void fx.say([then.text]);
+      }, 350);
+    }
+  };
+  const rewind = () => {
+    sfx("whoosh");
+    setRewinding(true);
+    if (voiced) void fx.say([SAY.rewind]);
+    later(() => {
+      setPicked(null);
+      setRewinding(false);
+    }, 750);
+  };
+
+  return (
+    <div className={cn("flex w-full max-w-[1100px] flex-col gap-5 lg:flex-row lg:items-stretch", rewinding && "l-rewind")}>
+      <div className="l-pop-in flex flex-col items-center justify-center gap-3 rounded-[32px] bg-white px-6 py-6 shadow-[0_8px_0_var(--l-line)] lg:w-[44%]">
+        <Visual v={a.scene} />
+        <p className="text-balance text-center font-reading text-[27px] font-bold leading-snug text-[var(--l-ink)]">{a.story}</p>
+      </div>
+      <div className="flex flex-1 flex-col justify-center gap-4">
+        {!picked ? (
+          <>
+            <p className="font-display text-[28px] font-extrabold leading-tight text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">{a.question}</p>
+            {opts.map((o, i) => {
+              const wasTried = tried.includes(o.id);
+              return (
+                <div key={o.id} className="l-rise relative" style={{ animationDelay: `${120 + i * 70}ms` }}>
+                  <Chunk tone="white" disabled={wasTried} onClick={(e) => pick(o, e.currentTarget)} className={cn("flex min-h-[84px] w-full items-center gap-3 py-3 pl-4 pr-14 text-left", wasTried && "opacity-45")}>
+                    {wasTried && <span className="text-2xl">⏪</span>}
+                    <span className={cn("font-reading text-[24px] font-bold leading-snug text-[var(--l-ink)]", wasTried && "line-through decoration-2")}>{o.text}</span>
+                  </Chunk>
+                  {voiced && (o.say?.length || o.text) && <MiniSpeaker parts={o.say?.length ? o.say : [o.text!]} className="right-3 top-1/2 -translate-y-1/2" />}
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <div key={picked.id} className="l-scene-in flex flex-col items-center gap-4 rounded-[32px] px-6 py-6 text-center shadow-[0_8px_0_rgba(0,40,80,0.16)]" style={{ background: right ? "linear-gradient(180deg,#e9fff1,#ffffff)" : "linear-gradient(180deg,#fff0ec,#ffffff)" }}>
+            <span className="font-display text-base font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">What happens next…</span>
+            <span className={cn("text-[96px] leading-none", !fx.reduced && (right ? "l-boing" : "l-droop"))}>{picked.then!.emoji}</span>
+            <p className="text-balance font-reading text-[25px] font-bold leading-snug text-[var(--l-ink)]">{picked.then!.text}</p>
+            {picked.then!.trust !== undefined && <TrustBridge delta={picked.then!.trust} />}
+            {!right && (
+              <Chunk tone="violet" onClick={rewind} className={cn("mt-1 flex h-16 items-center gap-3 px-8 font-display text-2xl font-extrabold", !fx.reduced && "l-pulse")}>
+                ⏪ Rewind time
+              </Chunk>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlainScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
   const storyParts = a.say?.length ? a.say : fx.voice !== "keys" ? [a.story] : [];
   const askParts = a.askSay?.length ? a.askSay : fx.voice !== "keys" ? [a.question] : [];
   const all: Part[] = [...storyParts, ...(askParts.length ? [{ gap: 350 }, ...askParts] : [])];

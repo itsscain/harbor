@@ -34,29 +34,41 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   (`public/sw.js`) + manifest. Parent PIN hashed locally (and adoptable from the
   account via the snapshot).
 - **Harbor Learn** (`FEATURES.learn`): a child's second wall screen (the "My Day | Learn" switch
-  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Four courses, Pre-K–5th, all code
-  bundled for offline: `lib/learn/{reading,math,code,manners}.ts` (worlds of numbered levels,
-  ids `read.*`/`math.*`/`code.*`/`char.*`; math/reading/manners are generated from topic defs
-  with the seeded helpers in `gen.ts`) → `curriculum.ts` (`courseMap` = voyage map with pass
-  gating ≥1★, `startUnitIndex` places a child a grade below theirs, `lessonsForGrade` for parents,
-  `practiceLesson`/`spiralItems` = the "double back" review). Every item carries a `skill`
-  (`r:`/`m:`/`c:`/`h:`); `mastery.ts` keeps first-try stats + Leitner boxes (spaced review,
-  "shaky" skills); `skills.ts` turns them into parent words. Coding: `program.ts` is the engine
+  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Five courses, Pre-K–5th, all code
+  bundled for offline: `lib/learn/{reading,math,code,manners,faith}.ts` (worlds of numbered
+  levels, ids `read.*`/`math.*`/`code.*`/`char.*`/`faith.*`; generated from topic defs with the
+  seeded helpers in `gen.ts`) → `curriculum.ts` (`courseMap` = voyage map with pass gating ≥1★,
+  `startUnitIndex` places a child a grade below theirs, `lessonsForGrade` for parents,
+  `practiceLesson`/`spiralItems` = the "double back" review, `mixedPractice` = Brain Boost, an
+  interleaved review of what's due across subjects). **Lighthouse** (`faith`) is opt-in per child
+  (`DEFAULT_SUBJECTS` leaves it out; assigning a faith level switches it on): KJV memory verses
+  with kid meanings in `bible.ts` (vanishing-cue ladder `verseLadder`; skill `f:verse:<id>`),
+  scene-by-scene Bible stories with tap/find/collect actions in `stories.ts` (`f:story:<id>`),
+  hero cards in `heroes.ts`. Character content (rewind consequences + trust bridge, Truth
+  Detective cases, repair-kit slots, reflections) is built by the shared factories in
+  `behavior.ts` (Captain's Code uses `h:`, Lighthouse `f:`). Every item carries a `skill`
+  (`r:`/`m:`/`c:`/`h:`/`f:`); `mastery.ts` keeps first-try stats + Leitner boxes (spaced review,
+  "shaky" skills); `skills.ts` turns them into parent words. Units can carry `talk` (dinner
+  questions shown on the parent tab) and a `challenge` (shown after a level). Coding: `program.ts` is the engine
   (repeat/if-else/until/functions over six worlds: sea, rover, dance, music, turtle, pixel),
   `code.ts` + `codeGen.ts` the levels (generated maps are solved by search before they're kept).
   **After editing content run `node scripts/check-learn.mjs`** (every code answer wins, every
   bug really fails, answers are in their options, every skill is reviewable) — it catches real bugs.
-  Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`StickerAlbum`/
-  `HarborShop`/`DailyChest`, the child's boat in `KidBoat.tsx`, activities in
-  `components/kiosk/learn/acts/*` (one `Visual` renderer for all pictures) and `code/*` (block
-  editor + stages). Rewards: shells (`meta.ts`), sticker sets/rarity/shiny (`stickers.ts`).
-  Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill stats,
-  kind, shells) + a ledger of shell events (shop/look/daily/earn; spends are balance-checked
-  server-side) in `learnOutbox`/`learnEvents`, `finishLesson`/`learnEvent` in `useKiosk`.
+  Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Treasures`
+  (reef · stickers · hero cards · trophies · verse vault)/`BrainGym`/`HarborShop`/`DailyChest`,
+  the child's boat in `KidBoat.tsx`, activities in `components/kiosk/learn/acts/*` (one `Visual`
+  renderer for all pictures; `StoryAct`, `VerseAct`, `CharacterActs` = spot/slots/reflect) and
+  `code/*` (block editor + stages). Rewards: shells (`meta.ts`), sticker sets/rarity/shiny
+  (`stickers.ts`), reef creatures (`reef.ts`: eggs are DERIVED from milestones, only hatches are
+  stored; creatures grow with XP since hatching; one is the lesson "buddy"), badges (`badges.ts`,
+  derived). Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill
+  stats, kind, shells) + a ledger (`earn`/`spend`/`look`/`daily`/`collect` = hatch or buddy,
+  `best` = Brain Gym record; spends balance-checked, gym shells capped at 3 rounds/day) in
+  `learnOutbox`/`learnEvents`, `finishLesson`/`learnEvent` in `useKiosk`.
   Parent side: Learn tab (`KidLearnView`, `KidLearnParts`, `children/learn-actions.ts`,
-  `lib/learn/parent.ts`; missions can be a level or `practice:<subject>`); alerts via the
-  `learn_notify` trigger → `/api/cron/notify-learn` (mission done, stuck 3×, goal, island,
-  streak). Voice: pre-recorded clips in `public/learn-voice` (letter sounds = WAV cut from
+  `lib/learn/parent.ts`; missions can be a level or `practice:<subject>`; the tab also shows
+  memory verses and "talk about it" prompts); alerts via the `learn_notify` trigger →
+  `/api/cron/notify-learn` (mission done, stuck 3×, goal, island, verse memorized, streak). Voice: pre-recorded clips in `public/learn-voice` (letter sounds = WAV cut from
   carrier syllables by `scripts/learn-voice/phonics.mjs`; words/lines = HLA 4-bit ADPCM,
   decoded by `lib/learn/hla.ts`); what gets recorded per grade band is `voiceLevelFor` in
   `script.ts` (unrecorded math is stitched from number words, the rest uses the device voice).

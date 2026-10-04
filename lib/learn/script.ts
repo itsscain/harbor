@@ -4,6 +4,7 @@ import { SOUNDS, soundOut } from "./sounds";
 import { COURSES, unitById } from "./curriculum";
 import { THEMES } from "./meta";
 import { numberWord as numberWordFull } from "./gen";
+import { refSpoken, verseSpeech } from "./bible";
 
 // Everything Harbor Learn says out loud. Lines are pre-recorded in the Harbor voice
 // (scripts/gen-learn-voice.mjs → /public/learn-voice), so a child who can't read yet always hears
@@ -21,6 +22,7 @@ export const SAY = {
   code: "Code",
   math: "Math",
   manners: "Captain's Code",
+  faith: "Lighthouse",
   mission: "Here's your mission!",
   fromGrownup: "A grown-up picked this one for you.",
   letsGo: "Let's go!",
@@ -116,6 +118,54 @@ export const SAY = {
   everyMap: "Your program has to work on every map!",
   useLoop: "Try a repeat block. It does things again and again!",
 
+  // Stories, verses and character
+  storyTime: "Story time!",
+  tapNext: "Tap the arrow when you're ready.",
+  listenVerse: "Listen to God's Word.",
+  sayItWithMe: "Now say it with me!",
+  whichWord: "Which word is missing?",
+  buildVerse: "Build the verse. Tap the pieces in order.",
+  whereVerse: "Where is this verse found?",
+  meaningVerse: "What does this verse mean?",
+  verseLearned: "You hid God's Word in your heart!",
+  detective: "Truth Detective! Read carefully.",
+  foundIt: "You found it!",
+  thatsHonest: "That part is honest. Keep looking!",
+  rewind: "Let's rewind and try again!",
+  seeWhatHappens: "Let's see what happens.",
+  buildIt: "Pick the best words for each part.",
+  noWrong: "There's no wrong answer. Just think about you.",
+  thanksSharing: "Thanks for sharing!",
+  prayerLead: "Dear God, thank you for",
+  challenge: "Here's your challenge for today!",
+  // Collections
+  newEgg: "You found an egg!",
+  hatchIt: "Tap the egg to hatch it!",
+  hatched: "It hatched! Say hello to your new friend!",
+  reef: "Welcome to your reef!",
+  pickBuddy: "Pick a buddy to come along on your voyage!",
+  buddyGrew: "Your buddy is growing!",
+  newCard: "A new hero card!",
+  shinyCard: "A shiny hero card!",
+  heroBinder: "Your hero cards!",
+  newBadge: "You earned a badge!",
+  trophies: "Your trophy room!",
+  verseVault: "Your verse vault! Every gem is a verse in your heart.",
+  // Brain Gym + Brain Boost
+  gym: "Welcome to the Brain Gym!",
+  ready: "Ready? Go!",
+  timesUp: "Time's up!",
+  newRecord: "New record!",
+  gymLights: "Watch the lights, then copy them!",
+  gymFish: "Tap the fish. Don't tap the sharks!",
+  gymSwitch: "Sort them! Watch out — the rule can switch!",
+  gymByColor: "Sort by color!",
+  gymByShape: "Sort by shape!",
+  gymCount: "How many? Look fast!",
+  gymGrid: "Remember where the stars are!",
+  gymFacts: "Answer as many as you can!",
+  brainBoost: "Brain Boost! A little bit of everything.",
+
   // End of lesson
   lessonDone: "Level complete!",
   perfect: "Perfect! Three stars!",
@@ -164,13 +214,13 @@ export type VoiceLevel = "all" | "core" | "keys";
 export const voiceLevelFor = (grade: GradeId): VoiceLevel => (bandOf(grade) === "little" ? "all" : bandOf(grade) === "middle" ? "core" : "keys");
 
 function activityClips(a: Activity, level: VoiceLevel, subject: SubjectId, add: (c: Clip) => void) {
-  const line = (t?: string) => t && t !== GAP && (t.startsWith("snd:") ? sound(t.slice(4)) : add({ key: t, text: t, kind: t.includes(" ") ? "line" : "word" }));
+  const line = (t?: string) => t && t !== GAP && (t.startsWith("snd:") ? sound(t.slice(4)) : add({ key: t, text: verseSpeech(t), kind: t.includes(" ") ? "line" : "word" }));
   const lines = (ts?: string[]) => ts?.forEach(line);
-  const word = (w: string) => w && add({ key: w, text: w, kind: "word" });
+  const word = (w: string) => w && add({ key: w, text: verseSpeech(w), kind: "word" });
   const sound = (id: string) => SOUNDS[id] && add({ key: sndKey(id), ipa: SOUNDS[id].ipa, kind: "sound" });
-  // prompts + choices: all; core except math (stitched); explanations: all, and manners in core
+  // prompts + choices: all; core except math (stitched); explanations: all, and character + faith in core
   const full = level === "all" || (level === "core" && subject !== "math");
-  const why = level === "all" || (level === "core" && subject === "manners");
+  const why = level === "all" || (level === "core" && (subject === "manners" || subject === "faith"));
   const opt = (o: Option) => (o.say ? lines(o.say) : full && o.text && !o.visual ? line(o.text) : undefined);
   switch (a.kind) {
     case "meet":
@@ -259,6 +309,7 @@ function activityClips(a: Activity, level: VoiceLevel, subject: SubjectId, add: 
       a.options.forEach((o) => {
         opt(o);
         if (why) line(o.why);
+        if (why && o.then) line(o.then.text);
       });
       break;
     case "place":
@@ -267,6 +318,54 @@ function activityClips(a: Activity, level: VoiceLevel, subject: SubjectId, add: 
       if (level !== "keys") {
         line(a.level.goal);
         line(a.level.hint);
+      }
+      break;
+    case "story":
+      // Little and middle sailors hear every scene; big sailors read (and can tap to hear).
+      if (level !== "keys") {
+        line(a.title);
+        for (const s of a.scenes) {
+          line(s.text);
+          if (s.act) line(s.act.prompt);
+        }
+      }
+      break;
+    case "verse": {
+      // The verse itself and its reference are always recorded — they're what gets memorized.
+      line(a.text);
+      line(refSpoken(a.ref));
+      if (full && a.meaning) line(a.meaning);
+      const v = a.v;
+      if (full && v.step === "blanks") v.blanks.forEach((b) => b.options.forEach(word));
+      if (full && v.step === "tiles") [...v.chunks, ...(v.decoys ?? [])].forEach(line);
+      if (full && v.step === "ref") v.options.forEach((r) => line(refSpoken(r)));
+      if (full && v.step === "meaning") v.options.forEach(line);
+      break;
+    }
+    case "spot":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (full) a.lines.forEach((l) => line(l.text));
+      if (why) line(a.why);
+      break;
+    case "slots":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (full) {
+        line(a.story);
+        a.slots.forEach((s) => s.options.forEach(line));
+      }
+      if (why) a.slots.forEach((s) => line(s.why));
+      break;
+    case "reflect":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (full) {
+        a.options.forEach((o) => {
+          line(o.text);
+          line(o.reply);
+        });
+        line(a.closing);
       }
       break;
   }
@@ -308,6 +407,7 @@ export function allClips(): Clip[] {
     for (const u of course.units) {
       const level = voiceLevelFor(u.grade);
       for (const l of u.lessons) for (const a of l.activities) activityClips(a, level, course.id, add);
+      if (u.challenge && level !== "keys") add({ key: u.challenge, text: u.challenge, kind: "line" });
     }
   return [...out.values()];
 }

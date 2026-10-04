@@ -159,6 +159,12 @@ function speakable(key: string): string {
     .replace(/\s=\s\?/g, " equals what")
     .replace(/\s=\s/g, " equals ")
     .replace(/[“”"]/g, "")
+    .replace(/\bLORD\b/g, "Lord")
+    .replace(/\bGOD\b/g, "God")
+    .replace(/\bJESUS\b/g, "Jesus")
+    .replace(/\bshew(ed)?\b/g, "show$1")
+    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}️‍⃣]/gu, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 
@@ -185,6 +191,13 @@ export function stopVoice() {
   const f = finish;
   finish = null;
   f?.(false);
+}
+
+/** The current utterance's token — to cut it short later only if it's still the one playing
+ *  (a child's tap may already have started something new). */
+export const voiceToken = () => seq;
+export function stopIfStill(token: number) {
+  if (token === seq) stopVoice();
 }
 
 type Seg = { clips: Part[] } | { tts: string; onStart?: () => void };
@@ -290,18 +303,38 @@ function speakDevice(text: string, my: number, onStart?: () => void): Promise<bo
       onStart?.();
       return res(true);
     }
+    // Some tablet voices never fire their events. A watchdog (about how long the words take to
+    // say, plus slack) makes sure nothing waits forever, and onStart still runs.
+    let started = false;
+    let settled = false;
+    const start = () => {
+      if (started || my !== seq) return;
+      started = true;
+      onStart?.();
+    };
+    const settle = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(watchdog);
+      window.clearTimeout(kick);
+      res(ok);
+    };
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const watchdog = window.setTimeout(() => settle(my === seq), Math.max(1600, words * 470) + 1600);
+    const kick = window.setTimeout(start, 700);
     try {
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 0.9;
       u.pitch = 1.05;
       const v = pickVoice();
       if (v) u.voice = v;
-      u.onstart = () => my === seq && onStart?.();
-      u.onend = () => res(my === seq);
-      u.onerror = () => res(my === seq);
+      u.onstart = start;
+      u.onend = () => settle(my === seq);
+      u.onerror = () => settle(my === seq);
       window.speechSynthesis.speak(u);
     } catch {
-      res(true);
+      start();
+      settle(true);
     }
   });
 }

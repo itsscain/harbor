@@ -1,5 +1,7 @@
 import type { SubjectId } from "./types";
 import { CODE_SKILL_LABEL } from "./code";
+import { VERSE_BY_ID } from "./bible";
+import { STORY_BY_ID } from "./stories";
 import { boxOf, isMastered, isShaky, skillSubject, strength, type SkillStat, type Skills } from "./mastery";
 
 // Skills in plain English for parents: "m:add:7+8" → "7 + 8", "r:sight:the" → "Sight word: the",
@@ -28,7 +30,31 @@ const MANNERS: Record<string, string> = {
   attitude: "Good attitude", "fix-attitude": "Turning attitude around", disagree: "Disagreeing kindly", responsibility: "Responsibility",
   growth: "Growth mindset", "peer-pressure": "Peer pressure", digital: "Screens & online", emergency: "Emergencies", money: "Money sense",
   "common-sense": "Common sense",
+  pretend: "Pretend vs. a fib", truth: "Telling the truth", honest: "Honest choices", fib: "Spotting fibs", "happy-heart": "Obeying with a happy heart",
+  obey: "Obeying right away", whining: "Asking nicely (no whining)", trust: "Building trust", "trust-builders": "Building trust", "rebuild-trust": "Rebuilding trust",
+  "tattle-tell": "Tattling vs. telling", sneaky: "Not sneaking", watching: "Doing right when no one's watching", tone: "Tone of voice", "attitude-kids": "Attitude",
+  "respect-builder": "Respectful answers", "lie-types": "Kinds of lies", "lie-examples": "Spotting lies", integrity: "Integrity", dilemma: "Tough choices",
+  "best-reason": "Choosing for the right reasons", "honesty-me": "Honesty (thinking it over)", "respect-authority": "Respecting authority", "respect-big": "Respect",
+  "disagree-kit": "Disagreeing respectfully", "stop-think": "Stop · Breathe · Think · Choose", "self-control": "Self-control", "future-you": "Thinking ahead",
+  "own-it": "Owning mistakes", "apology-kit": "Real apologies", "fake-apology": "Real vs. fake apologies", think: "THINK before speaking", words: "Words that build up",
 };
+const FAITH: Record<string, string> = {
+  "god-made": "God made everything", creation: "Creation", "made-me": "God made me", "god-loves": "God's love", "loved-by": "Loved by family",
+  promises: "Keeping promises", "ark-count": "Counting with Noah", "bible-little": "God's Word", "prayer-little": "Prayer", thanks: "Thankfulness",
+  brave: "Courage", christmas: "Christmas", "gift-jesus": "Giving to Jesus", "jesus-power": "Jesus' power", easter: "Easter", "happy-heart": "Obeying with a happy heart",
+  obey: "Obeying parents", truth: "Telling the truth", wordless: "The gospel in colors", "wordless-order": "The gospel in colors", sin: "What sin is",
+  gospel: "The good news", abc: "The ABCs of salvation", rescue: "Salvation", saved: "Trusting Jesus (thinking it over)", "bible-books": "Books of the Bible",
+  "bible-facts": "Bible facts", "first-five": "The first five books", gospels: "The four Gospels", heroes: "Bible heroes", commandments: "The Ten Commandments",
+  forgive: "Forgiveness", miracles: "Jesus' miracles", neighbor: "Loving our neighbor", parables: "Parables", "parable-q": "What the parables mean", fruit: "Fruit of the Spirit",
+  "fruit-match": "Fruit of the Spirit", "which-fruit": "Fruit of the Spirit", "prayer-parts": "Kinds of prayer", "lords-prayer": "The Lord's Prayer", prayer: "Prayer",
+  timeline: "The Bible's big story", sections: "Sections of the Bible", "big-facts": "Bible facts", "i-am": "Jesus' “I am” sayings", prophecy: "Prophecies about Jesus",
+  "god-man": "Jesus: fully God, fully man", grace: "Saved by grace", assurance: "Assurance of salvation", "romans-road": "The Romans Road", "romans-match": "Romans Road verses", romans: "The Romans Road", explain: "Sharing the gospel",
+  "bible-detective": "Spotting deception (Bible)", integrity: "Integrity", tongue: "Taming the tongue", "soft-answer": "A soft answer", complain: "Gratitude vs. grumbling",
+  armor: "Armor of God", "armor-order": "Armor of God", "armor-use": "Using God's armor", beatitudes: "The Beatitudes", "golden-rule": "The Golden Rule",
+  worry: "Trusting instead of worrying", "salt-light": "Salt and light", acts: "The book of Acts", proverbs: "Proverbs", "apply-proverbs": "Living the Proverbs",
+  serve: "Serving others", humble: "Humility",
+};
+const CHARACTER_STORIES: Record<string, string> = { wolf: "The Boy Who Cried Wolf", toothpaste: "The Toothpaste Test" };
 const COMP: Record<string, string> = { detail: "details", cause: "cause & effect", feeling: "characters' feelings", infer: "inferring", sequence: "sequence", main: "main idea", vocab: "vocabulary" };
 
 export function skillLabel(skill: string): string {
@@ -36,7 +62,11 @@ export function skillLabel(skill: string): string {
   const fam = parts.slice(0, 2).join(":");
   const rest = parts.slice(2).join(":");
   if (skill.startsWith("c:")) return CODE_SKILL_LABEL[skill] ?? parts[1];
+  if (fam === "h:story") return `Story: ${CHARACTER_STORIES[rest] ?? rest}`;
   if (skill.startsWith("h:")) return MANNERS[parts[1]] ?? parts[1].replace(/-/g, " ");
+  if (fam === "f:verse") return `Verse: ${VERSE_BY_ID.get(rest)?.ref ?? rest}`;
+  if (fam === "f:story") return `Story: ${STORY_BY_ID.get(rest)?.title ?? rest}`;
+  if (skill.startsWith("f:")) return FAITH[parts[1]] ?? parts[1].replace(/-/g, " ");
   switch (fam) {
     case "m:add": return rest ? rest.replace("+", " + ") : FAMILY[fam];
     case "m:sub": return rest ? rest.replace("-", " − ") : FAMILY[fam];

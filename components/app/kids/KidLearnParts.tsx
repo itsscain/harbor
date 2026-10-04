@@ -21,6 +21,7 @@ const SUBJECT_OPTIONS = [
   { value: "math", label: "Math", emoji: "🔢" },
   { value: "code", label: "Code", emoji: "🧩" },
   { value: "manners", label: "Captain's Code", emoji: "⚓" },
+  { value: "faith", label: "Lighthouse", emoji: "🕊️" },
 ];
 
 /** The kid's learning settings as one calm row; the controls live in a sheet behind it. */
@@ -67,7 +68,7 @@ function LearnSettingsForm({ kidId, profile }: { kidId: string; profile: LearnPr
           {GRADES.find((g) => g.id === grade)?.label} · {GRADES.find((g) => g.id === grade)?.age}
         </p>
       </Field>
-      <Field label="Subjects" hint="Captain's Code teaches manners, kindness, common sense and attitude.">
+      <Field label="Subjects" hint="Captain's Code teaches honesty, respect, attitude, manners and common sense. Lighthouse (optional) teaches Jesus and the Bible: stories, memory verses (KJV) and living it out, in three age tracks.">
         <ChipGroup name="subjects" multiple options={SUBJECT_OPTIONS} value={subjects} onChange={(v) => v.length && setSubjects(v)} ariaLabel="Subjects" />
       </Field>
       <Field label="Daily goal" hint="Levels a day. Each takes about 3–6 minutes.">

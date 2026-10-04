@@ -3,21 +3,25 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { useKiosk } from "../useKiosk";
 import type { KioskChild } from "@/lib/kiosk/types";
-import type { LearnResult, Lesson, SubjectId } from "@/lib/learn/types";
-import { COURSES, lessonById, levelLabel, nextLessonFor, practiceLesson, unitById } from "@/lib/learn/curriculum";
+import { bandOf, type LearnResult, type Lesson, type SubjectId } from "@/lib/learn/types";
+import { COURSES, lessonById, levelLabel, mixedPractice, nextLessonFor, practiceLesson, unitById } from "@/lib/learn/curriculum";
 import { albumProgress, pickSticker, type ChestKind } from "@/lib/learn/stickers";
-import { levelName, levelOf, starsFor, streakFrom, xpFor } from "@/lib/learn/progress";
+import { levelName, levelOf, mergeKid, starsFor, streakFrom, xpFor } from "@/lib/learn/progress";
 import { SHELLS, shellsForLesson, type BoatLook, type ShopItem } from "@/lib/learn/meta";
 import { voiceLevelFor, SAY } from "@/lib/learn/script";
 import { prefetchLibrary, say, stopVoice } from "@/lib/learn/audio";
 import { setSfx } from "@/lib/learn/sfx";
+import { badgeStats, badgesFor, earned, heroCards } from "@/lib/learn/badges";
+import { CREATURE_BY_ID, eggsEarned, eggsWaiting, growth, type Creature, type Egg } from "@/lib/learn/reef";
+import { dayKeyInTz } from "@/lib/tz";
 import { LearnHome } from "./LearnHome";
 import { VoyageMap } from "./VoyageMap";
-import { StickerAlbum } from "./StickerAlbum";
 import { HarborShop } from "./HarborShop";
 import { DailyChest, dailyPrize } from "./DailyChest";
 import { LessonPlayer, type LessonOutcome } from "./LessonPlayer";
 import { LessonDone, type DoneInfo } from "./LessonDone";
+import { Treasures, type TreasureTab } from "./Treasures";
+import { BrainGym, type GymGame } from "./BrainGym";
 import { kidLearnView, starsForLesson } from "./learnData";
 
 // Loaded lazily by the wall (see lazy.ts), so it also carries the view-model the badge needs.
@@ -32,8 +36,9 @@ type Kiosk = ReturnType<typeof useKiosk>;
 type Screen =
   | { s: "home" }
   | { s: "map"; subject: SubjectId; sailFrom?: string | null }
-  | { s: "album" }
+  | { s: "treasures"; tab?: TreasureTab; hatch?: string }
   | { s: "shop" }
+  | { s: "gym" }
   | { s: "lesson"; lesson: Lesson; playId: string; back: Screen }
   | { s: "done"; lesson: Lesson; info: DoneInfo; next: Lesson | null; missed: string[]; back: Screen };
 
@@ -85,7 +90,7 @@ export function LearnApp({
   useEffect(() => {
     setSfx(sound, intensity);
   }, [sound, intensity]);
-  const busy = screen.s === "lesson" || screen.s === "done";
+  const busy = screen.s === "lesson" || screen.s === "done" || screen.s === "gym";
   useEffect(() => {
     onBusy?.(busy);
   }, [busy, onBusy]);
@@ -111,6 +116,17 @@ export function LearnApp({
     if (p) start(p, back);
     else void say(SAY.keepGoing);
   };
+  /** Brain Boost: what's due across every subject, mixed together. */
+  const boost = (back: Screen) => {
+    const p = mixedPractice(profile.subjects, kid.skills, { seed: `${todayKey}:${newPlayId()}`, now: nowMs() });
+    if (p) {
+      void say(SAY.brainBoost);
+      start(p, back);
+    } else void say(SAY.keepGoing);
+  };
+  const eggs = eggsWaiting(kid, kid.hatched);
+  const buddyHatch = kid.hatched.find((h) => h.creature === (kid.buddy ?? kid.hatched[0]?.creature)) ?? null;
+  const buddyCreature = buddyHatch ? (CREATURE_BY_ID.get(buddyHatch.creature) ?? null) : null;
 
   const complete = (lesson: Lesson, playId: string, o: LessonOutcome, back: Screen) => {
     const isPractice = lesson.kind === "practice";
@@ -164,12 +180,23 @@ export function LearnApp({
       shells,
     };
     const xpGain = xpFor(stars);
+    // What this level unlocks beyond stars and stickers: a hero card, eggs, badges, a growing buddy.
+    const after = mergeKid(state.learn ?? null, child.id, [...(state.learnOutbox ?? []), result], todayKey, (iso) => dayKeyInTz(new Date(iso), view.tz), state.learnEvents ?? []);
+    const cardsBefore = new Map(heroCards(kid.lessons).map((c) => [c.hero.id, c.holo]));
+    const cardNow = passed && lesson.card ? heroCards(after.lessons).find((c) => c.hero.id === lesson.card) : undefined;
+    const card = cardNow && (!cardsBefore.has(cardNow.hero.id) || (cardNow.holo && !cardsBefore.get(cardNow.hero.id))) ? { hero: cardNow.hero, holo: cardNow.holo, upgrade: cardsBefore.has(cardNow.hero.id) } : null;
+    const eggIds = new Set(eggsEarned(kid).map((e) => e.id));
+    const newEggs = eggsEarned(after).filter((e) => !eggIds.has(e.id));
+    const statsBefore = badgeStats(kid);
+    const statsAfter = badgeStats(after);
+    const newBadges = badgesFor(profile.subjects).filter((b) => !earned(b, statsBefore) && earned(b, statsAfter));
+    const grew = buddyHatch ? growth(kid.xp + xpGain, buddyHatch).index > growth(kid.xp, buddyHatch).index : false;
     const info: DoneInfo = {
       passed,
       stars,
       correct: o.correct,
       total: o.total,
-      label: isPractice ? "Practice Cove" : levelLabel(lesson),
+      label: lesson.id.startsWith("practice:mix") ? "Brain Boost" : isPractice ? "Practice Cove" : levelLabel(lesson),
       shells,
       chest,
       sticker: pick?.sticker ?? null,
@@ -185,6 +212,11 @@ export function LearnApp({
       worldDone,
       nextWorld,
       canPractice: !isPractice && o.missed.length > 0,
+      card,
+      eggs: newEggs,
+      badges: newBadges,
+      challenge: passed && unit?.challenge ? unit.challenge : null,
+      buddy: buddyCreature && passed ? { creature: buddyCreature, grew: grew && buddyHatch ? growth(kid.xp + xpGain, buddyHatch).stage.name : null } : null,
     };
     const best = (id: string) => (id === lesson.id ? Math.max(prevBest, stars) : kid.lessons[id] ? kid.lessons[id].stars : null);
     const stillAssigned = assignments.map((a) => a.lesson_id).filter((id) => id !== lesson.id || !passed);
@@ -206,6 +238,12 @@ export function LearnApp({
     event({ op_id: `daily:${child.id}:${todayKey}`, type: "daily", amount: prize.shells });
     if (prize.sticker) event({ op_id: `daily-sticker:${child.id}:${todayKey}`, type: "earn", amount: 0, item: `sticker:${prize.shiny ? `${prize.sticker.id}*` : prize.sticker.id}`, reason: "daily chest" });
   };
+  const hatch = (egg: Egg, creature: Creature) => event({ op_id: `hatch:${child.id}:${egg.id}`, type: "collect", item: `hatch:${egg.id}`, data: { creature: creature.id, xp: kid.xp } });
+  const pickBuddy = (id: string) => event({ op_id: `buddy:${child.id}:${newPlayId()}`, type: "collect", item: `buddy:${id}` });
+  const gymResult = (game: GymGame, score: number, shells: number) => {
+    if (score > (kid.bests[game] ?? 0)) event({ op_id: `best:${child.id}:${game}:${newPlayId()}`, type: "best", item: `gym:${game}`, amount: Math.min(1000, score) });
+    if (shells > 0) event({ op_id: `gym:${child.id}:${newPlayId()}`, type: "earn", amount: shells, reason: "gym" });
+  };
 
   const tone = toneNow();
   let body: ReactNode = null;
@@ -216,12 +254,16 @@ export function LearnApp({
         view={view}
         reduced={reduced}
         look={look}
+        eggs={eggs.length}
+        buddy={buddyCreature}
         onStart={(l) => start(l, { s: "home" })}
         onOpenSubject={(subject) => setScreen({ s: "map", subject })}
-        onOpenAlbum={() => setScreen({ s: "album" })}
+        onOpenTreasures={() => setScreen({ s: "treasures" })}
         onOpenShop={() => setScreen({ s: "shop" })}
+        onOpenGym={() => setScreen({ s: "gym" })}
         onOpenChest={() => setChestOpen(true)}
         onPractice={(s) => practice(s, { s: "home" })}
+        onBoost={() => boost({ s: "home" })}
         greet={!greeted}
         onGreeted={() => setGreeted(true)}
       />
@@ -241,8 +283,25 @@ export function LearnApp({
         onPractice={() => practice(screen.subject, here)}
       />
     );
-  } else if (screen.s === "album") {
-    body = <StickerAlbum stickers={kid.stickers} onBack={() => setScreen({ s: "home" })} />;
+  } else if (screen.s === "treasures") {
+    body = (
+      <Treasures
+        key={screen.tab ?? "reef"}
+        kid={kid}
+        subjects={profile.subjects}
+        eggs={eggs}
+        childId={child.id}
+        reduced={reduced}
+        accent={accent}
+        tab={screen.tab}
+        autoHatch={screen.hatch}
+        onBack={() => setScreen({ s: "home" })}
+        onHatch={hatch}
+        onBuddy={pickBuddy}
+      />
+    );
+  } else if (screen.s === "gym") {
+    body = <BrainGym band={bandOf(profile.grade)} bests={kid.bests} paidToday={kid.gymToday} reduced={reduced} onBack={() => setScreen({ s: "home" })} onResult={gymResult} />;
   } else if (screen.s === "shop") {
     body = <HarborShop look={look} owned={kid.owned} shells={kid.shells} level={kid.level} reduced={reduced} onBack={() => setScreen({ s: "home" })} onBuy={buy} onEquip={equip} />;
   } else if (screen.s === "lesson") {
@@ -256,6 +315,7 @@ export function LearnApp({
         voice={voice}
         look={look}
         reduced={reduced}
+        buddy={buddyCreature && buddyHatch ? { creature: buddyCreature, scale: growth(kid.xp, buddyHatch).stage.scale } : null}
         onExit={() => setScreen(here.back)}
         onComplete={(o) => complete(here.lesson, here.playId, o, here.back)}
       />
@@ -275,6 +335,7 @@ export function LearnApp({
         onRetry={() => start(here.lesson, here.back)}
         onPractice={() => practice(here.lesson.subject, here.back, here.missed)}
         onHome={() => setScreen(here.back)}
+        onHatch={() => setScreen({ s: "treasures", tab: "reef", hatch: here.info.eggs?.[0]?.id })}
       />
     );
   }

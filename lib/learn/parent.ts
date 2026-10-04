@@ -1,9 +1,10 @@
 import type { SubjectId, LearnProfile, GradeId, LevelKind } from "./types";
 import { GRADES, isGrade } from "./types";
-import { COURSES, SUBJECTS, SUBJECT_LOOK, courseMap, isPractice, lessonById, levelLabel } from "./curriculum";
+import { COURSES, DEFAULT_SUBJECTS, SUBJECT_LOOK, courseMap, isPractice, isSubject, lessonById, levelLabel, unitById } from "./curriculum";
 import { levelName, levelOf, streakFrom, xpFor } from "./progress";
 import { skillPicture, skillsFromResults, type SkillInsight } from "./skills";
-import { isMastered, type Skills } from "./mastery";
+import { isMastered, strength, type Skills } from "./mastery";
+import { VERSE_BY_ID } from "./bible";
 import { dayKeyInTz } from "@/lib/tz";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
@@ -61,8 +62,8 @@ export function guessGrade(birthday: string | null | undefined, now = new Date()
 export function missionLesson(id: string): { kind: "lesson"; title: string; emoji: string; subject: SubjectId; label: string } | { kind: "practice"; title: string; emoji: string; subject: SubjectId; label: string } | null {
   const l = lessonById(id);
   if (l) return { kind: "lesson", title: l.title, emoji: l.emoji, subject: l.subject, label: levelLabel(l) };
-  const m = /^practice:(reading|math|code|manners)$/.exec(id);
-  if (m) return { kind: "practice", title: "Practice Cove", emoji: "🏝️", subject: m[1] as SubjectId, label: "Practice" };
+  const m = /^practice:([a-z]+)$/.exec(id);
+  if (m && isSubject(m[1])) return { kind: "practice", title: "Practice Cove", emoji: "🏝️", subject: m[1], label: "Practice" };
   return null;
 }
 
@@ -73,13 +74,13 @@ export async function loadKidLearn(db: SupabaseClient<Database>, kid: { id: stri
     db.from("learn_results").select("id, lesson_id, subject, stars, correct, total, duration_sec, sticker, completed_at, skills, kind, shells").eq("child_id", kid.id).order("completed_at", { ascending: false }).limit(1000),
   ]);
   const row = p.data;
-  const subjects = (row?.subjects ?? SUBJECTS).filter((s): s is SubjectId => (SUBJECTS as string[]).includes(s));
+  const subjects = (row?.subjects ?? DEFAULT_SUBJECTS).filter(isSubject);
   const results = (r.data ?? []) as LearnResultRow[];
   return {
     profile: {
       child_id: kid.id,
       grade: row && isGrade(row.grade) ? row.grade : guessGrade(kid.birthday),
-      subjects: subjects.length ? subjects : SUBJECTS,
+      subjects: subjects.length ? subjects : DEFAULT_SUBJECTS,
       daily_goal: row?.daily_goal ?? 2,
       earn_stars: row?.earn_stars ?? true,
       daily_limit: row?.daily_limit ?? 0,
@@ -111,6 +112,9 @@ export type SubjectSummary = {
   practiced: number;
 };
 
+export type VerseRow = { id: string; ref: string; text: string; meaning: string; pic: string; strength: number; mastered: boolean; at: string | null };
+export type TalkPrompt = { unit: string; title: string; emoji: string; subject: SubjectId; questions: string[]; challenge: string | null };
+
 export type LearnSummary = {
   streak: number;
   todayCount: number;
@@ -126,6 +130,12 @@ export type LearnSummary = {
   bySubject: SubjectSummary[];
   recent: { id: string; title: string; label: string; emoji: string; subject: SubjectId; stars: number; passed: boolean; practice: boolean; at: string; minutes: number; score: string }[];
   lastActive: string | null;
+  /** Memory verses met on the Lighthouse voyage, strongest first. */
+  verses: VerseRow[];
+  /** Dinner-table questions (and the island's real-world challenge) from what they learned lately. */
+  talk: TalkPrompt[];
+  /** Bible hero cards won. */
+  heroCards: number;
 };
 
 export function summarize(d: KidLearnData, now = new Date()): LearnSummary {
@@ -181,6 +191,30 @@ export function summarize(d: KidLearnData, now = new Date()): LearnSummary {
     .filter(([k, s]) => /^r:sound:[a-z]$/.test(k) && (isMastered(s) || (s.total >= 2 && s.right / s.total >= 0.8)))
     .map(([k]) => k.slice(8));
 
+  const verses: VerseRow[] = Object.entries(d.skills)
+    .filter(([k]) => k.startsWith("f:verse:"))
+    .map(([k, s]) => {
+      const v = VERSE_BY_ID.get(k.slice(8));
+      return v ? { id: v.id, ref: v.ref, text: v.text, meaning: v.meaning, pic: v.pic, strength: strength(s), mastered: isMastered(s), at: s.last } : null;
+    })
+    .filter((x): x is VerseRow => !!x)
+    .sort((a, b) => Number(b.mastered) - Number(a.mastered) || b.strength - a.strength);
+
+  // The islands they've been on in the last few days → questions worth asking at dinner.
+  const since = now.getTime() - 4 * 86400_000;
+  const seenUnits: string[] = [];
+  for (const r of d.results) {
+    if (new Date(r.completed_at).getTime() < since) break;
+    const l = lessonById(r.lesson_id);
+    if (l && !seenUnits.includes(l.unit)) seenUnits.push(l.unit);
+  }
+  const talk: TalkPrompt[] = seenUnits
+    .map((id) => unitById(id))
+    .filter((u): u is NonNullable<typeof u> => !!u && !!(u.talk?.length || u.challenge))
+    .slice(0, 3)
+    .map((u) => ({ unit: u.id, title: u.title, emoji: u.emoji, subject: u.subject, questions: u.talk ?? [], challenge: u.challenge ?? null }));
+  const cardIds = new Set(d.results.filter((r) => r.stars >= 1).map((r) => lessonById(r.lesson_id)?.card).filter(Boolean));
+
   return {
     streak: streakFrom([...new Set(d.results.map((r) => dayOf(r.completed_at)))].sort().reverse(), todayKey),
     todayCount: d.results.filter((r) => dayOf(r.completed_at) === todayKey).length,
@@ -196,11 +230,12 @@ export function summarize(d: KidLearnData, now = new Date()): LearnSummary {
     recent: d.results.slice(0, 10).map((r) => {
       const l = lessonById(r.lesson_id);
       const practice = isPractice(r.lesson_id);
+      const boost = r.lesson_id.startsWith("practice:mix");
       return {
         id: r.id,
-        title: practice ? "Practice Cove" : l?.title ?? "Earlier lesson",
+        title: boost ? "Brain Boost (mixed review)" : practice ? "Practice Cove" : l?.title ?? "Earlier lesson",
         label: l ? levelLabel(l) : practice ? "🏝️" : "",
-        emoji: practice ? "🏝️" : l?.emoji ?? "📘",
+        emoji: boost ? "⚡" : practice ? "🏝️" : l?.emoji ?? "📘",
         subject: r.subject,
         stars: r.stars,
         passed: r.stars >= 1,
@@ -211,5 +246,8 @@ export function summarize(d: KidLearnData, now = new Date()): LearnSummary {
       };
     }),
     lastActive: d.results[0]?.completed_at ?? null,
+    verses,
+    talk,
+    heroCards: cardIds.size,
   };
 }

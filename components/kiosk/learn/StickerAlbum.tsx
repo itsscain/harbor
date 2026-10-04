@@ -11,7 +11,7 @@ import { Chunk } from "./kit";
 // version of every one. Finished sets get a gold badge (and paid 60 shells when they filled).
 // Unfound stickers show as mystery silhouettes, so there's always something to hunt for.
 
-export function StickerAlbum({ stickers, onBack }: { stickers: Record<string, number>; onBack: () => void }) {
+export function StickerAlbum({ stickers, onBack, bare }: { stickers: Record<string, number>; onBack: () => void; bare?: boolean }) {
   const [open, setOpen] = useState<StickerSet | null>(null);
   const sets = albumProgress(stickers);
   const found = sets.reduce((n, s) => n + s.found, 0);
@@ -19,8 +19,13 @@ export function StickerAlbum({ stickers, onBack }: { stickers: Record<string, nu
   const shinies = Object.keys(stickers).filter((k) => k.endsWith("*")).length;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-4 px-4 pb-10 pt-2 sm:px-6">
-      <div className="flex items-center gap-3">
+    <div className={cn("flex w-full flex-col gap-4", bare ? "" : "mx-auto max-w-[1100px] px-4 pb-10 pt-2 sm:px-6")}>
+      {bare && open && (
+        <Chunk tone="white" onClick={() => (sfx("tap"), setOpen(null))} className="flex h-12 w-fit items-center gap-2 px-4 font-display text-lg font-extrabold text-[var(--l-ink)]">
+          <ArrowLeft className="h-5 w-5" strokeWidth={3} /> {open.emoji} {open.name}
+        </Chunk>
+      )}
+      <div className={cn("flex items-center gap-3", bare && "hidden")}>
         <Chunk tone="white" onClick={() => (sfx("tap"), open ? setOpen(null) : onBack())} aria-label="Back" className="flex h-14 w-14 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
           <ArrowLeft className="h-7 w-7 text-[var(--l-ink)]" strokeWidth={3} />
         </Chunk>

@@ -91,16 +91,21 @@ const LIBRARY = [
 ];
 
 // Harbor Learn mock: a kindergartner a week in — letters m s a t, the first sea-arrow puzzles,
-// counting (one level not passed yet, then a Practice Cove), and the first Captain's Code island.
+// counting (one level not passed yet, then a Practice Cove), the first Captain's Code island, and
+// Lighthouse (Creation Cove: the story, Genesis 1:1 reviewed until memorized).
 function learnMock(fresh: boolean): KidLearnData {
   const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
-  const r = (id: string, lesson: string, subject: "reading" | "code" | "math" | "manners", stars: number, h: number, skills: Record<string, [number, number]>, sec = 240) => {
+  const r = (id: string, lesson: string, subject: "reading" | "code" | "math" | "manners" | "faith", stars: number, h: number, skills: Record<string, [number, number]>, sec = 240) => {
     const vals = Object.values(skills);
     return { id, lesson_id: lesson, subject, stars, correct: vals.reduce((n, v) => n + v[0], 0), total: vals.reduce((n, v) => n + v[1], 0), duration_sec: sec, sticker: "fish", completed_at: ago(h), skills, kind: "lesson" as const, shells: 20 };
   };
   const results = fresh
     ? []
     : [
+        r("f1", "faith.creation.2", "faith", 3, 0.5, { "f:verse:gen1-1": [4, 4] }),
+        r("f2", "faith.creation.1", "faith", 3, 25, { "f:story:creation": [5, 5] }, 300),
+        r("f3", "practice:faith:demo", "faith", 3, 48, { "f:verse:gen1-1": [2, 2], "f:story:creation": [1, 1] }, 150),
+        r("f4", "faith.creation.4", "faith", 2, 49, { "f:verse:gen1-1": [3, 3], "f:verse:ps139-14": [2, 3] }),
         r("x1", "read.ls1.3", "reading", 1, 1, { "r:sound:a": [2, 4], "r:sound:t": [2, 2] }),
         r("x2", "practice:math:demo", "math", 2, 2, { "m:count:4": [2, 2], "m:count:5": [1, 1] }, 180),
         r("x3", "math.count5.2", "math", 0, 3, { "m:count:4": [1, 3], "m:count:5": [1, 2] }, 200),
@@ -111,7 +116,7 @@ function learnMock(fresh: boolean): KidLearnData {
         r("x8", "read.ls1.1", "reading", 3, 74, { "r:sound:m": [4, 4], "r:write:m": [1, 1] }),
       ];
   return {
-    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "manners"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
+    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
     profileSaved: !fresh,
     tz: "America/New_York",
     assignments: fresh

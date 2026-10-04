@@ -45,6 +45,28 @@ const shapes = (set: ShapeName[]): Topic => ({
     return { kind: "choice", prompt: `Which one is a ${target}?`, say: ["Which one is a,", target], options, answer: target, layout: "row", skill: `m:shape:${target}` };
   },
 });
+/** Shapes in the real world: "Which one is shaped like a triangle?" 🍕 */
+const SHAPE_THINGS: Partial<Record<ShapeName, [string, string][]>> = {
+  circle: [["🍪", "cookie"], ["🍩", "donut"], ["🕐", "clock"], ["🍊", "orange"]],
+  square: [["🧇", "waffle"], ["🎁", "present"], ["🔲", "tile"], ["🧊", "ice cube"]],
+  triangle: [["🍕", "pizza slice"], ["⛺", "tent"], ["🔺", "sign"], ["📐", "ruler"]],
+  rectangle: [["🚪", "door"], ["📱", "phone"], ["📺", "TV"], ["💵", "dollar"]],
+  star: [["⭐", "star"], ["🌟", "gold star"]],
+  heart: [["❤️", "heart"], ["💝", "heart box"]],
+  oval: [["🥚", "egg"], ["🏈", "football"]],
+  diamond: [["🪁", "kite"], ["🔶", "sign"]],
+};
+const shapeLife = (set: ShapeName[]): Topic => ({
+  key: `shapelife-${set[0]}-${set.length}`,
+  gen: (r) => {
+    const can = set.filter((s) => SHAPE_THINGS[s]?.length);
+    const target = pick(r, can);
+    const right = pick(r, SHAPE_THINGS[target]!);
+    const wrong = pickN(r, can, 2, (s) => s === target).map((s) => pick(r, SHAPE_THINGS[s]!));
+    const options: Option[] = shuffle(r, [right, ...wrong]).map(([emoji, word]) => ({ id: word, emoji, text: word, say: [word] }));
+    return { kind: "choice", prompt: `Which one is shaped like a ${target}?`, say: [`Which one is shaped like a ${target}?`], options, answer: right[1], layout: "row", skill: `m:shape:${target}`, why: `A ${right[1]} is shaped like a ${target}!` };
+  },
+});
 const moreFewer: Topic = {
   key: "morefewer",
   gen: (r, d) => {
@@ -732,8 +754,8 @@ const WORLDS: WorldDef[] = [
     { title: "Find the number", emoji: "🔢", topics: [numeral(5), count(5)], levels: 2 },
   ] },
   { id: "shapes", title: "Shape Shore", emoji: "🔺", grade: "prek", blurb: "Circles, squares, triangles and more.", stages: [
-    { title: "Shape hunt", emoji: "⭕", topics: [shapes(["circle", "square", "triangle"])], levels: 2 },
-    { title: "More shapes", emoji: "⭐", topics: [shapes(["circle", "square", "triangle", "rectangle", "star", "heart"])], levels: 2 },
+    { title: "Shape hunt", emoji: "⭕", topics: [shapes(["circle", "square", "triangle"]), shapeLife(["circle", "square", "triangle"])], levels: 2 },
+    { title: "More shapes", emoji: "⭐", topics: [shapes(["circle", "square", "triangle", "rectangle", "star", "heart"]), shapeLife(["circle", "square", "triangle", "rectangle", "star", "heart"])], levels: 2 },
     { title: "Shape masters", emoji: "🔷", topics: [shapes(SHAPES_2D)], levels: 1 },
   ] },
   { id: "compare", title: "More-or-Less Lagoon", emoji: "⚖️", grade: "prek", blurb: "Which has more? What comes next?", stages: [
@@ -869,7 +891,7 @@ const WORLDS: WorldDef[] = [
   ] },
   { id: "geometry4", title: "Angle Atoll", emoji: "📐", grade: "4", blurb: "Angles, lines and area formulas.", stages: [
     { title: "Angles", emoji: "📐", topics: [angles], levels: 2 },
-    { title: "Lines", emoji: "🛤️", topics: [lines], levels: 2 },
+    { title: "Lines", emoji: "🛤️", topics: [lines, angles], levels: 2 },
     { title: "Area formula", emoji: "🟩", topics: [areaFormula, perimeter], levels: 2 },
   ] },
   { id: "story4", title: "Puzzle Peaks", emoji: "🧠", grade: "4", blurb: "Multi-step word problems.", stages: [{ title: "Think it through", emoji: "🧠", topics: [multiStep], levels: 4 }] },

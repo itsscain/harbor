@@ -5,7 +5,7 @@
 // sails through. Every item practices a tagged skill, so the mastery engine can tell what's
 // solid, what's shaky, and what to bring back for review.
 
-export type SubjectId = "reading" | "math" | "code" | "manners";
+export type SubjectId = "reading" | "math" | "code" | "manners" | "faith";
 export type GradeId = "prek" | "k" | "1" | "2" | "3" | "4" | "5";
 
 export const GRADES: { id: GradeId; label: string; short: string; age: string }[] = [
@@ -54,8 +54,46 @@ export type Visual =
   | { type: "lines"; kind: "parallel" | "perpendicular" | "intersecting" }
   | { type: "pair"; left: Visual; right: Visual; mid?: string };
 
-/** One answer choice. `say` = clip keys spoken when it's read aloud; `why` = the explanation. */
-export type Option = { id: string; text?: string; emoji?: string; visual?: Visual; say?: string[]; why?: string };
+/** One answer choice. `say` = clip keys spoken when it's read aloud; `why` = the explanation;
+ *  `then` = what happens next if you choose it (a scene that plays out — and can be rewound). */
+export type Option = { id: string; text?: string; emoji?: string; visual?: Visual; say?: string[]; why?: string; then?: Then };
+/** A consequence scene: what happens after a choice. `trust` moves the trust bridge (+1 / −1). */
+export type Then = { emoji: string; text: string; trust?: number };
+
+// ── Stories: a scene-by-scene telling with things to tap along the way ──────────────────────
+export type Sky = "day" | "dawn" | "dusk" | "night" | "storm" | "sea" | "desert" | "garden" | "glory" | "indoor";
+export type StoryAct =
+  /** Tap the big thing n times (hammer the ark, march around Jericho) — then it becomes `after`
+   *  (and the sky can change: "Let there be light!" turns night into day). */
+  | { type: "tap"; prompt: string; target: string; n: number; after?: string; afterSky?: Sky }
+  /** Find the right one among look-alikes (the lost sheep). */
+  | { type: "find"; prompt: string; target: string; decoys: string[] }
+  /** Tap each thing to send it somewhere (animals into the ark, bread into the basket). */
+  | { type: "collect"; prompt: string; items: string[]; into: string };
+export type StoryScene = {
+  /** The main picture (a few emoji). */
+  art: string;
+  /** Small things up in the sky, and along the ground. */
+  top?: string;
+  ground?: string;
+  sky?: Sky;
+  text: string;
+  act?: StoryAct;
+};
+
+// ── Scripture memory: hear it → fill a word → build it → recall it from first letters ──────
+export type VerseStep =
+  /** Hear it and see it, then say it along. */
+  | { step: "listen" }
+  /** Pick the missing word(s), in order (`at` = word index). `cue: "letters"` shows every other
+   *  word as its first letter only — recall with the lightest hint. */
+  | { step: "blanks"; blanks: { at: number; options: string[] }[]; cue?: "full" | "letters" }
+  /** Tap the pieces in order (decoys are pieces that don't belong). */
+  | { step: "tiles"; chunks: string[]; decoys?: string[] }
+  /** Where is it found? */
+  | { step: "ref"; options: string[] }
+  /** What does it mean? */
+  | { step: "meaning"; options: string[]; answer: string };
 
 // ── Code: block programs run by one of several simulators ───────────────────────────────────
 export type Dir = "up" | "right" | "down" | "left";
@@ -141,6 +179,16 @@ export type Activity = (
   | { kind: "place"; target: number; hundreds?: boolean }
   /** Program something. */
   | { kind: "code"; level: CodeLevel }
+  /** A story told scene by scene with things to do (it teaches; questions about it follow). */
+  | { kind: "story"; title: string; emoji: string; ref?: string; scenes: StoryScene[] }
+  /** Scripture memory, one step of the ladder. */
+  | { kind: "verse"; ref: string; text: string; pic?: string; meaning?: string; v: VerseStep }
+  /** Truth Detective: tap the line(s) where someone wasn't honest, or was sneaky. */
+  | { kind: "spot"; prompt: string; title?: string; scene?: string; lines: { text: string; emoji?: string }[]; answer: number[]; why: string; say?: string[] }
+  /** Build better words one piece at a time (a real apology, a respectful answer, a plan). */
+  | { kind: "slots"; prompt: string; scene?: string; story?: string; slots: { label?: string; options: string[]; answer: string; why?: string }[]; say?: string[] }
+  /** No wrong answers: think about your own life (or pick what to thank God for). */
+  | { kind: "reflect"; prompt: string; scene?: string; options: { id: string; text: string; emoji?: string; reply?: string }[]; multi?: boolean; closing?: string; say?: string[] }
 ) & {
   /** The skill this item practices (mastery tracking + review). */
   skill?: string;
@@ -161,6 +209,8 @@ export type Lesson = {
   activities: Activity[];
   /** Skill tags it practices (parent progress + review). */
   skills: string[];
+  /** A Bible hero card earned the first time it's passed. */
+  card?: string;
 };
 
 export type ThemeId = "shallows" | "coral" | "kelp" | "pirate" | "ice" | "volcano" | "jungle" | "night" | "storm" | "sky" | "deep" | "candy";
@@ -176,6 +226,10 @@ export type Unit = {
   theme: ThemeId;
   blurb: string;
   lessons: Lesson[];
+  /** Questions for the grown-ups to ask at dinner (shown on the parent's Learn tab). */
+  talk?: string[];
+  /** A real-world mission for today, shown after a level ("Captain's challenge"). */
+  challenge?: string;
 };
 
 export type Course = {

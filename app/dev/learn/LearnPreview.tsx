@@ -44,13 +44,13 @@ function makeState(grade: string, fresh: boolean): KioskState {
     server_time: now,
   };
   const learn: LearnSnapshot = {
-    profiles: [{ child_id: CADE, grade, subjects: ["reading", "math", "code", "manners"], daily_goal: 2, earn_stars: true, daily_limit: 0 }],
+    profiles: [{ child_id: CADE, grade, subjects: ["reading", "math", "code", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 }],
     assignments: fresh ? [] : [{ id: "a1", child_id: CADE, lesson_id: "read.ls1.3", note: "Let's learn some new letters!", created_at: now }],
     kids: fresh
       ? {}
       : {
           [CADE]: {
-            lessons: { "read.ls1.1": [3, 1, now], "read.ls1.2": [2, 1, now], "code.voyage.1": [3, 1, now], "code.voyage.2": [2, 1, now], "math.count5.1": [3, 1, now], "math.count5.2": [0, 1, now], "char.magic-words.1": [3, 1, now] },
+            lessons: { "read.ls1.1": [3, 1, now], "read.ls1.2": [2, 1, now], "code.voyage.1": [3, 1, now], "code.voyage.2": [2, 1, now], "math.count5.1": [3, 1, now], "math.count5.2": [0, 1, now], "char.magic-words.1": [3, 1, now], "faith.creation.1": [3, 1, now] },
             stickers: { fish: 1, crab: 2, octopus: 1, turtle: 1, "shell*": 1 },
             days: [dayKey(-1), dayKey(-2)],
             xp: 120,
@@ -63,6 +63,8 @@ function makeState(grade: string, fresh: boolean): KioskState {
               "m:count:3": [3, 3, now, "1"],
               "c:sequencing": [6, 6, now, "11"],
               "h:magic-words": [6, 6, now, "1"],
+              "f:story:creation": [4, 4, now, "1"],
+              "f:verse:gen1-1": [3, 4, now, "0"],
             },
             shells: 240,
             owned: ["sail-stripes"],

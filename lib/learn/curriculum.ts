@@ -4,15 +4,19 @@ import { READING } from "./reading";
 import { MATH } from "./math";
 import { CODE } from "./code";
 import { MANNERS } from "./manners";
-import { pickReview, type Skills } from "./mastery";
+import { FAITH } from "./faith";
+import { pickReview, SKILL_PREFIX, type Skills } from "./mastery";
 import { rng, shuffle } from "./gen";
 
 // One index over every course: look lessons up, place a child by grade, draw the voyage map
 // (worlds of numbered levels, each unlocked by passing the one before), and build the "double
 // back" practice that brings shaky skills around again.
 
-export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, manners: MANNERS };
-export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "manners"];
+export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, manners: MANNERS, faith: FAITH };
+export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "manners", "faith"];
+/** What a child gets before a grown-up chooses. Lighthouse (faith) is opt-in, family by family. */
+export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "manners"];
+export const isSubject = (s: unknown): s is SubjectId => typeof s === "string" && (SUBJECTS as string[]).includes(s);
 
 /** Kid-facing look for each subject. */
 export const SUBJECT_LOOK: Record<SubjectId, { name: string; from: string; to: string; ink: string; island: string }> = {
@@ -20,6 +24,7 @@ export const SUBJECT_LOOK: Record<SubjectId, { name: string; from: string; to: s
   math: { name: "Math", from: "#A89BFF", to: "#6E5BFF", ink: "#2A1F7A", island: "🔢" },
   code: { name: "Code", from: "#7CE0C3", to: "#2BB3A3", ink: "#0B4A44", island: "🧩" },
   manners: { name: "Captain's Code", from: "#FFD66B", to: "#F2A93B", ink: "#6B4206", island: "⚓" },
+  faith: { name: "Lighthouse", from: "#8AD4FF", to: "#4A6CF7", ink: "#0E2A6B", island: "🕊️" },
 };
 
 const LESSON_BY_ID = new Map<string, Lesson>();
@@ -164,6 +169,54 @@ export function practiceLesson(subject: SubjectId, skills: Skills, o: { focus?: 
   };
 }
 
+/** Skills due (or shaky) across a child's subjects — what a Brain Boost would bring back. Code is
+ *  left out (its puzzles are long builds, not quick recall). */
+export function boostSkills(subjects: SubjectId[], skills: Skills, now: number, per = 3): { subject: SubjectId; skill: string }[] {
+  return subjects.filter((s) => s !== "code").flatMap((s) => pickReview(skills, { subject: s, n: per, now }).map((skill) => ({ subject: s, skill })));
+}
+
+/**
+ * Brain Boost: a quick, mixed review of what's due or shaky in EVERY subject — a verse, a math
+ * fact, a sight word, a story, a manners choice — shuffled together. Interleaving different kinds
+ * of problems (instead of practicing one kind in a block) feels harder and works better: it's one
+ * of the most reliable findings in learning science. Null when nothing is due.
+ */
+export function mixedPractice(subjects: SubjectId[], skills: Skills, o: { seed: string; now: number; n?: number }): Lesson | null {
+  const n = o.n ?? 8;
+  const picked = boostSkills(subjects, skills, o.now, Math.max(2, Math.ceil(n / Math.max(1, subjects.length)) + 1));
+  const bySubject = new Map<SubjectId, Activity[]>();
+  for (const p of picked) {
+    const [item] = itemsForSkills(p.subject, [p.skill], 1, `${o.seed}:${p.skill}`, 1);
+    if (item) bySubject.set(p.subject, [...(bySubject.get(p.subject) ?? []), item]);
+  }
+  // Round-robin across subjects so no two neighbors are the same kind of problem.
+  const queues = [...bySubject.values()];
+  const acts: Activity[] = [];
+  for (let k = 0; acts.length < n && queues.some((q) => q.length); k++) {
+    const q = queues[k % queues.length];
+    const a = q.shift();
+    if (a) acts.push(a);
+  }
+  if (acts.length < 3) return null;
+  const counts = new Map<SubjectId, number>();
+  for (const a of acts) {
+    const s = picked.find((p) => p.skill === a.skill)?.subject;
+    if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  const subject = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? subjects[0];
+  return {
+    id: `practice:mix:${o.seed}`,
+    subject,
+    unit: "practice:mix",
+    n: 1,
+    kind: "practice",
+    title: "Brain Boost",
+    emoji: "⚡",
+    activities: acts,
+    skills: [...new Set(acts.map((a) => a.skill!).filter(Boolean))],
+  };
+}
+
 /** Review items to weave into a lesson ("treasure from before"): due or shaky skills the lesson
  *  doesn't already cover. */
 export function spiralItems(lesson: Lesson, skills: Skills, now: number, n: number): Activity[] {
@@ -173,12 +226,13 @@ export function spiralItems(lesson: Lesson, skills: Skills, now: number, n: numb
   return itemsForSkills(lesson.subject, due, 1, `spiral:${lesson.id}:${new Date(now).toISOString().slice(0, 10)}`, n);
 }
 
-const subjectPrefix = (s: SubjectId) => ({ reading: "r:", math: "m:", code: "c:", manners: "h:" })[s];
+const subjectPrefix = (s: SubjectId) => SKILL_PREFIX[s];
 
 /** Lesson title for any id (practice lessons aren't in the index). */
 export function lessonTitle(id: string): string {
   const l = lessonById(id);
   if (l) return `${levelLabel(l)} ${l.title}`;
+  if (id.startsWith("practice:mix")) return "Brain Boost";
   if (isPractice(id)) return "Practice Cove";
   return "Lesson";
 }

@@ -6,6 +6,7 @@ import { KidStarsCard, KidChoreList } from "./KidChoresParts";
 import { KidProfileCard, KidWallFeel, KidDangerZone } from "./KidAboutParts";
 import { LearnSettingsRow, MissionsCard, type MissionRow } from "./KidLearnParts";
 import { summarize, type KidLearnData, type UnitChip } from "@/lib/learn/parent";
+import { COURSES } from "@/lib/learn/curriculum";
 import type { SubjectId } from "@/lib/learn/types";
 import { dayKeyInTz, formatInTz, formatTimeInTz } from "@/lib/tz";
 import type { KidBasics, KidDay, KidDayRoutine, KidRoutineRow, KidChoreRow, TemplateCard } from "@/lib/kid";
@@ -406,6 +407,69 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
           );
         })}
       </div>
+
+      {s.talk.length > 0 && (
+        <>
+          <SectionTitle>Talk about it tonight</SectionTitle>
+          <section className="rounded-2xl border border-line bg-surface p-4">
+            <p className="text-sm text-fg-muted">From the islands {kid.name} sailed this week. Asking a child to explain what they learned is one of the best ways to make it stick.</p>
+            <div className="mt-3 space-y-3">
+              {s.talk.map((t) => (
+                <div key={t.unit} className="rounded-xl bg-surface-2 p-3">
+                  <p className="text-sm font-semibold text-fg">
+                    <span aria-hidden>{t.emoji}</span> {t.title} <span className="font-normal text-fg-muted">· {COURSES[t.subject].title}</span>
+                  </p>
+                  {t.questions.length > 0 && (
+                    <ul className="mt-1.5 space-y-1">
+                      {t.questions.map((q) => (
+                        <li key={q} className="flex gap-2 text-[15px] text-fg">
+                          <span aria-hidden className="text-fg-muted">💬</span>
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {t.challenge && (
+                    <p className="mt-2 rounded-lg border border-beacon/40 bg-beacon/10 px-2.5 py-1.5 text-sm text-fg">
+                      <span className="font-semibold">⚓ Today&apos;s challenge on the wall:</span> {t.challenge}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+
+      {(s.verses.length > 0 || data.profile.subjects.includes("faith")) && (
+        <>
+          <SectionTitle>Memory verses</SectionTitle>
+          <section className="rounded-2xl border border-line bg-surface p-4">
+            {s.verses.length === 0 ? (
+              <p className="text-sm text-fg-muted">Verses {kid.name} learns on the Lighthouse voyage show up here, with how well each one is sticking. They come back for review on a spaced schedule, like saying old verses at club.</p>
+            ) : (
+              <>
+                <p className="text-sm text-fg-muted">
+                  {s.verses.filter((v) => v.mastered).length} mastered of {s.verses.length} · {s.heroCards} hero card{s.heroCards === 1 ? "" : "s"} won · King James Version
+                </p>
+                <ul className="mt-3 divide-y divide-line">
+                  {s.verses.slice(0, 12).map((v) => (
+                    <li key={v.id} className="py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span aria-hidden>{v.pic}</span>
+                        <span className="font-semibold text-fg">{v.ref}</span>
+                        <span className={cn("ml-auto rounded-full border px-2 py-0.5 text-xs font-medium", v.mastered ? "border-good/30 bg-good/10 text-good" : "border-line text-fg-muted")}>{v.mastered ? "✓ Memorized" : `${v.strength}% there`}</span>
+                      </div>
+                      <p className="mt-1 text-[15px] leading-snug text-fg">{v.text}</p>
+                    </li>
+                  ))}
+                </ul>
+                {s.verses.length > 12 && <p className="mt-1 text-xs text-fg-subtle">+{s.verses.length - 12} more</p>}
+              </>
+            )}
+          </section>
+        </>
+      )}
 
       {s.recent.length > 0 && (
         <>

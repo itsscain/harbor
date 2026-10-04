@@ -1220,6 +1220,7 @@ export type Database = {
           child_id: string
           client_op_id: string
           created_at: string
+          data: Json | null
           household_id: string
           id: string
           item: string | null
@@ -1233,6 +1234,7 @@ export type Database = {
           child_id: string
           client_op_id: string
           created_at?: string
+          data?: Json | null
           household_id: string
           id?: string
           item?: string | null
@@ -1246,6 +1248,7 @@ export type Database = {
           child_id?: string
           client_op_id?: string
           created_at?: string
+          data?: Json | null
           household_id?: string
           id?: string
           item?: string | null

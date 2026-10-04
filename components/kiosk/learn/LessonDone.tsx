@@ -4,6 +4,10 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import type { Lesson, Unit } from "@/lib/learn/types";
 import { RARITY_COLOR, RARITY_LABEL, type ChestKind, type Sticker, type StickerSet } from "@/lib/learn/stickers";
+import type { Hero } from "@/lib/learn/heroes";
+import type { Badge } from "@/lib/learn/badges";
+import { TIER_COLOR } from "@/lib/learn/badges";
+import type { Creature, Egg } from "@/lib/learn/reef";
 import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
@@ -41,6 +45,15 @@ export type DoneInfo = {
   worldDone: Unit | null;
   nextWorld: Unit | null;
   canPractice: boolean;
+  /** A Bible hero card won (or turned holo by a perfect replay). */
+  card?: { hero: Hero; holo: boolean; upgrade: boolean } | null;
+  /** Eggs this level earned (hatch them in the reef). */
+  eggs?: Egg[];
+  badges?: Badge[];
+  /** A real-world mission from this island. */
+  challenge?: string | null;
+  /** The reef buddy (and the stage it just grew into, if it did). */
+  buddy?: { creature: Creature; grew: string | null } | null;
 };
 
 type Phase = "stars" | "chest" | "open" | "summary";
@@ -61,6 +74,7 @@ export function LessonDone({
   onRetry,
   onPractice,
   onHome,
+  onHatch,
 }: {
   lesson: Lesson;
   info: DoneInfo;
@@ -72,6 +86,7 @@ export function LessonDone({
   onRetry: () => void;
   onPractice: () => void;
   onHome: () => void;
+  onHatch?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("stars");
   const [shown, setShown] = useState(0);
@@ -159,6 +174,16 @@ export function LessonDone({
         setParty((p) => p + 1);
         later(() => void say(SAY.goalDone), 400);
       } else if (info.streak.after > info.streak.before) later(() => void say(SAY.streakUp), 400);
+      // Then the extra treasures, one at a time.
+      const treat = info.card ? (info.card.holo ? SAY.shinyCard : SAY.newCard) : info.eggs?.length ? SAY.newEgg : info.badges?.length ? SAY.newBadge : info.buddy?.grew ? SAY.buddyGrew : null;
+      if (treat) {
+        later(() => {
+          sfx(info.card?.holo || info.badges?.length ? "legendary" : "sticker");
+          setParty((p) => p + 1);
+        }, 1700);
+        later(() => void say(treat), 2000);
+      }
+      if (info.challenge) later(() => void say([SAY.challenge, { gap: 250 }, info.challenge!]), treat ? 4600 : 2600);
     }, 2700);
   };
 
@@ -315,6 +340,59 @@ export function LessonDone({
                 🏝️ {info.worldDone.title} complete! <span className="text-[var(--l-gold-edge)]">+100 🐚</span>
                 {info.nextWorld && <span className="block text-lg text-[var(--l-ink-2)]">Next island: {info.nextWorld.emoji} {info.nextWorld.title}</span>}
               </span>
+            )}
+          </div>
+        )}
+
+        {phase === "summary" && info.passed && (info.card || info.eggs?.length || info.badges?.length || info.buddy || info.challenge) && (
+          <div className="flex w-full max-w-[980px] flex-wrap items-stretch justify-center gap-3">
+            {info.card && (
+              <div className="l-card-in flex items-center gap-3 rounded-[24px] p-3 pr-5 text-white shadow-[0_7px_0_rgba(0,40,80,0.18)]" style={{ background: `linear-gradient(150deg, ${info.card.hero.color}, ${info.card.hero.color}cc)`, animationDelay: "1500ms" }}>
+                <span className={cn("flex h-[86px] w-[66px] items-center justify-center rounded-[14px] bg-white/25 text-[46px] shadow-[inset_0_0_0_3px_rgba(255,255,255,0.6)]", info.card.holo && "l-shiny")}>{info.card.hero.emoji}</span>
+                <span>
+                  <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-white/85">{info.card.upgrade ? "✨ Now holo!" : info.card.holo ? "✨ Holo hero card!" : "New hero card!"}</span>
+                  <span className="block font-display text-2xl font-extrabold leading-tight drop-shadow-[0_2px_0_rgba(0,0,0,0.15)]">{info.card.hero.name}</span>
+                  <span className="mt-0.5 inline-block rounded-full bg-white/90 px-2.5 font-display text-sm font-extrabold text-[var(--l-ink)]">{info.card.hero.trait}</span>
+                </span>
+              </div>
+            )}
+            {!!info.eggs?.length && (
+              <div className="l-pop-in flex items-center gap-3 rounded-[24px] bg-white p-3 pr-4 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: "1700ms" }}>
+                <span className={cn("text-[56px] leading-none", !reduced && "l-chest")}>🥚</span>
+                <span className="max-w-[240px]">
+                  <span className="block font-display text-xl font-extrabold leading-tight text-[var(--l-ink)]">{info.eggs.length > 1 ? `${info.eggs.length} new eggs!` : "A new egg!"}</span>
+                  <span className="block font-display text-sm font-bold text-[var(--l-ink-2)]">{info.eggs[0].why}</span>
+                </span>
+                {onHatch && (
+                  <Chunk tone="gold" onClick={() => (sfx("pick"), onHatch())} className="flex h-14 items-center px-4 font-display text-lg font-extrabold">
+                    Hatch it!
+                  </Chunk>
+                )}
+              </div>
+            )}
+            {info.badges?.map((b, i) => (
+              <div key={b.id} className="l-pop-in flex items-center gap-3 rounded-[24px] bg-white p-3 pr-5 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: `${1900 + i * 150}ms` }}>
+                <span className="l-shiny flex h-14 w-14 items-center justify-center rounded-full text-3xl" style={{ boxShadow: `0 0 0 4px ${TIER_COLOR[b.tier]}`, background: `${TIER_COLOR[b.tier]}22` }}>{b.emoji}</span>
+                <span>
+                  <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-[var(--l-ink-2)]">New badge</span>
+                  <span className="block font-display text-xl font-extrabold leading-tight text-[var(--l-ink)]">{b.name}</span>
+                </span>
+              </div>
+            ))}
+            {info.buddy && (
+              <div className="l-pop-in flex items-center gap-3 rounded-[24px] bg-white p-3 pr-5 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: "2100ms" }}>
+                <span className={cn("text-[50px] leading-none", !reduced && "l-boing")} style={{ filter: info.buddy.creature.tint }}>{info.buddy.creature.emoji}</span>
+                <span className="font-display text-lg font-extrabold leading-tight text-[var(--l-ink)]">{info.buddy.grew ? `${info.buddy.creature.name} grew up — now ${info.buddy.grew}!` : `${info.buddy.creature.name} is cheering for you!`}</span>
+              </div>
+            )}
+            {info.challenge && (
+              <div className="l-rise flex w-full max-w-[760px] items-start gap-3 rounded-[24px] border-[4px] border-dashed border-[var(--l-gold)] bg-white/95 p-4 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: "2300ms" }}>
+                <span className="text-[40px] leading-none">⚓</span>
+                <span>
+                  <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-[var(--l-gold-edge)]">Captain&apos;s challenge for today</span>
+                  <span className="block font-display text-xl font-extrabold leading-snug text-[var(--l-ink)]">{info.challenge}</span>
+                </span>
+              </div>
             )}
           </div>
         )}

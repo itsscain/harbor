@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { isGrade, type SubjectId } from "@/lib/learn/types";
-import { SUBJECTS } from "@/lib/learn/curriculum";
+import { COURSES, SUBJECTS } from "@/lib/learn/curriculum";
 import { missionLesson } from "@/lib/learn/parent";
 
 // Harbor Learn controls for parents: grade level, subjects, daily goal and limit, and levels (or a
@@ -77,8 +77,16 @@ export async function assignLesson(childId: string, lessonId: string, note: stri
     .select("id")
     .single();
   if (error || !data) return { ok: false, error: "Couldn't assign that lesson. Try again." };
+  // Assigning from a subject that's switched off (Lighthouse is opt-in) switches it on, so its
+  // island shows up on the wall next to the mission.
+  let turnedOn = false;
+  const { data: prof } = await supabase.from("learn_profiles").select("subjects").eq("child_id", childId).maybeSingle();
+  if (prof && !prof.subjects.includes(lesson.subject)) {
+    const { error: upErr } = await supabase.from("learn_profiles").update({ subjects: [...prof.subjects, lesson.subject] }).eq("child_id", childId);
+    turnedOn = !upErr;
+  }
   touch(childId);
-  return { ok: true, message: `Sent to ${kid.name}'s wall: “${lesson.title}”`, id: data.id };
+  return { ok: true, message: `Sent to ${kid.name}'s wall: “${lesson.title}”${turnedOn ? ` — ${COURSES[lesson.subject].title} is now on` : ""}`, id: data.id };
 }
 
 export async function removeAssignment(id: string): Promise<LearnActionResult> {
