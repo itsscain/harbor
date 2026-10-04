@@ -26,6 +26,8 @@ export function LearnHome({
   onStart,
   onOpenSubject,
   onOpenStickers,
+  greet = true,
+  onGreeted,
 }: {
   name: string;
   accent: string;
@@ -34,6 +36,9 @@ export function LearnHome({
   onStart: (lesson: Lesson) => void;
   onOpenSubject: (s: SubjectId) => void;
   onOpenStickers: () => void;
+  /** Say hello (once per visit to Learn — not every time a lesson ends). */
+  greet?: boolean;
+  onGreeted?: () => void;
 }) {
   const { kid, profile, assignments } = view;
   const done = (id: string) => (kid.lessons[id]?.stars ?? 0) > 0;
@@ -48,10 +53,12 @@ export function LearnHome({
   const recent = mine.slice(-4);
 
   useEffect(() => {
+    if (!greet) return;
     // A hello in the Harbor voice (names aren't pre-recorded, so this one goes through the
     // wall's regular voice), then today's mission.
     const t = window.setTimeout(() => {
       playHarborVoice(`Hi ${name}!`);
+      onGreeted?.();
       if (assignment) window.setTimeout(() => void say(SAY.mission), 1300);
     }, 450);
     return () => window.clearTimeout(t);

@@ -61,6 +61,7 @@ export function LearnApp({
 }) {
   const [screen, setScreen] = useState<Screen>(() => (startWith && lessonById(startWith) ? { s: "lesson", lessonId: startWith, playId: "preview", back: { s: "home" } } : { s: "home" }));
   const state = kiosk.state;
+  const [greeted, setGreeted] = useState(false);
 
   useEffect(() => {
     prefetchLibrary();
@@ -114,6 +115,8 @@ export function LearnApp({
         onStart={(l) => start(l, { s: "home" })}
         onOpenSubject={(subject) => setScreen({ s: "map", subject })}
         onOpenStickers={() => setScreen({ s: "stickers" })}
+        greet={!greeted}
+        onGreeted={() => setGreeted(true)}
       />
     );
   } else if (screen.s === "map") {
