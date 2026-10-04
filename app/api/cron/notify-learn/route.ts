@@ -129,7 +129,7 @@ async function handle(req: Request) {
     const ids = unit.lessons.map((l) => l.id);
     const { data: doneRows } = await admin.from("learn_results").select("lesson_id").eq("child_id", r.child_id).gte("stars", 1).in("lesson_id", ids);
     const done = new Set((doneRows ?? []).map((x) => x.lesson_id as string));
-    if (ids.every((id) => done.has(id)) && (await claim(admin, r.household_id, "learn-unit", r.child_id as string, unit.id))) {
+    if ((lesson?.kind === "boss" || ids.every((id) => done.has(id))) && (await claim(admin, r.household_id, "learn-unit", r.child_id as string, unit.id))) {
       await notify({
         householdId: r.household_id,
         category: "learning",

@@ -64,8 +64,9 @@ export type MapUnit = { unit: Unit; unlocked: boolean; complete: boolean; stars:
 /**
  * The voyage map for one course. `best(id)` = best stars for a lesson, or null if never played.
  * Worlds before the child's starting point are open (review); from there on, each level opens
- * when the one before it is passed, and each world when the last one is complete. Assigned
- * lessons are always open.
+ * when the one before it is passed, and each world when the last one is complete — or when its
+ * boss is beaten early ("testing out", for a child who already knows it). Assigned lessons are
+ * always open.
  */
 export function courseMap(subject: SubjectId, grade: GradeId, best: (lessonId: string) => number | null, assigned: Set<string>): MapUnit[] {
   const units = COURSES[subject].units;
@@ -76,6 +77,8 @@ export function courseMap(subject: SubjectId, grade: GradeId, best: (lessonId: s
     const review = ui < start;
     const touched = unit.lessons.some((l) => best(l.id) !== null || assigned.has(l.id));
     const unlocked = review || ui === start || prevComplete || touched;
+    // Testing out: beating an island's boss counts as finishing the island (the rest stay open).
+    const testedOut = unit.lessons.some((l) => l.kind === "boss" && (best(l.id) ?? 0) >= PASS_STARS);
     let prevPassed = true;
     let stars = 0;
     const lessons = unit.lessons.map((lesson, li) => {
@@ -84,9 +87,9 @@ export function courseMap(subject: SubjectId, grade: GradeId, best: (lessonId: s
       const isAssigned = assigned.has(lesson.id);
       let state: LessonState;
       if (passed) state = "done";
-      else if (isAssigned || (unlocked && (review || li === 0 || prevPassed))) state = "open";
+      else if (isAssigned || testedOut || (unlocked && (review || li === 0 || prevPassed))) state = "open";
       else state = "locked";
-      if (state === "open" && !nextFound && !review) {
+      if (state === "open" && !nextFound && !review && !testedOut) {
         state = "next";
         nextFound = true;
       }
@@ -94,7 +97,7 @@ export function courseMap(subject: SubjectId, grade: GradeId, best: (lessonId: s
       stars += Math.max(0, b ?? 0);
       return { lesson, state, stars: Math.max(0, b ?? 0), played: b !== null, assigned: isAssigned, label: `${unit.n}-${lesson.n}` };
     });
-    const complete = lessons.every((l) => l.state === "done");
+    const complete = testedOut || lessons.every((l) => l.state === "done");
     if (!review) prevComplete = complete;
     return { unit, unlocked, complete, stars, maxStars: unit.lessons.length * 3, review, lessons };
   });

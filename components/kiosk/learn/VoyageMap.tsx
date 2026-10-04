@@ -48,7 +48,7 @@ export function VoyageMap({
   const assigned = new Set(assignments.map((a) => a.lesson_id));
   const best = (id: string) => (kid.lessons[id] ? kid.lessons[id].stars : null);
   const map = courseMap(subject, profile.grade, best, assigned);
-  const [picked, setPicked] = useState<MapLesson | null>(null);
+  const [picked, setPicked] = useState<(MapLesson & { testOut?: boolean }) | null>(null);
   const [shake, setShake] = useState<{ id: string; n: number } | null>(null);
   const [showEarlier, setShowEarlier] = useState(false);
   const nextRef = useRef<HTMLDivElement>(null);
@@ -74,15 +74,17 @@ export function VoyageMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tapNode = (l: MapLesson) => {
-    if (l.state === "locked") {
+  const tapNode = (l: MapLesson, islandOpen: boolean) => {
+    // A locked boss on an open island is a test-out: beat it to skip ahead.
+    const testOut = l.state === "locked" && islandOpen && l.lesson.kind === "boss";
+    if (l.state === "locked" && !testOut) {
       sfx("wrong");
       setShake((s) => ({ id: l.lesson.id, n: (s?.n ?? 0) + 1 }));
       void say(SAY.locked);
       return;
     }
     sfx("pick");
-    setPicked(l);
+    setPicked({ ...l, testOut });
   };
 
   const section = (u: MapUnit, prevTitle: string | null) => {
@@ -143,8 +145,8 @@ export function VoyageMap({
                 )}
                 <button
                   type="button"
-                  aria-label={`Level ${l.label}: ${l.lesson.title}${l.state === "locked" ? ", locked" : ""}`}
-                  onClick={() => tapNode(l)}
+                  aria-label={`Level ${l.label}: ${l.lesson.title}${l.state === "locked" ? (big && u.unlocked && !u.complete ? ", test out to skip ahead" : ", locked") : ""}`}
+                  onClick={() => tapNode(l, u.unlocked && !u.complete)}
                   className={cn("l-chunk relative flex items-center justify-center rounded-full", isNext && !reduced && "l-ring")}
                   style={
                     {
@@ -169,6 +171,7 @@ export function VoyageMap({
                   </span>
                   {l.assigned && l.state !== "done" && <span className="absolute -right-1 -top-1 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--l-coral)] text-lg shadow-[0_3px_0_var(--l-coral-edge)]">⭐</span>}
                   {l.played && l.state !== "done" && l.state !== "locked" && <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-base shadow-[0_3px_0_var(--l-line)]">🔁</span>}
+                  {l.state === "locked" && big && u.unlocked && !u.complete && <span className="absolute -right-2 -top-2 flex h-10 items-center rounded-full bg-[var(--l-gold)] px-2 font-display text-sm font-extrabold text-[#5a3b00] shadow-[0_3px_0_var(--l-gold-edge)]">⏩</span>}
                 </button>
                 {l.state === "done" ? (
                   <Stars n={l.stars} size={20} className="mt-1.5 rounded-full bg-white/80 px-1.5 py-0.5" />
@@ -227,6 +230,8 @@ export function VoyageMap({
               <p className="truncate font-display text-[26px] font-extrabold leading-tight text-[var(--l-ink)]">{picked.lesson.title}</p>
               {picked.state === "done" ? (
                 <Stars n={picked.stars} size={22} />
+              ) : picked.testOut ? (
+                <p className="font-display text-base font-bold text-[var(--l-ink-2)]">⏩ Already know this island? Beat the boss to skip ahead!</p>
               ) : (
                 <p className="font-display text-base font-bold text-[var(--l-ink-2)]">
                   {picked.lesson.kind === "boss" ? "🐙 Boss level · " : picked.lesson.kind === "review" ? "🗺️ Treasure review · " : ""}
@@ -235,7 +240,7 @@ export function VoyageMap({
               )}
             </div>
             <Chunk tone="green" onClick={() => (sfx("pick"), onStart(picked.lesson))} className="flex h-20 items-center gap-2 px-7 font-display text-2xl font-extrabold">
-              <Play className="h-8 w-8 fill-current" /> {picked.state === "done" ? "Again" : "Go!"}
+              <Play className="h-8 w-8 fill-current" /> {picked.state === "done" ? "Again" : picked.testOut ? "Test out" : "Go!"}
             </Chunk>
           </div>
         </div>

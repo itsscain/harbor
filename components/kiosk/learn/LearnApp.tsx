@@ -136,11 +136,12 @@ export function LearnApp({
         shells += SHELLS.setComplete;
       }
     }
-    // So does a finished island.
+    // So does a finished island (all levels passed, or the boss beaten — testing out counts).
     const unit = unitById(lesson.unit);
     let worldDone: DoneInfo["worldDone"] = null;
     let nextWorld: DoneInfo["nextWorld"] = null;
-    if (unit && firstClear && unit.lessons.every((l) => l.id === lesson.id || (kid.lessons[l.id]?.stars ?? 0) >= 1)) {
+    const bossBefore = !!unit?.lessons.some((l) => l.kind === "boss" && (kid.lessons[l.id]?.stars ?? 0) >= 1);
+    if (unit && firstClear && !bossBefore && (lesson.kind === "boss" || unit.lessons.every((l) => l.id === lesson.id || (kid.lessons[l.id]?.stars ?? 0) >= 1))) {
       worldDone = unit;
       nextWorld = COURSES[lesson.subject].units[unit.n] ?? null;
       shells += SHELLS.worldComplete;

@@ -143,11 +143,11 @@ export function summarize(d: KidLearnData, now = new Date()): LearnSummary {
   const bySubject: SubjectSummary[] = d.profile.subjects.map((subject) => {
     const map = courseMap(subject, d.profile.grade, best, assigned);
     let sawCurrent = false;
-    const units: UnitChip[] = map.map(({ unit, lessons }) => {
+    const units: UnitChip[] = map.map(({ unit, lessons, complete }) => {
       const n = lessons.filter((l) => l.state === "done").length;
       const hasNext = lessons.some((l) => l.state === "next");
       let state: UnitChip["state"];
-      if (n === lessons.length) state = "done";
+      if (complete) state = "done"; // all passed, or tested out by beating the boss
       else if (hasNext && !sawCurrent) {
         state = n > 0 ? "doing" : "next";
         sawCurrent = true;
