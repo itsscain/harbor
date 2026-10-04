@@ -65,7 +65,7 @@ export function SpeakerButton({ parts, className, size = 56 }: { parts: Part[] |
 type Burst = { id: number; x: number; y: number; bits: { e: string; dx: number; dy: number; r: number; s: number; d: number }[] };
 const BURST_BITS = {
   star: ["⭐", "✨", "🌟", "💫"],
-  sea: ["🫧", "✨", "⭐", "🐚"],
+  sea: ["💧", "✨", "⭐", "🐚"],
   heart: ["💖", "✨", "⭐", "💛"],
 };
 

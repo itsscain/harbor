@@ -6,7 +6,7 @@ import { LearnApp } from "@/components/kiosk/learn/LearnApp";
 import type { useKiosk } from "@/components/kiosk/useKiosk";
 import type { KioskSnapshot, KioskState } from "@/lib/kiosk/types";
 import type { LearnResult } from "@/lib/learn/types";
-import type { LearnSnapshot } from "@/lib/learn/progress";
+import type { LearnEvent, LearnSnapshot } from "@/lib/learn/progress";
 
 // Development-only mock wall for Harbor Learn: a real ChildView/LearnApp over an in-memory kiosk
 // state. Finished lessons update progress locally (no network).
@@ -44,22 +44,35 @@ function makeState(grade: string, fresh: boolean): KioskState {
     server_time: now,
   };
   const learn: LearnSnapshot = {
-    profiles: [{ child_id: CADE, grade, subjects: ["reading", "code", "math"], daily_goal: 2, earn_stars: true }],
-    assignments: fresh ? [] : [{ id: "a1", child_id: CADE, lesson_id: "read.ls1.m", note: "Let's learn the m sound!", created_at: now }],
+    profiles: [{ child_id: CADE, grade, subjects: ["reading", "math", "code", "manners"], daily_goal: 2, earn_stars: true, daily_limit: 0 }],
+    assignments: fresh ? [] : [{ id: "a1", child_id: CADE, lesson_id: "read.ls1.3", note: "Let's learn some new letters!", created_at: now }],
     kids: fresh
       ? {}
       : {
           [CADE]: {
-            lessons: { "read.pa.rhyme1": [3, 1, now], "read.pa.first1": [2, 1, now], "read.pa.rhyme2": [3, 2, now], "code.u1.1": [3, 1, now], "math.c5.1": [2, 1, now] },
-            stickers: { fish: 1, crab: 2, octopus: 1, turtle: 1 },
+            lessons: { "read.ls1.1": [3, 1, now], "read.ls1.2": [2, 1, now], "code.voyage.1": [3, 1, now], "code.voyage.2": [2, 1, now], "math.count5.1": [3, 1, now], "math.count5.2": [0, 1, now], "char.magic-words.1": [3, 1, now] },
+            stickers: { fish: 1, crab: 2, octopus: 1, turtle: 1, "shell*": 1 },
             days: [dayKey(-1), dayKey(-2)],
             xp: 120,
             today: 0,
+            skills: {
+              "r:sound:m": [4, 4, now, "11"],
+              "r:sound:s": [3, 4, now, "0"],
+              "m:count:4": [1, 3, now, "0"],
+              "m:count:5": [1, 2, now, "0"],
+              "m:count:3": [3, 3, now, "1"],
+              "c:sequencing": [6, 6, now, "11"],
+              "h:magic-words": [6, 6, now, "1"],
+            },
+            shells: 240,
+            owned: ["sail-stripes"],
+            look: { hull: "hull-coral", sail: "sail-stripes", flag: "flag-pennant", pet: null, trail: null },
+            daily: null,
           },
         },
     server_time: now,
   };
-  return { deviceSecret: "dev", householdId: HH, kind: "wall", snapshot, pinHash: null, lastSync: now, points: { [CADE]: 12 }, progress: {}, outbox: [], learn, learnOutbox: [] };
+  return { deviceSecret: "dev", householdId: HH, kind: "wall", snapshot, pinHash: null, lastSync: now, points: { [CADE]: 12 }, progress: {}, outbox: [], learn, learnOutbox: [], learnEvents: [] };
 }
 
 export function LearnPreview({ lesson, grade, fresh }: { lesson: string | null; grade: string; fresh: boolean }) {
@@ -73,8 +86,9 @@ export function LearnPreview({ lesson, grade, fresh }: { lesson: string | null; 
         setState((s) => ({
           ...s,
           learnOutbox: [...(s.learnOutbox ?? []), r],
-          points: { ...s.points, [r.child_id]: (s.points[r.child_id] ?? 0) + (r.stars >= 3 ? 2 : 1) },
+          points: { ...s.points, [r.child_id]: (s.points[r.child_id] ?? 0) + (r.stars >= 1 ? (r.stars >= 3 ? 2 : 1) : 0) },
         })),
+      learnEvent: (e: LearnEvent) => setState((s) => ((s.learnEvents ?? []).some((x) => x.op_id === e.op_id) ? s : { ...s, learnEvents: [...(s.learnEvents ?? []), e] })),
       completeStep: (childId: string, step: { id: string; reward_points: number }) =>
         setState((s) => {
           const day = s.progress[childId]?.completed ?? [];

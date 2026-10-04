@@ -2,16 +2,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notify } from "@/lib/notifications/dispatch";
 import { tzFromSettings, dayKeyInTz } from "@/lib/tz";
-import { COURSES, lessonById, unitById } from "@/lib/learn/curriculum";
+import { COURSES, isPractice, lessonById, levelLabel, unitById } from "@/lib/learn/curriculum";
 import { streakFrom } from "@/lib/learn/progress";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-// Fired by a DB trigger (learn_notify → net.http_post) for each lesson a child finishes on the
+// Fired by a DB trigger (learn_notify → net.http_post) for each level a child finishes on the
 // wall. Only the moments a parent wants in their pocket become notifications — a mission they
-// assigned is done, today's goal is hit, a whole unit is finished, a streak milestone — each sent
-// exactly once (notification_dispatch_log). Bearer matches the pulse (Vault → PULSE_SECRET).
+// assigned is done, their child is stuck on a level, today's goal is hit, a whole island is
+// finished, a streak milestone — each sent exactly once (notification_dispatch_log). Bearer
+// matches the pulse (Vault → PULSE_SECRET).
 
 function authorized(req: Request): boolean {
   const secret = process.env.PULSE_SECRET || process.env.CRON_SECRET;
@@ -45,6 +46,7 @@ async function handle(req: Request) {
   const admin = createAdminClient() as unknown as SupabaseClient;
   const { data: r } = await admin.from("learn_results").select("id, household_id, child_id, lesson_id, stars, completed_at").eq("id", resultId).maybeSingle();
   if (!r) return Response.json({ ok: true, skipped: "not found" });
+  const practice = isPractice(r.lesson_id as string);
 
   const [{ data: child }, { data: hh }, { data: profile }] = await Promise.all([
     admin.from("children").select("name").eq("id", r.child_id).maybeSingle(),
@@ -57,12 +59,12 @@ async function handle(req: Request) {
   const route = `/app/children/${r.child_id}?tab=learn`;
   const sent: string[] = [];
 
-  // 1) A mission the parent assigned is done.
+  // 1) A mission the parent assigned is done (the sync stamps it with this result's time; a
+  // "practice:<subject>" mission is done by any Practice Cove in that subject).
   const { data: mission } = await admin
     .from("learn_assignments")
     .select("id")
     .eq("child_id", r.child_id)
-    .eq("lesson_id", r.lesson_id)
     .eq("status", "done")
     .eq("completed_at", r.completed_at)
     .is("deleted_at", null)
@@ -74,10 +76,30 @@ async function handle(req: Request) {
       category: "learning",
       childId: r.child_id,
       title: `🎯 ${name} finished your mission`,
-      body: `${lesson ? `${lesson.emoji} ${lesson.title}` : "The lesson you picked"} — ${starsText(r.stars as number) || "done"}`,
+      body: `${practice ? "🏝️ Practice Cove" : lesson ? `${lesson.emoji} ${levelLabel(lesson)} ${lesson.title}` : "The level you picked"} — ${starsText(r.stars as number) || "done"}`,
       route,
     });
     sent.push("mission");
+  }
+
+  // 1b) Stuck: a third try at the same level today that still didn't pass — worth a grown-up's help.
+  if (!practice && lesson && (r.stars as number) < 1) {
+    const dayStart = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const { data: tries } = await admin.from("learn_results").select("stars, completed_at").eq("child_id", r.child_id).eq("lesson_id", r.lesson_id).gte("completed_at", dayStart);
+    const todayKey0 = dayKeyInTz(new Date(), tz);
+    const missesToday = (tries ?? []).filter((x) => (x.stars as number) < 1 && dayKeyInTz(new Date(x.completed_at as string), tz) === todayKey0).length;
+    const passedToday = (tries ?? []).some((x) => (x.stars as number) >= 1);
+    if (missesToday === 3 && !passedToday && (await claim(admin, r.household_id, "learn-stuck", r.child_id as string, `${r.lesson_id}:${todayKey0}`))) {
+      await notify({
+        householdId: r.household_id,
+        category: "learning",
+        childId: r.child_id,
+        title: `🧭 ${name} is working hard on ${levelLabel(lesson)} ${lesson.title}`,
+        body: "Three tries today without passing yet. The wall offers Practice Cove — or sit with them for one try.",
+        route,
+      });
+      sent.push("stuck");
+    }
   }
 
   // Today's lessons + the days they've learned (for the goal and the streak).
@@ -101,11 +123,11 @@ async function handle(req: Request) {
     sent.push("goal");
   }
 
-  // 3) A whole unit finished.
-  const unit = lesson ? unitById(lesson.unit) : null;
+  // 3) A whole island finished (every level passed).
+  const unit = lesson && (r.stars as number) >= 1 ? unitById(lesson.unit) : null;
   if (unit) {
     const ids = unit.lessons.map((l) => l.id);
-    const { data: doneRows } = await admin.from("learn_results").select("lesson_id").eq("child_id", r.child_id).in("lesson_id", ids);
+    const { data: doneRows } = await admin.from("learn_results").select("lesson_id").eq("child_id", r.child_id).gte("stars", 1).in("lesson_id", ids);
     const done = new Set((doneRows ?? []).map((x) => x.lesson_id as string));
     if (ids.every((id) => done.has(id)) && (await claim(admin, r.household_id, "learn-unit", r.child_id as string, unit.id))) {
       await notify({

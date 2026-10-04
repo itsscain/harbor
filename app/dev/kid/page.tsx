@@ -3,6 +3,7 @@ import { DevShell } from "./DevShell";
 import { KidHeader, KidTabs, parseKidTab } from "@/components/app/kids/KidChrome";
 import { KidTodayView, KidRoutinesView, KidChoresView, KidAboutView, KidLearnView } from "@/components/app/kids/KidTabViews";
 import { nowDate, type KidLearnData } from "@/lib/learn/parent";
+import { skillsFromResults } from "@/lib/learn/skills";
 import { RoutineEditor } from "@/components/app/kids/RoutineEditor";
 import { SetTopBarTitle } from "@/components/app/AppTopBar";
 import type { KidBasics, KidDay, KidRoutineRow, KidChoreRow, TemplateCard, EditorStep } from "@/lib/kid";
@@ -89,33 +90,40 @@ const LIBRARY = [
   { id: "l11", label: "Take a breath", icon: "🫧", points: 0 },
 ];
 
-// Harbor Learn mock: a kindergartner a week in (letters m s a t, first code + math lessons).
+// Harbor Learn mock: a kindergartner a week in — letters m s a t, the first sea-arrow puzzles,
+// counting (one level not passed yet, then a Practice Cove), and the first Captain's Code island.
 function learnMock(fresh: boolean): KidLearnData {
   const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
-  const r = (id: string, lesson: string, subject: "reading" | "code" | "math", stars: number, h: number, sec = 240) => ({ id, lesson_id: lesson, subject, stars, correct: 5, total: 6, duration_sec: sec, sticker: "fish", completed_at: ago(h) });
+  const r = (id: string, lesson: string, subject: "reading" | "code" | "math" | "manners", stars: number, h: number, skills: Record<string, [number, number]>, sec = 240) => {
+    const vals = Object.values(skills);
+    return { id, lesson_id: lesson, subject, stars, correct: vals.reduce((n, v) => n + v[0], 0), total: vals.reduce((n, v) => n + v[1], 0), duration_sec: sec, sticker: "fish", completed_at: ago(h), skills, kind: "lesson" as const, shells: 20 };
+  };
+  const results = fresh
+    ? []
+    : [
+        r("x1", "read.ls1.3", "reading", 1, 1, { "r:sound:a": [2, 4], "r:sound:t": [2, 2] }),
+        r("x2", "practice:math:demo", "math", 2, 2, { "m:count:4": [2, 2], "m:count:5": [1, 1] }, 180),
+        r("x3", "math.count5.2", "math", 0, 3, { "m:count:4": [1, 3], "m:count:5": [1, 2] }, 200),
+        r("x4", "char.magic-words.1", "manners", 3, 26, { "h:magic-words": [6, 6] }),
+        r("x5", "code.voyage.1", "code", 3, 27, { "c:sequencing": [3, 3] }, 300),
+        r("x6", "math.count5.1", "math", 3, 50, { "m:count:3": [3, 3], "m:count:2": [2, 2] }, 180),
+        r("x7", "read.ls1.2", "reading", 2, 51, { "r:sound:s": [3, 4], "r:write:s": [1, 1] }),
+        r("x8", "read.ls1.1", "reading", 3, 74, { "r:sound:m": [4, 4], "r:write:m": [1, 1] }),
+      ];
   return {
-    profile: { child_id: LEO, grade: "k", subjects: ["reading", "code", "math"], daily_goal: 2, earn_stars: true },
+    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "manners"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
     profileSaved: !fresh,
     tz: "America/New_York",
     assignments: fresh
       ? []
       : [
-          { id: "as1", lesson_id: "read.ls1.t", note: "Practice the t sound!", status: "assigned", created_at: ago(3), completed_at: null },
-          { id: "as2", lesson_id: "math.c5.2", note: null, status: "assigned", created_at: ago(20), completed_at: null },
-          { id: "as3", lesson_id: "read.ls1.m", note: null, status: "done", created_at: ago(30), completed_at: ago(2) },
+          { id: "as1", lesson_id: "read.ls1.4", note: "Practice the new letters!", status: "assigned", created_at: ago(3), completed_at: null },
+          { id: "as2", lesson_id: "practice:math", note: null, status: "assigned", created_at: ago(20), completed_at: null },
+          { id: "as4", lesson_id: "read.ls1.t", note: null, status: "assigned", created_at: ago(90), completed_at: null },
+          { id: "as3", lesson_id: "read.ls1.1", note: null, status: "done", created_at: ago(80), completed_at: ago(74) },
         ],
-    results: fresh
-      ? []
-      : [
-          r("x1", "read.ls1.a", "reading", 3, 1),
-          r("x2", "read.ls1.m", "reading", 2, 2),
-          r("x3", "code.u1.1", "code", 3, 26, 300),
-          r("x4", "read.ls1.s", "reading", 3, 27),
-          r("x5", "read.pa.rhyme2", "reading", 3, 50),
-          r("x6", "math.c5.1", "math", 2, 51, 180),
-          r("x7", "read.pa.first1", "reading", 2, 74),
-          r("x8", "read.pa.rhyme1", "reading", 3, 75),
-        ],
+    results,
+    skills: skillsFromResults(results),
   };
 }
 const LEARN = learnMock(false);

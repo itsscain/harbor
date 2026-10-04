@@ -1198,7 +1198,71 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "learn_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "learn_assignments_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learn_ledger: {
+        Row: {
+          amount: number
+          at: string
+          child_id: string
+          client_op_id: string
+          created_at: string
+          household_id: string
+          id: string
+          item: string | null
+          look: Json | null
+          reason: string | null
+          type: string
+        }
+        Insert: {
+          amount?: number
+          at: string
+          child_id: string
+          client_op_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          item?: string | null
+          look?: Json | null
+          reason?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          at?: string
+          child_id?: string
+          client_op_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          item?: string | null
+          look?: Json | null
+          reason?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_ledger_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learn_ledger_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
@@ -1211,6 +1275,7 @@ export type Database = {
           child_id: string
           created_at: string
           daily_goal: number
+          daily_limit: number
           earn_stars: boolean
           grade: string
           household_id: string
@@ -1221,6 +1286,7 @@ export type Database = {
           child_id: string
           created_at?: string
           daily_goal?: number
+          daily_limit?: number
           earn_stars?: boolean
           grade?: string
           household_id: string
@@ -1231,6 +1297,7 @@ export type Database = {
           child_id?: string
           created_at?: string
           daily_goal?: number
+          daily_limit?: number
           earn_stars?: boolean
           grade?: string
           household_id?: string
@@ -1241,7 +1308,7 @@ export type Database = {
           {
             foreignKeyName: "learn_profiles_child_id_fkey"
             columns: ["child_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "children"
             referencedColumns: ["id"]
           },
@@ -1264,7 +1331,10 @@ export type Database = {
           duration_sec: number
           household_id: string
           id: string
+          kind: string | null
           lesson_id: string
+          shells: number
+          skills: Json | null
           stars: number
           sticker: string | null
           subject: string
@@ -1279,7 +1349,10 @@ export type Database = {
           duration_sec?: number
           household_id: string
           id?: string
+          kind?: string | null
           lesson_id: string
+          shells?: number
+          skills?: Json | null
           stars: number
           sticker?: string | null
           subject: string
@@ -1294,7 +1367,10 @@ export type Database = {
           duration_sec?: number
           household_id?: string
           id?: string
+          kind?: string | null
           lesson_id?: string
+          shells?: number
+          skills?: Json | null
           stars?: number
           sticker?: string | null
           subject?: string
@@ -3001,6 +3077,11 @@ export type Database = {
         Args: { p_household: string; p_since: string }
         Returns: Json
       }
+      learn_balance: { Args: { p_child: string }; Returns: number }
+      learn_snapshot: {
+        Args: { p_household: string; p_tz: string }
+        Returns: Json
+      }
       reset_household: { Args: { p_household: string }; Returns: undefined }
       routine_is_mine: { Args: { r: string }; Returns: boolean }
       rpc_founder_spots_remaining: { Args: never; Returns: Json }
@@ -3018,16 +3099,16 @@ export type Database = {
         Returns: Json
       }
       rpc_kiosk_reset_points: { Args: { p_secret: string }; Returns: Json }
-      rpc_learn_sync: {
-        Args: { p_results?: Json; p_secret: string }
-        Returns: Json
-      }
       rpc_lantern_claim: {
         Args: { p_child_id: string; p_code: string; p_nickname: string }
         Returns: Json
       }
       rpc_lantern_poll: { Args: { p_nonce: string }; Returns: Json }
       rpc_lantern_request_code: { Args: never; Returns: Json }
+      rpc_learn_sync: {
+        Args: { p_events?: Json; p_results?: Json; p_secret: string }
+        Returns: Json
+      }
       rpc_parent_adjust_points: {
         Args: { p_child: string; p_delta: number; p_reason?: string }
         Returns: number
@@ -3078,12 +3159,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3107,11 +3188,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3132,11 +3213,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3157,11 +3238,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3174,11 +3255,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

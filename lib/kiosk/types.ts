@@ -2,7 +2,7 @@
 // the snapshot returned by the rpc_kiosk_* functions plus local-only state.
 
 import type { LearnResult } from "@/lib/learn/types";
-import type { LearnSnapshot } from "@/lib/learn/progress";
+import type { LearnEvent, LearnSnapshot } from "@/lib/learn/progress";
 
 export type KioskChildProfile = {
   summary?: string;
@@ -472,6 +472,8 @@ export type KioskState = {
    *  push/pull), the last Learn state the server sent (grade levels, assignments, per-kid
    *  progress), and when that was (wall-clock ms) so Learn isn't re-fetched on every tick. */
   learnOutbox?: LearnResult[];
+  /** Shells earned/spent outside lessons, boat looks and daily chests, waiting to sync. */
+  learnEvents?: LearnEvent[];
   learn?: LearnSnapshot | null;
   learnSyncedAt?: number;
   /** Pending mutations to push when online + Plus active. */

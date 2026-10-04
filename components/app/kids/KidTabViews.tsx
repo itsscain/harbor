@@ -6,6 +6,7 @@ import { KidStarsCard, KidChoreList } from "./KidChoresParts";
 import { KidProfileCard, KidWallFeel, KidDangerZone } from "./KidAboutParts";
 import { LearnSettingsRow, MissionsCard, type MissionRow } from "./KidLearnParts";
 import { summarize, type KidLearnData, type UnitChip } from "@/lib/learn/parent";
+import type { SubjectId } from "@/lib/learn/types";
 import { dayKeyInTz, formatInTz, formatTimeInTz } from "@/lib/tz";
 import type { KidBasics, KidDay, KidDayRoutine, KidRoutineRow, KidChoreRow, TemplateCard } from "@/lib/kid";
 import type { ChipChild } from "@/components/ui/Chips";
@@ -267,10 +268,11 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
   }));
   const stats = [
     { emoji: "🔥", value: s.streak, label: "day streak" },
-    { emoji: "📚", value: s.weekLessons, label: "lessons this week" },
+    { emoji: "📚", value: s.weekPassed, label: `levels passed this week${s.weekLessons > s.weekPassed ? ` (${s.weekLessons} tries)` : ""}` },
     { emoji: "⏱️", value: s.weekMinutes, label: "minutes this week" },
     { emoji: "🏅", value: s.level, label: `level · ${s.levelName}` },
   ];
+  const shaky: Partial<Record<SubjectId, number>> = Object.fromEntries(s.bySubject.map((b) => [b.subject, b.shaky.length]));
 
   return (
     <div>
@@ -292,14 +294,14 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-fg">Today&apos;s goal</span>
             <span className="tabular-nums text-fg-muted">
-              {Math.min(s.todayCount, goal)} of {goal} lessons{s.todayCount >= goal ? " ✅" : ""}
+              {Math.min(s.todayCount, goal)} of {goal} levels{s.todayCount >= goal ? " ✅" : ""}
             </span>
           </div>
           <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-surface-2">
             <div className={cn("h-full rounded-full", s.todayCount >= goal ? "bg-good" : "bg-accent")} style={{ width: `${Math.min(100, (s.todayCount / goal) * 100)}%` }} />
           </div>
           <p className="mt-2 text-sm text-fg-muted">
-            {s.lastActive ? `Last lesson ${whenLabel(s.lastActive, data.tz, now)}` : `${kid.name} hasn’t tried a lesson yet. On the wall, tap Learn next to My Day.`}
+            {s.lastActive ? `Last level ${whenLabel(s.lastActive, data.tz, now)}` : `${kid.name} hasn’t tried a level yet. On the wall, tap Learn next to My Day.`}
           </p>
         </div>
       </section>
@@ -308,7 +310,7 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
         <LearnSettingsRow kidId={kid.id} kidName={kid.name} profile={data.profile} saved={data.profileSaved} />
       </div>
 
-      <MissionsCard kidId={kid.id} kidName={kid.name} grade={data.profile.grade} missions={missions} bestStars={best} />
+      <MissionsCard kidId={kid.id} kidName={kid.name} grade={data.profile.grade} missions={missions} bestStars={best} shaky={shaky} />
 
       <SectionTitle>Progress</SectionTitle>
       <div className="space-y-3">
@@ -325,11 +327,11 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-fg">{sub.title}</p>
-                  <p className="truncate text-sm text-fg-muted">{cur ? `${cur.emoji} ${cur.title} · ${cur.done} of ${cur.total}` : "Every unit finished 🎉"}</p>
+                  <p className="truncate text-sm text-fg-muted">{cur ? `${cur.emoji} ${cur.title} · ${cur.done} of ${cur.total}${sub.where ? ` · ${sub.where}` : ""}` : "Every island finished 🎉"}</p>
                 </div>
                 <span className="shrink-0 text-right text-xs text-fg-muted">
                   <span className="block text-base font-bold tabular-nums text-fg">{sub.lessonsDone}</span>
-                  lessons
+                  levels · ⭐ {sub.stars}
                 </span>
               </div>
               {cur && (
@@ -356,6 +358,35 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
                 ))}
                 {more > 0 && <span className="rounded-full px-2 py-1 text-xs text-fg-subtle">+{more} more</span>}
               </div>
+              {(sub.strong.length > 0 || sub.shaky.length > 0) && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                      Strong · {sub.mastered} mastered of {sub.practiced}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {sub.strong.slice(0, 6).map((k) => (
+                        <span key={k.skill} className="rounded-full border border-good/30 bg-good/10 px-2.5 py-1 text-xs font-medium text-fg" title={`${k.strength}% strong`}>
+                          {k.mastered ? "✓ " : ""}
+                          {k.label}
+                        </span>
+                      ))}
+                      {sub.strong.length === 0 && <span className="text-xs text-fg-subtle">Building up…</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">Needs practice · {sub.shaky.length}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {sub.shaky.slice(0, 6).map((k) => (
+                        <span key={k.skill} className="rounded-full border border-beacon/50 bg-beacon/15 px-2.5 py-1 text-xs font-medium text-fg" title={`${k.strength}% — the wall brings this back in review`}>
+                          {k.label}
+                        </span>
+                      ))}
+                      {sub.shaky.length === 0 && <span className="text-xs text-fg-subtle">Nothing shaky right now 🎉</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
               {sub.subject === "reading" && (
                 <div className="mt-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">Letter sounds · {s.lettersKnown.length} of 26</p>
@@ -378,7 +409,7 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
 
       {s.recent.length > 0 && (
         <>
-          <SectionTitle>Recent lessons</SectionTitle>
+          <SectionTitle>Recent levels</SectionTitle>
           <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
             {s.recent.map((r) => (
               <li key={r.id} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
@@ -386,9 +417,13 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
                   {r.emoji}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-semibold text-fg">{r.title}</span>
+                  <span className="block truncate text-[15px] font-semibold text-fg">
+                    {r.label && !r.practice ? <span className="mr-1.5 tabular-nums text-fg-muted">{r.label}</span> : null}
+                    {r.title}
+                  </span>
                   <span className="block text-xs text-fg-muted">
-                    {whenLabel(r.at, data.tz, now)} · {r.minutes} min
+                    {whenLabel(r.at, data.tz, now)} · {r.minutes} min{r.score ? ` · ${r.score} first try` : ""}
+                    {!r.passed ? " · not passed yet — it'll come back" : ""}
                   </span>
                 </span>
                 <span className="shrink-0 text-sm" aria-label={`${r.stars} of 3 stars`}>

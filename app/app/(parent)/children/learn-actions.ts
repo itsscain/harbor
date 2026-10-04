@@ -5,15 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getMyHousehold } from "@/lib/household";
 import { isGrade, type SubjectId } from "@/lib/learn/types";
-import { lessonById } from "@/lib/learn/curriculum";
+import { SUBJECTS } from "@/lib/learn/curriculum";
+import { missionLesson } from "@/lib/learn/parent";
 
-// Harbor Learn controls for parents: grade level and daily goal, and lessons assigned as
-// "missions". Every action returns an honest result for the toast; removing a mission is soft so
-// the toast's Undo can bring it back. Changes reach the wall in about a second.
+// Harbor Learn controls for parents: grade level, subjects, daily goal and limit, and levels (or a
+// Practice Cove of what's tricky) assigned as "missions". Every action returns an honest result for
+// the toast; removing a mission is soft so the toast's Undo can bring it back. Changes reach the
+// wall in about a second.
 
 export type LearnActionResult = { ok: true; message?: string; id?: string } | { ok: false; error: string };
-
-const SUBJECTS: SubjectId[] = ["reading", "code", "math"];
 
 async function ctx() {
   const profile = await requireUser();
@@ -42,9 +42,11 @@ export async function saveLearnSettings(childId: string, formData: FormData): Pr
   const subjects = formData.getAll("subjects").map(String).filter((s): s is SubjectId => (SUBJECTS as string[]).includes(s));
   if (!subjects.length) return { ok: false, error: "Leave at least one subject on." };
   const goal = Math.max(1, Math.min(10, Math.round(Number(formData.get("daily_goal")) || 2)));
+  const limit = Math.max(0, Math.min(20, Math.round(Number(formData.get("daily_limit")) || 0)));
+  if (limit && limit < goal) return { ok: false, error: "The daily limit can't be lower than the daily goal." };
   const earnStars = formData.get("earn_stars") === "on";
   const { error } = await supabase.from("learn_profiles").upsert(
-    { child_id: childId, household_id: household.id, grade, subjects, daily_goal: goal, earn_stars: earnStars },
+    { child_id: childId, household_id: household.id, grade, subjects, daily_goal: goal, daily_limit: limit, earn_stars: earnStars },
     { onConflict: "child_id" },
   );
   if (error) return { ok: false, error: "Couldn't save those settings. Try again." };
@@ -56,7 +58,7 @@ export async function assignLesson(childId: string, lessonId: string, note: stri
   const { profile, household, supabase } = await ctx();
   const kid = await ownKid(supabase, household.id, childId);
   if (!kid) return { ok: false, error: "That child isn't in your family." };
-  const lesson = lessonById(lessonId);
+  const lesson = missionLesson(lessonId);
   if (!lesson) return { ok: false, error: "That lesson doesn't exist anymore." };
   const { data: open } = await supabase
     .from("learn_assignments")

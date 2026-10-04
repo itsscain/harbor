@@ -65,7 +65,24 @@ const SCALE = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 15
 
 export type Sfx =
   | "tap" | "pick" | "correct" | "wrong" | "pop" | "snap" | "lift" | "whoosh" | "star" | "chest"
-  | "sticker" | "legendary" | "levelup" | "goal" | "move" | "bump" | "turn" | "shell" | "dock" | "count" | "trace" | "unlock";
+  | "sticker" | "legendary" | "levelup" | "goal" | "move" | "bump" | "turn" | "shell" | "dock" | "count" | "trace" | "unlock"
+  | "note" | "coin" | "hit" | "fish" | "splash" | "buy" | "soft-fail" | "tick" | "paint" | "draw" | "beep" | "boss";
+
+/** Bells for Music Maker: C D E F G A. */
+export const NOTE_HZ: Record<string, number> = { C: 523.25, D: 587.33, E: 659.25, F: 698.46, G: 783.99, A: 880 };
+/** Ring one Music Maker bell by note name. */
+export function note(name: string, dur = 0.55) {
+  if (!enabled) return;
+  const ctx = getAudioCtx();
+  const f = NOTE_HZ[name];
+  if (!ctx || !f) return;
+  try {
+    if (ctx.state === "suspended") void ctx.resume();
+    bell(ctx, f, 0, dur, 0.17);
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Play a Learn sound. `n` = combo count for "correct", or the count for "count". */
 export function sfx(name: Sfx, n = 0) {
@@ -154,6 +171,51 @@ export function sfx(name: Sfx, n = 0) {
         break;
       case "unlock":
         [4, 7].forEach((k, j) => bell(ctx, SCALE[k], j * 0.08, 0.4, 0.1));
+        break;
+      case "note":
+        bell(ctx, SCALE[Math.max(0, Math.min(SCALE.length - 1, n))], 0, 0.5, 0.15);
+        break;
+      case "coin":
+        tone(ctx, 1567.98, 0, 0.08, 0.08, "square");
+        tone(ctx, 2093, 0.07, 0.18, 0.07, "square");
+        break;
+      case "hit":
+        tone(ctx, 180, 0, 0.18, 0.22, "sine", 60);
+        noise(ctx, 0, 0.14, 0.12, 900, 0.7, "lowpass");
+        tone(ctx, 1200, 0.02, 0.1, 0.05, "triangle", 600);
+        break;
+      case "boss":
+        tone(ctx, 98, 0, 0.6, 0.16, "sawtooth", 82);
+        tone(ctx, 147, 0.05, 0.55, 0.08, "triangle", 123);
+        noise(ctx, 0, 0.5, 0.05, 400, 0.6, "lowpass");
+        break;
+      case "fish":
+        [5, 7, 9, 10, 9, 10].forEach((k, j) => bell(ctx, SCALE[k], j * 0.06, 0.35, 0.09));
+        noise(ctx, 0.1, 0.5, 0.03, 7000, 0.5, "highpass");
+        break;
+      case "splash":
+        noise(ctx, 0, 0.35, 0.12, 700, 0.5, "lowpass", 220);
+        tone(ctx, 300, 0, 0.12, 0.06, "sine", 120);
+        break;
+      case "buy":
+        [0, 4, 7, 10].forEach((k, j) => bell(ctx, SCALE[k], j * 0.07, 0.4, 0.12));
+        tone(ctx, 2093, 0.3, 0.25, 0.06, "square");
+        break;
+      case "soft-fail":
+        [4, 3, 2].forEach((k, j) => bell(ctx, SCALE[k] / 2, j * 0.16, 0.5, 0.1));
+        break;
+      case "tick":
+        tone(ctx, 1800 + n * 20, 0, 0.03, 0.04, "square");
+        break;
+      case "paint":
+        noise(ctx, 0, 0.12, 0.06, 2600, 1.2, "bandpass", 1400);
+        tone(ctx, 700 + Math.random() * 200, 0, 0.08, 0.05);
+        break;
+      case "draw":
+        tone(ctx, 520, 0, 0.16, 0.04, "triangle", 780);
+        break;
+      case "beep":
+        tone(ctx, 1320, 0, 0.06, 0.05, "square");
         break;
     }
   } catch {

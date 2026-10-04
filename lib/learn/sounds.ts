@@ -62,6 +62,10 @@ export const SOUNDS: Record<string, Sound> = Object.fromEntries(
     s("oa", "oa", "ˈoʊ", "the middle sound in boat", [["boat", "⛵"], ["goat", "🐐"], ["coat", "🧥"]]),
     s("ar", "ar", "ˈɑɹ", "the middle sound in car", [["car", "🚗"], ["star", "⭐"], ["shark", "🦈"]]),
     s("or", "or", "ˈɔɹ", "the middle sound in corn", [["corn", "🌽"], ["fork", "🍴"], ["horse", "🐴"]]),
+    s("er", "er", "ˈɝ", "the sound in her", [["bird", "🐦"], ["girl", "👧"], ["turtle", "🐢"]]),
+    s("ow", "ow", "ˈaʊ", "the sound in cow", [["cow", "🐮"], ["owl", "🦉"], ["house", "🏠"]]),
+    s("oi", "oi", "ˈɔɪ", "the sound in boy", [["coin", "🪙"], ["boy", "👦"], ["toy", "🧸"]]),
+    s("oo", "oo", "ˈuː", "the sound in moon", [["moon", "🌙"], ["spoon", "🥄"], ["boot", "🥾"]]),
   ].map((x) => [x.id, x]),
 );
 
@@ -69,6 +73,11 @@ export const SOUNDS: Record<string, Sound> = Object.fromEntries(
 export function soundOf(graph: string): Sound | null {
   return SOUNDS[graph] ?? SOUNDS[graph.toLowerCase()] ?? null;
 }
+
+/** Letter teams read as one sound, and the sound each makes. */
+const TEAMS: Record<string, string> = { sh: "sh", ch: "ch", th: "th", wh: "w", ck: "ck", ng: "ng", ee: "ee", ea: "ee", ai: "a_e", ay: "a_e", oa: "o_e", oo: "oo", ou: "ow", ow: "ow", oi: "oi", oy: "oi", ar: "ar", or: "or", er: "er", ir: "er", ur: "er" };
+/** Words where "ow" says its name (snow), not "ow!" (cow). */
+const LONG_OW = new Set(["snow", "bowl", "crow", "bow", "slow", "grow", "show", "blow", "low", "row", "tow", "window", "yellow"]);
 
 /** How a word sounds out, unit by written unit, with the sound each makes — null when silent,
  *  like the magic e in "cake" (whose a then says its name). Drives the blending slider. */
@@ -81,8 +90,8 @@ export function soundOut(word: string): { text: string; sound: string | null }[]
     if (two === "qu") {
       out.push({ text: "qu", sound: "q" });
       i += 2;
-    } else if (["sh", "ch", "th", "ck", "ng", "ee", "ai", "oa", "ar", "or"].includes(two)) {
-      out.push({ text: two, sound: two });
+    } else if (TEAMS[two] && i !== magicVowel) {
+      out.push({ text: two, sound: two === "ow" && LONG_OW.has(w) ? "o_e" : TEAMS[two] });
       i += 2;
     } else if (i === magicVowel) {
       out.push({ text: w[i], sound: `${w[i]}_e` });
@@ -98,19 +107,10 @@ export function soundOut(word: string): { text: string; sound: string | null }[]
   return out;
 }
 
-/** Split a decodable word into its sound units ("ship" → sh,i,p; "duck" → d,u,ck). */
+/** Split a decodable word into its written sound units ("ship" → sh,i,p; "rain" → r,ai,n). */
 export function graphemes(word: string): string[] {
-  const w = word.toLowerCase();
-  const out: string[] = [];
-  for (let i = 0; i < w.length; ) {
-    const two = w.slice(i, i + 2);
-    if (["sh", "ch", "th", "ck", "ng", "qu", "ee", "ai", "oa", "ar", "or"].includes(two)) {
-      out.push(two === "qu" ? "q" : two);
-      i += 2;
-    } else {
-      out.push(w[i]);
-      i += 1;
-    }
-  }
-  return out;
+  return soundOut(word).map((u) => u.text);
 }
+
+/** Vowel sounds in a word (1 = a one-syllable word the blending slider can sound out). */
+export const vowelUnits = (word: string) => soundOut(word).filter((u) => u.sound && /^(a|e|i|o|u|a_e|i_e|o_e|u_e|ee|oo|ow|oi|ar|or|er)$/.test(u.sound)).length;

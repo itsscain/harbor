@@ -272,6 +272,7 @@ export async function syncNow(state: KioskState, opts?: { full?: boolean; learn?
   // to send, a Learn change was nudged, on a full refresh, or every couple of minutes.
   const learnDue =
     (next.learnOutbox?.length ?? 0) > 0 ||
+    (next.learnEvents?.length ?? 0) > 0 ||
     opts?.learn ||
     opts?.full ||
     !next.learnSyncedAt ||
@@ -290,18 +291,22 @@ export async function syncNow(state: KioskState, opts?: { full?: boolean; learn?
 
 const LEARN_REFRESH_MS = 2 * 60_000;
 
-/** Send finished lessons, get the latest Learn state back. A failure keeps the outbox and never
- *  blocks the rest of the sync — the wall's lessons keep working offline either way. */
+/** Send finished lessons and shell events (shop, chests, boat looks), get the latest Learn state
+ *  back. A failure keeps both outboxes and never blocks the rest of the sync — the wall's lessons
+ *  keep working offline either way. */
 async function syncLearn(supabase: ReturnType<typeof createClient>, state: KioskState): Promise<KioskState> {
   const pending = state.learnOutbox ?? [];
+  const events = state.learnEvents ?? [];
   const batch = pending.slice(0, 150); // the RPC takes up to 200 per call; the rest go next time
+  const evBatch = events.slice(0, 150);
   try {
     const { data, error } = await supabase.rpc("rpc_learn_sync", {
       p_secret: state.deviceSecret,
       p_results: batch as unknown as Json,
+      p_events: evBatch as unknown as Json,
     });
     if (error || !data || typeof data !== "object") return state;
-    return { ...state, learn: data as unknown as LearnSnapshot, learnOutbox: pending.slice(batch.length), learnSyncedAt: Date.now() };
+    return { ...state, learn: data as unknown as LearnSnapshot, learnOutbox: pending.slice(batch.length), learnEvents: events.slice(evBatch.length), learnSyncedAt: Date.now() };
   } catch {
     return state;
   }

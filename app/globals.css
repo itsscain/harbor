@@ -1176,5 +1176,48 @@ html[data-sheet-open] .toast-host {
 @keyframes l-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes l-dash { to { stroke-dashoffset: -24; } }
 .l-dash { animation: l-dash 1.2s linear infinite; }
+/* Turtle Artist: the newest line draws itself. */
+@keyframes l-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.l-draw { stroke-dasharray: 1; stroke-dashoffset: 0; animation: l-draw 0.28s ease-out both; }
+/* Robot Dance Party: one keyframe set per move (arms swing from the shoulder, legs from the hip). */
+.robot .rb-arm-l, .robot .rb-arm-r, .robot .rb-leg-l, .robot .rb-leg-r, .robot .rb-head, .robot .rb-body { transform-box: fill-box; }
+.robot .rb-arm-l, .robot .rb-arm-r { transform-origin: 50% 8%; }
+.robot .rb-leg-l, .robot .rb-leg-r { transform-origin: 50% 0%; }
+.robot .rb-body { transform-origin: 50% 100%; }
+.robot .rb-head { transform-origin: 50% 100%; }
+@keyframes rb-wave { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-150deg); } 55% { transform: rotate(-115deg); } 80% { transform: rotate(-150deg); } }
+@keyframes rb-spin { 0% { transform: scaleX(1); } 25% { transform: scaleX(0.08); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(0.08); } 100% { transform: scaleX(1); } }
+@keyframes rb-jump { 0%, 100% { transform: translateY(0); } 15% { transform: translateY(6px) scaleY(0.94); } 50% { transform: translateY(-48px); } 85% { transform: translateY(4px) scaleY(0.96); } }
+@keyframes rb-clap-l { 0%, 100% { transform: rotate(0); } 25%, 75% { transform: rotate(-62deg); } 50% { transform: rotate(-40deg); } }
+@keyframes rb-clap-r { 0%, 100% { transform: rotate(0); } 25%, 75% { transform: rotate(62deg); } 50% { transform: rotate(40deg); } }
+@keyframes rb-kick { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(-58deg); } }
+@keyframes rb-bow { 0%, 100% { transform: none; } 45%, 65% { transform: translateY(16px) rotate(-6deg); } }
+@keyframes rb-bow-arm { 0%, 100% { transform: rotate(0); } 45%, 65% { transform: rotate(-40deg); } }
+.robot.mv-wave .rb-arm-r { animation: rb-wave 0.55s ease-in-out; }
+.robot.mv-spin .rb-body { animation: rb-spin 0.6s ease-in-out; transform-origin: 50% 60%; }
+.robot.mv-jump .rb-body { animation: rb-jump 0.55s cubic-bezier(0.3, 0.7, 0.4, 1); }
+.robot.mv-clap .rb-arm-l { animation: rb-clap-l 0.5s ease-in-out; }
+.robot.mv-clap .rb-arm-r { animation: rb-clap-r 0.5s ease-in-out; }
+.robot.mv-kick .rb-leg-r { animation: rb-kick 0.5s ease-in-out; }
+.robot.mv-bow .rb-head { animation: rb-bow 0.7s ease-in-out; }
+.robot.mv-bow .rb-arm-l { animation: rb-bow-arm 0.7s ease-in-out; }
+/* The golden fish: a surprise that swims across mid-lesson. */
+@keyframes l-swim { 0% { transform: translateX(-12vw) translateY(0) scaleX(-1); } 25% { transform: translateX(24vw) translateY(-26px) scaleX(-1); } 50% { transform: translateX(52vw) translateY(14px) scaleX(-1); } 75% { transform: translateX(82vw) translateY(-18px) scaleX(-1); } 100% { transform: translateX(112vw) translateY(0) scaleX(-1); } }
+.l-swim { animation: l-swim 6.5s linear forwards; }
+/* Boss levels: the sea monster takes a hit. */
+@keyframes l-hit { 0%, 100% { transform: none; filter: none; } 20% { transform: translateX(-10px) rotate(-6deg); filter: brightness(1.8); } 45% { transform: translateX(9px) rotate(4deg); } 70% { transform: translateX(-4px); } }
+.l-hit { animation: l-hit 0.5s ease-out; }
+/* Shiny stickers shimmer. */
+@keyframes l-shine { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+.l-shiny { background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.85) 45%, transparent 60%); background-size: 250% 100%; animation: l-shine 1.8s linear infinite; }
+/* Gentle moving water behind the voyage map. */
+@keyframes l-waves { to { background-position: 160px 0, -120px 0; } }
+.l-waves { animation: l-waves 14s linear infinite; }
+@keyframes l-sail { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+.l-sail { animation: l-sail 2.4s ease-in-out infinite; }
+/* After a win, the boat sails down the lane to the next level, then bobs there. */
+@keyframes l-sail-in { 0% { transform: translate(40px, -150px) rotate(-6deg); opacity: 0.4; } 55% { transform: translate(-6px, 10px) rotate(4deg); opacity: 1; } 100% { transform: none; } }
+.l-sail-in { animation: l-sail-in 1.5s cubic-bezier(0.22, 1, 0.36, 1) both, l-sail 2.4s ease-in-out 1.5s infinite; }
 /* Reduced motion: every Learn animation holds still. */
 .learn-root[data-reduced="true"] [class*="l-"] { animation: none !important; }
+.learn-root[data-reduced="true"] .robot * { animation: none !important; }

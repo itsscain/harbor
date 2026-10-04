@@ -1,14 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Volume2 } from "lucide-react";
 import type { Activity } from "@/lib/learn/types";
-import type { Part } from "@/lib/learn/audio";
+import type { VoiceLevel } from "@/lib/learn/script";
+import type { BoatLook } from "@/lib/learn/meta";
+import { say, type Part } from "@/lib/learn/audio";
 import { cn } from "@/lib/cn";
+import { sfx } from "@/lib/learn/sfx";
 import { Chunk, SpeakerButton, type Tone } from "../kit";
 
 // What every activity gets from the lesson player, and the small pieces most of them share.
 
 export type LessonFx = {
+  /** How much this child hears without asking: all (can't read yet) · core · keys (reads alone). */
+  voice: VoiceLevel;
+  /** The child's boat (it sails the coding puzzles). */
+  look?: BoatLook;
+  /** A miss without words (the activity says what went wrong itself): resets the combo. */
+  miss: () => void;
+  /** Show a short "here's why" bubble (spoken for children who need it); resolves when it's done. */
+  explain: (text: string, parts?: Part[]) => Promise<void>;
   /** Speak (interrupts whatever was being said). */
   say: (parts: Part | Part[]) => Promise<boolean>;
   /** What the "hear it again" button replays. */
@@ -58,6 +70,36 @@ export function usePrompt(fx: LessonFx, parts: Part[], delay = 380) {
   }, []);
 }
 
+/** What to say for an item's prompt: its named voice keys, or its text for children who need
+ *  everything read. `auto` = say it on arrival (a reader just gets the replay button). */
+export function spoken(fx: LessonFx, say: Part[] | undefined, text: string): { parts: Part[]; auto: boolean } {
+  if (say?.length) return { parts: say, auto: true };
+  return { parts: text ? [text] : [], auto: fx.voice !== "keys" };
+}
+export function useSpokenPrompt(fx: LessonFx, say: Part[] | undefined, text: string, delay = 380) {
+  const { parts, auto } = spoken(fx, say, text);
+  usePrompt(fx, parts, auto ? delay : -1);
+  return parts;
+}
+
+/** A little round "hear this one" button that sits on a tile (a sibling, never inside it). */
+export function MiniSpeaker({ parts, className, light }: { parts: Part[]; className?: string; light?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-label="Hear it"
+      onClick={(e) => {
+        e.stopPropagation();
+        sfx("tap");
+        void say(parts);
+      }}
+      className={cn("absolute z-[2] flex h-10 w-10 items-center justify-center rounded-full shadow-[0_3px_0_rgba(0,40,80,0.18)]", light ? "bg-white/90 text-[var(--l-blue)]" : "bg-[var(--l-blue)] text-white", className)}
+    >
+      <Volume2 className="h-5 w-5" strokeWidth={2.6} />
+    </button>
+  );
+}
+
 /** The instruction row: replay button + a short line of text (for grown-ups watching, and readers). */
 export function PromptRow({ parts, children, className }: { parts: Part[] | null; children: ReactNode; className?: string }) {
   return (
@@ -73,8 +115,9 @@ export function SoundChip({ text }: { text: string }) {
   return <span className="font-reading mx-1 inline-block rounded-xl bg-white px-3 py-0.5 align-middle text-[0.95em] font-bold text-[var(--l-ink)] shadow-[0_3px_0_var(--l-line)]">{text.replace("_", "–")}</span>;
 }
 
-/** Choice state for "tap the right one" activities: the found answer, misses, which tile to shake. */
-export function useChoice(answer: string, fx: LessonFx, onDone: (mistakes: number) => void, opts?: { extra?: Part[]; reprompt?: Part[]; doneDelay?: number }) {
+/** Choice state for "tap the right one" activities: the found answer, misses, which tile to shake.
+ *  After a miss, the right answer comes with its "why" (that's when it teaches the most). */
+export function useChoice(answer: string, fx: LessonFx, onDone: (mistakes: number) => void, opts?: { extra?: Part[]; reprompt?: Part[]; doneDelay?: number; why?: string; whyParts?: Part[] }) {
   const [found, setFound] = useState<string | null>(null);
   const [misses, setMisses] = useState(0);
   const [shake, setShake] = useState<{ id: string; n: number } | null>(null);
@@ -85,7 +128,10 @@ export function useChoice(answer: string, fx: LessonFx, onDone: (mistakes: numbe
     if (id === answer) {
       setFound(id);
       fx.right(el, opts?.extra);
-      later(() => onDone(misses), opts?.doneDelay ?? 1250);
+      if (misses > 0 && opts?.why) {
+        const why = opts.why;
+        later(() => void fx.explain(why, opts.whyParts).then(() => onDone(misses)), 1100);
+      } else later(() => onDone(misses), opts?.doneDelay ?? 1250);
     } else {
       setMisses((m) => m + 1);
       setWrongIds((w) => (w.includes(id) ? w : [...w, id]));

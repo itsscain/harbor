@@ -3,8 +3,8 @@ import { LearnPreview } from "./LearnPreview";
 
 // Development-only: Harbor Learn on a mock wall (404s in production).
 // /dev/learn                 → a child's wall screen with the My Day | Learn switch
-// /dev/learn?lesson=<id>     → straight into a lesson (e.g. read.ls1.m, code.u3.1, math.add5.1)
-// &grade=prek|k|1|2|3        → the child's grade · &fresh=1 → a brand-new learner
+// /dev/learn?lesson=<id>     → straight into a level (e.g. read.ls1.1, code.rover.1, math.add5.1, char.magic-words.1)
+// &grade=prek|k|1|2|3|4|5    → the child's grade · &fresh=1 → a brand-new learner
 export const dynamic = "force-dynamic";
 
 export default async function DevLearnPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {

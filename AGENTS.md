@@ -34,20 +34,35 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   (`public/sw.js`) + manifest. Parent PIN hashed locally (and adoptable from the
   account via the snapshot).
 - **Harbor Learn** (`FEATURES.learn`): a child's second wall screen (the "My Day | Learn" switch
-  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Content is code, bundled for offline:
-  `lib/learn/{reading,code,math}.ts` → `curriculum.ts` (lesson ids `read.*`/`code.*`/`math.*`,
-  `courseMap`/`nextLessonFor`), phonics in `sounds.ts` (IPA per sound) + `words.ts`, code puzzles
-  in `codeSim.ts`. Kid UI: `LearnApp` → `LearnHome`/`SubjectMap`/`LessonPlayer`/`LessonDone`/
-  `StickerBook`, activities in `components/kiosk/learn/acts/*` (bright `.learn-root` theme +
-  `l-*` animations in `globals.css`). Results sync through **`rpc_learn_sync`** (separate from the
-  core push/pull; `learnOutbox`/`learn` in `KioskState`, `finishLesson` in `useKiosk`), which
-  records results, marks assignments done and awards a few store stars. Parent side: the kid
-  page's Learn tab (`KidLearnView`, `KidLearnParts`, `children/learn-actions.ts`,
-  `lib/learn/parent.ts`); alerts via the `learn_notify` trigger → `/api/cron/notify-learn`
-  ("learning" category). Every spoken line is a pre-recorded clip in `public/learn-voice`:
-  after changing lesson content or `lib/learn/script.ts`, run `node scripts/gen-learn-voice.mjs`
-  (local Kokoro from node_modules — no download) and commit the clips + `index.json`.
-  Preview: `/dev/learn` (`?lesson=<id>` jumps into a lesson).
+  in `ChildView`, `components/kiosk/learn/ModeSwitch.tsx`). Four courses, Pre-K–5th, all code
+  bundled for offline: `lib/learn/{reading,math,code,manners}.ts` (worlds of numbered levels,
+  ids `read.*`/`math.*`/`code.*`/`char.*`; math/reading/manners are generated from topic defs
+  with the seeded helpers in `gen.ts`) → `curriculum.ts` (`courseMap` = voyage map with pass
+  gating ≥1★, `startUnitIndex` places a child a grade below theirs, `lessonsForGrade` for parents,
+  `practiceLesson`/`spiralItems` = the "double back" review). Every item carries a `skill`
+  (`r:`/`m:`/`c:`/`h:`); `mastery.ts` keeps first-try stats + Leitner boxes (spaced review,
+  "shaky" skills); `skills.ts` turns them into parent words. Coding: `program.ts` is the engine
+  (repeat/if-else/until/functions over six worlds: sea, rover, dance, music, turtle, pixel),
+  `code.ts` + `codeGen.ts` the levels (generated maps are solved by search before they're kept).
+  **After editing content run `node scripts/check-learn.mjs`** (every code answer wins, every
+  bug really fails, answers are in their options, every skill is reviewable) — it catches real bugs.
+  Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`StickerAlbum`/
+  `HarborShop`/`DailyChest`, the child's boat in `KidBoat.tsx`, activities in
+  `components/kiosk/learn/acts/*` (one `Visual` renderer for all pictures) and `code/*` (block
+  editor + stages). Rewards: shells (`meta.ts`), sticker sets/rarity/shiny (`stickers.ts`).
+  Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill stats,
+  kind, shells) + a ledger of shell events (shop/look/daily/earn; spends are balance-checked
+  server-side) in `learnOutbox`/`learnEvents`, `finishLesson`/`learnEvent` in `useKiosk`.
+  Parent side: Learn tab (`KidLearnView`, `KidLearnParts`, `children/learn-actions.ts`,
+  `lib/learn/parent.ts`; missions can be a level or `practice:<subject>`); alerts via the
+  `learn_notify` trigger → `/api/cron/notify-learn` (mission done, stuck 3×, goal, island,
+  streak). Voice: pre-recorded clips in `public/learn-voice` (letter sounds = WAV cut from
+  carrier syllables by `scripts/learn-voice/phonics.mjs`; words/lines = HLA 4-bit ADPCM,
+  decoded by `lib/learn/hla.ts`); what gets recorded per grade band is `voiceLevelFor` in
+  `script.ts` (unrecorded math is stitched from number words, the rest uses the device voice).
+  After changing content or `script.ts`, run `node scripts/gen-learn-voice.mjs` (local Kokoro
+  from node_modules — no download; incremental) and commit the clips + `index.json`.
+  Preview: `/dev/learn` (`?lesson=<id>&grade=k` jumps into a level).
 - **Stripe** (`lib/stripe/*`, `app/api/stripe/*`): guarded by `isStripeConfigured()`
   so the app runs keyless. Webhook → `plus_subscriptions` + `households.plus_active`.
 - **Types**: `lib/database.types.ts` is generated from the live schema (Supabase MCP

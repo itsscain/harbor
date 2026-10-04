@@ -1,25 +1,31 @@
 import { getAudioCtx } from "@/lib/kiosk/audioctx";
 import { SOUNDS } from "./sounds";
+import { isHLA, hlaBuffer } from "./hla";
+import { numberWord } from "./gen";
 
-// Harbor Learn's voice. Every line, word and letter sound is a pre-recorded clip
-// (/public/learn-voice, see scripts/gen-learn-voice.mjs) played through the wall's one shared
-// AudioContext. Clips are kept in Cache Storage once heard (and the whole library is fetched in
-// the background on Wi-Fi), so lessons speak offline. Lines can be strung together —
-// "Tap the letter that says," + the m sound — and scheduled back to back with no gaps.
-// If a clip is missing (first offline run), the system voice reads a plain-English stand-in.
+// Harbor Learn's voice. Lines, words and letter sounds are pre-recorded clips (/public/learn-voice,
+// see scripts/gen-learn-voice.mjs; most are tiny HLA/ADPCM files decoded right here) played
+// through the wall's one shared AudioContext. Clips are kept in Cache Storage once heard (and the
+// whole library is fetched in the background on Wi-Fi), so lessons speak offline. Parts can be
+// strung together — "Tap the letter that says," + the m sound — and play back to back with no gaps.
+//
+// Anything that isn't recorded still gets said: a math line is stitched from recorded number words
+// ("7 + 5 = ?" → seven · plus · five · equals · what), and everything else is read by the device's
+// own voice, in order, between the recorded parts.
 
 const BASE = "/learn-voice/";
 const CACHE = "harbor-learn-voice";
 
-/** One part of something to say: a clip key, a pause, or a key with a callback when it starts. */
+/** One part of something to say: a clip key (or "~" for a breath), a pause, or a key with a callback. */
 export type Part = string | { gap: number } | { key: string; onStart?: () => void };
 
 let indexPromise: Promise<Record<string, string>> | null = null;
+let index: Record<string, string> | null = null;
 function loadIndex(): Promise<Record<string, string>> {
   if (!indexPromise) {
     indexPromise = fetch(`${BASE}index.json`, { cache: "no-cache" })
       .then((r) => (r.ok ? r.json() : { clips: {} }))
-      .then((j: { clips?: Record<string, string> }) => j.clips ?? {})
+      .then((j: { clips?: Record<string, string> }) => (index = j.clips ?? {}))
       .catch(() => {
         indexPromise = null; // try again next time (e.g. once back online)
         return {} as Record<string, string>;
@@ -27,6 +33,8 @@ function loadIndex(): Promise<Record<string, string>> {
   }
   return indexPromise;
 }
+/** Is this key recorded? (false until the index has loaded) */
+export const hasClip = (key: string) => !!index?.[key];
 
 async function fetchClip(file: string): Promise<ArrayBuffer | null> {
   const url = BASE + file;
@@ -50,11 +58,6 @@ async function fetchClip(file: string): Promise<ArrayBuffer | null> {
 const buffers = new Map<string, AudioBuffer>();
 const loading = new Map<string, Promise<AudioBuffer | null>>();
 
-function keyOf(p: Part): string | null {
-  if (typeof p === "string") return p;
-  return "key" in p ? p.key : null;
-}
-
 /** Decode one clip into memory (cached). */
 async function bufferFor(key: string): Promise<AudioBuffer | null> {
   const have = buffers.get(key);
@@ -68,7 +71,7 @@ async function bufferFor(key: string): Promise<AudioBuffer | null> {
       const data = await fetchClip(file);
       if (!data) return null;
       try {
-        const buf = await ctx.decodeAudioData(data);
+        const buf = isHLA(data) ? hlaBuffer(ctx, data) : await ctx.decodeAudioData(data);
         buffers.set(key, buf);
         return buf;
       } catch {
@@ -88,7 +91,7 @@ export function clipMs(key: string): number | null {
 
 /** Warm up the clips a screen is about to need, so they play the instant they're asked for. */
 export function preload(keys: string[]): Promise<void> {
-  return Promise.all(keys.map((k) => bufferFor(k))).then(() => undefined);
+  return loadIndex().then((ix) => Promise.all(keys.filter((k) => ix[k]).map((k) => bufferFor(k))).then(() => undefined));
 }
 
 let libraryStarted = false;
@@ -104,6 +107,13 @@ export function prefetchLibrary() {
       return;
     }
     const cache = await caches.open(CACHE);
+    // Drop clips from older libraries.
+    try {
+      const keep = new Set(files.map((f) => new URL(BASE + f, location.href).href));
+      for (const req of await cache.keys()) if (!keep.has(req.url)) void cache.delete(req);
+    } catch {
+      /* ignore */
+    }
     let i = 0;
     const worker = async () => {
       while (i < files.length) {
@@ -117,6 +127,39 @@ export function prefetchLibrary() {
     };
     await Promise.all([worker(), worker()]);
   })();
+}
+
+// ── Stitching + device-voice text ─────────────────────────────────────────────────────────────
+const OPS: Record<string, string> = { "+": "plus", "−": "minus", "-": "minus", "×": "times", "÷": "divided by", "=": "equals", "?": "what" };
+
+/** A math line as recorded words, or null if any piece isn't recorded. */
+export function stitch(text: string): string[] | null {
+  if (!index || !/^[\d\s+\-−×÷=?.,]+$/.test(text) || !/\d/.test(text)) return null;
+  const toks = text.replace(/,/g, "").match(/\d+|[+\-−×÷=?]/g);
+  if (!toks) return null;
+  const keys: string[] = [];
+  for (const t of toks) {
+    const k = /^\d+$/.test(t) ? (Number(t) <= 100 ? numberWord(Number(t)) : null) : OPS[t];
+    if (!k || !index[k]) return null;
+    keys.push(k);
+  }
+  return keys;
+}
+
+/** What the device voice should read for a part that isn't recorded. */
+function speakable(key: string): string {
+  if (key.startsWith("snd:")) return SOUNDS[key.slice(4)]?.say ?? "";
+  return key
+    .replace(/_{2,}/g, " blank ")
+    .replace(/→/g, " becomes ")
+    .replace(/\s[+]\s/g, " plus ")
+    .replace(/\s[−-]\s/g, " minus ")
+    .replace(/\s×\s/g, " times ")
+    .replace(/\s÷\s/g, " divided by ")
+    .replace(/\s=\s\?/g, " equals what")
+    .replace(/\s=\s/g, " equals ")
+    .replace(/[“”"]/g, "")
+    .trim();
 }
 
 // ── Playback ─────────────────────────────────────────────────────────────────────────────
@@ -144,95 +187,131 @@ export function stopVoice() {
   f?.(false);
 }
 
-/** Plain-English stand-in for a clip the system voice can read (sounds can't be spelled out). */
-function fallbackText(key: string): string {
-  if (key.startsWith("snd:")) return SOUNDS[key.slice(4)]?.say ?? "";
-  return key;
-}
+type Seg = { clips: Part[] } | { tts: string; onStart?: () => void };
+const keyOf = (p: Part): string | null => (typeof p === "string" ? (p === "~" ? null : p) : "key" in p ? p.key : null);
 
 /** Say one or more parts in order. Resolves true when it finished, false if interrupted. */
 export function say(parts: Part | Part[]): Promise<boolean> {
-  const list = Array.isArray(parts) ? parts : [parts];
+  const list = (Array.isArray(parts) ? parts : [parts]).map((p) => (p === "~" ? { gap: 300 } : p));
   stopVoice();
   const my = ++seq;
   return new Promise<boolean>((resolve) => {
     finish = resolve;
     void (async () => {
+      await loadIndex();
       const keys = list.map(keyOf).filter((k): k is string => !!k);
-      const bufs = await Promise.all(keys.map((k) => bufferFor(k)));
+      await Promise.all(keys.filter((k) => index?.[k]).map((k) => bufferFor(k)));
       if (my !== seq) return;
-      const ctx = getAudioCtx();
-      if (ctx && bufs.every(Boolean)) {
-        if (ctx.state === "suspended") await ctx.resume().catch(() => {});
-        if (my !== seq) return;
-        let t = ctx.currentTime + 0.03;
-        const t0 = t;
-        let bi = 0;
-        for (const p of list) {
-          if (typeof p !== "string" && "gap" in p) {
-            t += p.gap / 1000;
+      // Recorded runs play gapless; anything else is stitched or read by the device voice.
+      const segs: Seg[] = [];
+      const pushClip = (p: Part) => {
+        const last = segs[segs.length - 1];
+        if (last && "clips" in last) last.clips.push(p);
+        else segs.push({ clips: [p] });
+      };
+      for (const p of list) {
+        const k = keyOf(p);
+        if (!k) {
+          pushClip(p);
+          continue;
+        }
+        if (buffers.has(k)) {
+          pushClip(p);
+          continue;
+        }
+        const st = stitch(k);
+        if (st && st.every((x) => buffers.has(x) || index?.[x])) {
+          await Promise.all(st.map((x) => bufferFor(x)));
+          if (my !== seq) return;
+          if (st.every((x) => buffers.has(x))) {
+            st.forEach((x, j) => {
+              if (j) pushClip({ gap: 40 });
+              pushClip(j === 0 && typeof p !== "string" && "onStart" in p ? { key: x, onStart: p.onStart } : x);
+            });
             continue;
           }
-          const buf = bufs[bi++]!;
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          src.connect(ctx.destination);
-          src.start(t);
-          sources.push(src);
-          if (typeof p !== "string" && p.onStart) {
-            const cb = p.onStart;
-            timers.push(window.setTimeout(() => my === seq && cb(), Math.max(0, (t - t0) * 1000)));
-          }
-          t += buf.duration;
         }
-        timers.push(
-          window.setTimeout(() => {
-            if (my !== seq) return;
-            sources = [];
-            finish = null;
-            resolve(true);
-          }, (t - t0) * 1000 + 40),
-        );
-        return;
+        const text = speakable(k);
+        if (text) segs.push({ tts: text, onStart: typeof p !== "string" && "onStart" in p ? p.onStart : undefined });
       }
-      // Fallback: the system voice, one part after another.
-      speakFallback(list, my, resolve);
+      for (const s of segs) {
+        if (my !== seq) return;
+        const ok = "clips" in s ? await playClips(s.clips, my) : await speakDevice(s.tts, my, s.onStart);
+        if (!ok) return;
+      }
+      if (my !== seq) return;
+      finish = null;
+      resolve(true);
     })();
   });
 }
 
-function speakFallback(list: Part[], my: number, resolve: (done: boolean) => void) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-    finish = null;
-    resolve(true);
-    return;
-  }
-  let i = 0;
-  const next = () => {
-    if (my !== seq) return;
-    if (i >= list.length) {
-      finish = null;
-      resolve(true);
-      return;
+function playClips(list: Part[], my: number): Promise<boolean> {
+  return new Promise((res) => {
+    const ctx = getAudioCtx();
+    if (!ctx) return res(true);
+    void (async () => {
+      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+      if (my !== seq) return res(false);
+      let t = ctx.currentTime + 0.03;
+      const t0 = t;
+      for (const p of list) {
+        if (typeof p !== "string" && "gap" in p) {
+          t += p.gap / 1000;
+          continue;
+        }
+        const buf = buffers.get(keyOf(p) ?? "");
+        if (!buf) continue;
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(t);
+        sources.push(src);
+        if (typeof p !== "string" && "onStart" in p && p.onStart) {
+          const cb = p.onStart;
+          timers.push(window.setTimeout(() => my === seq && cb(), Math.max(0, (t - t0) * 1000)));
+        }
+        t += buf.duration;
+      }
+      timers.push(
+        window.setTimeout(() => {
+          if (my !== seq) return res(false);
+          sources = [];
+          res(true);
+        }, (t - t0) * 1000 + 40),
+      );
+    })();
+  });
+}
+
+function speakDevice(text: string, my: number, onStart?: () => void): Promise<boolean> {
+  return new Promise((res) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      onStart?.();
+      return res(true);
     }
-    const p = list[i++];
-    if (typeof p !== "string" && "gap" in p) {
-      timers.push(window.setTimeout(next, p.gap));
-      return;
-    }
-    if (typeof p !== "string" && p.onStart) p.onStart();
-    const text = fallbackText(keyOf(p) ?? "");
-    if (!text) return next();
     try {
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.88;
+      u.rate = 0.9;
       u.pitch = 1.05;
-      u.onend = () => next();
-      u.onerror = () => next();
+      const v = pickVoice();
+      if (v) u.voice = v;
+      u.onstart = () => my === seq && onStart?.();
+      u.onend = () => res(my === seq);
+      u.onerror = () => res(my === seq);
       window.speechSynthesis.speak(u);
     } catch {
-      next();
+      res(true);
     }
-  };
-  next();
+  });
+}
+
+let voice: SpeechSynthesisVoice | null | undefined;
+const PREFER = [/samantha/i, /aria/i, /jenny/i, /google us english/i, /female/i, /google/i];
+function pickVoice(): SpeechSynthesisVoice | null {
+  if (voice !== undefined) return voice;
+  const all = window.speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang));
+  if (!all.length) return null;
+  voice = PREFER.map((re) => all.find((v) => re.test(v.name))).find(Boolean) ?? all[0];
+  return voice;
 }

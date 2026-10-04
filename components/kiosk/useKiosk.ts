@@ -26,6 +26,7 @@ import type {
   KioskListItem,
 } from "@/lib/kiosk/types";
 import type { LearnResult } from "@/lib/learn/types";
+import type { LearnEvent } from "@/lib/learn/progress";
 
 /** The shape both pairing paths yield: the parent-initiated rpc_kiosk_pair result AND the
  *  Lantern's device-initiated claim (rpc_lantern_poll → 'claimed'). */
@@ -163,13 +164,16 @@ export function useKiosk() {
             : p;
       }
 
-      // Lessons finished during the network await stay queued behind whatever didn't send.
+      // Lessons finished (and shells spent) during the network await stay queued behind whatever
+      // didn't send.
       const learnNew = (prev.learnOutbox ?? []).slice((before.learnOutbox ?? []).length);
+      const eventsNew = (prev.learnEvents ?? []).slice((before.learnEvents ?? []).length);
 
       const merged: KioskState = {
         ...synced,
         outbox: newEntries,
         learnOutbox: [...(synced.learnOutbox ?? []), ...learnNew],
+        learnEvents: [...(synced.learnEvents ?? []), ...eventsNew],
         progress,
         // Preserve local reset stamps (prev is authoritative — a reset may have happened
         // during the network await) so a "reset today" is never lost across a sync.
@@ -574,6 +578,19 @@ export function useKiosk() {
     [update, runSync],
   );
 
+  // Harbor Learn's shells outside lessons: a shop purchase, a new boat look, the daily chest, a
+  // golden-fish or set bonus. Queued locally (the balance is right offline), synced right away.
+  const learnEvent = useCallback(
+    (e: LearnEvent) => {
+      update((s) => {
+        if ((s.learnEvents ?? []).some((x) => x.op_id === e.op_id)) return s;
+        return { ...s, learnEvents: [...(s.learnEvents ?? []), e] };
+      });
+      window.setTimeout(() => void runSync(false, true), 60);
+    },
+    [update, runSync],
+  );
+
   // Auto-soften (§9.1.3): after a rough Anchor, run this child at calm intensity
   // for the rest of today (date-stamped; auto-restores tomorrow). Local + offline.
   const softenChild = useCallback(
@@ -807,6 +824,7 @@ export function useKiosk() {
     bumpStreak,
     requestSomething,
     finishLesson,
+    learnEvent,
     refreshSkipperLines,
     resetDay,
     resetPoints,

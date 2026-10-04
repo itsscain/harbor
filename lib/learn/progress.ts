@@ -1,13 +1,42 @@
 import type { LearnResult, LessonProgress, SubjectId } from "./types";
+import { mergeSkills, type Skills } from "./mastery";
+import { DEFAULT_LOOK, STARTER_ITEMS, TITLES, lookFrom, type BoatLook } from "./meta";
 
 // A kid's Learn progress, merged from what the server knows and what this screen finished but
-// hasn't synced yet — so stars, streaks and stickers are right even offline.
+// hasn't synced yet — so stars, streaks, shells, stickers and skills are right even offline.
+
+/** A shell/shop/chest event (the wall's Learn ledger). */
+export type LearnEvent = {
+  op_id: string;
+  child_id: string;
+  /** earn: chest/fish/set bonus · spend: shop purchase · look: boat change · daily: daily chest. */
+  type: "earn" | "spend" | "look" | "daily";
+  amount?: number;
+  item?: string;
+  reason?: string;
+  look?: BoatLook;
+  at: string;
+};
 
 /** What rpc_learn_sync returns. */
 export type LearnSnapshot = {
-  profiles: { child_id: string; grade: string; subjects: string[]; daily_goal: number; earn_stars: boolean }[];
+  profiles: { child_id: string; grade: string; subjects: string[]; daily_goal: number; earn_stars: boolean; daily_limit?: number }[];
   assignments: { id: string; child_id: string; lesson_id: string; note: string | null; created_at: string }[];
-  kids: Record<string, { lessons: Record<string, [number, number, string]>; stickers: Record<string, number>; days: string[]; xp: number; today?: number }>;
+  kids: Record<
+    string,
+    {
+      lessons: Record<string, [number, number, string]>;
+      stickers: Record<string, number>;
+      days: string[];
+      xp: number;
+      today?: number;
+      skills?: Record<string, [number, number, string | null, string]>;
+      shells?: number;
+      owned?: string[];
+      look?: unknown;
+      daily?: string | null;
+    }
+  >;
   server_time?: string;
 };
 
@@ -23,13 +52,18 @@ export type KidLearn = {
   todayCount: number;
   doneToday: boolean;
   days: string[];
+  skills: Skills;
+  shells: number;
+  owned: Set<string>;
+  look: BoatLook;
+  /** The family-day the daily chest was last opened. */
+  dailyChest: string | null;
 };
 
-const LEVEL_NAMES = ["Deckhand", "Sailor", "Navigator", "First Mate", "Captain", "Admiral", "Sea Legend"];
 export const XP_PER_LEVEL = 150;
-export const levelOf = (xp: number) => Math.floor(xp / XP_PER_LEVEL) + 1;
-export const levelName = (level: number) => LEVEL_NAMES[Math.min(LEVEL_NAMES.length - 1, Math.max(0, level - 1))];
 export const xpFor = (stars: number) => 10 + 5 * Math.max(0, Math.min(3, stars));
+export const levelOf = (xp: number) => Math.floor(xp / XP_PER_LEVEL) + 1;
+export const levelName = (level: number) => TITLES[Math.min(TITLES.length - 1, Math.max(0, level - 1))];
 
 const addDays = (key: string, n: number) => {
   const d = new Date(`${key}T12:00:00Z`);
@@ -55,6 +89,7 @@ export function mergeKid(
   pending: LearnResult[],
   todayKey: string,
   dayOf: (iso: string) => string,
+  events: LearnEvent[] = [],
 ): KidLearn {
   const base = snap?.kids?.[childId];
   const lessons: Record<string, LessonProgress> = {};
@@ -62,42 +97,65 @@ export function mergeKid(
   const stickers: Record<string, number> = { ...(base?.stickers ?? {}) };
   const days = new Set(base?.days ?? []);
   let xp = base?.xp ?? 0;
-  // Lessons finished today: the server's count (replays included), else estimated from each
-  // lesson's last play — plus anything finished here that hasn't synced yet.
+  let shells = base?.shells ?? 0;
+  const owned = new Set<string>([...STARTER_ITEMS, ...(base?.owned ?? [])]);
+  let look = lookFrom(base?.look ?? DEFAULT_LOOK);
+  let dailyChest = base?.daily ?? null;
   const serverToday = base?.today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.today : null;
   let todayCount = serverToday ?? Object.values(lessons).filter((l) => dayOf(l.last) === todayKey).length;
 
-  for (const r of pending.filter((p) => p.child_id === childId)) {
+  const mine = pending.filter((p) => p.child_id === childId);
+  for (const r of mine) {
     const cur = lessons[r.lesson_id];
     lessons[r.lesson_id] = { stars: Math.max(cur?.stars ?? 0, r.stars), plays: (cur?.plays ?? 0) + 1, last: r.completed_at };
     if (r.sticker) stickers[r.sticker] = (stickers[r.sticker] ?? 0) + 1;
     days.add(dayOf(r.completed_at));
     xp += xpFor(r.stars);
+    shells += r.shells ?? 0;
     if (dayOf(r.completed_at) === todayKey) todayCount++;
   }
+  for (const e of events.filter((x) => x.child_id === childId)) {
+    if (e.type === "earn" || e.type === "daily") shells += e.amount ?? 0;
+    if (e.type === "spend") {
+      shells -= e.amount ?? 0;
+      if (e.item) owned.add(e.item);
+    }
+    if (e.type === "look" && e.look) look = lookFrom(e.look);
+    if (e.type === "daily") dailyChest = dayOf(e.at);
+    if (e.type === "earn" && e.item?.startsWith("sticker:")) {
+      const id = e.item.slice(8);
+      stickers[id] = (stickers[id] ?? 0) + 1;
+    }
+  }
 
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  const level = levelOf(xp);
   const sorted = [...days].sort().reverse();
   return {
     lessons,
     stickers,
     xp,
     level,
-    levelName: LEVEL_NAMES[Math.min(LEVEL_NAMES.length - 1, level - 1)],
+    levelName: levelName(level),
     xpInLevel: xp % XP_PER_LEVEL,
     xpPerLevel: XP_PER_LEVEL,
     streak: streakFrom(sorted, todayKey),
     todayCount,
     doneToday: days.has(todayKey),
     days: sorted,
+    skills: mergeSkills(base?.skills, mine),
+    shells: Math.max(0, shells),
+    owned,
+    look,
+    dailyChest,
   };
 }
 
-/** Stars for an activity-based lesson from how many tries it took. */
-export function lessonStars(mistakes: number, total: number): number {
+/** Stars from first-try accuracy. Below 60% the level isn't passed yet (0 stars). */
+export function starsFor(right: number, total: number): number {
   if (total <= 0) return 1;
-  const rate = mistakes / total;
-  return rate === 0 ? 3 : rate <= 0.34 ? 2 : 1;
+  const acc = right / total;
+  return acc >= 0.9 ? 3 : acc >= 0.75 ? 2 : acc >= 0.6 ? 1 : 0;
 }
 
-export const subjectOfLesson = (id: string): SubjectId => (id.startsWith("code.") ? "code" : id.startsWith("math.") ? "math" : "reading");
+export const subjectOfLesson = (id: string): SubjectId =>
+  id.startsWith("code.") || id.startsWith("practice:code") ? "code" : id.startsWith("math.") || id.startsWith("practice:math") ? "math" : id.startsWith("char.") || id.startsWith("practice:manners") ? "manners" : "reading";
