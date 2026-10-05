@@ -109,10 +109,15 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   `draw/fish.ts` (a spine that bends as it swims: fish, sharks, whales, seal, penguin, croc,
   plesiosaur, sea dragon) and `draw/critters.ts` (turtle, octopus, squid, crab, lobster/shrimp,
   snail, duck/swan/flamingo, frog, otter); `engine.ts` simulates and paints the tank on one canvas
-  (wander/rest/dart/turn, follow a finger, sinking food the hungry race to eat, reactions, night =
-  sleepy; adaptive "lite" mode on slow tablets); `scene.ts` = 7 themes, light shafts, caustics,
-  plants; `art.ts` = SVG art for decor, eggs, food and icons (canvas + panels). `CreatureView` is
-  a living portrait (card, Fish Book, hatch, the buddy on the home screen and in lessons).
+  (wander/rest/dart/turn, schools that swim together, habits — peck the sand, sip at the surface,
+  turtles nap, whales spout — and a quirk every half minute or so; follow a finger, a tap on the
+  glass startles, sinking food the hungry race to eat and lunge for, reactions, night = sleepy;
+  adaptive "lite" mode on slow tablets); `scene.ts` = 7 themes (each with its own built-in reef,
+  `paintReef`, and a `themePreview` thumbnail), light shafts, caustics, plants; `art.ts` = SVG art
+  for decor, eggs, food and icons (canvas + panels). `CreatureView` is a living portrait (card,
+  Fish Book, hatch, the buddy on the home screen and in lessons). Non-readers get a pointing hand
+  (`PointHand` in `Aquarium.tsx`: hatch → pick up food → tap the water). Shells are always the
+  drawn `ShellIcon` (`kit.tsx`), never the 🐚 emoji.
   Preview every creature at `/dev/tank` (`?big=1&only=sunny,finn&stage=0..3`); a full tank at
   `/dev/learn?aq=full&tank=<id>`. Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill
   stats, kind, shells) + a ledger (`earn`/`spend`/`look`/`daily`/`collect` = hatch, buddy,

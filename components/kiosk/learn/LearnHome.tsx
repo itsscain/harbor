@@ -11,7 +11,7 @@ import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { playHarborVoice } from "@/lib/kiosk/voice";
-import { Chunk, Ring } from "./kit";
+import { Chunk, Ring, ShellIcon } from "./kit";
 import { SideBoat } from "./KidBoat";
 import { practiceMission, type KidLearnView } from "./learnData";
 import { CreatureView } from "./tank/CreatureView";
@@ -121,7 +121,7 @@ export function LearnHome({
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Stat label={`${kid.shells} shells`}>
-            <span className="text-3xl">🐚</span>
+            <ShellIcon size={32} />
             <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--l-ink)]">{kid.shells}</span>
           </Stat>
           <Stat label={`${kid.streak} day streak`}>
@@ -168,7 +168,16 @@ export function LearnHome({
         <QuickTile emoji="💰" title="Treasures" sub="Stickers & more" onClick={() => (sfx("pick"), onOpenTreasures())} />
         <QuickTile emoji="⚡" title="Brain Boost" sub={due ? `${due} to refresh` : "All fresh!"} glow={due >= 4} reduced={reduced} disabled={due < 3 || limitHit} onClick={() => (sfx("pick"), onBoost())} />
         <QuickTile emoji="🕹️" title="Arcade" sub="15+ games!" onClick={() => (sfx("pick"), onOpenGym())} />
-        <QuickTile emoji="🛍️" title="Shop" sub={`${kid.shells} 🐚 to spend`} onClick={() => (sfx("pick"), void say(SAY.shop), onOpenShop())} />
+        <QuickTile
+          emoji="🛍️"
+          title="Shop"
+          sub={
+            <>
+              {kid.shells} <ShellIcon size={14} className="-mt-0.5 align-middle" /> to spend
+            </>
+          }
+          onClick={() => (sfx("pick"), void say(SAY.shop), onOpenShop())}
+        />
       </div>
 
       {limitHit && (
@@ -299,7 +308,7 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function QuickTile({ emoji, icon, title, sub, onClick, glow, reduced, disabled, badge }: { emoji: string; icon?: ReactNode; title: string; sub: string; onClick: () => void; glow?: boolean; reduced?: boolean; disabled?: boolean; badge?: number }) {
+function QuickTile({ emoji, icon, title, sub, onClick, glow, reduced, disabled, badge }: { emoji: string; icon?: ReactNode; title: string; sub: ReactNode; onClick: () => void; glow?: boolean; reduced?: boolean; disabled?: boolean; badge?: number }) {
   return (
     <Chunk tone="white" disabled={disabled} onClick={onClick} className={cn("l-rise relative flex items-center gap-3 p-3 text-left lg:gap-2 lg:px-2.5", disabled && "opacity-60")}>
       {badge ? <span className="absolute -right-2 -top-2 flex h-8 min-w-8 items-center justify-center rounded-full bg-[var(--l-coral)] px-2 font-display text-lg font-extrabold text-white shadow-[0_3px_0_var(--l-coral-edge)]">{badge}</span> : null}

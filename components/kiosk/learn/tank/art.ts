@@ -173,7 +173,7 @@ export const DECOR_FX: Record<string, { glow?: string; emit?: "bubbles" | "spark
 };
 
 // ── Eggs ─────────────────────────────────────────────────────────────────────────────────────
-const EGG_COLORS: Record<EggTier, { a: string; b: string; c: string; spot: string }> = {
+export const EGG_COLORS: Record<EggTier, { a: string; b: string; c: string; spot: string }> = {
   sea: { a: "#e9f7ff", b: "#9fd6ff", c: "#4aa3e8", spot: "#3b8fd6" },
   rare: { a: "#e8fff6", b: "#7fe6c3", c: "#1fae84", spot: "#178f6b" },
   golden: { a: "#fffbe0", b: "#ffd75a", c: "#e09a00", spot: "#fff6c4" },
@@ -219,6 +219,11 @@ export const ICON_ART = {
   sprout: svg(40, 40, `<path d="M20 36 V18" stroke="#2f9e44" stroke-width="3.5" stroke-linecap="round"/><path d="M20 20 Q8 20 6 8 Q18 8 20 20 Z M20 18 Q30 16 34 6 Q22 6 20 18 Z" fill="#4cd964" stroke="${OL}" stroke-width="2.2"/>`),
   book: svg(40, 40, `${lin("b", [[0, "#8b6cff"], [1, "#5a3fd6"]])}<path d="M6 8 Q14 5 20 9 Q26 5 34 8 V34 Q26 31 20 35 Q14 31 6 34 Z" fill="url(#b)" stroke="${OL}" stroke-width="2.4"/><path d="M20 9 V35" stroke="${OL}" stroke-width="2"/><path d="M9 18 Q12 14 16 18 Q12 22 9 18 Z" fill="#ffd23a"/><path d="M24 22 Q27 18 31 22 Q27 26 24 22 Z" fill="#7cd3ff"/>`),
   tank: svg(40, 40, `${lin("w", [[0, "#9ee7ff"], [1, "#1f8fd1"]])}<rect x="4" y="8" width="32" height="26" rx="5" fill="url(#w)" stroke="${OL}" stroke-width="2.4"/><path d="M4 28 Q20 24 36 28 V34 H4 Z" fill="#f3d79a"/><path d="M14 18 Q20 13 26 18 Q20 23 14 18 Z M26 18 L30 15 L30 21 Z" fill="#ff8a24" stroke="${OL}" stroke-width="1.5"/><path d="M8 13 H14" stroke="#fff" stroke-width="2" opacity="0.7" stroke-linecap="round"/>`),
+  /** A friendly pointing hand (points up and to the left). */
+  hand: svg(60, 64, `${lin("h", [[0, "#fff1e2"], [1, "#ffd3ad"]])}
+    <path d="M14 6 Q14 0 20 0 Q26 0 26 6 L26 26 Q30 22 35 24 Q39 21 44 24 Q49 22 53 27 L53 44 Q53 60 38 62 L28 62 Q18 62 13 52 L4 36 Q1 30 6 28 Q11 26 14 32 Z" fill="url(#h)" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M26 26 L26 38 M35 24 L35 37 M44 24 L44 37" stroke="#c98b5a" stroke-width="2" stroke-linecap="round"/>
+    <path d="M16 6 Q18 3 21 4" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>`),
   decor: svg(40, 40, `${lin("c", [[0, "#ffe6b0"], [1, "#d9a85a"]])}<path d="M6 36 V18 H12 V14 H16 V18 H24 V14 H28 V18 H34 V36 Z" fill="url(#c)" stroke="${OL}" stroke-width="2.3"/><path d="M16 36 V28 Q20 23 24 28 V36 Z" fill="#6b4a2a" stroke="${OL}" stroke-width="1.8"/><path d="M20 14 V4 L28 7 L20 10" fill="#ff4f7b" stroke="${OL}" stroke-width="1.6"/>`),
 };
 

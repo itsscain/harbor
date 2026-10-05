@@ -9,7 +9,7 @@ import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Confetti } from "../Confetti";
-import { Chunk } from "./kit";
+import { Chunk, ShellIcon } from "./kit";
 
 // Once a day, a treasure chest: a handful of shells, and sometimes a sticker. A small, reliable
 // reason to come back tomorrow (and the streak does the rest).
@@ -49,7 +49,7 @@ export function DailyChest({ ready, prize, accent, reduced, onOpen, onClose }: {
         {open ? (
           <div className="l-rise flex flex-col items-center gap-3">
             <span className="flex items-center gap-2 rounded-full bg-[var(--l-card-2)] px-5 py-2 font-display text-3xl font-extrabold text-[var(--l-ink)]">
-              🐚 +{prize.shells}
+              <ShellIcon size={36} /> +{prize.shells}
             </span>
             {prize.sticker && (
               <span className="flex items-center gap-3 rounded-[22px] bg-[var(--l-card-2)] px-5 py-3">

@@ -8,7 +8,7 @@ import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { note, sfx, buzz } from "@/lib/learn/sfx";
 import { Shape } from "./acts/Visual";
-import { Chunk } from "./kit";
+import { Chunk, ShellIcon } from "./kit";
 import { AnimalGroups, BiggerWins, BinaryBlitz, BugSquash, CoinCounter, LoopSpotter, MakeTen, NumberHop, Opposites, PySpeed, RhymeTime, RobotPath, SinkFloat, WordRocket } from "./ArcadeGames";
 
 // The Brain Gym: short, fun workouts for the skills behind all learning — holding things in mind
@@ -193,7 +193,11 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
             <p className="font-display text-xl font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">{SAY.timesUp.replace("!", "")}</p>
             <p className="font-display text-[80px] font-extrabold leading-none text-[var(--l-ink)]">{score}</p>
             {score > (bests[g.id] ?? 0) ? <p className="l-pop-in rounded-full bg-[var(--l-gold)] px-5 py-2 font-display text-2xl font-extrabold text-[#5a3b00]">🏆 New record!</p> : <p className="font-display text-lg font-bold text-[var(--l-ink-2)]">Your best is {bests[g.id]}. Try again to beat it!</p>}
-            {paid > 0 && <p className="font-display text-2xl font-extrabold text-[var(--l-ink)]">🐚 +{paid} shells</p>}
+            {paid > 0 && (
+              <p className="flex items-center gap-2 font-display text-2xl font-extrabold text-[var(--l-ink)]">
+                <ShellIcon size={32} /> +{paid} shells
+              </p>
+            )}
             <div className="flex gap-3">
               <Chunk tone="green" onClick={() => (sfx("pick"), setPhase("play"))} className="flex h-16 items-center px-8 font-display text-2xl font-extrabold">
                 Play again

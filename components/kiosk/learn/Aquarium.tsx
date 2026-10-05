@@ -13,12 +13,12 @@ import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Confetti } from "../Confetti";
-import { Chunk, SpeakerButton } from "./kit";
+import { Chunk, ShellIcon, SpeakerButton } from "./kit";
 import { Tank } from "./tank/Tank";
 import type { TankEvents, TankInput } from "./tank/engine";
 import { CreatureView } from "./tank/CreatureView";
-import { DECOR_ART, FOOD_ART, ICON_ART, artUrl, eggArt, type Art } from "./tank/art";
-import { THEMES } from "./tank/scene";
+import { DECOR_ART, EGG_COLORS, FOOD_ART, ICON_ART, artUrl, eggArt, type Art } from "./tank/art";
+import { THEMES, themePreview, type Theme } from "./tank/scene";
 
 // My Aquarium: the living tank a child builds with the shells they earn by learning. Every
 // creature is drawn and animated from code — it swims, turns, blinks, follows your finger, and
@@ -52,8 +52,16 @@ function Pic({ art, size, className, style }: { art: Art; size: number; classNam
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={artUrl(art)} alt="" draggable={false} width={size} height={(size * art.h) / art.w} className={cn("pointer-events-none select-none", className)} style={{ width: size, height: (size * art.h) / art.w, ...style }} />;
 }
-function ShellIcon({ size = 22 }: { size?: number }) {
-  return <Pic art={ICON_ART.shell} size={size} className="inline-block shrink-0" />;
+/** A hand pressing at a spot (its fingertip is the element's top-left), with a little tap ring. */
+function PointHand({ style, size = 54 }: { style: CSSProperties; size?: number }) {
+  return (
+    <span className="pointer-events-none absolute z-[8] h-0 w-0" style={style} aria-hidden>
+      <span className="aq-tap absolute -left-4 -top-4 h-8 w-8 rounded-full border-[3px] border-white" />
+      <span className="aq-hand absolute block drop-shadow-[0_4px_4px_rgba(0,30,60,0.3)]" style={{ left: -size * 0.3, top: -2, width: size, height: (size * ICON_ART.hand.h) / ICON_ART.hand.w }}>
+        <Pic art={ICON_ART.hand} size={size} className="max-w-none" />
+      </span>
+    </span>
+  );
 }
 
 export function Aquarium({
@@ -100,12 +108,19 @@ export function Aquarium({
   const [rolling, setRolling] = useState<{ id: string; tier: EggTier; done: boolean } | null>(null);
   const [party, setParty] = useState(0);
   const [peek, setPeek] = useState<{ egg: string; x: number; y: number; n: number } | null>(null);
+  /** The pointing-hand guide stops once a child has fed a friend this visit. */
+  const [fedThisVisit, setFedThisVisit] = useState(false);
+  /** …and never pulls them away from a tab they picked themselves. */
+  const [chose, setChose] = useState(false);
   const said = useRef({ yum: 0, full: 0 });
 
+  // Say hello — and, if friends are hungry and there's food, point the way.
   const greet = !autoHatch;
+  const nudge = kid.hatched.some((h) => (kid.fed[h.egg]?.today ?? 0) < MEALS_PER_DAY) && FOOD_ORDER.some((k) => aq.food[k] > 0);
+  const nudgeRef = useRef(nudge);
   useEffect(() => {
     if (!greet) return;
-    const t = window.setTimeout(() => void say(SAY.aquarium), 300);
+    const t = window.setTimeout(() => void say(nudgeRef.current ? [SAY.aquarium, { gap: 300 }, SAY.aqHungry] : SAY.aquarium), 300);
     return () => window.clearTimeout(t);
   }, [greet]);
   useEffect(() => {
@@ -170,6 +185,7 @@ export function Aquarium({
     const grew = growth(kid.xp, h, bonus + FOODS[kind].grow).index > growth(kid.xp, h, bonus).index;
     onFeed(kind, egg);
     buzz(15);
+    setFedThisVisit(true);
     if (aq.food[kind] <= 1 && holding === kind) setHolding(null);
     if (grew) {
       window.setTimeout(() => {
@@ -324,6 +340,7 @@ export function Aquarium({
   const go = (p: AquaPanel) => {
     sfx("tap");
     setPanel(p);
+    setChose(true);
     setPreview(null);
     if (p !== "food") setHolding(null);
     void say(PANELS.find((x) => x.id === p)!.say);
@@ -331,6 +348,29 @@ export function Aquarium({
 
   const openHatch = open ? (kid.hatched.find((h) => h.egg === open) ?? null) : null;
   const peekCreature = peek ? CREATURE_BY_ID.get(kid.hatched.find((h) => h.egg === peek.egg)?.creature ?? "") : undefined;
+  // Where the pointing hand goes for a child who can't read yet: hatch the first egg, then pick
+  // up food, then tap the water.
+  const firstFood = FOOD_ORDER.find((k) => aq.food[k] > 0);
+  const hint: "nest" | "foodTab" | "food" | "water" | null =
+    open || hatching || preview
+      ? null
+      : !kid.hatched.length
+        ? nest.length
+          ? "nest"
+          : null
+        : fedThisVisit
+          ? null
+          : holding
+            ? "water"
+            : nudge
+              ? panel === "food"
+                ? "food"
+                : // From the eggs, once they've all hatched (not when they came to shop for more).
+                  panel === "eggs" && !nest.length && !chose
+                  ? "foodTab"
+                  : null
+              : null;
+  const theme = THEMES[preview?.kind === "tank" ? preview.id : aq.tank.id] ?? THEMES.reef;
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4 px-4 pb-10 pt-2 sm:px-6">
@@ -343,7 +383,10 @@ export function Aquarium({
           My Aquarium
         </p>
         <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 font-display text-2xl font-extrabold text-[var(--l-ink)] shadow-[0_5px_0_var(--l-line)]" aria-label={`${kid.shells} shells`}>
-          <ShellIcon size={28} /> <span className="tabular-nums">{kid.shells}</span>
+          <ShellIcon size={28} />{" "}
+          <span key={kid.shells} className="l-pop-in tabular-nums">
+            {kid.shells}
+          </span>
         </span>
       </div>
 
@@ -351,6 +394,8 @@ export function Aquarium({
         {/* ── The living tank ── */}
         <div className={cn("relative w-full overflow-hidden rounded-[34px] shadow-[0_10px_0_rgba(0,40,80,0.2)]", TANK_H)}>
           <Tank input={tankInput} events={events} className="absolute inset-0" />
+          {hint === "water" && <PointHand style={{ left: "52%", top: "40%" }} size={68} />}
+          {hint === "nest" && <PointHand style={{ left: "10%", top: "79%" }} size={64} />}
 
           {kid.hatched.length === 0 && (
             <div className="pointer-events-none absolute inset-x-0 top-[22%] flex flex-col items-center gap-2 px-6 text-center">
@@ -407,6 +452,7 @@ export function Aquarium({
                 )}
                 <Pic art={p.art} size={30} />
                 <span className={cn("font-display text-xs font-extrabold", panel === p.id ? "text-white" : "text-[var(--l-ink)]")}>{p.label}</span>
+                {hint === "foodTab" && p.id === "food" && <PointHand style={{ left: "62%", top: "60%" }} size={44} />}
               </Chunk>
             ))}
           </div>
@@ -428,6 +474,7 @@ export function Aquarium({
                       >
                         <Pic art={FOOD_ART[k]} size={58} />
                         <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-[var(--l-violet)] px-2 font-display text-sm font-extrabold tabular-nums text-white shadow-[0_2px_0_var(--l-violet-edge)]">×{aq.food[k]}</span>
+                        {hint === "food" && k === firstFood && <PointHand style={{ left: "62%", top: "62%" }} size={46} />}
                       </Chunk>
                       <div className="min-w-0 flex-1">
                         <p className="font-display text-lg font-extrabold leading-tight text-[var(--l-ink)]">{f.name}</p>
@@ -531,15 +578,10 @@ export function Aquarium({
                       className={cn("flex items-center gap-3 p-2.5 text-left", preview?.id === tk.id && "outline-4 outline-[var(--l-gold)]", inUse && "outline-4 outline-[var(--l-green)]")}
                       aria-label={tk.name}
                     >
-                      <span
-                        className="h-14 w-20 shrink-0 overflow-hidden rounded-[14px] shadow-[inset_0_0_0_2px_rgba(0,40,80,0.12)]"
-                        style={{
-                          background: th
-                            ? `linear-gradient(180deg, transparent 76%, ${th.sand[0]} 76%, ${th.sand[1]} 100%), linear-gradient(180deg, ${th.sky[1]} 0 8%, ${th.water[0]} 8%, ${th.water[1]} 30%, ${th.water[2]} 62%, ${th.water[3]} 100%)`
-                            : undefined,
-                          filter: locked ? "grayscale(0.8)" : undefined,
-                        }}
-                      />
+                      <span className="block h-14 w-20 shrink-0 overflow-hidden rounded-[14px] shadow-[0_0_0_2px_rgba(0,40,80,0.12)]" style={{ background: th ? th.water[1] : undefined, filter: locked ? "grayscale(0.8)" : undefined }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={themePreview(tk.id, 80, 56)} alt="" width={80} height={56} className="h-full w-full" draggable={false} />
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="block font-display text-lg font-extrabold leading-tight text-[var(--l-ink)]">{tk.name}</span>
                         <span className="mt-1 inline-block">
@@ -589,6 +631,7 @@ export function Aquarium({
           food={aq.food}
           buddy={buddyId === openHatch.creature}
           reduced={reduced}
+          theme={theme}
           onFeed={(k) => ate(openHatch.egg, k)}
           onBuddy={() => {
             onBuddy(openHatch.creature);
@@ -852,6 +895,7 @@ function CreatureCard({
   food,
   buddy,
   reduced,
+  theme,
   onFeed,
   onBuddy,
   onClose,
@@ -862,6 +906,8 @@ function CreatureCard({
   food: Record<FoodKind, number>;
   buddy: boolean;
   reduced: boolean;
+  /** The tank it lives in (the portrait sits in that water). */
+  theme: Theme;
   onFeed: (k: FoodKind) => void;
   onBuddy: () => void;
   onClose: () => void;
@@ -895,7 +941,7 @@ function CreatureCard({
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0b2340]/55 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="l-pop-in flex max-h-[94dvh] w-full max-w-[460px] flex-col items-center gap-3 overflow-y-auto rounded-[34px] bg-white p-6 text-center shadow-[0_10px_0_var(--l-line)]" onClick={(e) => e.stopPropagation()}>
-        <div ref={face} className="relative -my-2 rounded-[28px] bg-gradient-to-b from-[#bfeaff] to-[#4cb8ee] px-6">
+        <div ref={face} className="relative -my-2 overflow-hidden rounded-[28px] px-6 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.5)]" style={{ background: `radial-gradient(120% 80% at 50% -10%, ${theme.water[0]}, transparent 60%), linear-gradient(180deg, ${theme.water[1]}, ${theme.water[2]})` }}>
           <button type="button" onClick={() => (setPoke((n) => n + 1), sfx("splash"))} aria-label={`Tap ${cr.name}`}>
             <CreatureView id={cr.id} size={190} stage={g.index} royal={g.royal} eating={eating} react={poke} />
           </button>
@@ -992,18 +1038,46 @@ function useHearts() {
   return { hearts, fireAt };
 }
 
+// The egg's crack: a zig-zag around its middle (in the egg art's 72×90 box) that grows with each
+// tap, and the two pieces of shell it splits into.
+const ZIG: [number, number][] = [[2, 47], [10, 40], [17, 47], [24, 39], [31, 47], [38, 39], [45, 47], [52, 39], [59, 47], [66, 40], [70, 45]];
+const zigPath = (from: number, to: number) => ZIG.slice(from, to + 1).map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
+const CRACKS = [
+  "",
+  `${zigPath(3, 6)} M38 39 L36 32`,
+  `${zigPath(1, 9)} M38 39 L36 32 M17 47 L15 54 M59 47 L62 55 M52 39 L54 33`,
+];
+const zigPct = ZIG.map(([x, y]) => `${((x / 72) * 100).toFixed(1)}% ${((y / 90) * 100).toFixed(1)}%`);
+const SHELL_TOP = `polygon(0 0, 100% 0, 100% ${zigPct.at(-1)!.split(" ")[1]}, ${[...zigPct].reverse().join(", ")}, 0 ${zigPct[0].split(" ")[1]})`;
+const SHELL_BOTTOM = `polygon(0 ${zigPct[0].split(" ")[1]}, ${zigPct.join(", ")}, 100% ${zigPct.at(-1)!.split(" ")[1]}, 100% 100%, 0 100%)`;
+const CHIP_SHAPES = ["polygon(0 20%, 70% 0, 100% 60%, 30% 100%)", "polygon(10% 0, 100% 30%, 60% 100%, 0 70%)", "polygon(0 0, 100% 40%, 20% 100%)"];
+type Chip = { id: string; x: number; y: number; dx: number; dy: number; r: number; s: number; k: number };
+/** Bits of shell that fly off a tapped egg — a few per tap, a shower when it opens (only ever called from a tap). */
+const shellChips = (tap: number, burst: boolean): Chip[] =>
+  Array.from({ length: burst ? 16 : 6 }, (_, i) => {
+    const a = burst ? (i / 16) * Math.PI * 2 + Math.random() * 0.4 : -Math.PI / 2 + (Math.random() - 0.5) * 2.6;
+    const d = burst ? 90 + Math.random() * 70 : 45 + Math.random() * 45;
+    return { id: `${tap}:${i}`, x: Math.cos(a) * 26, y: -8 + Math.sin(a) * 18, dx: Math.cos(a) * d, dy: Math.sin(a) * d - (burst ? 10 : 25), r: (Math.random() - 0.5) * 720, s: 0.6 + Math.random() * 0.8, k: i % CHIP_SHAPES.length };
+  });
+
 /** Tap the egg until it cracks open — then meet who hatched, alive. */
 function HatchOverlay({ egg, seed, owned, accent, reduced, onHatched, onClose }: { egg: Egg; seed: string; owned: string[]; accent: string; reduced: boolean; onHatched: (c: Creature) => void; onClose: () => void }) {
   const [taps, setTaps] = useState(0);
   const [creature, setCreature] = useState<Creature | null>(null);
+  const [chips, setChips] = useState<Chip[]>([]);
   const need = 3;
   const art = eggArt(egg.tier);
+  const tint = EGG_COLORS[egg.tier];
   const tap = () => {
     if (creature) return;
     const n = taps + 1;
     setTaps(n);
-    buzz(20);
-    if (n < need) return sfx("hit");
+    if (!reduced) setChips(shellChips(n, n >= need));
+    if (n < need) {
+      buzz(20);
+      return sfx("hit");
+    }
+    buzz([0, 30, 40, 60]);
     const cr = hatchCreature(seed, egg.tier, owned);
     sfx(cr.rarity === "legendary" || cr.rarity === "epic" ? "legendary" : "sticker");
     setCreature(cr);
@@ -1012,8 +1086,10 @@ function HatchOverlay({ egg, seed, owned, accent, reduced, onHatched, onClose }:
   };
   const look = EGG_LOOK[egg.tier];
   const ring = creature ? CREATURE_RARITY_COLOR[creature.rarity] : look.color;
-  const half = (side: "l" | "r") => (
-    <span className={cn("absolute inset-0", !reduced && (side === "l" ? "aq-half-l" : "aq-half-r"))} style={{ clipPath: side === "l" ? "polygon(0 0, 52% 0, 44% 40%, 56% 55%, 46% 100%, 0 100%)" : "polygon(52% 0, 100% 0, 100% 100%, 46% 100%, 56% 55%, 44% 40%)" }}>
+  // The light inside gets brighter with every crack.
+  const glow = creature ? "66" : ["33", "55", "88"][Math.min(taps, 2)];
+  const shell = (part: "top" | "bottom") => (
+    <span className={cn("absolute inset-0", part === "top" ? "aq-shell-top" : "aq-shell-bottom")} style={{ clipPath: part === "top" ? SHELL_TOP : SHELL_BOTTOM }}>
       <Pic art={art} size={150} />
     </span>
   );
@@ -1024,31 +1100,45 @@ function HatchOverlay({ egg, seed, owned, accent, reduced, onHatched, onClose }:
         <p className="font-display text-3xl font-extrabold text-[var(--l-ink)]">{creature ? `Meet ${creature.name}!` : `${look.name}!`}</p>
         <p className="font-display text-lg font-bold text-[var(--l-ink-2)]">{creature ? `A ${creature.rarity} ${creature.kind}` : egg.why}</p>
         <div className="relative flex h-[240px] w-[240px] items-center justify-center">
-          <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${ring}66 0%, transparent 65%)` }} />
+          <div className="absolute inset-0 rounded-full transition-[background] duration-300" style={{ background: `radial-gradient(circle, ${ring}${glow} 0%, transparent 65%)` }} />
           {creature && !reduced && <div className="l-rays absolute inset-[-30px] rounded-full opacity-60" style={{ background: "repeating-conic-gradient(rgba(255,255,255,0.7) 0deg 9deg, transparent 9deg 30deg)", WebkitMaskImage: "radial-gradient(circle, #000 30%, transparent 70%)", maskImage: "radial-gradient(circle, #000 30%, transparent 70%)" } as CSSProperties} />}
+          {creature && !reduced && <span className="aq-flash pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 rounded-full bg-white" />}
           {creature ? (
             <>
               <span className="l-pop-in relative">
                 <CreatureView id={creature.id} size={220} stage={0} />
               </span>
-              <span className="pointer-events-none absolute" style={{ width: 150, height: 188 }}>
-                {half("l")}
-                {half("r")}
-              </span>
+              {/* With reduced motion the shell just isn't there any more. */}
+              {!reduced && (
+                <span className="pointer-events-none absolute" style={{ width: 150, height: 188 }}>
+                  {shell("bottom")}
+                  {shell("top")}
+                </span>
+              )}
             </>
           ) : (
             <button type="button" onClick={tap} className="relative" aria-label="Tap the egg">
-              <span key={taps} className={cn("relative block", taps > 0 ? "l-hit" : !reduced && "l-chest")} style={{ width: 150, height: 188 }}>
+              <span key={taps} className={cn("relative block", taps > 0 ? !reduced && "aq-cracked" : !reduced && "l-chest")} style={{ width: 150, height: 188 }}>
                 <Pic art={art} size={150} />
                 {taps > 0 && (
                   <svg viewBox="0 0 72 90" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-                    <path d="M36 14 L31 30 L40 38 L33 52" stroke="#3a2a10" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    {taps > 1 && <path d="M40 38 L50 44 L45 58 M31 30 L21 36 L24 46" stroke="#3a2a10" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />}
+                    {/* Light leaking out of the crack, under the crack itself. */}
+                    <path d={CRACKS[Math.min(taps, 2)]} stroke="#fff7c2" strokeWidth="6" strokeOpacity="0.85" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={CRACKS[Math.min(taps, 2)]} stroke="#2a2010" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
               </span>
             </button>
           )}
+          <span className="pointer-events-none absolute left-1/2 top-1/2 h-0 w-0" aria-hidden>
+            {chips.map((c) => (
+              <span
+                key={c.id}
+                className="aq-chip absolute block h-4 w-4"
+                style={{ left: c.x, top: c.y, background: `linear-gradient(135deg, ${tint.a}, ${tint.c})`, clipPath: CHIP_SHAPES[c.k], "--dx": `${c.dx}px`, "--dy": `${c.dy}px`, "--r": `${c.r}deg`, "--s": c.s } as CSSProperties}
+              />
+            ))}
+          </span>
         </div>
         {creature ? (
           <>

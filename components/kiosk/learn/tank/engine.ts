@@ -6,7 +6,7 @@ import { DECOR_ART, DECOR_FX, artImage, eggArt } from "./art";
 import { TAU, clamp, heartPath, sparklePath } from "./draw/core";
 import { creatureExtent, drawCreature, groundOf, restPose } from "./draw";
 import { lookOf, type Look } from "./species";
-import { SURFACE, drawAnemone, drawCaustics, drawPlant, drawRays, drawSurface, fogColor, makePlants, paintFar, paintGlass, paintSand, paintWater, sandY, surfaceAt, themeOf, type Plant, type Ripple, type Theme } from "./scene";
+import { SURFACE, drawAnemone, drawCaustics, drawPlant, drawRays, drawSurface, fogColor, makePlants, paintFar, paintGlass, paintReef, paintSand, paintWater, sandY, surfaceAt, themeOf, type Plant, type Ripple, type Theme } from "./scene";
 
 // The living aquarium. A simulation steps every creature, food pellet and bubble each frame and
 // paints the whole tank on one canvas:
@@ -48,7 +48,7 @@ export type TankEvents = {
   noFriends: () => void;
 };
 
-type Mode = "wander" | "rest" | "seek" | "curious" | "flee" | "beg" | "jump" | "sleep" | "dive" | "jet";
+type Mode = "wander" | "rest" | "seek" | "curious" | "flee" | "beg" | "jump" | "sleep" | "dive" | "jet" | "peck" | "sip";
 
 type Agent = {
   c: TankCreature;
@@ -107,11 +107,16 @@ type Agent = {
   lift: number;
   appetite: number;
   hop: number;
+  /** Nose-down tilt while pecking at the sand. */
+  pitchBias: number;
+  /** When a creature next does something on its own (a flap, a roll, a claw wave…). */
+  idleAt: number;
+  puffAt: number;
 };
 
 type Pellet = { id: number; kind: FoodKind; x: number; y: number; vy: number; float: number; rot: number; rest: boolean; life: number; gone: boolean };
 type Particle = {
-  kind: "bubble" | "heart" | "spark" | "ink" | "drop" | "ring" | "text" | "zzz" | "shock";
+  kind: "bubble" | "heart" | "spark" | "ink" | "drop" | "ring" | "text" | "zzz" | "shock" | "sand";
   x: number;
   y: number;
   vx: number;
@@ -335,6 +340,9 @@ export class TankEngine {
       lift: 0,
       appetite: c.appetite,
       hop: 0,
+      pitchBias: 0,
+      idleAt: this.t + 12 + Math.random() * 20,
+      puffAt: 0,
     };
     a.dir = a.facing < 0 ? -1 : 1;
     if (this.w) this.place(a, entering);
@@ -390,33 +398,60 @@ export class TankEngine {
     const ids = [...this.input.decor];
     if (this.input.trying && !ids.includes(this.input.trying)) ids.push(this.input.trying);
     const list = ids.map((id) => DECOR_BY_ID.get(id)).filter((d): d is Decor => !!d);
-    const at = (i: number, n: number, a: number, b: number) => a + ((b - a) * (i + 0.5)) / n;
+    /** Big and small mixed, then spread left to right with even gaps (they only overlap when
+     *  there are more than fit). */
+    const mixSizes = <T extends { h: number }>(items: T[]) => {
+      const sorted = [...items].sort((a, b) => b.h - a.h);
+      const out: T[] = [];
+      while (sorted.length) {
+        out.push(sorted.shift()!);
+        if (sorted.length) out.push(sorted.pop()!);
+      }
+      return out;
+    };
+    const spread = (widths: number[], x0: number, x1: number) => {
+      const total = widths.reduce((a, b) => a + b, 0);
+      const span = x1 - x0;
+      const fits = total < span;
+      const gap = fits ? (span - total) / (widths.length + 1) : (span - total) / Math.max(1, widths.length - 1);
+      let x = x0 + (fits ? gap : 0);
+      return widths.map((wd) => {
+        const c = x + wd / 2;
+        x += wd + gap;
+        return c;
+      });
+    };
     const out: Placed[] = [];
     const back = list.filter((d) => d.spot === "back" && d.id !== "palm");
     const floor = list.filter((d) => d.spot === "floor");
     const float = list.filter((d) => d.spot === "float");
     const SIZE: Record<string, number> = { castle: 0.3, ship: 0.27, volcano: 0.26, statue: 0.3, mermaid: 0.3, pineapple: 0.2, trident: 0.24, crystal: 0.15, chest: 0.13, anchor: 0.17, mushroom: 0.13, star: 0.07, rock: 0.11, shell: 0.11, balloon: 0.15, moon: 0.13, rainbow: 0.14, sparkles: 0.1, crown: 0.09 };
-    back.forEach((d, i) => {
+    const sized = (d: Decor, k = 1) => {
+      if (d.id === "grass" || d.id === "flower") return { d, w: h * 0.13 * k, h: h * 0.16 * k };
       const art = DECOR_ART[d.id];
-      const hh = h * (SIZE[d.id] ?? 0.26);
-      const x = w * at(i, back.length, 0.2, 0.84);
-      out.push({ id: d.id, d, x, y: sandY(x, w, h) + h * 0.03, w: (hh * art.w) / art.h, h: hh, layer: "back" });
+      const hh = h * (SIZE[d.id] ?? 0.12) * k;
+      return { d, w: (hh * art.w) / art.h, h: hh };
+    };
+    // Back pieces shrink a little when there are lots of them.
+    let backItems = back.map((d) => sized(d));
+    const backSpan = w * 0.72;
+    const backTotal = backItems.reduce((a, b) => a + b.w, 0);
+    if (backTotal > backSpan * 1.25) backItems = back.map((d) => sized(d, Math.max(0.72, (backSpan * 1.25) / backTotal)));
+    backItems = mixSizes(backItems);
+    spread(backItems.map((b) => b.w * 0.85), w * 0.2, w * 0.92).forEach((x, i) => {
+      const b = backItems[i];
+      out.push({ id: b.d.id, d: b.d, x, y: sandY(x, w, h) + h * 0.03, w: b.w, h: b.h, layer: "back" });
     });
-    floor.forEach((d, i) => {
-      const x = w * at(i, floor.length, 0.22, 0.9);
-      if (d.id === "grass" || d.id === "flower") {
-        out.push({ id: d.id, d, x, y: sandY(x, w, h) + 4, w: h * 0.12, h: h * 0.16, layer: "floor", proc: d.id });
-        return;
-      }
-      const art = DECOR_ART[d.id];
-      const hh = h * (SIZE[d.id] ?? 0.12);
-      out.push({ id: d.id, d, x, y: sandY(x, w, h) + h * 0.035, w: (hh * art.w) / art.h, h: hh, layer: "floor" });
+    const floorItems = mixSizes(floor.map((d) => sized(d)));
+    spread(floorItems.map((f) => f.w), w * 0.22, w * 0.86).forEach((x, i) => {
+      const f = floorItems[i];
+      const proc = f.d.id === "grass" || f.d.id === "flower" ? (f.d.id as "grass" | "flower") : undefined;
+      out.push({ id: f.d.id, d: f.d, x, y: sandY(x, w, h) + (proc ? 4 : h * 0.035), w: f.w, h: f.h, layer: "floor", proc });
     });
-    float.forEach((d, i) => {
-      const art = DECOR_ART[d.id];
-      const hh = h * (SIZE[d.id] ?? 0.11);
-      const x = w * at(i, float.length, 0.18, 0.88);
-      out.push({ id: d.id, d, x, y: h * (0.3 + (i % 2) * 0.1), w: (hh * art.w) / art.h, h: hh, layer: "float" });
+    const floatItems = float.map((d) => sized(d));
+    spread(floatItems.map((f) => f.w * 1.4), w * 0.12, w * 0.88).forEach((x, i) => {
+      const f = floatItems[i];
+      out.push({ id: f.d.id, d: f.d, x, y: h * (0.32 + (i % 2) * 0.1), w: f.w, h: f.h, layer: "float" });
     });
     if (list.some((d) => d.id === "palm")) {
       // The island floats at the surface: its sand at the waterline, the palm up in the air.
@@ -463,6 +498,11 @@ export class TankEngine {
     // A tap on the glass: a ripple, and curious creatures come to look.
     this.pointer = { down: true, x, y, until: this.t + 2.5 };
     this.parts.push({ kind: "ring", x, y, vx: 0, vy: 0, life: 0.7, max: 0.7, size: 10 });
+    for (const a of this.agents) {
+      if (a.look.habitat !== "swim" || Math.hypot(a.x - x, a.y - y) > Math.max(110, a.len * 0.9)) continue;
+      const ang = Math.atan2(a.y - y, a.x - x);
+      this.setMode(a, "flee", 0.45, a.x + Math.cos(ang) * a.len * 1.5, a.y + Math.sin(ang) * a.len);
+    }
     sfx("bubble");
   }
 
@@ -586,6 +626,40 @@ export class TankEngine {
     }
   }
 
+  private idle(a: Agent) {
+    const L = a.look;
+    const { w, h } = this;
+    switch (L.react) {
+      case "flap":
+        if (a.lift <= 0) {
+          a.react = 1;
+          this.ripples.push({ x: a.x, r: 5, life: 0.9, big: false });
+        }
+        break;
+      case "snap":
+        if (L.plan === "crab") a.clawT = 1.2;
+        break;
+      case "roll":
+        if (L.plan !== "otter") a.spinT = 0.9;
+        break;
+      case "zoom":
+        if (a.mode === "wander") this.setMode(a, "flee", 1.3, a.x < w / 2 ? w * 0.88 : w * 0.12, a.y);
+        break;
+      case "jump":
+        if (L.plan === "frog" && a.lift <= 0 && !a.air) {
+          a.mode = "jump";
+          a.vy = -h * 1.05;
+          a.vx = a.dir * a.len * 2.2;
+          a.air = true;
+          this.splash(a.x, 6);
+        }
+        break;
+      case "shimmer":
+        this.burst(a.x, a.y, "spark", 6, "#fff1a8");
+        break;
+    }
+  }
+
   private setMode(a: Agent, m: Mode, time: number, tx: number, ty: number) {
     a.mode = m;
     a.modeT = time;
@@ -671,6 +745,11 @@ export class TankEngine {
       a.modeT = 0;
     }
     const curious = (this.pointer.down || this.t < this.pointer.until) && !input.holding;
+    // Little things they do on their own, now and then.
+    if (this.t > a.idleAt && !input.night && a.spawn >= 1) {
+      a.idleAt = this.t + 18 + Math.random() * 24;
+      this.idle(a);
+    }
 
     if (L.habitat === "bottom") this.stepBottom(a, dt, curious, sleepy);
     else if (L.habitat === "surface" && a.lift <= 0 && a.mode !== "jump") this.stepSurface(a, dt, curious, sleepy);
@@ -772,6 +851,10 @@ export class TankEngine {
       case "dive":
         speed = cruise * 1.1;
         break;
+      case "peck":
+      case "sip":
+        speed = cruise * 0.8;
+        break;
     }
     if (a.puff > 0.3) speed *= 0.35;
     if (a.tuck > 0.3) speed *= 0.25;
@@ -783,6 +866,48 @@ export class TankEngine {
     const agility = L.len > 0.35 ? 1.1 : L.plan === "turtle" ? 1.4 : 2.4;
     a.vx += ((dx / dist) * want - a.vx) * Math.min(1, dt * agility);
     a.vy += ((dy / dist) * want - a.vy) * Math.min(1, dt * agility);
+    // School: drift toward the others' heading and middle.
+    if (a.mode === "wander" && this.schools(a)) {
+      let n = 0;
+      let mx = 0;
+      let my = 0;
+      let vx = 0;
+      let vy = 0;
+      for (const b of this.agents) {
+        if (b === a || !this.schools(b) || Math.hypot(b.x - a.x, b.y - a.y) > Math.max(150, a.len * 2.5)) continue;
+        n++;
+        mx += b.x;
+        my += b.y;
+        vx += b.vx;
+        vy += b.vy;
+      }
+      if (n) {
+        a.vx += ((vx / n - a.vx) * 0.7 + (mx / n - a.x) * 0.25) * dt;
+        a.vy += ((vy / n - a.vy) * 0.7 + (my / n - a.y) * 0.25) * dt;
+      }
+    }
+    // Pecking at the sand and kissing the surface, once there.
+    const near = dist < a.len * 0.45;
+    a.pitchBias += ((a.mode === "peck" && near ? 0.5 : 0) - a.pitchBias) * Math.min(1, dt * 4);
+    if (near && (a.mode === "peck" || a.mode === "sip")) {
+      if (this.t > a.puffAt) {
+        a.puffAt = this.t + (a.mode === "peck" ? 0.45 : 1.2);
+        a.mouthT = 0.3;
+        const [mx, my] = this.mouthOf(a);
+        if (a.mode === "peck") for (let i = 0; i < 4; i++) this.parts.push({ kind: "sand", x: mx + (Math.random() - 0.5) * 8, y: my + 4, vx: (Math.random() - 0.5) * 30, vy: -10 - Math.random() * 20, life: 0.9, max: 0.9, size: 1.5 + Math.random() * 2.5, color: this.theme.sand[0] });
+        else {
+          this.ripples.push({ x: mx, r: 3, life: 0.7, big: false });
+          this.burst(mx, my, "bubble", 1);
+        }
+      }
+      if (a.mode === "sip" && a.modeT > 1.4) a.modeT = 1.4;
+    }
+    // A lunge at food that's almost in reach, mouth already open.
+    if (a.mode === "seek" && dist < a.len * 0.7) {
+      a.mouth = Math.max(a.mouth, 0.65);
+      a.vx += (dx / dist) * cruise * 2 * dt;
+      a.vy += (dy / dist) * cruise * 2 * dt;
+    }
     // Personal space.
     for (const b of this.agents) {
       if (b === a || b.look.habitat !== "swim") continue;
@@ -825,6 +950,11 @@ export class TankEngine {
     this.animate(a, dt, Math.hypot(a.vx, a.vy), cruise);
   }
 
+  /** Small fish that swim in loose schools. */
+  private schools(a: Agent) {
+    return a.look.plan === "fish" && a.look.habitat === "swim" && a.look.len <= 0.21 && !a.look.jumper && a.look.fish?.wave === "lat";
+  }
+
   private chooseSwim(a: Agent, sleepy: boolean, input: TankInput) {
     const { w, h } = this;
     const L = a.look;
@@ -850,17 +980,54 @@ export class TankEngine {
       this.setMode(a, "beg", 3.5, w * (0.3 + Math.random() * 0.4), top + a.len * 0.8);
       return;
     }
+    // Whales come up to blow a spout now and then.
+    if (L.react === "spout" && this.t > a.jumpAt) {
+      a.jumpAt = this.t + 40 + Math.random() * 40;
+      this.setMode(a, "jump", 6, clamp(a.x + a.dir * w * 0.2, a.len, w - a.len), top + a.len * 0.1);
+      return;
+    }
+    const ext = creatureExtent(L, a.len)[1];
     const r = Math.random();
-    if (r < 0.18) {
+    if (r < 0.1 && (L.plan === "fish" || L.plan === "turtle") && L.len < 0.3) {
+      // Peck at the sand for a snack.
+      const px = clamp(a.x + (Math.random() - 0.5) * w * 0.35, a.len, w - a.len);
+      this.setMode(a, "peck", 7, px, sandY(px, w, h) - ext - 2);
+      return;
+    }
+    if (r < 0.16 && L.fish?.wave === "lat") {
+      // Come up and kiss the surface.
+      this.setMode(a, "sip", 5, clamp(a.x + (Math.random() - 0.5) * w * 0.3, a.len, w - a.len), top + ext + 4);
+      return;
+    }
+    if (r < 0.3) {
       a.mode = "rest";
       a.modeT = 1.5 + Math.random() * 2.5;
       a.tx = a.x;
-      a.ty = a.y;
+      // Turtles like a nap on the bottom.
+      a.ty = L.plan === "turtle" && Math.random() < 0.6 ? bot - ext - 2 : a.y;
+      if (a.ty !== a.y) a.modeT = 4 + Math.random() * 3;
       return;
     }
     a.mode = "wander";
     a.modeT = 3 + Math.random() * 5;
-    a.speedMul = r > 0.9 ? 2 : 0.8 + Math.random() * 0.5;
+    a.speedMul = r > 0.92 ? 2 : 0.8 + Math.random() * 0.5;
+    // Small fish travel together in a loose school.
+    if (this.schools(a) && Math.random() < 0.6) {
+      const mate = this.agents.find((b) => b !== a && this.schools(b) && b.mode === "wander");
+      if (mate) {
+        a.tx = clamp(mate.tx + (Math.random() - 0.5) * a.len * 2, a.len, w - a.len);
+        a.ty = clamp(mate.ty + (Math.random() - 0.5) * a.len, top + ext, bot - ext);
+        a.modeT = mate.modeT;
+        return;
+      }
+    }
+    // Big creatures patrol the length of the tank.
+    if (L.len >= 0.3) {
+      a.tx = a.x < w / 2 ? w * (0.75 + Math.random() * 0.15) : w * (0.1 + Math.random() * 0.15);
+      a.ty = clamp(a.y + (Math.random() - 0.5) * h * 0.18, top + (bot - top) * d0, top + (bot - top) * d1);
+      a.modeT = 6 + Math.random() * 4;
+      return;
+    }
     // Sunny visits the anemone now and then.
     const anemone = this.placed.find((p) => p.proc === "flower");
     if (a.c.id === "sunny" && anemone && Math.random() < 0.35) {
@@ -973,7 +1140,9 @@ export class TankEngine {
     if (L.plan === "otter") a.roll += (1 - a.roll) * Math.min(1, dt * 3);
     if (Math.abs(a.vx) > 6 && Math.random() < dt * 2) this.ripples.push({ x: a.x - a.dir * a.len * 0.3, r: 3, life: 0.8, big: false });
     this.animate(a, dt, Math.abs(a.vx), cruise);
-    a.pitch = 0;
+    // Rock with the waves under it.
+    const slope = (surfaceAt(a.x + 8, this.h, this.t) - surfaceAt(a.x - 8, this.h, this.t)) / 16;
+    a.pitch = Math.atan(slope) * 1.4 * (a.facing < 0 ? -1 : 1);
   }
 
   /** Facing, tilt, body bend and the swim cycle, from how the creature is moving. */
@@ -989,7 +1158,7 @@ export class TankEngine {
     a.facing += (a.dir - a.facing) * Math.min(1, dt * 4.5);
     if (!a.air) {
       const maxPitch = L.len > 0.35 ? 0.35 : L.plan === "fish" && L.fish?.wave === "vert" ? 0.75 : 0.55;
-      const target = clamp(Math.atan2(a.vy, Math.abs(a.vx) + cruise * 0.15), -maxPitch, maxPitch);
+      const target = clamp(Math.atan2(a.vy, Math.abs(a.vx) + cruise * 0.15) + a.pitchBias, -maxPitch - a.pitchBias, maxPitch + a.pitchBias);
       const prev = a.pitch;
       a.pitch += (target - a.pitch) * Math.min(1, dt * 3);
       a.bend += (clamp(((a.pitch - prev) / Math.max(dt, 0.001)) * -0.4, -0.6, 0.6) - a.bend) * Math.min(1, dt * 4);
@@ -1103,6 +1272,12 @@ export class TankEngine {
           p.y += p.vy * dt;
           if (p.y > top + 4 && p.vy > 0) p.life = 0;
           break;
+        case "sand":
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += 30 * dt;
+          p.vx *= 1 - dt * 2;
+          break;
         case "heart":
         case "spark":
         case "zzz":
@@ -1203,8 +1378,26 @@ export class TankEngine {
       const im = artImage(DECOR_ART[p.id], onLoad);
       if (im) b.drawImage(im, p.x - p.w / 2, p.y - p.h, p.w, p.h);
     };
-    for (const p of this.placed) if (p.layer === "back" || p.layer === "surface") img(p);
+    // Back pieces are farther away: a little of the water's color washes over them.
+    const backs = this.placed.filter((p) => p.layer === "back");
+    if (backs.length) {
+      const haze = make();
+      const hz = haze.getContext("2d")!;
+      hz.setTransform(dpr, 0, 0, dpr, 0, 0);
+      for (const p of backs) {
+        const im = artImage(DECOR_ART[p.id], onLoad);
+        if (im) hz.drawImage(im, p.x - p.w / 2, p.y - p.h, p.w, p.h);
+      }
+      hz.globalCompositeOperation = "source-atop";
+      hz.fillStyle = rgba(this.theme.water[2], 0.2);
+      hz.fillRect(0, 0, w, h);
+      b.setTransform(1, 0, 0, 1, 0, 0);
+      b.drawImage(haze, 0, 0);
+      b.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    for (const p of this.placed) if (p.layer === "surface") img(p);
     paintSand(b, w, h, this.theme);
+    paintReef(b, w, h, this.theme);
     for (const p of this.placed) if (p.layer === "floor" && !p.proc) img(p);
     this.bg = bg;
     const gl = this.glassLayer && this.glassLayer.width === Math.round(w * dpr) ? this.glassLayer : make();
@@ -1547,6 +1740,12 @@ export class TankEngine {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, TAU);
           ctx.stroke();
+          break;
+        case "sand":
+          ctx.fillStyle = rgba(p.color ?? "#e8cf98", 0.85 * k);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * (1.5 - k * 0.5), 0, TAU);
+          ctx.fill();
           break;
         case "zzz":
           ctx.font = `800 ${p.size}px ${this.font}`;

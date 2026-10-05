@@ -14,7 +14,7 @@ import { sfx, buzz } from "@/lib/learn/sfx";
 import { XP_PER_LEVEL } from "@/lib/learn/progress";
 import type { BoatLook } from "@/lib/learn/meta";
 import { Confetti } from "../Confetti";
-import { Chunk, Ring } from "./kit";
+import { Chunk, Ring, ShellIcon } from "./kit";
 import { SideBoat } from "./KidBoat";
 import { useLater } from "./acts/common";
 import { CreatureView } from "./tank/CreatureView";
@@ -233,7 +233,7 @@ export function LessonDone({
 
             {/* Shells */}
             <div className="flex items-center gap-3 rounded-full bg-white py-2 pl-3 pr-6 shadow-[0_5px_0_var(--l-line)]">
-              <span className="text-4xl">🐚</span>
+              <ShellIcon size={42} />
               <span className="font-display text-3xl font-extrabold tabular-nums text-[var(--l-ink)]">+{shellCount}</span>
               <span className="font-display text-lg font-bold text-[var(--l-ink-2)]">shells</span>
             </div>
@@ -334,12 +334,18 @@ export function LessonDone({
           <div className="l-pop-in flex flex-wrap items-center justify-center gap-3 rounded-[26px] bg-white px-6 py-4 shadow-[0_7px_0_var(--l-line)]">
             {info.setDone && (
               <span className="font-display text-2xl font-extrabold text-[var(--l-ink)]">
-                {info.setDone.emoji} {info.setDone.name} set complete! <span className="text-[var(--l-gold-edge)]">+60 🐚</span>
+                {info.setDone.emoji} {info.setDone.name} set complete!{" "}
+                <span className="whitespace-nowrap text-[var(--l-gold-edge)]">
+                  +60 <ShellIcon size={26} className="-mt-1 align-middle" />
+                </span>
               </span>
             )}
             {info.worldDone && (
               <span className="font-display text-2xl font-extrabold text-[var(--l-ink)]">
-                🏝️ {info.worldDone.title} complete! <span className="text-[var(--l-gold-edge)]">+100 🐚</span>
+                🏝️ {info.worldDone.title} complete!{" "}
+                <span className="whitespace-nowrap text-[var(--l-gold-edge)]">
+                  +100 <ShellIcon size={26} className="-mt-1 align-middle" />
+                </span>
                 {info.nextWorld && <span className="block text-lg text-[var(--l-ink-2)]">Next island: {info.nextWorld.emoji} {info.nextWorld.title}</span>}
               </span>
             )}

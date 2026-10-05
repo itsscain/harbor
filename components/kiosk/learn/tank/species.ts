@@ -19,7 +19,9 @@ export type Pattern =
   | { kind: "scales"; color: string }
   | { kind: "grooves"; color: string }
   | { kind: "tuxedo" }
-  | { kind: "stripes"; at: number[]; color: string };
+  | { kind: "stripes"; at: number[]; color: string }
+  /** A pale belly with a crisp, softly waving line where it meets the darker back. */
+  | { kind: "counter"; color: string; v: number; flank?: string };
 
 export type FishBody = {
   /** Dorsal and belly contours: [s, height above/below the spine in body lengths]. */
@@ -175,6 +177,7 @@ export const LOOKS: Record<string, Look> = {
       anal: { s0: 0.8, s1: 0.88, h: 0.035 },
       pect: { kind: "fin", s: 0.28, v: 0.07, len: 0.22, w: 0.07 },
       head: "shark",
+      pattern: [{ kind: "counter", color: "#f3f6f9", v: 0.12 }],
       eye: { s: 0.11, v: -0.035, r: 0.04 },
       gills: 4,
     },
@@ -198,6 +201,7 @@ export const LOOKS: Record<string, Look> = {
       dorsal: { kind: "curve", s0: 0.42, s1: 0.6, h: 0.13 },
       pect: { kind: "flipper", s: 0.28, v: 0.075, len: 0.15, w: 0.05 },
       head: "dolphin",
+      pattern: [{ kind: "counter", color: "#eef4f8", v: 0.18, flank: "#a9bfd0" }],
       eye: { s: 0.135, v: -0.014, r: 0.037, dark: true },
       blowhole: true,
     },
@@ -244,7 +248,7 @@ export const LOOKS: Record<string, Look> = {
       pect: { kind: "long", s: 0.24, v: 0.085, len: 0.34, w: 0.055 },
       head: "whale",
       eye: { s: 0.15, v: 0.03, r: 0.031, dark: true },
-      pattern: [{ kind: "grooves", color: "#c6d1dc" }],
+      pattern: [{ kind: "counter", color: "#eef3f7", v: 0.32 }, { kind: "grooves", color: "#c6d1dc" }],
       bumps: true,
       blowhole: true,
     },

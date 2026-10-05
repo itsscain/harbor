@@ -5,9 +5,17 @@ import { Volume2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { partsKey, say, speakingNow, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
+import { ICON_ART, artUrl } from "./tank/art";
 
 // Harbor Learn's building blocks: chunky press-down tiles, the replay-the-voice button, star
 // bursts, and a pointer-based drag that works with a five-year-old's finger.
+
+/** A shell — Harbor Learn's money — drawn the same everywhere shells are counted. */
+export function ShellIcon({ size = 22, className }: { size?: number; className?: string }) {
+  const h = (size * ICON_ART.shell.h) / ICON_ART.shell.w;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={artUrl(ICON_ART.shell)} alt="" draggable={false} width={size} height={h} className={cn("pointer-events-none inline-block max-w-none shrink-0 select-none", className)} style={{ width: size, height: h }} />;
+}
 
 export type Tone = "white" | "blue" | "green" | "coral" | "gold" | "violet" | "teal" | "orange" | "ghost";
 

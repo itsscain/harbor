@@ -357,28 +357,33 @@ function squid(ctx: Ctx, pose: Pose, L: number, C: Record<string, string>, lx: n
   const t = pose.t;
   const flap = Math.sin(pose.flap);
   // Arms and the two long tentacles, trailing behind.
-  for (let k = 0; k < 10; k++) {
+  // Draw the far arms first, then the tentacles, then the near arms.
+  const order = [1, 3, 6, 8, 4, 5, 0, 2, 7, 9];
+  for (const k of order) {
     const long = k === 4 || k === 5;
     const n = long ? 12 : 7;
-    const seg = (long ? 0.042 : 0.03 + (k % 3) * 0.004) * L;
-    let a = Math.PI + (k - 4.5) * (long ? 0.04 : 0.11);
+    const seg = (long ? 0.042 : 0.03 + (k % 3) * 0.005) * L;
+    let a = Math.PI + (k - 4.5) * (long ? 0.05 : 0.15) * (1 - pose.jet * 0.5);
     let x = -0.15 * L;
-    let y = (k - 4.5) * 0.009 * L;
+    let y = (k - 4.5) * 0.011 * L;
     const xs = [x];
     const ys = [y];
-    const ws = [0.026 * L];
+    const base = long ? 0.022 * L : 0.042 * L;
+    const ws = [base];
     for (let j = 1; j <= n; j++) {
       const u = j / n;
-      a += Math.sin(t * 2.4 + j * 0.6 + k) * 0.12 * u * (1 - pose.jet * 0.6);
+      a += Math.sin(t * 2.4 + j * 0.6 + k) * 0.13 * u * (1 - pose.jet * 0.6) + (long ? 0 : (k < 5 ? -1 : 1) * 0.03 * u);
       x += Math.cos(a) * seg;
       y += Math.sin(a) * seg;
       xs.push(x);
       ys.push(y);
-      ws.push(long && j > n - 3 ? 0.026 * L : 0.026 * L * (1 - u * 0.8));
+      // Tentacles end in a wide club; arms taper to a point.
+      ws.push(long ? (j > n - 3 ? 0.038 * L * (j === n ? 0.6 : 1) : base * (1 - u * 0.4)) : base * Math.pow(1 - u, 0.9) + 0.005 * L);
     }
     const p = new Path2D();
     ribbon(p, xs, ys, ws);
-    fillStroke(ctx, p, k % 2 ? C.dark : C.body, outline, lw * 0.7);
+    const far = k === 1 || k === 3 || k === 6 || k === 8;
+    fillStroke(ctx, p, far ? C.dark : long ? shade(C.body, -0.08) : C.body, outline, lw * 0.7);
   }
   // Fins at the tip.
   for (const sgn of [-1, 1]) {
@@ -565,24 +570,37 @@ function arthro(ctx: Ctx, shrimp: boolean, pose: Pose, L: number, C: Record<stri
   const t = pose.t;
   const ground = 0.12 * L;
   const flipCurl = pose.react;
-  // Antennae, sweeping back over the body.
-  for (const [k, len] of [[0, shrimp ? 0.9 : 1.05], [1, shrimp ? 0.8 : 0.95]] as const) {
+  // Antennae: the shrimp's loop up and trail back over its body; the lobster's long whips sweep
+  // forward and arc back, thick at the base.
+  for (const [k, len] of [[0, shrimp ? 0.9 : 1.1], [1, shrimp ? 0.8 : 1]] as const) {
     const pts: number[] = [];
     let x = 0.2 * L;
     let y = -0.05 * L;
-    // Forward, up in a loop, then trailing back over the body.
-    let a = -0.12 - k * 0.1;
+    let a = shrimp ? -0.12 - k * 0.1 : -0.35 - k * 0.12;
     pts.push(x, y);
     for (let j = 1; j <= 10; j++) {
-      a += (j < 5 ? -0.46 : -0.04) + Math.sin(t * 1.6 + j * 0.4 + k) * 0.04;
+      a += (shrimp ? (j < 5 ? -0.46 : -0.04) : j < 6 ? -0.24 : -0.05) + Math.sin(t * 1.6 + j * 0.4 + k) * 0.04;
       x += Math.cos(a) * L * 0.07 * len;
       y += Math.sin(a) * L * 0.07 * len;
       pts.push(x, y);
     }
+    const col = k ? shade(C.body, -0.2) : C.body;
+    if (!shrimp) {
+      // A thick base segment.
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = L * 0.026;
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.lineTo(pts[2], pts[3]);
+      ctx.stroke();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = L * 0.018;
+      ctx.stroke();
+    }
     ctx.beginPath();
     smoothOpen(ctx, pts);
-    ctx.strokeStyle = k ? shade(C.body, -0.2) : C.body;
-    ctx.lineWidth = Math.max(1, L * 0.008);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = Math.max(1, L * (shrimp ? 0.008 : 0.011));
     ctx.stroke();
   }
   // Walking legs (or, for the shrimp, little legs and fluttering swimmerets).
@@ -609,8 +627,8 @@ function arthro(ctx: Ctx, shrimp: boolean, pose: Pose, L: number, C: Record<stri
   const curl = (shrimp ? 0.17 : 0.06) + flipCurl * 0.42;
   const parts: { x: number; y: number; a: number; h: number; l: number }[] = [];
   for (let i = 0; i < segs; i++) {
-    const h = (shrimp ? 0.09 : 0.105) * L * (1 - i * 0.09);
-    const l = (shrimp ? 0.06 : 0.058) * L;
+    const h = (shrimp ? 0.09 : 0.13) * L * (1 - i * (shrimp ? 0.09 : 0.075));
+    const l = (shrimp ? 0.06 : 0.056) * L;
     ang += curl + Math.sin(t * 2 + i) * 0.015;
     parts.push({ x: ax, y: ay, a: ang, h, l });
     ax += Math.cos(ang) * l;
@@ -672,7 +690,7 @@ function arthro(ctx: Ctx, shrimp: boolean, pose: Pose, L: number, C: Record<stri
   }
   // Carapace with its pointed rostrum.
   const cp = new Path2D();
-  const ch = (shrimp ? 0.1 : 0.125) * L;
+  const ch = (shrimp ? 0.1 : 0.155) * L;
   cp.moveTo(0.27 * L, -0.045 * L);
   cp.lineTo(0.17 * L, -0.03 * L);
   cp.quadraticCurveTo(0.08 * L, -ch * 0.85, -0.12 * L, -ch * 0.62);
@@ -687,6 +705,20 @@ function arthro(ctx: Ctx, shrimp: boolean, pose: Pose, L: number, C: Record<stri
   if (shrimp) {
     ctx.fillStyle = rgba(C.stripe ?? "#ffffff", 0.75);
     ctx.fillRect(-0.02 * L, -ch, 0.03 * L, ch * 2);
+  } else {
+    // A lobster's knobbly armor and the groove across its shell.
+    ctx.fillStyle = rgba(C.light, 0.55);
+    for (let k = 0; k < 9; k++) {
+      ctx.beginPath();
+      ctx.arc((-0.09 + (k % 5) * 0.05) * L, (-ch * 0.45 + Math.floor(k / 5) * ch * 0.35) + (k % 2) * 0.01 * L, 0.009 * L, 0, TAU);
+      ctx.fill();
+    }
+    ctx.strokeStyle = rgba(C.dark, 0.6);
+    ctx.lineWidth = lw * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(0.02 * L, -ch * 0.75);
+    ctx.quadraticCurveTo(-0.01 * L, 0, 0.03 * L, ch * 0.45);
+    ctx.stroke();
   }
   ctx.restore();
   ctx.lineWidth = lw;
@@ -852,47 +884,77 @@ function bird(ctx: Ctx, kind: string, pose: Pose, L: number, C: Record<string, s
   ctx.rotate(pose.dabble * 1.15);
   const swan = kind === "swan";
   const flam = kind === "flamingo";
-  // Underwater: feet paddling.
+  // Underwater: webbed feet paddling (a power stroke back, a folded recovery forward).
   ctx.save();
   ctx.beginPath();
   ctx.rect(-L, 0, L * 2, L);
   ctx.clip();
   for (const side of [0, 1]) {
     const ph = pose.phase + side * Math.PI;
-    const hx = (side ? -0.06 : 0.02) * L;
-    const fx = hx + Math.sin(ph) * 0.07 * L;
-    const fy = 0.17 * L + Math.cos(ph) * 0.02 * L;
-    ctx.strokeStyle = rgba(C.feet, 0.75);
-    ctx.lineWidth = Math.max(1.5, L * 0.018);
+    const kick = Math.sin(ph);
+    const hx = (side ? -0.09 : 0.03) * L;
+    const fx = hx - kick * 0.075 * L;
+    const fy = 0.165 * L + Math.cos(ph) * 0.018 * L;
+    const col = side ? shade(C.feet, -0.15) : C.feet;
+    ctx.strokeStyle = rgba(col, 0.85);
+    ctx.lineWidth = Math.max(1.5, L * 0.02);
     ctx.beginPath();
-    ctx.moveTo(hx, 0.08 * L);
-    ctx.lineTo(fx, fy);
+    ctx.moveTo(hx, 0.07 * L);
+    ctx.quadraticCurveTo(hx + 0.01 * L, (0.07 * L + fy) / 2, fx, fy);
     ctx.stroke();
     ctx.save();
     ctx.translate(fx, fy);
-    ctx.rotate(Math.sin(ph) * 0.5);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0.06 * L, 0.025 * L);
-    ctx.lineTo(0.05 * L, 0.05 * L);
-    ctx.lineTo(-0.01 * L, 0.02 * L);
-    ctx.closePath();
-    ctx.fillStyle = rgba(C.feet, 0.75);
-    ctx.fill();
+    ctx.rotate(0.15 + kick * 0.45);
+    const spread = 0.55 + 0.45 * Math.max(0, kick);
+    const foot = new Path2D();
+    foot.moveTo(0.008 * L, 0);
+    foot.lineTo(-0.075 * L, -0.032 * L * spread);
+    foot.quadraticCurveTo(-0.062 * L, -0.012 * L * spread, -0.085 * L, 0);
+    foot.quadraticCurveTo(-0.062 * L, 0.012 * L * spread, -0.075 * L, 0.032 * L * spread);
+    foot.closePath();
+    ctx.fillStyle = rgba(col, 0.9);
+    ctx.fill(foot);
+    ctx.lineWidth = lw * 0.6;
+    ctx.strokeStyle = rgba(shade(col, -0.45), 0.8);
+    ctx.stroke(foot);
     ctx.restore();
   }
   ctx.restore();
-  // Body.
+  // Body: a compact duck with an upturned tail, a long smooth swan, a fluffy flamingo.
   const body = new Path2D();
-  const bl = swan ? 0.38 : flam ? 0.3 : 0.32;
-  body.moveTo((-bl - 0.02) * L, (swan ? -0.2 : flam ? -0.16 : -0.24) * L);
-  body.quadraticCurveTo(-0.15 * L, -0.24 * L, 0.12 * L, -0.2 * L);
-  body.quadraticCurveTo(0.32 * L, -0.16 * L, 0.3 * L, 0.0);
-  body.quadraticCurveTo(0.24 * L, 0.11 * L, 0.0, 0.11 * L);
-  body.quadraticCurveTo(-0.26 * L, 0.11 * L, -bl * L, -0.02 * L);
+  if (swan) {
+    body.moveTo(0.16 * L, -0.13 * L);
+    body.bezierCurveTo(0.02 * L, -0.2 * L, -0.2 * L, -0.25 * L, -0.37 * L, -0.31 * L);
+    body.quadraticCurveTo(-0.45 * L, -0.31 * L, -0.43 * L, -0.2 * L);
+    body.quadraticCurveTo(-0.41 * L, -0.04 * L, -0.28 * L, 0.06 * L);
+    body.quadraticCurveTo(-0.05 * L, 0.12 * L, 0.2 * L, 0.08 * L);
+    body.quadraticCurveTo(0.34 * L, 0.02 * L, 0.3 * L, -0.06 * L);
+    body.quadraticCurveTo(0.26 * L, -0.12 * L, 0.16 * L, -0.13 * L);
+  } else if (flam) {
+    body.moveTo(0.17 * L, -0.12 * L);
+    body.bezierCurveTo(0.06 * L, -0.25 * L, -0.2 * L, -0.27 * L, -0.33 * L, -0.19 * L);
+    body.quadraticCurveTo(-0.44 * L, -0.13 * L, -0.4 * L, -0.03 * L);
+    body.quadraticCurveTo(-0.31 * L, 0.08 * L, -0.05 * L, 0.1 * L);
+    body.quadraticCurveTo(0.23 * L, 0.1 * L, 0.29 * L, -0.02 * L);
+    body.quadraticCurveTo(0.29 * L, -0.09 * L, 0.17 * L, -0.12 * L);
+  } else {
+    body.moveTo(0.14 * L, -0.2 * L);
+    body.quadraticCurveTo(-0.05 * L, -0.24 * L, -0.25 * L, -0.2 * L);
+    body.quadraticCurveTo(-0.33 * L, -0.21 * L, -0.38 * L, -0.29 * L);
+    body.quadraticCurveTo(-0.37 * L, -0.12 * L, -0.3 * L, -0.02 * L);
+    body.quadraticCurveTo(-0.22 * L, 0.1 * L, 0.0, 0.11 * L);
+    body.quadraticCurveTo(0.26 * L, 0.11 * L, 0.31 * L, -0.02 * L);
+    body.quadraticCurveTo(0.33 * L, -0.15 * L, 0.14 * L, -0.2 * L);
+  }
   body.closePath();
-  ctx.fillStyle = vgrad(ctx, -0.24 * L, 0.12 * L, [[0, C.light], [0.55, C.body], [1, C.dark]]);
+  ctx.fillStyle = vgrad(ctx, -0.3 * L, 0.12 * L, [[0, C.light], [0.5, C.body], [1, C.dark]]);
   ctx.fill(body);
+  const flapUp = pose.react > 0 ? Math.abs(Math.sin(t * 16)) * pose.react : 0;
+  ctx.save();
+  ctx.clip(body);
+  gloss(ctx, 0.08 * L, -0.18 * L, 0.25 * L, 0.3);
+  if (flapUp < 0.05) foldedWing(ctx, L, C, lw, swan, flam);
+  ctx.restore();
   ctx.lineWidth = lw;
   ctx.strokeStyle = outline;
   ctx.stroke(body);
@@ -985,44 +1047,80 @@ function bird(ctx: Ctx, kind: string, pose: Pose, L: number, C: Record<string, s
     ctx.ellipse(hx + hr * 0.15, hy + hr * 0.35, hr * 0.22, hr * 0.13, 0, 0, TAU);
     ctx.fill();
   }
-  // Wing (folded; flaps when excited).
-  const flapUp = pose.react > 0 ? Math.abs(Math.sin(t * 16)) * pose.react : 0;
-  ctx.save();
-  ctx.translate(0.1 * L, -0.15 * L);
-  ctx.rotate(-flapUp * 1.1 - (swan ? 0.12 : 0));
-  const wing = new Path2D();
-  wing.moveTo(0, 0);
-  wing.quadraticCurveTo(-0.08 * L, -0.08 * L, -0.38 * L, -0.06 * L);
-  wing.quadraticCurveTo(-0.25 * L, 0.05 * L, -0.12 * L, 0.11 * L);
-  wing.quadraticCurveTo(-0.02 * L, 0.1 * L, 0, 0);
-  wing.closePath();
-  ctx.fillStyle = vgrad(ctx, -0.08 * L, 0.11 * L, [[0, C.body], [1, shade(C.dark, flam ? 0 : -0.05)]]);
-  ctx.fill(wing);
-  ctx.save();
-  ctx.clip(wing);
-  ctx.strokeStyle = rgba(shade(C.dark, -0.3), 0.45);
-  ctx.lineWidth = Math.max(0.8, lw * 0.6);
-  for (let k = 0; k < 3; k++) {
-    ctx.beginPath();
-    ctx.arc((-0.12 - k * 0.08) * L, 0.07 * L, 0.06 * L, Math.PI * 1.1, Math.PI * 1.9);
-    ctx.stroke();
+  // Flapping: the wing lifts out of the body and beats.
+  if (flapUp >= 0.05) {
+    ctx.save();
+    ctx.translate(0.08 * L, -0.15 * L);
+    ctx.rotate(-0.3 - flapUp * 1.2);
+    const wing = new Path2D();
+    wing.moveTo(0, 0);
+    wing.quadraticCurveTo(-0.1 * L, -0.12 * L, -0.4 * L, -0.08 * L);
+    for (let k = 0; k < 4; k++) wing.quadraticCurveTo((-0.37 + k * 0.07) * L, (0.0 + k * 0.025) * L, (-0.33 + k * 0.08) * L, (0.02 + k * 0.03) * L);
+    wing.quadraticCurveTo(-0.02 * L, 0.08 * L, 0, 0);
+    wing.closePath();
+    ctx.fillStyle = vgrad(ctx, -0.1 * L, 0.1 * L, [[0, C.light], [1, C.dark]]);
+    ctx.fill(wing);
+    if (flam) {
+      ctx.save();
+      ctx.clip(wing);
+      ctx.fillStyle = "#2b2b2b";
+      ctx.fillRect(-0.45 * L, -0.15 * L, 0.13 * L, 0.3 * L);
+      ctx.restore();
+    }
+    ctx.lineWidth = lw;
+    ctx.strokeStyle = outline;
+    ctx.stroke(wing);
+    ctx.restore();
   }
-  if (flam) {
-    ctx.fillStyle = "#2b2b2b";
-    ctx.beginPath();
-    ctx.moveTo(-0.38 * L, -0.06 * L);
-    ctx.lineTo(-0.28 * L, -0.02 * L);
-    ctx.lineTo(-0.3 * L, 0.03 * L);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-  ctx.lineWidth = lw;
-  ctx.strokeStyle = outline;
-  ctx.stroke(wing);
-  ctx.restore();
+  // Where the bird meets the water: a soft ring of ripples.
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = Math.max(1, L * 0.012);
+  ctx.beginPath();
+  ctx.ellipse(-0.04 * L, 0.004 * L, 0.37 * L, 0.035 * L, 0, 0.05 * Math.PI, 0.95 * Math.PI);
+  ctx.stroke();
   if (pose.royal) drawCrown(ctx, hx, hy - hr - 0.02 * L, Math.max(10, hr * 1.1), t);
   ctx.restore();
+}
+
+/** A folded wing resting on a bird's side: layered coverts and the long flight feathers. */
+function foldedWing(ctx: Ctx, L: number, C: Record<string, string>, lw: number, swan: boolean, flam: boolean) {
+  const tipX = (swan ? -0.42 : flam ? -0.38 : -0.34) * L;
+  const tipY = (swan ? -0.28 : flam ? -0.16 : -0.25) * L;
+  const wing = new Path2D();
+  wing.moveTo(0.13 * L, -0.12 * L);
+  wing.quadraticCurveTo(-0.05 * L, -0.2 * L, tipX, tipY);
+  wing.quadraticCurveTo(tipX * 0.6, -0.02 * L, -0.04 * L, 0.0);
+  wing.quadraticCurveTo(0.08 * L, -0.02 * L, 0.13 * L, -0.12 * L);
+  wing.closePath();
+  ctx.fillStyle = swan ? vgrad(ctx, -0.2 * L, 0.0, [[0, "#ffffff"], [1, "#eaf0f6"]]) : vgrad(ctx, -0.2 * L, 0.0, [[0, shade(C.body, -0.04)], [1, shade(C.dark, -0.06)]]);
+  ctx.fill(wing);
+  // Flight feathers along the back edge.
+  ctx.save();
+  ctx.clip(wing);
+  for (let k = 0; k < 5; k++) {
+    const u = k / 5;
+    const fx = 0.02 * L + (tipX - 0.02 * L) * (0.45 + u * 0.55);
+    const fy = -0.04 * L + (tipY + 0.04 * L) * (0.45 + u * 0.55);
+    ctx.beginPath();
+    ctx.ellipse(fx, fy + 0.035 * L, 0.11 * L, 0.03 * L, Math.atan2(tipY, tipX) - Math.PI, 0, TAU);
+    ctx.fillStyle = flam && k > 2 ? "#2b2b2b" : swan ? shade("#f4f7fb", -0.02 * k) : shade(C.dark, -0.04 * k);
+    ctx.fill();
+    ctx.strokeStyle = rgba(shade(C.dark, -0.35), swan ? 0.22 : 0.4);
+    ctx.lineWidth = Math.max(0.7, lw * 0.5);
+    ctx.stroke();
+  }
+  // Rows of small covert feathers near the shoulder.
+  ctx.strokeStyle = rgba(shade(C.dark, -0.3), 0.35);
+  for (let r = 0; r < 2; r++)
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath();
+      ctx.arc((0.05 - k * 0.07 - r * 0.035) * L, (-0.1 + r * 0.04) * L, 0.035 * L, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.stroke();
+    }
+  ctx.restore();
+  ctx.lineWidth = lw * 0.8;
+  ctx.strokeStyle = rgba(shade(C.dark, -0.45), swan ? 0.35 : 0.7);
+  ctx.stroke(wing);
 }
 
 // ── Frog ──────────────────────────────────────────────────────────────────────────────────────
@@ -1033,32 +1131,42 @@ function frog(ctx: Ctx, pose: Pose, L: number, C: Record<string, string>, lx: nu
   // The kick: 0 = legs folded, 1 = legs stretched out behind.
   const e = Math.pow(Math.max(0, Math.sin(pose.flap)), 0.6);
   const leg = (far: boolean) => {
+    // Folded (crouched under the body) ↔ stretched straight back, with a slight bend kept in.
     const hip = [-0.2 * L, 0.03 * L];
-    const knee = [lerp(-0.04, -0.4, e) * L, lerp(0.13, 0.06, e) * L];
-    const ankle = [lerp(-0.26, -0.6, e) * L, lerp(0.13, 0.05, e) * L];
-    const toe = [lerp(-0.08, -0.78, e) * L, lerp(0.16, 0.04, e) * L];
+    const knee = [lerp(-0.03, -0.38, e) * L, lerp(0.12, 0.09, e) * L];
+    const ankle = [lerp(-0.27, -0.58, e) * L, lerp(0.12, 0.05, e) * L];
+    // Toes point forward when folded and sweep down and back through the kick.
+    const toeDir = lerp(0.15, Math.PI + 0.05, e);
     const col = far ? shade(C.body, -0.22) : C.body;
-    ctx.strokeStyle = outline;
-    ctx.lineWidth = 0.075 * L + lw;
-    ctx.beginPath();
-    ctx.moveTo(hip[0], hip[1]);
-    ctx.lineTo(knee[0], knee[1]);
-    ctx.lineTo(ankle[0], ankle[1]);
-    ctx.stroke();
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 0.075 * L;
-    ctx.stroke();
+    const dark = far ? shade(C.dark, -0.15) : C.dark;
+    // Thigh: a strong, rounded muscle.
+    const thigh = new Path2D();
+    ribbon(thigh, [hip[0], (hip[0] + knee[0]) / 2, knee[0]], [hip[1], (hip[1] + knee[1]) / 2 - 0.012 * L, knee[1]], [0.12 * L, 0.11 * L, 0.05 * L]);
+    fillStroke(ctx, thigh, vgrad(ctx, hip[1] - 0.06 * L, knee[1] + 0.05 * L, [[0, col], [1, dark]]), outline, lw);
+    // Shin, tapering to the ankle.
+    const shin = new Path2D();
+    ribbon(shin, [knee[0], ankle[0]], [knee[1], ankle[1]], [0.055 * L, 0.03 * L]);
+    fillStroke(ctx, shin, col, outline, lw);
+    // A long webbed foot with four toes.
     ctx.save();
     ctx.translate(ankle[0], ankle[1]);
-    ctx.rotate(Math.atan2(toe[1] - ankle[1], toe[0] - ankle[0]));
-    const foot = new Path2D();
-    const fl = Math.hypot(toe[0] - ankle[0], toe[1] - ankle[1]) * 0.9 + 0.05 * L;
-    foot.moveTo(0, 0);
-    foot.lineTo(fl, -0.05 * L);
-    foot.lineTo(fl * 1.05, 0.0);
-    foot.lineTo(fl, 0.05 * L);
-    foot.closePath();
-    fillStroke(ctx, foot, col, outline, lw * 0.8);
+    ctx.rotate(toeDir);
+    const fl = 0.16 * L;
+    const web = new Path2D();
+    web.moveTo(0, -0.012 * L);
+    const tips: [number, number][] = [[fl, -0.05 * L], [fl * 1.08, -0.017 * L], [fl * 1.08, 0.017 * L], [fl, 0.05 * L]];
+    for (const [x, y] of tips) web.quadraticCurveTo(x * 0.75, y * 0.55, x, y);
+    web.lineTo(0, 0.012 * L);
+    web.closePath();
+    fillStroke(ctx, web, rgba(col, 0.92), outline, lw * 0.8);
+    ctx.fillStyle = col;
+    for (const [x, y] of tips) {
+      ctx.beginPath();
+      ctx.arc(x, y, 0.011 * L, 0, TAU);
+      ctx.fill();
+      ctx.lineWidth = lw * 0.6;
+      ctx.stroke();
+    }
     ctx.restore();
   };
   leg(true);

@@ -20,16 +20,18 @@ export type Theme = {
   glow: boolean;
   /** The kind of far-off scenery. */
   kind: "reef" | "kelp" | "ice" | "deep" | "lagoon" | "night" | "lava";
+  /** Colors for the tank's own little reef (corals on the sand). */
+  coral: [string, string, string];
 };
 
 export const THEMES: Record<string, Theme> = {
-  reef: { id: "reef", water: ["#9beaff", "#3cc4ee", "#1691cf", "#0b5fa5"], sky: ["#f1fbff", "#c4ecff"], far: "#1a7fc0", sand: ["#f6dfab", "#e2bd76"], light: 1, glow: false, kind: "reef" },
-  kelp: { id: "kelp", water: ["#c9f8dd", "#5fd68f", "#0d9a6c", "#06523f"], sky: ["#f2fff6", "#d4f7e2"], far: "#0b7a57", sand: ["#d9c48f", "#a8894e"], light: 0.85, glow: false, kind: "kelp" },
-  arctic: { id: "arctic", water: ["#ffffff", "#c6ebfc", "#6cc3ee", "#0a69a8"], sky: ["#ffffff", "#e9f7ff"], far: "#d9f1ff", sand: ["#f8fafc", "#c9d4e0"], light: 1, glow: false, kind: "ice" },
-  deep: { id: "deep", water: ["#4f86da", "#1f3b8c", "#0b1d4f", "#020617"], sky: ["#33508f", "#1b2c5e"], far: "#08143a", sand: ["#3a4a62", "#141d2e"], light: 0.35, glow: true, kind: "deep" },
-  lagoon: { id: "lagoon", water: ["#fff3f6", "#fbcfe8", "#c4b5fd", "#38bdf8"], sky: ["#fff8fb", "#ffe6f2"], far: "#a58ff3", sand: ["#fde68a", "#f2b84a"], light: 1, glow: false, kind: "lagoon" },
-  night: { id: "night", water: ["#5553bf", "#312e81", "#1e1b4b", "#0c0a24"], sky: ["#07061a", "#1c1a4a"], far: "#141238", sand: ["#4c2a8f", "#1e1b4b"], light: 0.3, glow: true, kind: "night" },
-  lava: { id: "lava", water: ["#ffeedd", "#fdba74", "#ea580c", "#7c2d12"], sky: ["#ffe2c4", "#ffbf8a"], far: "#4a1a08", sand: ["#4a4440", "#1c1917"], light: 0.7, glow: false, kind: "lava" },
+  reef: { id: "reef", water: ["#9beaff", "#3cc4ee", "#1691cf", "#0b5fa5"], sky: ["#f1fbff", "#c4ecff"], far: "#1a7fc0", sand: ["#f6dfab", "#e2bd76"], light: 1, glow: false, kind: "reef", coral: ["#ff7aa8", "#ffa94d", "#b48cff"] },
+  kelp: { id: "kelp", water: ["#c9f8dd", "#5fd68f", "#0d9a6c", "#06523f"], sky: ["#f2fff6", "#d4f7e2"], far: "#0b7a57", sand: ["#d9c48f", "#a8894e"], light: 0.85, glow: false, kind: "kelp", coral: ["#9ad94a", "#e8c84a", "#5fbf7a"] },
+  arctic: { id: "arctic", water: ["#ffffff", "#c6ebfc", "#6cc3ee", "#0a69a8"], sky: ["#ffffff", "#e9f7ff"], far: "#d9f1ff", sand: ["#f8fafc", "#c9d4e0"], light: 1, glow: false, kind: "ice", coral: ["#e8f6ff", "#9fd3f5", "#c9b8ff"] },
+  deep: { id: "deep", water: ["#4f86da", "#1f3b8c", "#0b1d4f", "#020617"], sky: ["#33508f", "#1b2c5e"], far: "#08143a", sand: ["#3a4a62", "#141d2e"], light: 0.35, glow: true, kind: "deep", coral: ["#2fb3a5", "#5b6bd6", "#ff6f91"] },
+  lagoon: { id: "lagoon", water: ["#fff3f6", "#fbcfe8", "#c4b5fd", "#38bdf8"], sky: ["#fff8fb", "#ffe6f2"], far: "#a58ff3", sand: ["#fde68a", "#f2b84a"], light: 1, glow: false, kind: "lagoon", coral: ["#ff9fd0", "#ffd36b", "#9fe3ff"] },
+  night: { id: "night", water: ["#5553bf", "#312e81", "#1e1b4b", "#0c0a24"], sky: ["#07061a", "#1c1a4a"], far: "#141238", sand: ["#4c2a8f", "#1e1b4b"], light: 0.3, glow: true, kind: "night", coral: ["#b07cff", "#ff7ac2", "#5ce1ff"] },
+  lava: { id: "lava", water: ["#ffeedd", "#fdba74", "#ea580c", "#7c2d12"], sky: ["#ffe2c4", "#ffbf8a"], far: "#4a1a08", sand: ["#4a4440", "#1c1917"], light: 0.7, glow: false, kind: "lava", coral: ["#ff7a3d", "#ffb84d", "#c2410c"] },
 };
 export const themeOf = (id: string | null | undefined) => THEMES[id ?? "reef"] ?? THEMES.reef;
 /** The color creatures take on far from the glass. */
@@ -256,6 +258,209 @@ export function paintSand(ctx: Ctx, w: number, h: number, th: Theme) {
   ctx.strokeStyle = rgba(shade(th.sand[0], 0.5), 0.7);
   ctx.lineWidth = 2;
   ctx.stroke();
+}
+
+/** The tank's own little reef on the sand — corals, a sea fan, rocks, shells and the airstone —
+ *  so even a brand-new tank looks like a place. Kept clear of the nest at the left. */
+export function paintReef(ctx: Ctx, w: number, h: number, th: Theme) {
+  const [c1, c2, c3] = th.coral;
+  const r = (i: number) => hash01(th.id + "reef", i);
+  const base = (x: number) => sandY(x, w, h) + h * 0.012;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // Branching corals.
+  for (const [k, fx, col, size] of [[0, 0.31, c1, 1], [1, 0.86, c3, 0.85], [2, 0.57, c2, 0.6]] as const) {
+    const x = w * (fx + (r(k) - 0.5) * 0.03);
+    const y = base(x);
+    const tips: [number, number][] = [];
+    const grow = (bx: number, by: number, a: number, len: number, depth: number, width: number, seed: number) => {
+      const ex = bx + Math.cos(a) * len;
+      const ey = by + Math.sin(a) * len;
+      ctx.strokeStyle = shade(col, -0.25);
+      ctx.lineWidth = width + 2;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = width;
+      ctx.stroke();
+      if (depth <= 0) return void tips.push([ex, ey]);
+      for (const s of [-1, 1]) grow(ex, ey, a + s * (0.32 + hash01(th.id, seed * 3 + s) * 0.35), len * 0.72, depth - 1, width * 0.72, seed * 2 + (s > 0 ? 1 : 0));
+    };
+    const L0 = h * 0.06 * size;
+    for (const a0 of [-Math.PI / 2 - 0.35, -Math.PI / 2 + 0.05, -Math.PI / 2 + 0.4]) grow(x, y, a0, L0, 3, h * 0.016 * size, k * 7 + 1);
+    ctx.fillStyle = shade(col, 0.45);
+    for (const [tx, ty] of tips) {
+      ctx.beginPath();
+      ctx.arc(tx, ty, h * 0.006 * size, 0, TAU);
+      ctx.fill();
+    }
+  }
+  // A brain coral dome.
+  {
+    const x = w * 0.68;
+    const y = base(x);
+    const rx = h * 0.07;
+    const ry = h * 0.05;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, Math.PI, TAU);
+    ctx.closePath();
+    const g = ctx.createRadialGradient(x - rx * 0.3, y - ry * 0.8, 0, x, y, rx);
+    g.addColorStop(0, shade(c2, 0.35));
+    g.addColorStop(1, shade(c2, -0.15));
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = shade(c2, -0.4);
+    ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = rgba(shade(c2, -0.35), 0.7);
+    ctx.lineWidth = 1.6;
+    for (let k = 0; k < 7; k++) {
+      ctx.beginPath();
+      for (let xx = -rx; xx <= rx; xx += 4) {
+        const yy = y - ry + k * ry * 0.17 + Math.sin(xx * 0.18 + k) * ry * 0.06;
+        if (xx === -rx) ctx.moveTo(x + xx, yy);
+        else ctx.lineTo(x + xx, yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // A sea fan.
+  {
+    const x = w * 0.46;
+    const y = base(x);
+    const R = h * 0.09;
+    ctx.strokeStyle = rgba(c1, 0.85);
+    ctx.lineWidth = 1.6;
+    for (let k = 0; k <= 9; k++) {
+      const a = Math.PI + (k / 9) * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + Math.cos(a) * R * 0.5, y + Math.sin(a) * R * 0.55, x + Math.cos(a) * R, y + Math.sin(a) * R * 0.9);
+      ctx.stroke();
+    }
+    for (let k = 1; k <= 4; k++) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, R * (k / 4.2), R * 0.9 * (k / 4.2), 0, Math.PI, TAU);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = shade(c1, -0.3);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y - R * 0.25);
+    ctx.stroke();
+  }
+  // Rocks, shells and a starfish.
+  const rock = (x: number, s: number) => {
+    const y = base(x) + s * 0.3;
+    const g = ctx.createLinearGradient(0, y - s, 0, y);
+    g.addColorStop(0, mix("#b9c6d6", th.water[1], 0.15));
+    g.addColorStop(1, mix("#5f6d84", th.water[3], 0.2));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - s * 1.3, y);
+    ctx.quadraticCurveTo(x - s * 1.2, y - s * 0.9, x - s * 0.2, y - s);
+    ctx.quadraticCurveTo(x + s * 1.1, y - s * 1.05, x + s * 1.35, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(30,40,60,0.45)";
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(x - s * 0.2, y - s * 0.72, s * 0.45, s * 0.14, -0.1, 0, TAU);
+    ctx.fill();
+  };
+  rock(w * 0.235, h * 0.022);
+  rock(w * 0.745, h * 0.03);
+  rock(w * 0.965, h * 0.02);
+  const shell = (x: number, s: number, col: string) => {
+    const y = base(x) + h * 0.045;
+    ctx.fillStyle = col;
+    ctx.strokeStyle = shade(col, -0.35);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - s, y);
+    ctx.quadraticCurveTo(x - s * 1.05, y - s * 1.2, x, y - s * 1.25);
+    ctx.quadraticCurveTo(x + s * 1.05, y - s * 1.2, x + s, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    for (const dx of [-0.55, -0.2, 0.2, 0.55]) {
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + dx * s * 1.4, y - s * 1.05);
+    }
+    ctx.stroke();
+  };
+  shell(w * 0.4, h * 0.012, "#ffe3d0");
+  shell(w * 0.8, h * 0.01, "#ffd6e6");
+  {
+    const x = w * 0.58;
+    const y = base(x) + h * 0.05;
+    const s = h * 0.016;
+    ctx.fillStyle = "#ff9a5a";
+    ctx.strokeStyle = "#c2551f";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 2 + (k * Math.PI) / 5;
+      const rr = k % 2 ? s * 0.45 : s;
+      ctx.lineTo(x + Math.cos(a) * rr * 1.2, y + Math.sin(a) * rr * 0.7);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  // The airstone the bubbles rise from.
+  {
+    const x = w * 0.9;
+    const y = base(x) - h * 0.004;
+    const s = h * 0.018;
+    ctx.fillStyle = "#8b96a8";
+    ctx.beginPath();
+    ctx.ellipse(x, y, s * 1.3, s * 0.75, 0, Math.PI, TAU);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(30,40,60,0.5)";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(30,40,60,0.55)";
+    for (const dx of [-0.6, 0, 0.6]) {
+      ctx.beginPath();
+      ctx.arc(x + dx * s, y - s * 0.4, s * 0.12, 0, TAU);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+const previews = new Map<string, string>();
+/** A little picture of a tank theme for the shop, painted with the real scene. */
+export function themePreview(id: string, w = 120, h = 84): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const key = `${id}:${w}x${h}`;
+  const hit = previews.get(key);
+  if (hit) return hit;
+  const c = document.createElement("canvas");
+  c.width = w * 2;
+  c.height = h * 2;
+  const ctx = c.getContext("2d");
+  if (!ctx) return undefined;
+  ctx.scale(2, 2);
+  const th = themeOf(id);
+  paintWater(ctx, w, h, th);
+  paintFar(ctx, w, h, th);
+  paintSand(ctx, w, h, th);
+  paintReef(ctx, w, h, th);
+  const url = c.toDataURL("image/png");
+  previews.set(key, url);
+  return url;
 }
 
 /** Vignette and glass reflections (painted once, drawn over everything). */

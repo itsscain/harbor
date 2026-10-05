@@ -109,18 +109,33 @@ export function CreatureView({
       const bob = Math.sin(t * 1.5) * size * (surface || bottom ? 0.006 : 0.018);
       ctx.translate(size / 2, size / 2 + bob - creatureCenterY(look, len) + (bottom ? size * 0.04 : 0));
       if (surface) {
-        // A little water for floaters.
+        // A little pool of water for floaters: a glinting surface that fades out at the sides.
         const g = ctx.createLinearGradient(0, 0, 0, size * 0.4);
-        g.addColorStop(0, "rgba(120,200,255,0.45)");
+        g.addColorStop(0, "rgba(120,200,255,0.5)");
         g.addColorStop(1, "rgba(120,200,255,0)");
+        const wave = (x: number) => Math.sin(x * 0.08 + t * 2) * 2;
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.moveTo(-size / 2, 0);
-        for (let x = -size / 2; x <= size / 2; x += 8) ctx.lineTo(x, Math.sin(x * 0.08 + t * 2) * 2);
+        ctx.moveTo(-size / 2, wave(-size / 2));
+        for (let x = -size / 2; x <= size / 2; x += 6) ctx.lineTo(x, wave(x));
         ctx.lineTo(size / 2, size * 0.4);
         ctx.lineTo(-size / 2, size * 0.4);
         ctx.closePath();
         ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.lineWidth = Math.max(1.5, size * 0.009);
+        ctx.beginPath();
+        for (let x = -size / 2; x <= size / 2; x += 6) ctx[x === -size / 2 ? "moveTo" : "lineTo"](x, wave(x));
+        ctx.stroke();
+        ctx.globalCompositeOperation = "destination-in";
+        const m = ctx.createLinearGradient(-size / 2, 0, size / 2, 0);
+        m.addColorStop(0, "rgba(0,0,0,0)");
+        m.addColorStop(0.25, "#000");
+        m.addColorStop(0.75, "#000");
+        m.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = m;
+        ctx.fillRect(-size / 2, -size, size, size * 2);
+        ctx.globalCompositeOperation = "source-over";
       }
       drawCreature(ctx, look, pose, len, id);
       if (silhouette) {

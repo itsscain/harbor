@@ -1299,13 +1299,31 @@ html[data-sheet-open] .toast-host {
 .aq-crank { animation: aq-crank 1.2s cubic-bezier(0.5, 0, 0.3, 1) both; }
 @keyframes aq-capsule { 0% { transform: translateY(-40px) scale(0.5); opacity: 0; } 55% { transform: translateY(6px) scale(1.08); opacity: 1; } 75% { transform: translateY(-4px); } 100% { transform: none; opacity: 1; } }
 .aq-capsule { animation: aq-capsule 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-/* Hatching: the shell splits and the halves tumble away; a friend's name tag pops up. */
-@keyframes aq-half-l { 0% { transform: translate(0, 0) rotate(0deg); opacity: 1; } 100% { transform: translate(-110px, 60px) rotate(-60deg); opacity: 0; } }
-@keyframes aq-half-r { 0% { transform: translate(0, 0) rotate(0deg); opacity: 1; } 100% { transform: translate(110px, 60px) rotate(60deg); opacity: 0; } }
-.aq-half-l { animation: aq-half-l 0.9s cubic-bezier(0.2, 0.8, 0.4, 1) both; }
-.aq-half-r { animation: aq-half-r 0.9s cubic-bezier(0.2, 0.8, 0.4, 1) both; }
+/* Hatching: each tap knocks chips off a restless, glowing egg; then the top pops off along the crack,
+   the bottom drops away, and a flash of light; a friend's name tag pops up when you tap them. */
+@keyframes aq-cracked { 0% { transform: none; filter: brightness(1.6); } 20% { transform: translateX(-9px) rotate(-6deg); } 45% { transform: translateX(8px) rotate(4deg); filter: none; } 70% { transform: translateX(-3px) rotate(-1deg); } 100% { transform: none; } }
+@keyframes aq-restless { 0%, 70%, 100% { transform: none; } 76% { transform: rotate(-4deg); } 82% { transform: rotate(4deg); } 88% { transform: rotate(-2deg); } 94% { transform: rotate(1deg); } }
+.aq-cracked { animation: aq-cracked 0.5s ease-out, aq-restless 1.6s 0.5s ease-in-out infinite; transform-origin: 50% 85%; }
+@keyframes aq-shell-top { 0% { transform: none; opacity: 1; } 100% { transform: translate(40px, -150px) rotate(50deg); opacity: 0; } }
+@keyframes aq-shell-bottom { 0%, 15% { transform: none; opacity: 1; } 100% { transform: translate(-10px, 110px) rotate(-14deg); opacity: 0; } }
+.aq-shell-top { animation: aq-shell-top 0.85s cubic-bezier(0.2, 0.7, 0.4, 1) both; }
+.aq-shell-bottom { animation: aq-shell-bottom 0.9s cubic-bezier(0.5, 0, 0.75, 0.6) both; }
+@keyframes aq-flash { 0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; } 100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; } }
+.aq-flash { animation: aq-flash 0.6s ease-out both; }
+@keyframes aq-chip {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(var(--s)); opacity: 1; }
+  55% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(calc(var(--r) * 0.6)) scale(var(--s)); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx) * 1.2), calc(-50% + var(--dy) + 80px)) rotate(var(--r)) scale(var(--s)); opacity: 0; }
+}
+.aq-chip { animation: aq-chip 0.8s cubic-bezier(0.25, 0.6, 0.45, 1) both; }
 @keyframes aq-peek { from { transform: translate(-50%, -70%) scale(0.6); opacity: 0; } to { transform: translate(-50%, -100%) scale(1); opacity: 1; } }
 .aq-peek { animation: aq-peek 0.25s ease-out both; }
+/* A pointing hand that shows a child who can't read yet where to tap: it presses in and out, with a
+   little ring where the fingertip lands. */
+@keyframes aq-hand { 0%, 100% { transform: translate(0, 0) scale(1); } 45% { transform: translate(-7px, -7px) scale(0.92); } 55% { transform: translate(-7px, -7px) scale(0.92); } }
+.aq-hand { animation: aq-hand 1.3s ease-in-out infinite; transform-origin: 20% 10%; }
+@keyframes aq-tap { 0%, 40% { transform: scale(0.3); opacity: 0; } 50% { opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
+.aq-tap { animation: aq-tap 1.3s ease-out infinite; }
 .learn-root[data-reduced="true"] [class*="aq-"] { animation: none !important; }
 /* Reduced motion: every Learn animation holds still. */
 .learn-root[data-reduced="true"] [class*="l-"] { animation: none !important; }

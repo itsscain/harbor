@@ -7,7 +7,7 @@ import { SHOP, type BoatLook, type ShopItem, type Slot } from "@/lib/learn/meta"
 import { SAY } from "@/lib/learn/script";
 import { say } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
-import { Chunk } from "./kit";
+import { Chunk, ShellIcon } from "./kit";
 import { SideBoat } from "./KidBoat";
 
 // The Harbor Shop: everything here is bought with shells earned by learning (never real money).
@@ -79,7 +79,7 @@ export function HarborShop({
         </Chunk>
         <p className="flex-1 font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">🛍️ Harbor Shop</p>
         <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 font-display text-2xl font-extrabold text-[var(--l-ink)] shadow-[0_5px_0_var(--l-line)]">
-          🐚 <span className="tabular-nums">{shells}</span>
+          <ShellIcon size={28} /> <span className="tabular-nums">{shells}</span>
         </span>
       </div>
 
@@ -94,7 +94,7 @@ export function HarborShop({
                 <p className="font-display text-lg font-bold text-[var(--l-ink-2)]">🔒 Reach level {preview.level} to buy this</p>
               ) : (
                 <Chunk key={shake?.id === preview.id ? shake.n : 0} tone={shells >= preview.price ? "green" : "white"} onClick={() => buy(preview)} className={cn("flex h-16 w-full items-center justify-center gap-2 font-display text-2xl font-extrabold", shells < preview.price && "text-[var(--l-ink-2)]", shake?.id === preview.id && "l-shake")}>
-                  Buy for 🐚 {preview.price}
+                  Buy for <ShellIcon size={30} /> {preview.price}
                 </Chunk>
               )}
               {shells < preview.price && (preview.level ?? 0) <= level && <p className="font-display text-base font-bold text-[var(--l-ink-2)]">{preview.price - shells} more shells — keep learning!</p>}
@@ -133,7 +133,9 @@ export function HarborShop({
                       <Lock className="h-3.5 w-3.5" /> Level {it.level}
                     </span>
                   ) : (
-                    <span className={cn("rounded-full px-3 py-0.5 font-display text-sm font-extrabold", shells >= it.price ? "bg-[var(--l-gold)] text-[#5a3b00]" : "bg-[var(--l-card-2)] text-[var(--l-ink-2)]")}>🐚 {it.price}</span>
+                    <span className={cn("flex items-center gap-1 rounded-full px-3 py-0.5 font-display text-sm font-extrabold", shells >= it.price ? "bg-[var(--l-gold)] text-[#5a3b00]" : "bg-[var(--l-card-2)] text-[var(--l-ink-2)]")}>
+                      <ShellIcon size={16} /> {it.price}
+                    </span>
                   )}
                 </Chunk>
               );

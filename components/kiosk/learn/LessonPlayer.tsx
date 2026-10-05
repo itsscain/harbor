@@ -12,7 +12,7 @@ import { rng, int } from "@/lib/learn/gen";
 import { COMBO, PRAISE, RETRY, SAY, lessonClipKeys, type VoiceLevel } from "@/lib/learn/script";
 import { partsKey, preload, say, speakingNow, stopVoice, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
-import { BurstLayer, Chunk, useBursts } from "./kit";
+import { BurstLayer, Chunk, ShellIcon, useBursts } from "./kit";
 import { SideBoat } from "./KidBoat";
 import { VoiceCtx, type LessonFx } from "./acts/common";
 import { MeetAct, FindLetterAct, FirstSoundAct, RhymeAct, ReadWordAct, BuildAct, BlendAct, PopAct, SentenceAct } from "./acts/ReadingActs";
@@ -553,7 +553,9 @@ export function LessonPlayer({
           aria-label="Catch the golden fish"
         >
           {fish.caught ? (
-            <span className="l-pop-in whitespace-nowrap rounded-full bg-white/95 px-5 py-2 font-display text-4xl font-extrabold text-[var(--l-gold-edge)] shadow-[0_5px_0_var(--l-gold-edge)]">+{fish.n} 🐚</span>
+            <span className="l-pop-in flex items-center gap-2 whitespace-nowrap rounded-full bg-white/95 px-5 py-2 font-display text-4xl font-extrabold text-[var(--l-gold-edge)] shadow-[0_5px_0_var(--l-gold-edge)]">
+              +{fish.n} <ShellIcon size={40} />
+            </span>
           ) : (
             <span className="text-[96px] drop-shadow-[0_0_26px_rgba(255,200,61,0.95)]">🐠</span>
           )}

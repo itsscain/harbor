@@ -258,6 +258,7 @@ export const SAY = {
   aqFood: "Pick a food. Then tap the water to feed your friends!",
   aqTapFriend: "Now tap the water to drop the food in!",
   aqAllFull: "Everyone is full! Come back tomorrow for more treats.",
+  aqHungry: "Your friends are hungry! Tap the food to feed them.",
   aqYumFlakes: "Yum, flakes!",
   aqYumShrimp: "Shrimp! What a treat!",
   aqYumGolden: "Golden pellets! Sparkly and yummy!",

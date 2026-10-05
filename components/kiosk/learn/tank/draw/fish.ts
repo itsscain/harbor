@@ -364,24 +364,28 @@ function tailFin(ctx: Ctx, f: FishBody, pose: Pose, L: number, C: Record<string,
   ctx.strokeStyle = C.finEdge ?? outline;
   ctx.stroke(p);
   if (f.tail === "feet") {
-    // Two orange feet trailing behind (this frame is turned half around, so "down" is −y).
-    for (const [dy, ph] of [[-th * 0.25, 0], [-th * 0.45, 1.3]] as const) {
-      const kick = Math.sin(pose.phase + ph) * 0.25;
+    // Two webbed orange feet tucked back under the tail (this frame is turned half around, so
+    // "down" is −y here).
+    for (const [dy, ph, far] of [[-th * 0.55, 1.3, true], [-th * 0.35, 0, false]] as const) {
+      const kick = Math.sin(pose.phase + ph) * 0.22;
+      const col = far ? shade(C.feet ?? "#ff9b1c", -0.18) : (C.feet ?? "#ff9b1c");
       ctx.save();
-      ctx.translate(tl * 0.2, dy);
-      ctx.rotate(-0.35 - kick);
-      ctx.beginPath();
-      ctx.moveTo(0, -th * 0.12);
-      ctx.lineTo(tl * 0.75, -th * 0.28);
-      ctx.lineTo(tl * 0.82, th * 0.0);
-      ctx.lineTo(tl * 0.75, th * 0.28);
-      ctx.lineTo(0, th * 0.12);
-      ctx.closePath();
-      ctx.fillStyle = C.feet ?? "#ff9b1c";
-      ctx.fill();
+      ctx.translate(-tl * 0.15, dy);
+      ctx.rotate(-0.55 - kick);
+      const fl = tl * 0.62;
+      const fw = th * 0.42;
+      const foot = new Path2D();
+      foot.moveTo(0, -fw * 0.25);
+      foot.lineTo(fl, -fw * 0.5);
+      foot.quadraticCurveTo(fl * 0.82, -fw * 0.18, fl * 1.06, 0);
+      foot.quadraticCurveTo(fl * 0.82, fw * 0.18, fl, fw * 0.5);
+      foot.lineTo(0, fw * 0.25);
+      foot.closePath();
+      ctx.fillStyle = col;
+      ctx.fill(foot);
       ctx.lineWidth = lw * 0.7;
-      ctx.strokeStyle = shade(C.feet ?? "#ff9b1c", -0.4);
-      ctx.stroke();
+      ctx.strokeStyle = shade(col, -0.45);
+      ctx.stroke(foot);
       ctx.restore();
     }
   }
@@ -513,15 +517,19 @@ function legs(ctx: Ctx, pose: Pose, L: number, C: Record<string, string>, outlin
 
 /** Leafy appendages that make a sea dragon look like drifting seaweed. */
 function leaves(ctx: Ctx, pose: Pose, L: number, C: Record<string, string>, outline: string, lw: number) {
-  const spots: [number, -1 | 1, number][] = [[0.18, -1, 0.8], [0.27, 1, 1], [0.36, -1, 1.1], [0.45, 1, 1.15], [0.55, -1, 1.05], [0.65, 1, 0.95], [0.76, -1, 0.85], [0.88, 1, 0.7]];
+  // Big, layered, gently waving fronds — the disguise that makes a sea dragon look like seaweed.
+  const spots: [number, -1 | 1, number][] = [
+    [0.12, -1, 0.7], [0.19, -1, 0.95], [0.25, 1, 1.15], [0.33, -1, 1.35], [0.4, 1, 1.4], [0.48, -1, 1.45], [0.55, 1, 1.35],
+    [0.63, -1, 1.25], [0.71, 1, 1.15], [0.8, -1, 1], [0.88, 1, 0.85], [0.95, -1, 0.7],
+  ];
   for (const [s, side, size] of spots) {
     const q = at(s);
     const [bx, by] = on(s, side * 0.7);
     const sway = Math.sin(pose.t * 1.4 + s * 7) * 0.3 + pose.react * Math.sin(pose.t * 12) * 0.3;
     const dir = q.a + side * (Math.PI / 2) + (side < 0 ? 0.65 : -0.65) * -1 + Math.PI * 0.15 * side + sway;
-    const ll = L * 0.11 * size;
-    const lw2 = L * 0.035 * size;
-    for (const [k, rot] of [[1, 0], [0.7, side * 0.55]] as const) {
+    const ll = L * 0.13 * size;
+    const lw2 = L * 0.04 * size;
+    for (const [k, rot] of [[1, 0], [0.75, side * 0.6], [0.6, -side * 0.45]] as const) {
       const d = dir + rot;
       const tx = bx + Math.cos(d) * ll * k;
       const ty = by + Math.sin(d) * ll * k;
@@ -677,6 +685,30 @@ function pattern(ctx: Ctx, p: Pattern, pose: Pose, L: number, C: Record<string, 
       break;
     case "tuxedo":
       break;
+    case "counter": {
+      // The pale belly below a softly waving line; an optional lighter flank stripe above it.
+      const edge = (s: number) => p.v + Math.sin(s * 9 + 0.6) * 0.06 - bump(s, 0.08, 0.1) * 0.25;
+      if (p.flank) {
+        const fl: number[] = [];
+        for (let s = 0.08; s <= 0.96; s += 0.04) fl.push(...on(s, edge(s) - 0.3 - 0.12 * Math.sin(s * Math.PI)));
+        for (let s = 0.96; s >= 0.08; s -= 0.04) fl.push(...on(s, edge(s) - 0.02));
+        const fp = new Path2D();
+        smoothClosed(fp, fl);
+        ctx.fillStyle = rgba(p.flank, 0.55);
+        ctx.fill(fp);
+      }
+      const pts: number[] = [];
+      for (let s = 0.0; s <= 1.0001; s += 0.04) pts.push(...on(s, edge(s)));
+      for (let s = 1; s >= 0; s -= 0.1) pts.push(...on(s, 1.4));
+      const belly = new Path2D();
+      smoothClosed(belly, pts);
+      const bg = ctx.createLinearGradient(0, 0, 0, L * 0.15);
+      bg.addColorStop(0, p.color);
+      bg.addColorStop(1, shade(p.color, -0.06));
+      ctx.fillStyle = bg;
+      ctx.fill(belly);
+      break;
+    }
   }
 }
 
@@ -836,6 +868,16 @@ function face(ctx: Ctx, f: FishBody, pose: Pose, L: number, C: Record<string, st
       break;
     }
     case "penguin": {
+      // A golden cheek patch behind the eye.
+      const [px, py] = on(0.16, -0.25);
+      const cheek = ctx.createRadialGradient(px, py, 0, px, py, L * 0.06);
+      cheek.addColorStop(0, "#ffd23a");
+      cheek.addColorStop(0.7, "rgba(255,170,40,0.85)");
+      cheek.addColorStop(1, "rgba(255,170,40,0)");
+      ctx.fillStyle = cheek;
+      ctx.beginPath();
+      ctx.ellipse(px, py, L * 0.06, L * 0.035, at(0.16).a - 0.5, 0, TAU);
+      ctx.fill();
       const q = at(0);
       ctx.save();
       ctx.translate(q.x, q.y);
