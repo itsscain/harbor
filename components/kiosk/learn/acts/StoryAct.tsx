@@ -8,6 +8,8 @@ import { SAY } from "@/lib/learn/script";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, shuffleSeeded } from "../kit";
 import { MiniSpeaker, useLater, type ActProps } from "./common";
+import { emojisIn } from "../art";
+import { Glyph, GlyphRow, picName, WithGlyphs } from "../art/Glyph";
 
 // A story you step through and act out. Each scene is a little stage — its own sky, the big
 // picture in the middle, small things floating above and along the ground — narrated in the
@@ -29,13 +31,8 @@ const SKY: Record<Sky, [string, string]> = {
 };
 const DARK: Sky[] = ["night", "storm", "dusk"];
 
-function graphemes(s: string): string[] {
-  try {
-    return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)].map((x) => x.segment);
-  } catch {
-    return [...s];
-  }
-}
+/** The pictures in a scene string ("🧔🐑🐑" → three pictures). */
+const pics = (s: string) => emojisIn(s);
 
 export function StoryAct({ act: a, fx, onDone }: ActProps<"story">) {
   const [i, setI] = useState(0);
@@ -82,7 +79,8 @@ export function StoryAct({ act: a, fx, onDone }: ActProps<"story">) {
     <div className="flex w-full max-w-[1100px] flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between gap-3 px-1">
         <span className="rounded-full bg-white/90 px-4 py-1.5 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">
-          {a.emoji} {a.title}
+          <GlyphRow s={a.emoji} size={30} className="mr-1.5 align-[-0.35em]" />
+          {a.title}
           {a.ref && <span className="ml-2 text-base font-bold text-[var(--l-ink-2)]">· {a.ref}</span>}
         </span>
         <span className="flex gap-1.5" aria-label={`Scene ${i + 1} of ${a.scenes.length}`}>
@@ -97,21 +95,22 @@ export function StoryAct({ act: a, fx, onDone }: ActProps<"story">) {
         {afterSky && <div className="pointer-events-none absolute inset-0 transition-opacity duration-[1400ms] ease-out" style={{ background: `linear-gradient(180deg, ${SKY[afterSky][0]}, ${SKY[afterSky][1]})`, opacity: acted ? 1 : 0 }} />}
         {sky === "glory" && !fx.reduced && <div className="l-rays pointer-events-none absolute left-1/2 top-[-30%] h-[160%] w-[160%] -translate-x-1/2 opacity-40" style={{ background: "repeating-conic-gradient(rgba(255,255,255,0.8) 0deg 8deg, transparent 8deg 24deg)" } as CSSProperties} />}
         {sky === "night" && <Stars reduced={fx.reduced} />}
+        <SceneGround sky={sky} />
         {sky === "storm" && !fx.reduced && <Rain />}
         {scene.top && (
           <div className="absolute inset-x-0 flex justify-center gap-[6%] transition-[top] duration-500" style={{ top: scene.act && !acted ? "18%" : "6%" }}>
-            {graphemes(scene.top).map((e, k) => (
-              <span key={k} className={cn("text-[64px] leading-none", !fx.reduced && "l-float")} style={{ animationDelay: `${k * 0.5}s` }}>
-                {e}
+            {pics(scene.top).map((e, k) => (
+              <span key={k} className={cn("block", !fx.reduced && "l-float")} style={{ animationDelay: `${k * 0.5}s` }}>
+                <Glyph e={e} size={74} />
               </span>
             ))}
           </div>
         )}
         {scene.ground && (
           <div className="absolute inset-x-0 bottom-[4%] flex justify-center gap-[5%]">
-            {graphemes(scene.ground).map((e, k) => (
-              <span key={k} className={cn("text-[56px] leading-none", !fx.reduced && "l-sway")} style={{ animationDelay: `${k * 0.3}s` }}>
-                {e}
+            {pics(scene.ground).map((e, k) => (
+              <span key={k} className={cn("block", !fx.reduced && "l-sway")} style={{ animationDelay: `${k * 0.3}s` }}>
+                <Glyph e={e} size={66} />
               </span>
             ))}
           </div>
@@ -124,11 +123,11 @@ export function StoryAct({ act: a, fx, onDone }: ActProps<"story">) {
       {/* Narration + next */}
       <div className="flex w-full items-stretch gap-3">
         <div className={cn("relative flex flex-1 items-center rounded-[26px] px-6 py-4 shadow-[0_6px_0_var(--l-line)]", dark ? "bg-[#f4f1ff]" : "bg-white")}>
-          <p className="text-balance font-reading text-[26px] font-bold leading-snug text-[var(--l-ink)]">{scene.text}</p>
+          <p className="text-balance font-reading text-[26px] font-bold leading-snug text-[var(--l-ink)]"><WithGlyphs text={scene.text} /></p>
           {!voiced && <MiniSpeaker parts={[scene.text]} className="-right-2 -top-2" />}
         </div>
         <Chunk tone={ready ? "green" : "white"} disabled={!ready} onClick={next} aria-label={last ? "Finish the story" : "Next scene"} className={cn("flex w-[112px] shrink-0 flex-col items-center justify-center gap-1 font-display text-lg font-extrabold", ready && !fx.reduced && "l-pulse", !ready && "opacity-50")}>
-          {last ? <span className="text-4xl">✅</span> : <ChevronRight className="h-12 w-12" strokeWidth={3.5} />}
+          {last ? <Glyph e="✅" size={44} /> : <ChevronRight className="h-12 w-12" strokeWidth={3.5} />}
           {last ? "The end" : "Next"}
         </Chunk>
       </div>
@@ -137,16 +136,67 @@ export function StoryAct({ act: a, fx, onDone }: ActProps<"story">) {
 }
 
 function Art({ art, reduced }: { art: string; reduced: boolean }) {
-  const g = graphemes(art);
-  const size = g.length <= 1 ? 170 : g.length === 2 ? 140 : g.length === 3 ? 118 : 96;
+  const g = pics(art);
+  const size = g.length <= 1 ? 190 : g.length === 2 ? 156 : g.length === 3 ? 130 : 106;
   return (
     <div className="flex items-end justify-center gap-3">
       {g.map((e, k) => (
-        <span key={k} className={cn("select-none leading-none drop-shadow-[0_8px_0_rgba(0,30,60,0.15)]", !reduced && "l-bob")} style={{ fontSize: size, animationDelay: `${k * 0.35}s` }}>
-          {e}
+        <span key={k} className={cn("block drop-shadow-[0_8px_0_rgba(0,30,60,0.15)]", !reduced && "l-bob")} style={{ animationDelay: `${k * 0.35}s` }}>
+          <Glyph e={e} size={size} />
         </span>
       ))}
     </div>
+  );
+}
+
+/** The land under each kind of sky, like a picture book: rolling hills, sand dunes, the sea, soft
+ *  clouds for heaven's glory, a wooden floor indoors. Two layers, the far one paler. */
+const GROUND: Record<Sky, { far: string; near: string; kind: "hills" | "dunes" | "waves" | "clouds" | "floor" }> = {
+  day: { far: "#9be38b", near: "#5cc86a", kind: "hills" },
+  dawn: { far: "#c7d88a", near: "#8cc46a", kind: "hills" },
+  dusk: { far: "#7a6fb0", near: "#5a5196", kind: "hills" },
+  night: { far: "#2c3a7a", near: "#1f2b5e", kind: "hills" },
+  storm: { far: "#6f8a7c", near: "#55705f", kind: "hills" },
+  sea: { far: "#5fc6ee", near: "#2a9ed6", kind: "waves" },
+  desert: { far: "#f6d38a", near: "#eab85c", kind: "dunes" },
+  garden: { far: "#a6eb8e", near: "#55c46a", kind: "hills" },
+  glory: { far: "#fffaf0", near: "#ffffff", kind: "clouds" },
+  indoor: { far: "#e3c49a", near: "#c99a62", kind: "floor" },
+};
+function SceneGround({ sky }: { sky: Sky }) {
+  const g = GROUND[sky];
+  const OL = "#2a2f45";
+  return (
+    <svg viewBox="0 0 1000 200" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] w-full" aria-hidden>
+      {g.kind === "hills" && (
+        <>
+          <path d="M0 90 Q120 40 260 80 T560 70 T860 60 T1000 80 V200 H0 Z" fill={g.far} />
+          <path d="M0 130 Q180 80 380 120 T760 110 T1000 120 V200 H0 Z" fill={g.near} stroke={OL} strokeOpacity="0.35" strokeWidth="3" />
+        </>
+      )}
+      {g.kind === "dunes" && (
+        <>
+          <path d="M0 100 Q200 50 400 95 T800 85 T1000 95 V200 H0 Z" fill={g.far} />
+          <path d="M0 140 Q260 90 520 135 T1000 125 V200 H0 Z" fill={g.near} stroke={OL} strokeOpacity="0.3" strokeWidth="3" />
+        </>
+      )}
+      {g.kind === "waves" && (
+        <>
+          <path d="M0 100 Q50 80 100 100 T200 100 T300 100 T400 100 T500 100 T600 100 T700 100 T800 100 T900 100 T1000 100 V200 H0 Z" fill={g.far} />
+          <path d="M0 140 Q60 115 120 140 T240 140 T360 140 T480 140 T600 140 T720 140 T840 140 T960 140 T1080 140 V200 H0 Z" fill={g.near} />
+          <path d="M80 165 q20 -10 40 0 M420 175 q20 -10 40 0 M760 165 q20 -10 40 0" stroke="#ffffff" strokeOpacity="0.7" strokeWidth="5" fill="none" strokeLinecap="round" />
+        </>
+      )}
+      {g.kind === "clouds" && (
+        <path d="M0 150 Q60 100 130 130 Q190 80 270 120 Q340 70 420 115 Q500 75 580 120 Q660 80 740 125 Q820 85 890 125 Q950 100 1000 130 V200 H0 Z" fill={g.near} opacity="0.95" />
+      )}
+      {g.kind === "floor" && (
+        <>
+          <rect x="0" y="110" width="1000" height="90" fill={g.near} />
+          <path d="M0 110 H1000 M0 145 H1000 M0 178 H1000 M120 110 V145 M380 110 V145 M640 110 V145 M900 110 V145 M250 145 V178 M510 145 V178 M770 145 V178" stroke="#9c7243" strokeWidth="3" />
+        </>
+      )}
+    </svg>
   );
 }
 
@@ -173,7 +223,7 @@ function SceneAction({ act, art, fx, seed, onDone }: { act: SceneAct; art: strin
 }
 
 function Prompt({ text }: { text: string }) {
-  return <span className="l-pop-in absolute left-1/2 top-3 z-[2] -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-5 py-2 font-display text-xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_rgba(0,40,80,0.18)]">👆 {text}</span>;
+  return <span className="l-pop-in absolute left-1/2 top-3 z-[2] -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-5 py-2 font-display text-xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_rgba(0,40,80,0.18)]"><Glyph e="👆" size={30} className="mr-1.5 align-[-0.35em]" />{text}</span>;
 }
 
 function TapIt({ act, fx, onDone }: { act: Extract<SceneAct, { type: "tap" }>; fx: ActProps<"story">["fx"]; onDone: () => void }) {
@@ -199,8 +249,8 @@ function TapIt({ act, fx, onDone }: { act: Extract<SceneAct, { type: "tap" }>; f
     <>
       {!done && <Prompt text={act.prompt} />}
       <button type="button" onClick={(e) => tap(e.currentTarget)} className="relative flex flex-col items-center gap-3" aria-label={act.prompt}>
-        <span key={done ? "after" : bump} className={cn("select-none leading-none drop-shadow-[0_8px_0_rgba(0,30,60,0.18)]", done ? "l-pop-in" : bump ? "l-boing" : !fx.reduced && "l-pulse")} style={{ fontSize: 168 }}>
-          {done ? act.after ?? act.target : act.target}
+        <span key={done ? "after" : bump} className={cn("block drop-shadow-[0_8px_0_rgba(0,30,60,0.18)]", done ? "l-pop-in" : bump ? "l-boing" : !fx.reduced && "l-pulse")}>
+          <GlyphRow s={done ? act.after ?? act.target : act.target} size={186} />
         </span>
         {act.n > 1 && !done && (
           <span className="flex gap-1.5">
@@ -245,8 +295,8 @@ function FindIt({ act, fx, seed, onDone }: { act: Extract<SceneAct, { type: "fin
           style={{ left: `${s.x}%`, top: `${s.y}%` }}
           aria-label={s.target ? "the one to find" : "not this one"}
         >
-          <span key={shake?.k === k ? shake.n : 0} className={cn("block select-none leading-none transition-transform", shake?.k === k && "l-shake", found && s.target && "l-boing scale-125", found && !s.target && "opacity-40")} style={{ fontSize: 76 * s.s }}>
-            {s.e}
+          <span key={shake?.k === k ? shake.n : 0} className={cn("block transition-transform", shake?.k === k && "l-shake", found && s.target && "l-boing scale-125", found && !s.target && "opacity-40")}>
+            <Glyph e={s.e} size={86 * s.s} />
           </span>
         </button>
       ))}
@@ -279,9 +329,13 @@ function CollectIt({ act, art, fx, onDone }: { act: Extract<SceneAct, { type: "c
   return (
     <>
       {!done && <Prompt text={act.prompt} />}
-      {graphemes(art).length > 1 && <span className="absolute left-[8%] top-[30%] select-none text-[72px] leading-none opacity-90">{graphemes(art).filter((e) => e !== act.into)[0]}</span>}
-      <span ref={target} key={done ? "full" : "empty"} className={cn("absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 select-none leading-none drop-shadow-[0_8px_0_rgba(0,30,60,0.15)]", done && "l-boing")} style={{ fontSize: 150 }}>
-        {act.into}
+      {pics(art).length > 1 && (
+        <span className="absolute left-[8%] top-[30%] opacity-90">
+          <Glyph e={pics(art).filter((e) => e !== act.into)[0]} size={84} />
+        </span>
+      )}
+      <span ref={target} key={done ? "full" : "empty"} className={cn("absolute left-1/2 top-[38%] block -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_8px_0_rgba(0,30,60,0.15)]", done && "l-boing")}>
+        <GlyphRow s={act.into} size={164} />
       </span>
       <div className="absolute inset-x-0 bottom-[10%] flex flex-wrap justify-center gap-4 px-6">
         {act.items.map((e, k) => {
@@ -292,12 +346,12 @@ function CollectIt({ act, art, fx, onDone }: { act: Extract<SceneAct, { type: "c
               type="button"
               onClick={(ev) => grab(k, ev.currentTarget)}
               disabled={got.includes(k)}
-              className="relative select-none text-[64px] leading-none"
+              className="relative select-none"
               style={{ transform: f ? `translate(${f.dx}px, ${f.dy}px) scale(0.4)` : undefined, opacity: f ? 0 : 1, transition: "transform 520ms cubic-bezier(0.3,0.7,0.3,1), opacity 520ms ease-in" }}
-              aria-label={`Tap ${e}`}
+              aria-label={`Tap ${picName(e) || "it"}`}
             >
               <span className={cn("block", !got.includes(k) && !fx.reduced && "l-bob")} style={{ animationDelay: `${k * 0.2}s` }}>
-                {e}
+                <Glyph e={e} size={76} />
               </span>
             </button>
           );

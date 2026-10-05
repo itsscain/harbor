@@ -7,6 +7,7 @@ import type { BoatLook } from "@/lib/learn/meta";
 import { cellKey, parseGrid, sharksAt, type GridState, type PixelState, type Seg, type TurtleState } from "@/lib/learn/program";
 import { TopBoat } from "../KidBoat";
 import { MOVE_EMOJI, NOTE_COLOR, PIXEL_COLOR } from "./blocks";
+import { Glyph, GlyphRow, SvgGlyph } from "../art/Glyph";
 
 // The worlds a program drives. Each is a pure picture of the engine's state; CodeAct feeds them
 // one step at a time and they animate the change: the boat glides, the rover's sensor beams,
@@ -42,13 +43,13 @@ function Mission({ map, s }: { map: string[]; s?: GridState }) {
     <div className="flex flex-wrap items-center justify-center gap-2" aria-label="Mission">
       {items.map((it) => (
         <span key={it.icon} className={cn("flex items-center gap-1 rounded-full px-3 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)] transition-colors", it.have >= it.need ? "bg-[#dcfce7] text-[#166534]" : "bg-white text-[var(--l-ink)]")}>
-          <span className="text-xl">{it.icon}</span>
+          <GlyphRow s={it.icon ?? ""} size={28} />
           {it.need > 1 ? `${Math.min(it.have, it.need)}/${it.need}` : it.have >= it.need ? "✓" : ""}
         </span>
       ))}
       <span className="text-lg font-extrabold text-white/80">→</span>
       <span className={cn("flex items-center gap-1 rounded-full px-3 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)]", home ? "bg-[#dcfce7] text-[#166534]" : "bg-white text-[var(--l-ink)]")}>
-        <span className="text-xl">🏝️</span>
+        <Glyph e="🏝️" size={28} />
         {home ? "✓" : ""}
       </span>
     </div>
@@ -76,7 +77,7 @@ export function SeaStage({ maps, view, look, mars, width = 560, height = 440 }: 
 
 function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: string[]; mapIndex: number; view: SeaView; look: BoatLook; mars: boolean; maxW: number; maxH: number; thumb?: boolean }) {
   const g = parseGrid(map);
-  const cell = Math.floor(Math.min(maxW / g.w, maxH / g.h, thumb ? 24 : 96));
+  const cell = Math.floor(Math.min(maxW / g.w, maxH / g.h, thumb ? 24 : 148));
   const s = view.states[mapIndex];
   const trail = new Set(view.trails[mapIndex] ?? []);
   const bump = view.bump?.map === mapIndex ? view.bump : null;
@@ -95,12 +96,12 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
             <span key={k} className="absolute flex items-center justify-center" style={{ left: x * cell, top: y * cell, width: cell, height: cell, boxShadow: thumb ? undefined : "inset 0 0 0 1px rgba(255,255,255,0.12)" }}>
               {trail.has(k) && ch !== "S" && !thumb && <span className="absolute rounded-full" style={{ width: cell * 0.18, height: cell * 0.18, background: mars ? "rgba(90,30,10,0.35)" : "rgba(255,255,255,0.55)" }} />}
               {/* Obstacles never look like the goal island. */}
-              {ch === "#" && <span style={{ fontSize: cell * 0.72, lineHeight: 1 }}>{mars && (x + y) % 3 === 0 ? "⛰️" : "🪨"}</span>}
-              {ch === "*" && !got && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🐚</span>}
-              {ch === "k" && !s?.keys?.includes(k) && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🔑</span>}
+              {ch === "#" && <Glyph e={mars && (x + y) % 3 === 0 ? "⛰️" : "🪨"} size={cell * 0.88} />}
+              {ch === "*" && !got && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}><Glyph e="🐚" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
+              {ch === "k" && !s?.keys?.includes(k) && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}><Glyph e="🔑" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
               {ch === "D" && (
                 <span className={cn("flex items-center justify-center rounded-lg transition-all duration-500", s?.opened?.includes(k) ? "opacity-30" : "")} style={{ width: cell * 0.86, height: cell * 0.86, background: "repeating-linear-gradient(90deg, #a16207 0 18%, #854d0e 18% 24%)", boxShadow: "inset 0 0 0 3px #713f12", fontSize: cell * 0.42 }}>
-                  {s?.opened?.includes(k) ? "🔓" : "🔒"}
+                  <Glyph e={s?.opened?.includes(k) ? "🔓" : "🔒"} size={cell * 0.5} />
                 </span>
               )}
               {ch === "b" && <span className="flex items-center justify-center rounded-full transition-colors" style={{ width: cell * 0.56, height: cell * 0.56, background: s?.bridge ? "#22c55e" : "#ef4444", boxShadow: `0 ${cell * 0.06}px 0 ${s?.bridge ? "#15803d" : "#b91c1c"}`, transform: s?.bridge ? `translateY(${cell * 0.05}px)` : undefined }} />}
@@ -108,16 +109,16 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
                 (s?.bridge ? (
                   <span className="l-pop-in rounded-md" style={{ width: cell, height: cell * 0.62, background: "repeating-linear-gradient(90deg, #b45309 0 22%, #92400e 22% 26%)", boxShadow: "inset 0 3px 0 rgba(255,255,255,0.25), 0 3px 0 rgba(0,0,0,0.25)" }} />
                 ) : (
-                  <span style={{ fontSize: cell * 0.6, lineHeight: 1 }}>🚧</span>
+                  <span style={{ fontSize: cell * 0.6, lineHeight: 1 }}><Glyph e="🚧" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
                 ))}
-              {ch === "@" && <span className={cn(!thumb && "l-spin-slow")} style={{ fontSize: cell * 0.7, lineHeight: 1 }}>🌀</span>}
+              {ch === "@" && <span className={cn(!thumb && "l-spin-slow")} style={{ fontSize: cell * 0.7, lineHeight: 1 }}><Glyph e="🌀" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
               {CURRENT_TURN[ch] !== undefined && (
                 <span className="font-display font-extrabold text-white/80" style={{ fontSize: cell * 0.5, lineHeight: 1, transform: `rotate(${CURRENT_TURN[ch]}deg)` }}>
                   ➜
                 </span>
               )}
-              {ch === "f" && !s?.caught?.includes(k) && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🐟</span>}
-              {ch === "G" && <span className={cn(!thumb && view.won && mapIndex === view.active && "l-boing")} style={{ fontSize: cell * 0.7, lineHeight: 1 }}>{mars ? "🚩" : "🏝️"}</span>}
+              {ch === "f" && !s?.caught?.includes(k) && <span className={cn(!thumb && "l-bob")} style={{ fontSize: cell * 0.56, lineHeight: 1 }}><Glyph e="🐟" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
+              {ch === "G" && <Glyph e={mars ? "🚩" : "🏝️"} size={cell * 0.86} className={cn(!thumb && view.won && mapIndex === view.active && "l-boing")} />}
               {ch === "G" && !thumb && <span className="absolute inset-1 rounded-xl ring-4 ring-[var(--l-gold)]/70" />}
             </span>
           );
@@ -138,7 +139,7 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
             fontSize: cell * 0.26,
           }}
         >
-          {sensor.blocked ? "✋" : "✓"}
+          {sensor.blocked ? <Glyph e="✋" size={cell * 0.32} /> : "✓"}
         </span>
       )}
       {/* the boat / rover */}
@@ -163,12 +164,12 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
       {g.sharks.length > 0 &&
         sharksAt(map, s?.t ?? 0).map((c, i) => (
           <span key={`shark${i}`} className="pointer-events-none absolute flex items-center justify-center" style={{ left: 0, top: 0, width: cell, height: cell, transform: `translate(${c.x * cell}px, ${c.y * cell}px)`, transition: thumb ? "none" : "transform 300ms ease-in-out", fontSize: cell * 0.7 }}>
-            🦈
+            <Glyph e="🦈" size={cell * 0.86} />
           </span>
         ))}
       {bump && !thumb && (
         <span key={`b${bump.k}`} className="l-pop-in pointer-events-none absolute flex items-center justify-center" style={{ left: bump.x * cell, top: bump.y * cell, width: cell, height: cell, fontSize: cell * 0.6 }}>
-          {mars ? "💥" : "💦"}
+          <Glyph e={mars ? "💥" : "💦"} size={cell * 0.72} />
         </span>
       )}
     </div>
@@ -251,9 +252,7 @@ function Robot({ move, k, happy, sad }: { move: string | null; k: number; happy:
         </g>
       </g>
       {move === "clap" && (
-        <text x="100" y="96" fontSize="34" textAnchor="middle" className="l-pop-in">
-          👏
-        </text>
+        <SvgGlyph e="👏" x={100} y={84} size={40} className="l-pop-in" />
       )}
     </svg>
   );
@@ -271,8 +270,8 @@ function SeqCards({ target, view, render, label }: { target: string[]; view: Seq
           return (
             <span key={i} className={cn("relative flex h-[60px] min-w-[60px] items-center justify-center rounded-2xl bg-white px-2 shadow-[0_4px_0_var(--l-line)] transition-transform", now && "scale-110 ring-4 ring-[var(--l-gold)]", ok && !view.demo && "bg-[#dcfce7]", bad && "bg-[#fee2e2] ring-4 ring-[var(--l-coral)]")}>
               {render(m)}
-              {ok && !view.demo && <span className="absolute -right-1.5 -top-1.5 text-base">✅</span>}
-              {bad && <span className="absolute -right-1.5 -top-1.5 text-base">❌</span>}
+              {ok && !view.demo && <Glyph e="✅" size={24} className="absolute -right-1.5 -top-1.5" />}
+              {bad && <Glyph e="❌" size={24} className="absolute -right-1.5 -top-1.5" />}
             </span>
           );
         })}
@@ -313,7 +312,7 @@ export function MusicStage({ target, view }: { target: string[]; view: SeqView }
               >
                 {n}
               </span>
-              {on && <span className="l-float-num absolute text-3xl">🎵</span>}
+              {on && <Glyph e="🎵" size={40} className="l-float-num absolute" />}
             </div>
           );
         })}
@@ -379,7 +378,7 @@ export function TurtleStage({ target, view, size = 440 }: { target: Seg[]; view:
           {!s.pen && <circle cx="0" cy="0" r="0.55" fill="none" stroke="#94a3b8" strokeWidth="0.04" strokeDasharray="0.08 0.08" />}
         </g>
       </svg>
-      {view.won && <span className="l-pop-in absolute right-4 top-3 text-5xl">🌟</span>}
+      {view.won && <Glyph e="🌟" size={60} className="l-pop-in absolute right-4 top-3" />}
     </div>
   );
 }
@@ -406,12 +405,12 @@ export function PixelStage({ picture, view, size = 420 }: { picture: string[]; v
               <span key={i} className="relative flex items-center justify-center" style={{ width: cell, height: cell, boxShadow: "inset 0 0 0 1px #e2e8f0" }}>
                 {want !== "." && <span className="absolute inset-[18%] rounded-md opacity-25" style={{ background: PIXEL_COLOR[want] }} />}
                 {got !== "." && <span key={`${got}${view.key}`} className="l-pop-in absolute inset-[3px] rounded-md" style={{ background: PIXEL_COLOR[got], boxShadow: got === "w" ? "inset 0 0 0 2px #cbd5e1" : undefined }} />}
-                {wrong.has(`${x},${y}`) && <span className="absolute z-[1] text-2xl">❌</span>}
+                {wrong.has(`${x},${y}`) && <Glyph e="❌" size={32} className="absolute z-[1]" />}
               </span>
             );
           })}
           <span className="pointer-events-none absolute left-0 top-0 rounded-lg ring-[5px] ring-[var(--l-gold)]" style={{ width: cell, height: cell, transform: `translate(${s.x * cell}px, ${s.y * cell}px)`, transition: "transform 240ms cubic-bezier(0.34,1.3,0.64,1)" }}>
-            <span className="absolute -right-3 -top-4 text-2xl">🖌️</span>
+            <Glyph e="🖌️" size={32} className="absolute -right-3 -top-4" />
           </span>
         </div>
       </div>

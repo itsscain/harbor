@@ -5,6 +5,7 @@ import { Trash2, Minus, Plus, CornerDownRight, CornerLeftUp } from "lucide-react
 import { cn } from "@/lib/cn";
 import type { Block } from "@/lib/learn/types";
 import { COND_LABEL, lookOf, sameList, type Cursor, type ListPath, type Sel } from "./blocks";
+import { GlyphRow } from "../art/Glyph";
 
 // The program, as chunky blocks a child can read at a glance: actions are pills, loops and
 // if/else are colored brackets that hold other blocks, and a glowing slot shows where the next
@@ -34,7 +35,7 @@ export type EditorProps = {
 
 export function BlockPill({ op, block, band, size = "md", style, className }: { op: string; block?: Block; band: EditorProps["band"]; size?: "sm" | "md" | "lg"; style?: CSSProperties; className?: string }) {
   const lk = lookOf(op);
-  const icon = <span className={cn("leading-none", size === "lg" ? "text-[34px]" : size === "sm" ? "text-xl" : "text-[26px]")}>{lk.icon}</span>;
+  const icon = <GlyphRow s={lk.icon} size={size === "lg" ? 40 : size === "sm" ? 24 : 31} />;
   const word = op === "call" ? block?.name ?? "call" : lk.word;
   const showWord = band !== "little" || /^(fd|rt|lt)\d/.test(op) || op === "call";
   return (
@@ -138,7 +139,7 @@ function Row({ p, list, index, b, depth }: { p: EditorProps; list: ListPath; ind
   const header = (
     <div className="flex min-h-[52px] items-center gap-2 px-2.5 py-1.5">
       <button type="button" onClick={select} disabled={p.running} className="flex items-center gap-2 font-display text-lg font-extrabold text-white">
-        <span className="text-[24px] leading-none">{lk.icon}</span>
+        <GlyphRow s={lk.icon ?? ""} size={29} />
         {b.op === "def" ? (
           <span>Define {b.name}</span>
         ) : b.op === "repeat" ? (
@@ -175,7 +176,7 @@ function Row({ p, list, index, b, depth }: { p: EditorProps; list: ListPath; ind
           className={cn("flex items-center gap-1.5 rounded-xl bg-white px-3 py-1 font-display text-base font-extrabold text-[#7e22ce] shadow-[0_3px_0_rgba(0,0,0,0.15)] transition-colors", isActive && p.active?.answer === "yes" && "bg-[#bbf7d0] text-[#15803d]", isActive && p.active?.answer === "no" && "bg-[#fecaca] text-[#b91c1c]")}
           aria-label={`${cond.word} — tap to change`}
         >
-          <span>{cond.icon}</span>
+          <GlyphRow s={cond.icon} size={26} />
           {p.band !== "little" && <span>{cond.word}</span>}
           {isActive && p.active?.answer && <span className="text-lg">{p.active.answer === "yes" ? "✓" : "✗"}</span>}
         </button>

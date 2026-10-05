@@ -86,6 +86,19 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   arcade misses cost a point. **Hear buttons sit OUTSIDE answers** (`Hearable`/`HearButton` in
   `acts/common.tsx`; `useSpeaking` lights whatever is being said) — never put a speaker on or
   inside an answer tile.
+  **Pictures are drawn — Learn never shows the emoji font.** Content keeps emoji as keys
+  (`Pic.emoji: "🍎"`); screens render them with `<Glyph e size>` / `GlyphRow` / `WithGlyphs` /
+  `SvgGlyph` (`components/kiosk/learn/art/Glyph.tsx`) → `picFor()` (`art/index.ts`) → a drawing
+  in `art/pics/<category>.ts` made with the pen kit (`art/pen.ts`; every person and feeling face
+  from the cast kit `art/people.ts`). House style: `art/STYLE.md`. A new emoji in content needs a
+  drawing: `node scripts/learn-art.mjs missing` lists them (check-learn fails on any) and
+  `node scripts/learn-art.mjs sheet <category>` renders contact sheets to review. Content TEXT can
+  carry emoji too ("✋ Hands" on a choice tile, match cards, logic labels), so any content string
+  goes on screen through `WithGlyphs`, never as a raw `{o.text}`. Drawings must come out the same
+  everywhere: the pen rounds every number (`tidy` in `pen.ts` — server and browser disagree on
+  sin/cos last digits) and any extra gradient ids are counted per picture (a `WeakMap<Pen>`), never
+  in a module-level counter. Lessons sit on
+  `LessonBackdrop` (a subject-tinted sea) under the `SeaLane` progress bar (`LessonScene.tsx`).
   Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Aquarium`/`Treasures`
   (stickers · hero cards · trophies · verse vault)/`BrainGym` (the Game Arcade: brain games +
   subject games in `ArcadeGames.tsx`, records as `gym:<game>`)/`HarborShop`/`DailyChest`,
@@ -132,7 +145,8 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   `script.ts` (unrecorded math is stitched from number words, the rest uses the device voice).
   After changing content or `script.ts`, run `node scripts/gen-learn-voice.mjs` (local Kokoro
   from node_modules — no download; incremental) and commit the clips + `index.json`.
-  Preview: `/dev/learn` (`?lesson=<id>&grade=k` jumps into a level).
+  Preview: `/dev/learn` (`?lesson=<id>&grade=k` jumps into a level; add `&only=<activity kind>`
+  for just that level's activities of one kind, e.g. `?lesson=code.factory.1&only=factory`).
 - **Stripe** (`lib/stripe/*`, `app/api/stripe/*`): guarded by `isStripeConfigured()`
   so the app runs keyless. Webhook → `plus_subscriptions` + `households.plus_active`.
 - **Types**: `lib/database.types.ts` is generated from the live schema (Supabase MCP

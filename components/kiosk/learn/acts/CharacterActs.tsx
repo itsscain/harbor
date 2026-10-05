@@ -8,6 +8,7 @@ import type { Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, shuffleSeeded } from "../kit";
 import { Hearable, PromptRow, useLater, usePrompt, useSpokenPrompt, type ActProps } from "./common";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
 // Character in action: the Truth Detective's case file, the Repair Kit (build better words one
 // piece at a time), and "think about it" moments with no wrong answer — including choosing what
@@ -48,7 +49,7 @@ export function SpotAct({ act: a, fx, onDone }: ActProps<"spot">) {
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-5">
       <PromptRow parts={parts}>
-        🕵️ {a.prompt}
+        <Glyph e="🕵️" size={40} className="mr-1 align-[-0.35em]" /> {a.prompt}
       </PromptRow>
       <div className="l-pop-in relative w-full rounded-[30px] border-[5px] border-[#e8d9b5] bg-[#fffdf6] p-5 shadow-[0_9px_0_#d9c497]">
         <div className="-mt-1 mb-3 flex items-center justify-between gap-3">
@@ -56,7 +57,7 @@ export function SpotAct({ act: a, fx, onDone }: ActProps<"spot">) {
             <span className="rounded-lg bg-[#ffe9a8] px-2 py-0.5 text-base uppercase tracking-wider">Case file</span>
             {a.title}
           </span>
-          <span className="text-[44px] leading-none">{a.scene ?? "🔍"}</span>
+          <GlyphRow s={a.scene ?? "🔍"} size={54} />
         </div>
         <ol className="flex flex-col gap-2.5">
           {a.lines.map((l, i) => {
@@ -74,12 +75,12 @@ export function SpotAct({ act: a, fx, onDone }: ActProps<"spot">) {
                     )}
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5ead0] font-display text-lg font-extrabold text-[#7a5a1c]">{i + 1}</span>
-                    {l.emoji && <span className="text-[34px] leading-none">{l.emoji}</span>}
+                    {l.emoji && <GlyphRow s={l.emoji} size={42} />}
                     <span key={shake?.i === i ? shake.n : 0} className={cn("flex-1 font-reading text-[23px] font-bold leading-snug text-[var(--l-ink)]", shake?.i === i && "l-shake", isFound && "line-through decoration-[var(--l-coral)] decoration-[3px]")}>
-                      {l.text}
+                      <WithGlyphs text={l.text} />
                     </span>
                     {isFound && <span className="l-stamp shrink-0 rotate-[-10deg] rounded-lg border-[3px] border-[var(--l-coral)] px-2 py-0.5 font-display text-sm font-extrabold uppercase text-[var(--l-coral-edge)]">Found!</span>}
-                    {isHonest && !isFound && <span className="shrink-0 text-2xl">✅</span>}
+                    {isHonest && !isFound && <Glyph e="✅" size={32} />}
                   </button>
                 </Hearable>
               </li>
@@ -136,9 +137,9 @@ export function SlotsAct({ act: a, fx, onDone }: ActProps<"slots">) {
   return (
     <div className="flex w-full max-w-[1100px] flex-col gap-4 lg:flex-row lg:items-start">
       <div className="l-pop-in flex flex-col items-center gap-3 rounded-[30px] bg-white px-6 py-5 shadow-[0_8px_0_var(--l-line)] lg:w-[40%]">
-        {a.scene && <span className="text-[72px] leading-none">{a.scene}</span>}
+        {a.scene && <GlyphRow s={a.scene} size={96} />}
         {a.story && <p className="text-balance text-center font-reading text-[25px] font-bold leading-snug text-[var(--l-ink)]">{a.story}</p>}
-        <p className="mt-1 rounded-full bg-[var(--l-card-2)] px-4 py-1.5 text-center font-display text-lg font-extrabold text-[var(--l-violet)]">🧰 {a.prompt}</p>
+        <p className="mt-1 rounded-full bg-[var(--l-card-2)] px-4 py-1.5 text-center font-display text-lg font-extrabold text-[var(--l-violet)]"><Glyph e="🧰" size={28} className="mr-1.5 align-[-0.3em]" />{a.prompt}</p>
       </div>
       <div className="flex flex-1 flex-col gap-3">
         {a.slots.map((s, i) => (
@@ -168,7 +169,7 @@ export function SlotsAct({ act: a, fx, onDone }: ActProps<"slots">) {
         ))}
         {tip && !done && (
           <p key={tip + k} className="l-pop-in rounded-[18px] bg-white/90 px-4 py-2.5 font-display text-lg font-bold text-[var(--l-ink-2)]">
-            💡 {tip}
+            <Glyph e="💡" size={28} className="mr-1.5 align-[-0.3em]" />{tip}
           </p>
         )}
       </div>
@@ -213,7 +214,7 @@ export function ReflectAct({ act: a, fx, onDone }: ActProps<"reflect">) {
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-5">
       <PromptRow parts={[a.prompt]}>
-        {a.scene && <span className="mr-2">{a.scene}</span>}
+        {a.scene && <GlyphRow s={a.scene} size="1.4em" className="mr-2 inline-flex align-[-0.3em]" />}
         {a.prompt}
       </PromptRow>
       {phase === "pick" && (
@@ -225,8 +226,8 @@ export function ReflectAct({ act: a, fx, onDone }: ActProps<"reflect">) {
                 <div key={o.id} className="l-rise relative" style={{ animationDelay: `${80 + i * 50}ms` }}>
                   <Hearable parts={voiced ? [o.text] : null}>
                     <Chunk tone={on ? "violet" : "white"} onClick={(e) => tap(o.id, e.currentTarget)} className={cn("flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left", on && "l-boing")}>
-                      {o.emoji && <span className="text-[44px] leading-none">{o.emoji}</span>}
-                      <span className={cn("flex-1 font-reading text-[22px] font-bold leading-snug", on ? "text-white" : "text-[var(--l-ink)]")}>{o.text}</span>
+                      {o.emoji && <GlyphRow s={o.emoji} size={52} />}
+                      <span className={cn("flex-1 font-reading text-[22px] font-bold leading-snug", on ? "text-white" : "text-[var(--l-ink)]")}><WithGlyphs text={o.text} /></span>
                       {a.multi && <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px]", on ? "border-white bg-white text-[var(--l-violet)]" : "border-[var(--l-line)]")}>{on && <Check className="h-5 w-5" strokeWidth={4} />}</span>}
                     </Chunk>
                   </Hearable>
@@ -236,7 +237,7 @@ export function ReflectAct({ act: a, fx, onDone }: ActProps<"reflect">) {
           </div>
           {a.multi && (
             <Chunk tone="green" disabled={!picked.length} onClick={finishMulti} className={cn("flex h-16 items-center gap-2 px-10 font-display text-2xl font-extrabold", !picked.length && "opacity-50")}>
-              🙏 Done
+              <Glyph e="🙏" size={36} /> Done
             </Chunk>
           )}
         </>
@@ -245,7 +246,7 @@ export function ReflectAct({ act: a, fx, onDone }: ActProps<"reflect">) {
         <div className="l-pop-in flex w-full max-w-[820px] flex-col items-center gap-4 rounded-[30px] bg-white px-7 py-6 text-center shadow-[0_8px_0_var(--l-line)]">
           {a.multi ? (
             <>
-              <span className="text-[56px] leading-none">🙏</span>
+              <Glyph e="🙏" size={72} />
               <p className="font-reading text-[26px] font-bold leading-snug text-[var(--l-ink)]">
                 Dear God, thank You for {items.map((o, i) => `${i && i === items.length - 1 ? "and " : ""}${o.text.replace(/^(My|Yummy) /, (m) => m.toLowerCase())}`).join(items.length > 2 ? ", " : " ")}.
                 {a.closing ? ` ${a.closing}` : ""}
@@ -253,7 +254,7 @@ export function ReflectAct({ act: a, fx, onDone }: ActProps<"reflect">) {
             </>
           ) : (
             <>
-              <span className="text-[56px] leading-none">{choice?.emoji ?? "💭"}</span>
+              <GlyphRow s={choice?.emoji ?? "💭"} size={72} />
               <p className="font-reading text-[26px] font-bold leading-snug text-[var(--l-ink)]">{choice?.reply || "Thanks for sharing!"}</p>
             </>
           )}

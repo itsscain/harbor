@@ -9,6 +9,7 @@ import { clipMs, stopIfStill, voiceToken, type Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, shuffleSeeded, useShuffled, useShuffledApart } from "../kit";
 import { ChoiceTile, Hearable, PromptRow, tileState, useChoice, useLater, usePrompt, type ActProps, type LessonFx } from "./common";
+import { Glyph, GlyphRow } from "../art/Glyph";
 
 // Scripture memory, one rung of the ladder at a time. The verse sits on a scroll with its
 // reference ribbon. Listen: the Harbor voice reads it while each word lights up (karaoke), then
@@ -40,9 +41,14 @@ function Scroll({ refText, pic, children, glow }: { refText: string; pic?: strin
   return (
     <div className={cn("l-pop-in relative w-full max-w-[980px] rounded-[30px] border-[5px] border-[#f1dfb6] bg-[#fffaf0] px-7 pb-6 pt-9 shadow-[0_9px_0_#e3c98e]", glow && "l-verse-glow")}>
       <span className="absolute -top-5 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_4px_0_var(--l-gold-edge)]">
-        📜 {refText}
+        <Glyph e="📜" size={30} className="mr-1.5 align-[-0.35em]" />
+        {refText}
       </span>
-      {pic && <span className="absolute -left-4 -top-6 rotate-[-8deg] text-[60px] leading-none drop-shadow-[0_4px_0_rgba(0,0,0,0.12)]">{pic}</span>}
+      {pic && (
+        <span className="absolute -left-5 -top-8 block rotate-[-8deg] drop-shadow-[0_4px_0_rgba(0,0,0,0.12)]">
+          <GlyphRow s={pic} size={72} />
+        </span>
+      )}
       {children}
     </div>
   );
@@ -130,7 +136,7 @@ function Listen({ act: a, fx, onDone }: ActProps<"verse">) {
         <div className="l-rise flex w-full max-w-[880px] flex-col items-center gap-4">
           {a.meaning && (
             <div className="flex items-center gap-4 rounded-[26px] bg-white px-6 py-4 shadow-[0_6px_0_var(--l-line)]">
-              <span className="text-[52px] leading-none">{a.pic ?? "💡"}</span>
+              <GlyphRow s={a.pic ?? "💡"} size={64} />
               <p className="font-display text-2xl font-bold leading-snug text-[var(--l-ink)]">
                 <span className="text-[var(--l-violet)]">What it means: </span>
                 {a.meaning}
@@ -348,7 +354,9 @@ function RefPick({ act: a, fx, onDone, v }: ActProps<"verse"> & { v: Step<"ref">
           <div key={o} className="l-rise relative" style={{ animationDelay: `${100 + i * 60}ms` }}>
             <Hearable parts={voiced ? [refSpoken(o)] : null} side="below">
               <ChoiceTile state={tileState(o, c, a.ref)} shakeKey={c.shake?.id === o ? c.shake.n : undefined} onPick={(el) => (sfx("pick"), c.choose(o, el))} label={o} className="min-h-[104px] w-full text-[var(--l-ink)]">
-                <span className="font-display text-[28px] font-extrabold">📖 {o}</span>
+                <span className="flex items-center gap-2 font-display text-[28px] font-extrabold">
+                  <Glyph e="📖" size={38} /> {o}
+                </span>
               </ChoiceTile>
             </Hearable>
           </div>

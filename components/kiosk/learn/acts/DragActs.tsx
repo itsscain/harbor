@@ -11,6 +11,7 @@ import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, useDrag, useShuffled, useShuffledApart } from "../kit";
 import { Visual } from "./Visual";
 import { PromptRow, useLater, useSpokenPrompt, type ActProps } from "./common";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
 // Hands-on activities: drag (or tap) cards into bins, put things in order, match pairs (two
 // columns or a memory game), and build numbers from place-value blocks. Every one of them
@@ -34,8 +35,8 @@ function SortCard({ it, selected, onTap, onDrop }: { it: SortItem; selected: boo
       className={cn("l-drag l-chunk relative flex min-h-[78px] min-w-[120px] items-center justify-center gap-2 px-4 py-2", selected && "ring-[5px] ring-[var(--l-gold)]")}
       style={{ "--f": "var(--l-card)", "--e": "var(--l-line)" } as React.CSSProperties}
     >
-      {it.emoji && <span className={cn("leading-none", (it.text?.length ?? 0) > 22 ? "text-[34px]" : "text-[44px]")}>{it.emoji}</span>}
-      {it.text && <span className={cn("font-reading font-bold leading-tight text-[var(--l-ink)]", it.text.length > 30 ? "max-w-[300px] text-[19px]" : it.text.length > 22 ? "text-[21px]" : "text-[26px]")}>{it.text}</span>}
+      {it.emoji && <GlyphRow s={it.emoji} size={(it.text?.length ?? 0) > 22 ? 40 : 54} />}
+      {it.text && <span className={cn("font-reading font-bold leading-tight text-[var(--l-ink)]", it.text.length > 30 ? "max-w-[300px] text-[19px]" : it.text.length > 22 ? "text-[21px]" : "text-[26px]")}><WithGlyphs text={it.text} /></span>}
     </div>
   );
 }
@@ -104,14 +105,14 @@ export function SortAct({ act: a, fx, onDone }: ActProps<"sort">) {
               className={cn("flex flex-col items-center gap-3 rounded-[28px] border-[4px] border-dashed border-white/80 bg-white/25 p-4 transition-colors", a.items.some((x) => (x.text?.length ?? 0) > 22) ? "min-h-[170px]" : "min-h-[220px]", selected && "bg-white/40")}
             >
               <span key={shakeBin?.id === b.id ? shakeBin.n : 0} className={cn("flex items-center gap-2 rounded-full bg-white px-5 py-2 font-display text-2xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_var(--l-line)]", shakeBin?.id === b.id && "l-shake")}>
-                {b.emoji && <span className="text-3xl">{b.emoji}</span>}
+                {b.emoji && <GlyphRow s={b.emoji} size={38} />}
                 {b.label}
               </span>
               <span className="flex flex-wrap justify-center gap-2">
                 {inBin.map((it) => (
                   <span key={it.id} className="l-pop-in flex items-center gap-1 rounded-2xl bg-white px-3 py-1.5 shadow-[0_3px_0_var(--l-green-edge)]">
-                    {it.emoji && <span className="text-3xl">{it.emoji}</span>}
-                    {it.text && <span className="font-reading text-xl font-bold text-[var(--l-ink)]">{it.text}</span>}
+                    {it.emoji && <GlyphRow s={it.emoji} size={36} />}
+                    {it.text && <span className="font-reading text-xl font-bold text-[var(--l-ink)]"><WithGlyphs text={it.text} /></span>}
                   </span>
                 ))}
               </span>
@@ -165,8 +166,8 @@ export function OrderAct({ act: a, fx, onDone }: ActProps<"order">) {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--l-gold)] font-display text-lg font-extrabold text-[#5a3b00]">{i + 1}</span>
               {i < n && (
                 <span className="l-pop-in flex items-center gap-2">
-                  {it.emoji && <span className={cn("leading-none", side ? "text-[32px]" : "text-[38px]")}>{it.emoji}</span>}
-                  {it.text && <span className={cn("font-reading font-bold leading-tight text-[var(--l-ink)]", side ? "text-[21px]" : "text-[24px]")}>{it.text}</span>}
+                  {it.emoji && <GlyphRow s={it.emoji} size={side ? 38 : 46} />}
+                  {it.text && <span className={cn("font-reading font-bold leading-tight text-[var(--l-ink)]", side ? "text-[21px]" : "text-[24px]")}><WithGlyphs text={it.text} /></span>}
                 </span>
               )}
             </div>
@@ -179,8 +180,8 @@ export function OrderAct({ act: a, fx, onDone }: ActProps<"order">) {
             return (
               <Chunk key={it.id} tone="white" onClick={(e) => (sfx("pick"), tap(it.id, e.currentTarget))} className={cn("flex items-center gap-2 text-[var(--l-ink)]", side ? "min-h-[62px] justify-start px-4 text-left" : "min-h-[84px] px-5", hintId === it.id && "l-hint")}>
                 <span key={shake?.id === it.id ? shake.k : 0} className={cn("flex items-center gap-2", shake?.id === it.id && "l-shake")}>
-                  {it.emoji && <span className={cn("leading-none", side ? "text-[32px]" : "text-[40px]")}>{it.emoji}</span>}
-                  {it.text && <span className={cn("font-reading font-bold leading-tight", side ? "text-[21px]" : "text-[26px]")}>{it.text}</span>}
+                  {it.emoji && <GlyphRow s={it.emoji} size={side ? 38 : 48} />}
+                  {it.text && <span className={cn("font-reading font-bold leading-tight", side ? "text-[21px]" : "text-[26px]")}><WithGlyphs text={it.text} /></span>}
                 </span>
               </Chunk>
             );
@@ -196,8 +197,8 @@ function Face({ o, small }: { o: Option; small?: boolean }) {
   if (o.visual) return <Visual v={o.visual} size="sm" />;
   return (
     <span className="flex flex-col items-center gap-1">
-      {o.emoji && <span className="leading-none" style={{ fontSize: small ? 40 : 52 }}>{o.emoji}</span>}
-      {o.text && <span className={cn("text-balance text-center font-reading font-bold leading-tight text-[var(--l-ink)]", (o.text?.length ?? 0) > 14 ? "text-[20px]" : "text-[26px]")}>{o.text}</span>}
+      {o.emoji && <GlyphRow s={o.emoji} size={small ? 48 : 62} />}
+      {o.text && <span className={cn("text-balance text-center font-reading font-bold leading-tight text-[var(--l-ink)]", (o.text?.length ?? 0) > 14 ? "text-[20px]" : "text-[26px]")}><WithGlyphs text={o.text} /></span>}
     </span>
   );
 }
@@ -322,7 +323,7 @@ function Memory({ act: a, fx, onDone }: ActProps<"match">) {
           return (
             <button key={c.key} type="button" onClick={(e) => flip(c, e.currentTarget)} className="relative h-[136px] [perspective:900px]" aria-label={up ? (c.o.text ?? "card") : "hidden card"}>
               <span className="absolute inset-0 transition-transform duration-500 [transform-style:preserve-3d]" style={{ transform: up ? "rotateY(180deg)" : "none" }}>
-                <span className="absolute inset-0 flex items-center justify-center rounded-[22px] bg-[var(--l-violet)] text-5xl shadow-[0_6px_0_var(--l-violet-edge)] [backface-visibility:hidden]">⚓</span>
+                <span className="absolute inset-0 flex items-center justify-center rounded-[22px] bg-[var(--l-violet)] shadow-[0_6px_0_var(--l-violet-edge)] [backface-visibility:hidden]"><Glyph e="⚓" size={58} /></span>
                 <span className={cn("absolute inset-0 flex items-center justify-center rounded-[22px] bg-white p-2 shadow-[0_6px_0_var(--l-line)] [backface-visibility:hidden] [transform:rotateY(180deg)]", matched.includes(c.i) && "shadow-[0_6px_0_var(--l-green-edge)] outline outline-4 outline-[var(--l-green)]")}>
                   <Face o={c.o} small />
                 </span>
@@ -380,7 +381,7 @@ export function PlaceAct({ act: a, fx, onDone }: ActProps<"place">) {
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-5">
       <PromptRow parts={parts}>
-        Build <span className="rounded-xl bg-white px-3 text-[var(--l-ink)]">{target}</span>
+        Build <span className="rounded-xl bg-[#fff3c4] px-3 text-[var(--l-ink)] shadow-[0_3px_0_#f2d27a]">{target}</span>
       </PromptRow>
       <div className="flex flex-wrap items-stretch justify-center gap-4">
         {a.hundreds && col("Hundreds", h, setH, 9, "#1f6fb2", <span className="block h-12 w-12 rounded-md bg-[#5fb0ff] shadow-[inset_0_0_0_2px_#1f6fb2]" />)}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Glyph, GlyphRow, WithGlyphs } from "./art/Glyph";
+import { LessonBackdrop, SeaLane } from "./LessonScene";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -13,7 +15,6 @@ import { COMBO, PRAISE, RETRY, SAY, lessonClipKeys, type VoiceLevel } from "@/li
 import { partsKey, preload, say, speakingNow, stopVoice, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { BurstLayer, Chunk, ShellIcon, useBursts } from "./kit";
-import { SideBoat } from "./KidBoat";
 import { VoiceCtx, type LessonFx } from "./acts/common";
 import { MeetAct, FindLetterAct, FirstSoundAct, RhymeAct, ReadWordAct, BuildAct, BlendAct, PopAct, SentenceAct } from "./acts/ReadingActs";
 import { TraceAct } from "./acts/TraceAct";
@@ -128,6 +129,7 @@ export function LessonPlayer({
   voice,
   look,
   reduced,
+  dusk,
   buddy,
   tutorials,
   onTutorial,
@@ -142,6 +144,8 @@ export function LessonPlayer({
   voice: VoiceLevel;
   look: BoatLook;
   reduced: boolean;
+  /** Evening: the sea under a dusky sky. */
+  dusk?: boolean;
   /** The reef buddy who cheers from the corner. */
   buddy?: { creature: Creature; scale: number } | null;
   /** Tutorials this child has finished ("boat,…"), and how to record one. */
@@ -429,33 +433,38 @@ export function LessonPlayer({
     };
   }, [listening, i]);
 
-  const progress = Math.min(1, results.length / queue.length);
   const kindBadge = cur?.kind === "spiral" ? "🗺️ From before!" : cur?.kind === "retry" ? "🔁 Try again!" : null;
 
   return (
-    <div className="fixed inset-0 z-[45] flex flex-col overflow-hidden" style={{ background: "var(--l-bg)" }}>
+    <div className="fixed inset-0 z-[45] flex flex-col overflow-hidden">
+      <LessonBackdrop subject={lesson.subject} dusk={dusk} reduced={reduced} />
+      {/* The aquarium buddy, alive in the corner, cheering on every right answer — swimming behind the
+          activity, so a tall one's buttons are never covered */}
+      {buddy && ready && (
+        <div className="pointer-events-none fixed bottom-2 left-2 flex flex-col items-center" aria-hidden>
+          {cheer > 0 && (
+            <span key={`s${cheer}`} className="l-float-num absolute -top-4 left-1/2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={artUrl(ICON_ART.heart)} alt="" width={30} height={30} />
+            </span>
+          )}
+          <span key={cheer} className={cn("block drop-shadow-[0_5px_5px_rgba(0,30,60,0.25)]", cheer > 0 && "l-hop")}>
+            <CreatureView id={buddy.creature.id} size={Math.round(96 * buddy.scale)} react={cheer} animate={!reduced} />
+          </span>
+        </div>
+      )}
+
       <BurstLayer bursts={bursts} />
       {/* A right answer warms the edges of the screen (gold when the streak is hot). */}
       {glow && !reduced && <div key={glow.k} className={cn("l-edge-glow pointer-events-none fixed inset-0 z-[60]", glow.gold && "l-edge-glow-gold")} aria-hidden />}
       {/* Top bar: leave · the boat sailing the lane · combo · hear again */}
-      <div className="flex items-center gap-4 px-5 pb-2 pt-4 sm:px-8">
+      <div className="relative flex items-center gap-4 px-5 pb-2 pt-4 sm:px-8">
         <Chunk tone="ghost" aria-label="Stop the level" onClick={() => (sfx("tap"), setConfirmExit(true), void say(SAY.wantToLeave))} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
           <X className="h-7 w-7" strokeWidth={3} />
         </Chunk>
-        <div className="relative h-14 flex-1">
-          <div className="absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 overflow-hidden rounded-full bg-white/25 shadow-[inset_0_3px_0_rgba(0,40,80,0.12)]">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-[var(--l-gold)] transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ width: `${Math.max(3, progress * 100)}%` }}>
-              <div className="absolute inset-x-3 top-1 h-1.5 rounded-full bg-white/45" />
-            </div>
-          </div>
-          <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 text-4xl drop-shadow-[0_3px_0_rgba(0,40,80,0.2)]">{boss ? "🐙" : "🏝️"}</span>
-          <span className="absolute top-1/2 transition-[left] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ left: `calc(${progress * 100}% - 34px)`, transform: "translateY(-62%)" }}>
-            <SideBoat look={look} size={64} bob={!reduced} />
-            {combo >= 5 && !reduced && <span className="l-flame pointer-events-none absolute -left-7 top-4 text-3xl" aria-hidden>🔥</span>}
-          </span>
-        </div>
-        <div className={cn("flex h-14 min-w-14 items-center justify-center gap-1 rounded-full px-3 font-display text-2xl font-extrabold text-white transition-all", combo >= 2 ? "bg-[var(--l-orange)] shadow-[0_5px_0_var(--l-orange-edge)]" : "bg-white/20")} aria-label={`${combo} in a row`}>
-          <span className={cn(combo >= 2 && "l-flame")}>🔥</span>
+        <SeaLane done={results.length} total={queue.length} boss={boss} look={look} reduced={reduced} hot={combo >= 5} />
+        <div className={cn("flex h-14 min-w-14 items-center justify-center gap-1 rounded-full px-3 font-display text-2xl font-extrabold text-white transition-all", combo >= 2 ? "bg-[var(--l-orange)] shadow-[0_5px_0_var(--l-orange-edge)]" : "bg-white/25")} aria-label={`${combo} in a row`}>
+          <Glyph e="🔥" size={34} className={cn(combo >= 2 ? "l-flame" : "opacity-60 grayscale-[0.6]")} />
           {combo >= 2 && <span key={combo} className="l-pop-in tabular-nums">{combo}</span>}
         </div>
         <Chunk tone="blue" aria-label="Hear it again" onClick={() => (sfx("tap"), promptRef.current.length && void say(promptRef.current))} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
@@ -470,7 +479,7 @@ export function LessonPlayer({
       {/* Boss health */}
       {boss && ready && (
         <div className="mx-auto flex w-full max-w-[640px] items-center gap-3 px-6">
-          <span key={bossHit} className={cn("text-5xl", bossHit > 0 && "l-hit")}>🐙</span>
+          <Glyph key={bossHit} e="🐙" size={64} className={cn(bossHit > 0 && "l-hit")} />
           <div className="relative h-5 flex-1 overflow-hidden rounded-full bg-black/25">
             <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#ef4444] to-[#f97316] transition-[width] duration-500" style={{ width: `${(bossHp / Math.max(1, scoredMain)) * 100}%` }} />
           </div>
@@ -482,8 +491,21 @@ export function LessonPlayer({
       <div className="relative flex min-h-0 flex-1">
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 pb-6 pt-2 sm:px-8">
           {ready && introDone && cur ? (
-            <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-3">
-              {kindBadge && <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">{kindBadge}</span>}
+            <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-1">
+              {/* One reserved row for the little signs ("From before!", "Listen…"), so they never cover the
+                  question and nothing jumps when the reading ends. */}
+              <div className="flex h-10 shrink-0 items-center justify-center gap-3">
+                {kindBadge && (
+                  <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">
+                    <WithGlyphs text={kindBadge} />
+                  </span>
+                )}
+                {listening && coach === null && (
+                  <span className="l-pop-in flex items-center gap-2 rounded-full bg-white/95 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">
+                    <Glyph e="👂" size={28} className="l-hear-wiggle inline-block" /> Listen…
+                  </span>
+                )}
+              </div>
               {/* my-auto (not align-items) centers it, so a tall activity overflows downward and scrolls instead of losing its top */}
               <div className="flex min-h-0 w-full flex-1 justify-center">
                 <div className={cn("my-auto flex w-full justify-center transition-opacity duration-300", (listening || coach !== null) && "opacity-80")}>
@@ -498,12 +520,14 @@ export function LessonPlayer({
           )}
           {comboFlash && (
             <div key={comboFlash.k} className="l-pop-in pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-full bg-[var(--l-orange)] px-7 py-3 font-display text-3xl font-extrabold text-white shadow-[0_6px_0_var(--l-orange-edge)]">
-              🔥 {comboFlash.n} in a row!
+              <Glyph e="🔥" size={40} className="mr-2 inline-block align-[-0.3em]" />
+              {comboFlash.n} in a row!
             </div>
           )}
           {why && (
             <div key={why.k} className="l-pop-in pointer-events-none absolute bottom-6 left-1/2 z-[5] w-[min(92%,760px)] -translate-x-1/2 rounded-[26px] bg-white px-6 py-4 text-center font-display text-2xl font-bold leading-snug text-[var(--l-ink)] shadow-[0_8px_0_var(--l-line)]">
-              💡 {why.text}
+              <Glyph e="💡" size={38} className="mr-2 inline-block align-[-0.35em]" />
+              <WithGlyphs text={why.text} />
             </div>
           )}
         </div>
@@ -511,14 +535,9 @@ export function LessonPlayer({
             coach talks, taps on the activity are held (the top bar still works). */}
         {ready && introDone && cur && (listening || cooling || coach !== null) && (
           <div className="absolute inset-0 z-[20]" aria-hidden>
-            {listening && coach === null && (
-              <span className="l-pop-in absolute left-1/2 top-2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-5 py-2 font-display text-xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_rgba(0,40,80,0.15)]">
-                <span className="l-hear-wiggle inline-block">👂</span> Listen…
-              </span>
-            )}
             {coach !== null && (
               <div key={coach} className="l-coach-in absolute left-1/2 top-[22%] flex w-[min(90%,560px)] flex-col items-center gap-2 rounded-[32px] bg-white px-7 py-6 text-center shadow-[0_10px_0_var(--l-line)]">
-                <span className="text-[72px] leading-none">👀</span>
+                <Glyph e="👀" size={86} />
                 <p className="font-display text-3xl font-extrabold text-[var(--l-ink)]">Stop and look first!</p>
                 <p className="font-display text-xl font-bold text-[var(--l-ink-2)]">Listen to the question again, then choose.</p>
               </div>
@@ -526,21 +545,6 @@ export function LessonPlayer({
           </div>
         )}
       </div>
-
-      {/* The aquarium buddy, alive in the corner, cheering on every right answer */}
-      {buddy && ready && (
-        <div className="pointer-events-none fixed bottom-2 left-2 z-[44] flex flex-col items-center" aria-hidden>
-          {cheer > 0 && (
-            <span key={`s${cheer}`} className="l-float-num absolute -top-4 left-1/2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={artUrl(ICON_ART.heart)} alt="" width={30} height={30} />
-            </span>
-          )}
-          <span key={cheer} className={cn("block drop-shadow-[0_5px_5px_rgba(0,30,60,0.25)]", cheer > 0 && "l-hop")}>
-            <CreatureView id={buddy.creature.id} size={Math.round(96 * buddy.scale)} react={cheer} animate={!reduced} />
-          </span>
-        </div>
-      )}
 
       {/* The golden fish (a big invisible net around it, so a small finger can catch it) */}
       {fish && (
@@ -557,7 +561,7 @@ export function LessonPlayer({
               +{fish.n} <ShellIcon size={40} />
             </span>
           ) : (
-            <span className="text-[96px] drop-shadow-[0_0_26px_rgba(255,200,61,0.95)]">🐠</span>
+            <Glyph e="🐠" size={115} className="drop-shadow-[0_0_26px_rgba(255,200,61,0.95)]" />
           )}
         </button>
       )}
@@ -565,7 +569,7 @@ export function LessonPlayer({
       {confirmExit && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0b2340]/55 p-6 backdrop-blur-sm">
           <div className="l-pop-in w-full max-w-md rounded-[32px] bg-white p-7 text-center shadow-[0_10px_0_var(--l-line)]">
-            <div className="text-6xl">⚓</div>
+            <Glyph e="⚓" size={88} className="mx-auto block" />
             <p className="mt-3 font-display text-3xl font-extrabold text-[var(--l-ink)]">Stop this level?</p>
             <p className="mt-1 text-lg text-[var(--l-ink-2)]">You&rsquo;re doing great — you can finish it later.</p>
             <div className="mt-6 flex flex-col gap-3">
@@ -589,29 +593,57 @@ function LevelCard({ lesson, items, boss, onGo }: { lesson: Lesson; items: numbe
   const sl = SUBJECT_LOOK[lesson.subject];
   const isPractice = lesson.id.startsWith("practice:");
   return (
-    <div className="l-card-in relative flex min-w-[360px] flex-col items-center gap-3 overflow-hidden rounded-[38px] bg-white/95 px-12 pb-8 pt-7 text-center shadow-[0_12px_0_rgba(0,40,80,0.22)]">
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-90" style={{ background: `linear-gradient(160deg, ${sl.from}, ${sl.to})` }} />
-      <span className="relative rounded-full bg-white px-4 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)]" style={{ color: sl.ink }}>
-        {isPractice ? "Practice" : `Level ${levelLabel(lesson)}`} · {COURSES[lesson.subject].title}
+    <div className="l-card-in relative flex w-[min(92vw,640px)] flex-col items-center overflow-hidden rounded-[40px] bg-white text-center shadow-[0_14px_0_rgba(0,40,80,0.22),0_30px_60px_rgba(0,40,80,0.25)]">
+      {/* The subject's colors across the top, with a little sea of waves. */}
+      <div className="relative h-36 w-full" style={{ background: `linear-gradient(160deg, ${sl.from}, ${sl.to})` }}>
+        <svg viewBox="0 0 640 60" preserveAspectRatio="none" className="absolute inset-x-0 -bottom-px h-10 w-full" aria-hidden>
+          <path d="M0 30 Q40 12 80 30 T160 30 T240 30 T320 30 T400 30 T480 30 T560 30 T640 30 V60 H0 Z" fill="#ffffff" opacity="0.35" />
+          <path d="M0 42 Q40 26 80 42 T160 42 T240 42 T320 42 T400 42 T480 42 T560 42 T640 42 V60 H0 Z" fill="#ffffff" />
+        </svg>
+        <span className="absolute left-1/2 top-4 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-4 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)]" style={{ color: sl.ink }}>
+          {isPractice ? "Practice" : `Level ${levelLabel(lesson)}`} · {COURSES[lesson.subject].title}
+        </span>
+      </div>
+      {/* The level's picture in a big round badge, sitting on the waves. */}
+      <span className="relative -mt-20 flex h-40 w-40 items-center justify-center rounded-full bg-white shadow-[0_8px_0_rgba(0,40,80,0.12),inset_0_0_0_8px_rgba(242,248,252,1)]" style={{ boxShadow: `0 8px 0 rgba(0,40,80,0.12), 0 0 0 7px ${sl.from}55` }}>
+        <GlyphRow s={lesson.emoji} size={112} className="l-bob" />
       </span>
-      <span className="l-bob relative text-[96px] leading-none drop-shadow-[0_6px_0_rgba(0,40,80,0.12)]">{lesson.emoji}</span>
-      <p className="max-w-[520px] text-balance font-display text-4xl font-extrabold leading-tight text-[var(--l-ink)]">{lesson.title}</p>
-      {boss && <span className="l-stamp rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-coral-edge)]">🐙 BOSS LEVEL</span>}
-      {lesson.kind === "review" && <span className="l-stamp rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_4px_0_var(--l-gold-edge)]">🗺️ Treasure review</span>}
-      <span className="flex gap-2 text-5xl" aria-label="three stars to win">
-        {[0, 1, 2].map((k) => (
-          <span key={k} className="l-star-in opacity-30 grayscale" style={{ animationDelay: `${250 + k * 160}ms` }}>
-            ⭐
+      <div className="flex w-full flex-col items-center gap-3 px-10 pb-8 pt-4">
+        <p className="max-w-[520px] text-balance font-display text-[40px] font-extrabold leading-[1.05] text-[var(--l-ink)]">{lesson.title}</p>
+        {boss && (
+          <span className="l-stamp flex items-center gap-2 rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-coral-edge)]">
+            <Glyph e="🐙" size={34} /> BOSS LEVEL
           </span>
-        ))}
-      </span>
-      {items > 0 && <span className="font-display text-lg font-bold text-[var(--l-ink-2)]">{items} challenge{items === 1 ? "" : "s"}</span>}
-      {lesson.intro && <p className="l-rise max-w-[600px] text-balance rounded-[22px] bg-[#fff7d6] px-5 py-3 font-display text-xl font-bold leading-snug text-[#5a3b00] shadow-[0_4px_0_#f2d27a]">📜 {lesson.intro}</p>}
-      {onGo && (
-        <Chunk tone="green" onClick={() => (sfx("pick"), onGo())} className="l-pop-in l-pulse flex h-16 items-center gap-2 px-10 font-display text-2xl font-extrabold">
-          Let&apos;s go! ⛵
-        </Chunk>
-      )}
+        )}
+        {lesson.kind === "review" && (
+          <span className="l-stamp flex items-center gap-2 rounded-full bg-[var(--l-gold)] px-5 py-1.5 font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_4px_0_var(--l-gold-edge)]">
+            <Glyph e="🗺️" size={34} /> Treasure review
+          </span>
+        )}
+        <span className="flex items-center gap-2" aria-label="three stars to win">
+          {[0, 1, 2].map((k) => (
+            <span key={k} className="l-star-in" style={{ animationDelay: `${250 + k * 160}ms` }}>
+              <Glyph e="⭐" size={k === 1 ? 64 : 52} className="opacity-35 grayscale" />
+            </span>
+          ))}
+        </span>
+        {items > 0 && (
+          <span className="flex items-center gap-1.5 rounded-full bg-[var(--l-card-2)] px-4 py-1 font-display text-lg font-bold text-[var(--l-ink-2)]">
+            <Glyph e="🎯" size={26} /> {items} challenge{items === 1 ? "" : "s"}
+          </span>
+        )}
+        {lesson.intro && (
+          <p className="l-rise relative max-w-[560px] text-balance rounded-[22px] bg-[#fff7d6] px-5 py-3 pl-14 text-left font-display text-xl font-bold leading-snug text-[#5a3b00] shadow-[0_4px_0_#f2d27a]">
+            <Glyph e="📜" size={40} className="absolute left-3 top-3" />
+            {lesson.intro}
+          </p>
+        )}
+        {onGo && (
+          <Chunk tone="green" onClick={() => (sfx("pick"), onGo())} className="l-pop-in l-pulse mt-1 flex h-16 items-center gap-3 px-10 font-display text-2xl font-extrabold">
+            Let&apos;s go! <Glyph e="⛵" size={40} />
+          </Chunk>
+        )}
+      </div>
     </div>
   );
 }

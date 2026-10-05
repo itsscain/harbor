@@ -1,5 +1,6 @@
 "use client";
 
+import { Glyph, GlyphRow } from "./art/Glyph";
 import { useState } from "react";
 import { ArrowLeft, Check, Lock } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -77,7 +78,7 @@ export function HarborShop({
         <Chunk tone="white" onClick={() => (sfx("tap"), onBack())} aria-label="Back" className="flex h-14 w-14 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
           <ArrowLeft className="h-7 w-7 text-[var(--l-ink)]" strokeWidth={3} />
         </Chunk>
-        <p className="flex-1 font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">🛍️ Harbor Shop</p>
+        <p className="flex-1 font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]"><Glyph e="🛍️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Harbor Shop</p>
         <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 font-display text-2xl font-extrabold text-[var(--l-ink)] shadow-[0_5px_0_var(--l-line)]">
           <ShellIcon size={28} /> <span className="tabular-nums">{shells}</span>
         </span>
@@ -85,13 +86,19 @@ export function HarborShop({
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         {/* Preview */}
-        <div className="flex flex-col items-center gap-3 rounded-[30px] bg-gradient-to-b from-[#bfeaff] to-[#3fb8e6] p-5 shadow-[0_7px_0_rgba(0,40,80,0.18)]">
-          <SideBoat look={shown} size={230} bob={!reduced} showTrail />
+        <div className="relative flex flex-col items-center gap-3 overflow-hidden rounded-[34px] p-5 shadow-[0_8px_0_rgba(0,40,80,0.18)]" style={{ background: "linear-gradient(180deg, #c9f1ff 0%, #9be2ff 46%, #3fb6e8 46%, #1d93cf 100%)" }}>
+          <span className="pointer-events-none absolute right-7 top-6 h-12 w-12 rounded-full bg-[radial-gradient(circle_at_40%_40%,#fff7c2,#ffd23a)] shadow-[0_0_30px_10px_rgba(255,220,90,0.55)]" />
+          <svg viewBox="0 0 260 40" preserveAspectRatio="none" className={cn("pointer-events-none absolute inset-x-0 top-[44%] h-7 w-[200%]", !reduced && "l-wave-slow")} aria-hidden>
+            <path d="M0 20 Q16 8 32 20 T64 20 T96 20 T128 20 T160 20 T192 20 T224 20 T256 20 V40 H0 Z" fill="#ffffff" opacity="0.45" />
+          </svg>
+          <span className="relative mt-4">
+            <SideBoat look={shown} size={240} bob={!reduced} showTrail />
+          </span>
           {preview ? (
             <div className="flex w-full flex-col items-center gap-2 rounded-[22px] bg-white p-4">
               <p className="font-display text-2xl font-extrabold text-[var(--l-ink)]">{preview.name}</p>
               {(preview.level ?? 0) > level ? (
-                <p className="font-display text-lg font-bold text-[var(--l-ink-2)]">🔒 Reach level {preview.level} to buy this</p>
+                <p className="font-display text-lg font-bold text-[var(--l-ink-2)]"><Glyph e="🔒" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Reach level {preview.level} to buy this</p>
               ) : (
                 <Chunk key={shake?.id === preview.id ? shake.n : 0} tone={shells >= preview.price ? "green" : "white"} onClick={() => buy(preview)} className={cn("flex h-16 w-full items-center justify-center gap-2 font-display text-2xl font-extrabold", shells < preview.price && "text-[var(--l-ink-2)]", shake?.id === preview.id && "l-shake")}>
                   Buy for <ShellIcon size={30} /> {preview.price}
@@ -109,7 +116,7 @@ export function HarborShop({
           <div className="flex flex-wrap gap-2">
             {TABS.map((t) => (
               <Chunk key={t.slot} tone={tab === t.slot ? "blue" : "white"} onClick={() => (sfx("tap"), setTab(t.slot), setPreview(null))} className={cn("flex h-14 items-center gap-2 px-4 font-display text-lg font-extrabold", tab !== t.slot && "text-[var(--l-ink)]")}>
-                <span className="text-2xl">{t.emoji}</span> {t.label}
+                <GlyphRow s={t.emoji ?? ""} size={32} /> {t.label}
               </Chunk>
             ))}
           </div>
@@ -120,7 +127,7 @@ export function HarborShop({
               const locked = !have && (it.level ?? 0) > level;
               return (
                 <Chunk key={it.id} tone="white" onClick={() => tapItem(it)} className={cn("relative flex flex-col items-center gap-2 p-3", preview?.id === it.id && "outline-[5px] outline-[var(--l-gold)]", on && "outline-[5px] outline-[var(--l-green)]")}>
-                  <ItemSwatch it={it} />
+                  <ItemSwatch it={it} look={look} />
                   <span className="text-center font-display text-base font-extrabold leading-tight text-[var(--l-ink)]">{it.name}</span>
                   {on ? (
                     <span className="flex items-center gap-1 rounded-full bg-[var(--l-green)] px-3 py-0.5 font-display text-sm font-extrabold text-white">
@@ -147,18 +154,18 @@ export function HarborShop({
   );
 }
 
-function ItemSwatch({ it }: { it: ShopItem }) {
-  if (it.emoji) return <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--l-card-2)] text-[40px]">{it.emoji}</span>;
-  if (it.slot === "hull") return <span className="h-16 w-16 rounded-2xl shadow-[inset_0_-6px_0_rgba(0,0,0,0.18)]" style={{ background: it.color }} />;
-  const a = it.color ?? "#fff";
-  const b = it.color2 ?? "#ff7363";
-  const bg =
-    it.pattern === "stripes" ? `repeating-linear-gradient(0deg, ${a} 0 8px, ${b} 8px 16px)`
-    : it.pattern === "dots" ? `radial-gradient(circle, ${b} 3px, transparent 4px) 0 0/14px 14px, ${a}`
-    : it.pattern === "checker" ? `conic-gradient(${b} 25%, ${a} 0 50%, ${b} 0 75%, ${a} 0) 0 0/16px 16px`
-    : it.pattern === "rainbow" ? "linear-gradient(#ff5d5d, #ff9f43, #ffd93d, #4cd964, #2fb5ff, #8b6cff)"
-    : it.pattern === "stars" ? `radial-gradient(circle, ${b} 2px, transparent 3px) 0 0/12px 12px, ${a}`
-    : it.pattern === "waves" ? `repeating-radial-gradient(circle at 50% 120%, ${a} 0 6px, ${b} 6px 9px)`
-    : a;
-  return <span className="h-16 w-16 rounded-2xl shadow-[inset_0_0_0_2px_rgba(0,40,80,0.15)]" style={{ background: bg, clipPath: "polygon(50% 0, 100% 100%, 0 100%)" }} />;
+/** What an item looks like in the catalog: hulls and sails on a little boat of their own,
+ *  flags, pets and trails as their pictures. */
+function ItemSwatch({ it, look }: { it: ShopItem; look: BoatLook }) {
+  if (it.slot === "hull" || it.slot === "sail")
+    return (
+      <span className="flex h-[84px] w-[84px] items-center justify-center rounded-[22px] bg-[linear-gradient(180deg,#e6f7ff_0%,#e6f7ff_62%,#bfe8ff_62%)]">
+        <SideBoat look={{ ...look, [it.slot]: it.id, pet: null, trail: null }} size={78} bob={false} />
+      </span>
+    );
+  return (
+    <span className="flex h-[84px] w-[84px] items-center justify-center rounded-[22px] bg-[var(--l-card-2)]">
+      <GlyphRow s={it.emoji ?? "✨"} size={60} />
+    </span>
+  );
 }

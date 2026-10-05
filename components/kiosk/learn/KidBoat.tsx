@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { cn } from "@/lib/cn";
 import { SHOP_BY_ID, type BoatLook } from "@/lib/learn/meta";
+import { Glyph, SvgGlyph } from "./art/Glyph";
 
 // The child's boat — their character on every voyage. Hull color, sail pattern, flag, a pet on
 // deck and a trail, all bought with shells in the Harbor Shop. A side view sails the voyage map;
@@ -74,42 +75,59 @@ function SailFill({ id, sail }: { id: string; sail: ReturnType<typeof parts>["sa
   }
 }
 
-/** Side view: the boat on the voyage map, the home screen and the shop. */
+const OL = "#2a2f45";
+/** A hex color lightened (amt > 0) or darkened (amt < 0). */
+function shade(hex: string, amt: number) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = (v: number) => Math.max(0, Math.min(255, Math.round(amt > 0 ? v + (255 - v) * amt : v * (1 + amt))));
+  return `#${[n >> 16, (n >> 8) & 255, n & 255].map((v) => ch(v).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Side view: the boat on the voyage map, the home screen and the shop — drawn in the house style
+ *  (navy outline, light from the top-left), with its flag and pet as drawings. */
 export function SideBoat({ look, size = 120, bob = true, className, showTrail }: { look: BoatLook; size?: number; bob?: boolean; className?: string; showTrail?: boolean }) {
   const id = useId().replace(/:/g, "");
   const p = parts(look);
   return (
     <span className={cn("relative inline-block", bob && "l-bob", className)} style={{ width: size, height: size }}>
       {showTrail && p.trail && (
-        <span className="pointer-events-none absolute -left-[38%] bottom-[14%] flex gap-1 opacity-80" aria-hidden style={{ fontSize: size * 0.16 }}>
-          <span className="l-pulse">{p.trail}</span>
-          <span className="l-pulse" style={{ animationDelay: "0.3s" }}>{p.trail}</span>
+        <span className="pointer-events-none absolute -left-[36%] bottom-[12%] flex gap-1 opacity-90" aria-hidden>
+          <Glyph e={p.trail} size={size * 0.2} className="l-pulse" />
+          <Glyph e={p.trail} size={size * 0.15} className="l-pulse self-end" style={{ animationDelay: "0.3s" }} />
         </span>
       )}
       <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden>
         <defs>
           <SailFill id={`s${id}`} sail={p.sail} />
+          <linearGradient id={`h${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={shade(p.hull, 0.25)} />
+            <stop offset="0.55" stopColor={p.hull} />
+            <stop offset="1" stopColor={shade(p.hull, -0.28)} />
+          </linearGradient>
+          <linearGradient id={`l${id}`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#000" stopOpacity="0.12" />
+            <stop offset="0.6" stopColor="#000" stopOpacity="0" />
+          </linearGradient>
         </defs>
-        <ellipse cx="60" cy="104" rx="46" ry="6" fill="rgba(0,40,80,0.18)" />
-        {/* mast + sails */}
-        <rect x="57" y="18" width="5" height="70" rx="2" fill="#7a4a12" />
-        <path d="M62 22 L62 80 L100 80 Q92 48 62 22 Z" fill={`url(#s${id})`} stroke="rgba(0,40,80,0.25)" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M56 32 L56 80 L28 80 Q36 56 56 32 Z" fill={`url(#s${id})`} stroke="rgba(0,40,80,0.25)" strokeWidth="2" strokeLinejoin="round" opacity="0.92" />
-        {/* hull */}
-        <path d="M14 82 L106 82 Q100 102 84 104 L34 104 Q20 100 14 82 Z" fill={p.hull} stroke="rgba(0,0,0,0.2)" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M18 88 L102 88" stroke="rgba(255,255,255,0.45)" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="40" cy="94" r="3.4" fill="rgba(255,255,255,0.75)" />
-        <circle cx="60" cy="94" r="3.4" fill="rgba(255,255,255,0.75)" />
-        <circle cx="80" cy="94" r="3.4" fill="rgba(255,255,255,0.75)" />
-        {/* flag */}
-        <text x="60" y="20" fontSize="20" textAnchor="start">
-          {p.flag}
-        </text>
-        {p.pet && (
-          <text x="20" y="82" fontSize="24">
-            {p.pet}
-          </text>
-        )}
+        <ellipse cx="60" cy="106" rx="46" ry="5.5" fill="rgba(0,40,80,0.18)" />
+        {/* Mast, then the sails (pattern + a touch of shade + the navy outline). */}
+        <rect x="56.5" y="16" width="6" height="72" rx="3" fill="#a0652c" stroke={OL} strokeWidth="2.5" />
+        <path d="M63 21 L63 80 L101 80 Q93 47 63 21 Z" fill={`url(#s${id})`} stroke={OL} strokeWidth="2.6" strokeLinejoin="round" />
+        <path d="M63 21 L63 80 L101 80 Q93 47 63 21 Z" fill={`url(#l${id})`} />
+        <path d="M56 31 L56 80 L27 80 Q35 55 56 31 Z" fill={`url(#s${id})`} stroke={OL} strokeWidth="2.6" strokeLinejoin="round" />
+        <path d="M68 34 Q80 48 86 64" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="3" fill="none" strokeLinecap="round" />
+        {/* The hull: shaded, a white stripe, portholes, a shine. */}
+        <path d="M13 82 L107 82 Q101 103 84 105 L34 105 Q19 101 13 82 Z" fill={`url(#h${id})`} stroke={OL} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M17.5 89 L102.5 89" stroke="#ffffff" strokeOpacity="0.6" strokeWidth="3.5" strokeLinecap="round" />
+        {[40, 60, 80].map((x) => (
+          <circle key={x} cx={x} cy="96" r="3.6" fill="#bfe8ff" stroke={OL} strokeWidth="1.8" />
+        ))}
+        <ellipse cx="30" cy="85.5" rx="9" ry="2" fill="#ffffff" opacity="0.55" />
+        {/* The flag on top of the mast, and a pet on deck. */}
+        <SvgGlyph e={p.flag} x={70} y={13} size={22} />
+        {p.pet && <SvgGlyph e={p.pet} x={24} y={70} size={28} />}
       </svg>
     </span>
   );
@@ -123,18 +141,20 @@ export function TopBoat({ look, size = 64 }: { look: BoatLook; size?: number }) 
     <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden>
       <defs>
         <SailFill id={`t${id}`} sail={p.sail} />
+        <radialGradient id={`th${id}`} cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor={shade(p.hull, 0.3)} />
+          <stop offset="0.6" stopColor={p.hull} />
+          <stop offset="1" stopColor={shade(p.hull, -0.3)} />
+        </radialGradient>
       </defs>
-      <ellipse cx="50" cy="56" rx="44" ry="26" fill="rgba(0,40,80,0.18)" />
-      <path d="M8 50 Q8 26 40 24 L70 24 Q92 30 96 50 Q92 70 70 76 L40 76 Q8 74 8 50 Z" fill={p.hull} stroke="rgba(0,0,0,0.25)" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M18 50 Q18 34 42 32 L68 32 Q84 37 87 50 Q84 63 68 68 L42 68 Q18 66 18 50 Z" fill="#f4dfb8" />
-      <path d="M44 30 Q66 50 44 70 L50 70 Q74 50 50 30 Z" fill={`url(#t${id})`} stroke="rgba(0,40,80,0.3)" strokeWidth="2" />
-      <circle cx="50" cy="50" r="4.5" fill="#7a4a12" />
-      <path d="M92 50 L84 44 L84 56 Z" fill="rgba(255,255,255,0.85)" />
-      {p.pet && (
-        <text x="18" y="58" fontSize="20">
-          {p.pet}
-        </text>
-      )}
+      <ellipse cx="50" cy="57" rx="44" ry="26" fill="rgba(0,40,80,0.18)" />
+      <path d="M8 50 Q8 26 40 24 L70 24 Q92 30 96 50 Q92 70 70 76 L40 76 Q8 74 8 50 Z" fill={`url(#th${id})`} stroke={OL} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M18 50 Q18 34 42 32 L68 32 Q84 37 87 50 Q84 63 68 68 L42 68 Q18 66 18 50 Z" fill="#f4dfb8" stroke={OL} strokeWidth="2" />
+      <path d="M44 30 Q66 50 44 70 L50 70 Q74 50 50 30 Z" fill={`url(#t${id})`} stroke={OL} strokeWidth="2.2" strokeLinejoin="round" />
+      <circle cx="50" cy="50" r="4.5" fill="#a0652c" stroke={OL} strokeWidth="1.8" />
+      <path d="M92 50 L84 44 L84 56 Z" fill="rgba(255,255,255,0.9)" />
+      <ellipse cx="30" cy="34" rx="10" ry="3" fill="#ffffff" opacity="0.4" transform="rotate(-12 30 34)" />
+      {p.pet && <SvgGlyph e={p.pet} x={26} y={52} size={24} />}
     </svg>
   );
 }

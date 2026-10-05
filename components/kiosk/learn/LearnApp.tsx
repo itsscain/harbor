@@ -75,12 +75,16 @@ export function LearnApp({
   header: ReactNode;
   /** True while a level (or its finish) is open — the wall stays awake longer. */
   onBusy?: (busy: boolean) => void;
-  /** Open straight into this level (previews). */
+  /** Open straight into this level (previews): "<lesson id>", or "<lesson id>#<activity kind>" for
+   *  just that level's activities of one kind. */
   startWith?: string | null;
 }) {
   const [screen, setScreen] = useState<Screen>(() => {
-    const l = startWith ? lessonById(startWith) : null;
-    return l ? { s: "lesson", lesson: l, playId: "preview", back: { s: "home" } } : { s: "home" };
+    const [id, only] = (startWith ?? "").split("#");
+    const l = id ? lessonById(id) : null;
+    const picked = l && only ? l.activities.filter((a) => a.kind === only) : [];
+    const lesson = l && picked.length ? { ...l, activities: picked } : l;
+    return lesson ? { s: "lesson", lesson, playId: "preview", back: { s: "home" } } : { s: "home" };
   });
   const [greeted, setGreeted] = useState(false);
   const [chestOpen, setChestOpen] = useState(false);
@@ -336,6 +340,7 @@ export function LearnApp({
         voice={voice}
         look={look}
         reduced={reduced}
+        dusk={tone === "dusk"}
         buddy={buddyCreature && buddyHatch ? { creature: buddyCreature, scale: growth(kid.xp, buddyHatch, buddyBonus).stage.scale } : null}
         tutorials={[...kid.tutorials].sort().join(",")}
         onTutorial={(id) => event({ op_id: `tutorial:${child.id}:${id}`, type: "collect", item: `tutorial:${id}` })}

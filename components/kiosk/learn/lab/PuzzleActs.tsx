@@ -10,6 +10,7 @@ import { sfx } from "@/lib/learn/sfx";
 import { Chunk, useShuffled } from "../kit";
 import type { ActProps } from "../acts/common";
 import { ChoiceTile, PromptRow, tileState, useChoice, useLater, usePrompt } from "../acts/common";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
 // The Code Lab's quick puzzles — each one a real computer-science idea you can hold in your hand:
 // binary lights, the halving trick for searching, sorting by swapping neighbors, secret codes,
@@ -52,11 +53,11 @@ export function BinaryAct({ act, fx, onDone }: ActProps<"binary">) {
   };
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-6">
-      <PromptRow parts={[make ? SAY.binaryMake : SAY.binaryRead]}>{make ? <>Make <b className="rounded-xl bg-white px-3 text-[var(--l-ink)]">{act.target}</b> with the lights</> : "What number do the lights show?"}</PromptRow>
+      <PromptRow parts={[make ? SAY.binaryMake : SAY.binaryRead]}>{make ? <>Make <b className="rounded-xl bg-[#fff3c4] px-3 text-[var(--l-ink)] shadow-[0_3px_0_#f2d27a]">{act.target}</b> with the lights</> : "What number do the lights show?"}</PromptRow>
       <div className="flex flex-wrap justify-center gap-6 rounded-[32px] bg-gradient-to-b from-[#1e293b] to-[#0f172a] px-10 py-8 shadow-[0_10px_0_rgba(0,0,0,0.3)]">
         {vals.map((v, i) => (
           <button key={v} type="button" disabled={!make || done} onClick={() => flip(i)} className={cn("flex flex-col items-center gap-2 rounded-3xl px-3 py-3 transition-colors", make && !done && "hover:bg-white/5 active:bg-white/10")} aria-label={`light worth ${v}, ${on[i] ? "on" : "off"}`}>
-            <span className={cn("text-[96px] leading-none transition-all duration-200", on[i] ? "drop-shadow-[0_0_34px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")}>💡</span>
+            <Glyph e="💡" size={115} className={cn("transition-all duration-200", on[i] ? "drop-shadow-[0_0_34px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")} />
             <span className={cn("font-mono text-4xl font-bold", on[i] ? "text-[#fde047]" : "text-[#64748b]")}>{on[i]}</span>
             <span className="rounded-full bg-white/15 px-4 py-1 font-display text-2xl font-extrabold text-white">{v}</span>
           </button>
@@ -126,8 +127,8 @@ export function SearchAct({ act, fx, onDone }: ActProps<"search">) {
         <span className="rounded-full bg-black/25 px-4 py-1.5">
           Guesses: {guesses.length} <span className="opacity-70">/ {act.limit}</span>
         </span>
-        {last && !found && <span key={guesses.length} className="l-pop-in rounded-full bg-[var(--l-gold)] px-4 py-1.5 text-[#5a3b00]">{last.n} → {last.dir === "up" ? "Higher! ⬆️" : "Lower! ⬇️"}</span>}
-        {found && <span className="l-pop-in rounded-full bg-[#dcfce7] px-4 py-1.5 text-[#166534]">🎯 {secret}! Found in {guesses.length}</span>}
+        {last && !found && <span key={guesses.length} className="l-pop-in rounded-full bg-[var(--l-gold)] px-4 py-1.5 text-[#5a3b00]">{last.n} → <WithGlyphs text={last.dir === "up" ? "Higher! ⬆️" : "Lower! ⬇️"} /></span>}
+        {found && <span className="l-pop-in rounded-full bg-[#dcfce7] px-4 py-1.5 text-[#166534]"><Glyph e="🎯" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {secret}! Found in {guesses.length}</span>}
       </div>
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {Array.from({ length: act.max }, (_, i) => i + 1).map((n) => {
@@ -135,12 +136,12 @@ export function SearchAct({ act, fx, onDone }: ActProps<"search">) {
           const hit = found && n === secret;
           return (
             <button key={n} type="button" disabled={found || out} onClick={(e) => guess(n, e.currentTarget)} className={cn("flex h-14 w-14 items-center justify-center rounded-xl font-display text-xl font-extrabold transition-all duration-300", out ? "scale-90 bg-white/15 text-white/35" : "bg-white text-[var(--l-ink)] shadow-[0_4px_0_var(--l-line)] active:translate-y-1", hit && "l-boing bg-[var(--l-green)] text-white", act.coach && !found && !out && n === mid && "l-hint ring-4 ring-[var(--l-gold)]")}>
-              {hit ? "🎯" : n}
+              {hit ? <Glyph e="🎯" size="1.3em" /> : n}
             </button>
           );
         })}
       </div>
-      {act.coach && !found && <span className="rounded-full bg-[#fff7d6] px-4 py-1.5 font-display text-lg font-extrabold text-[#7a5200]">💡 Try the glowing middle — it cuts the choices in half!</span>}
+      {act.coach && !found && <span className="rounded-full bg-[#fff7d6] px-4 py-1.5 font-display text-lg font-extrabold text-[#7a5200]"><Glyph e="💡" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Try the glowing middle — it cuts the choices in half!</span>}
     </div>
   );
 }
@@ -182,7 +183,7 @@ export function SwapSortAct({ act, fx, onDone }: ActProps<"swapsort">) {
               <span className={cn("flex w-[76px] items-start justify-center rounded-t-2xl pt-2 font-display text-3xl font-extrabold text-white shadow-[0_5px_0_rgba(0,40,80,0.2)] transition-all duration-300", done && "bg-[var(--l-green)]")} style={{ height: 50 + (v / max) * 170, background: done ? undefined : `hsl(${190 + (v / max) * 140} 75% 55%)` }}>
                 {v}
               </span>
-              {act.emoji && <span className="text-2xl">{act.emoji}</span>}
+              {act.emoji && <GlyphRow s={act.emoji ?? ""} size={32} />}
             </div>
             {i < arr.length - 1 && (
               <button type="button" disabled={done} onClick={(e) => swap(i, e.currentTarget)} className={cn("mx-1 mb-10 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--l-ink)] shadow-[0_4px_0_var(--l-line)] active:translate-y-1", flash?.i === i && (flash.good ? "ring-4 ring-[var(--l-green)]" : "l-shake ring-4 ring-[var(--l-coral)]"))} aria-label={`swap ${v} and ${arr[i + 1]}`}>
@@ -194,7 +195,7 @@ export function SwapSortAct({ act, fx, onDone }: ActProps<"swapsort">) {
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3 font-display text-xl font-extrabold">
         <span className="rounded-full bg-white px-4 py-1.5 text-[var(--l-ink)]">Swaps: {swaps}</span>
-        {flash && !flash.good && !done && <span key={flash.k} className="l-pop-in rounded-full bg-[#fee2e2] px-4 py-1.5 text-[#b91c1c]">👀 Those two were already in order!</span>}
+        {flash && !flash.good && !done && <span key={flash.k} className="l-pop-in rounded-full bg-[#fee2e2] px-4 py-1.5 text-[#b91c1c]"><Glyph e="👀" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Those two were already in order!</span>}
         {done && <span className="l-pop-in rounded-full bg-[#dcfce7] px-4 py-1.5 text-[#166534]">Sorted! Fewest possible: {min}</span>}
       </div>
       <span className="rounded-full bg-black/20 px-4 py-1.5 font-display text-base font-bold text-white">Bubble sort: compare two neighbors — if the left one is bigger, swap!</span>
@@ -217,13 +218,13 @@ export function CipherAct({ act, fx, onDone }: ActProps<"cipher">) {
       <PromptRow parts={[SAY.cipherIntro]}>Crack the code! Tap each letter to decode it.</PromptRow>
       {/* The key */}
       <div className="max-w-full overflow-x-auto rounded-[22px] bg-white/95 p-3 shadow-[0_6px_0_rgba(0,40,80,0.14)]">
-        <span className="mb-1 block text-center font-display text-sm font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">🔑 The key {act.mode === "shift" ? `— every letter moved ${act.shift} forward` : ""}</span>
+        <span className="mb-1 block text-center font-display text-sm font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]"><Glyph e="🔑" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> The key {act.mode === "shift" ? `— every letter moved ${act.shift} forward` : ""}</span>
         {act.mode === "shift" ? (
           <div className="flex gap-1">
             {letters.map((l) => (
               <div key={l} className="flex flex-col items-center">
                 <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#ede9fe] font-mono text-lg font-bold text-[#6d28d9]">{shiftLetter(l, act.shift ?? 1)}</span>
-                <span className="text-xs">⬇</span>
+                <Glyph e="⬇" size={18} />
                 <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--l-card-2)] font-mono text-lg font-bold text-[var(--l-ink)]">{l}</span>
               </div>
             ))}
@@ -232,7 +233,7 @@ export function CipherAct({ act, fx, onDone }: ActProps<"cipher">) {
           <div className="flex flex-wrap justify-center gap-2">
             {(act.key ?? []).map(([s, l]) => (
               <span key={s} className="flex items-center gap-1 rounded-xl bg-[var(--l-card-2)] px-2.5 py-1 font-mono text-xl font-bold text-[var(--l-ink)]">
-                <span className="text-2xl">{s}</span> = {l}
+                <WithGlyphs text={s} size={34} /> = {l}
               </span>
             ))}
           </div>
@@ -243,9 +244,9 @@ export function CipherAct({ act, fx, onDone }: ActProps<"cipher">) {
         {units.map((u, i) => {
           const isOpen = open.includes(i);
           return (
-            <button key={i} type="button" disabled={isOpen} onClick={() => (sfx("pick"), setOpen((o) => [...o, i]))} className={cn("flex h-20 w-16 flex-col items-center justify-center rounded-2xl font-mono text-3xl font-bold shadow-[0_5px_0_rgba(0,40,80,0.2)] transition-all", isOpen ? "l-pop-in bg-[var(--l-green)] text-white" : "bg-[#4c1d95] text-[#e9d5ff]")}>
-              {isOpen ? decode(u) : u}
-              {isOpen && <span className="font-mono text-xs opacity-80">{u}</span>}
+            <button key={i} type="button" disabled={isOpen} onClick={() => (sfx("pick"), setOpen((o) => [...o, i]))} className={cn("flex h-20 w-[72px] flex-col items-center justify-center rounded-2xl font-mono text-3xl font-bold transition-all", isOpen ? "l-pop-in bg-[var(--l-green)] text-white shadow-[0_5px_0_var(--l-green-edge)]" : "bg-[#f3efff] text-[#4c1d95] shadow-[0_5px_0_#7c3aed] ring-[3px] ring-inset ring-[#c4b5fd]")}>
+              {isOpen ? decode(u) : <WithGlyphs text={u} size={42} />}
+              {isOpen && <span className="font-mono text-xs opacity-80"><WithGlyphs text={u} size={18} /></span>}
             </button>
           );
         })}
@@ -306,15 +307,15 @@ export function LogicAct({ act, fx, onDone }: ActProps<"logic">) {
         <div className="flex flex-col gap-3">
           {[["A", act.labels?.[0], a, () => toggle("a")] as const, ...(one ? [] : [["B", act.labels?.[1], b, () => toggle("b")] as const])].map(([name, label, v, fn]) => (
             <button key={name} type="button" disabled={!light} onClick={fn} className={cn("flex min-h-16 min-w-[180px] flex-col items-center justify-center rounded-2xl px-3 py-1.5 font-display font-extrabold shadow-[0_5px_0_rgba(0,0,0,0.2)] transition-colors", v ? "bg-[var(--l-green)] text-white" : "bg-slate-300 text-slate-600")}>
-              <span className="text-lg leading-tight">{label || name}</span>
+              <span className="text-lg leading-tight"><WithGlyphs text={label || name} /></span>
               <span className="text-2xl">{v ? "ON ✓" : "OFF"}</span>
             </button>
           ))}
         </div>
-        <span className="text-4xl">➡️</span>
+        <Glyph e="➡️" size={48} />
         <span className="flex h-24 w-32 items-center justify-center rounded-[22px] bg-[#334155] font-display text-3xl font-extrabold text-white shadow-[0_6px_0_#1e293b]">{act.gate}</span>
-        <span className="text-4xl">➡️</span>
-        <span className={cn("text-8xl transition-all duration-300", shown && out ? "drop-shadow-[0_0_30px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")}>💡</span>
+        <Glyph e="➡️" size={48} />
+        <Glyph e="💡" size={112} className={cn("transition-all duration-300", shown && out ? "drop-shadow-[0_0_30px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")} />
       </div>
       {light ? (
         <span className="rounded-full bg-[#fff7d6] px-5 py-2 font-display text-xl font-extrabold text-[#7a5200]">
@@ -324,7 +325,7 @@ export function LogicAct({ act, fx, onDone }: ActProps<"logic">) {
         <div className="flex gap-4">
           {["yes", "no"].map((id) => (
             <ChoiceTile key={id} state={tileState(id, c, gate(act.gate, !!act.a, !!act.b) ? "yes" : "no")} shakeKey={c.shake?.id === id ? c.shake.n : undefined} onPick={(el) => (c.choose(id, el), setShown(true))} className="h-20 w-44 font-display text-3xl font-extrabold">
-              {id === "yes" ? "💡 Yes, on" : "⚫ No, off"}
+              <WithGlyphs text={id === "yes" ? "💡 Yes, on" : "⚫ No, off"} />
             </ChoiceTile>
           ))}
         </div>
@@ -364,7 +365,7 @@ export function MachineAct({ act, fx, onDone }: ActProps<"machine">) {
         <div className="flex items-center gap-3">
           <span key={c.found ?? "in"} className={cn("flex h-16 w-16 items-center justify-center rounded-full bg-[var(--l-blue)] font-display text-3xl font-extrabold text-white shadow-[0_4px_0_var(--l-blue-edge)]", c.found && "l-pop-in")}>{out ? act.input : "?"}</span>
           <div className="flex h-32 w-40 flex-col items-center justify-center rounded-[24px] bg-[#64748b] font-display text-white shadow-[0_7px_0_#475569]">
-            <span className={cn("text-4xl", c.found && "l-spin")}>⚙️</span>
+            <Glyph e="⚙️" size={48} className={cn("", c.found && "l-spin")} />
             <span className="text-2xl font-extrabold">{c.found ? (out ? "✓" : act.answer) : out ? "rule" : "?"}</span>
           </div>
           <span className={cn("flex h-16 w-16 items-center justify-center rounded-full font-display text-3xl font-extrabold text-white shadow-[0_4px_0_var(--l-green-edge)]", c.found ? "l-pop-in bg-[var(--l-green)]" : "bg-slate-300")}>{out ? (c.found ? act.answer : "?") : "?"}</span>
@@ -393,9 +394,9 @@ export function PlotAct({ act, fx, onDone }: ActProps<"plot">) {
   const C = Math.floor(Math.min(560 / (act.cols + 1), 380 / (act.rows + 1), 72));
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-4">
-      <PromptRow parts={[place ? SAY.plotPlace : SAY.plotRead]}>{place ? <>Put the {act.emoji} at <b className="rounded-xl bg-white px-2 font-mono text-[var(--l-ink)]">{answer}</b></> : `Where is the ${act.emoji}?`}</PromptRow>
+      <PromptRow parts={[place ? SAY.plotPlace : SAY.plotRead]}>{place ? <>Put the <GlyphRow s={act.emoji} size="1.3em" className="mx-1 align-[-0.3em]" /> at <b className="rounded-xl bg-[#fff3c4] px-2 font-mono text-[var(--l-ink)] shadow-[0_3px_0_#f2d27a]">{answer}</b></> : <>Where is the <GlyphRow s={act.emoji} size="1.3em" className="mx-1 align-[-0.3em]" />?</>}</PromptRow>
       <div className="relative rounded-[22px] border-[5px] border-dashed border-[#b45309]/50 p-3 shadow-[0_8px_0_rgba(0,40,80,0.16)]" style={{ width: (act.cols + 1) * C + 24, height: (act.rows + 1) * C + 24, background: "radial-gradient(circle at 30% 20%, #fff8e1, #f6e2b3 70%, #ecd08f)" }}>
-        <span className="pointer-events-none absolute -right-4 -top-5 text-4xl">🧭</span>
+        <Glyph e="🧭" size={48} className="pointer-events-none absolute -right-4 -top-5" />
         {Array.from({ length: act.rows }, (_, r) =>
           Array.from({ length: act.cols }, (_, x) => {
             const y = act.rows - 1 - r;
@@ -415,7 +416,7 @@ export function PlotAct({ act, fx, onDone }: ActProps<"plot">) {
                 aria-label={k}
               >
                 {tappedAt === k && k !== answer && k}
-                {((!place && isTarget) || (place && c.found && isTarget)) && <span className={cn("absolute text-4xl", c.found && "l-boing")}>{act.emoji}</span>}
+                {((!place && isTarget) || (place && c.found && isTarget)) && <GlyphRow s={act.emoji ?? ""} size={48} className={cn("absolute", c.found && "l-boing")} />}
               </button>
             );
           }),

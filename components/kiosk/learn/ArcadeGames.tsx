@@ -1,5 +1,6 @@
 "use client";
 
+import { Glyph, GlyphRow, WithGlyphs } from "./art/Glyph";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { Band } from "@/lib/learn/types";
@@ -37,7 +38,7 @@ function Frame({ left, score, children, top, locked }: { left: number; score: nu
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-5">
       <ClockBar left={left} total={ROUND} />
       <div className="flex items-center gap-3">
-        <span key={score} className="l-pop-in rounded-full bg-white px-5 py-1.5 font-display text-2xl font-extrabold text-[var(--l-ink)]">⭐ {score}</span>
+        <span key={score} className="l-pop-in rounded-full bg-white px-5 py-1.5 font-display text-2xl font-extrabold text-[var(--l-ink)]"><Glyph e="⭐" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {score}</span>
         {top}
       </div>
       <div className={cn("relative flex w-full flex-col items-center gap-5 transition-opacity", locked && "opacity-70")}>
@@ -175,7 +176,7 @@ export function BiggerWins({ band, onEnd }: GameProps) {
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-5xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={64} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -228,7 +229,7 @@ export function NumberHop({ band, onEnd }: GameProps) {
           {mark && (
             <span key={mark.k} className="l-pop-in absolute -top-10 flex -translate-x-1/2 flex-col items-center" style={{ left: `${(mark.at / max) * 100}%` }}>
               <span className="rounded-full bg-white px-2 font-display text-lg font-extrabold text-[var(--l-ink)]">{mark.pts ? `+${mark.pts}` : "miss"}</span>
-              <span className="text-3xl">📍</span>
+              <Glyph e="📍" size={40} />
             </span>
           )}
         </div>
@@ -269,7 +270,7 @@ export function CoinCounter({ band, onEnd }: GameProps) {
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-5xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={64} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -293,7 +294,7 @@ type WordQ = { say: string; answer: string; options: { id: string; face: ReactNo
 function makeWord(band: Band): WordQ {
   if (band === "little") {
     const [a, b, c] = shuffled(PICS).slice(0, 3);
-    return { say: a.word, answer: a.word, options: shuffled([a, b, c]).map((p) => ({ id: p.word, face: <span className="text-7xl">{p.emoji}</span> })) };
+    return { say: a.word, answer: a.word, options: shuffled([a, b, c]).map((p) => ({ id: p.word, face: <GlyphRow s={p.emoji ?? ""} size={88} /> })) };
   }
   if (band === "middle") {
     const [a, b, c] = shuffled(SIGHT).slice(0, 3);
@@ -314,17 +315,17 @@ export function WordRocket({ band, onEnd }: GameProps) {
     window.setTimeout(() => void say(n.say), 250);
   };
   return (
-    <Frame left={left} score={score} locked={locked} top={<Chunk tone="blue" onClick={() => (sfx("tap"), void say(q.say))} className="flex h-14 items-center px-5 font-display text-xl font-extrabold">🔊 Hear it</Chunk>}>
+    <Frame left={left} score={score} locked={locked} top={<Chunk tone="blue" onClick={() => (sfx("tap"), void say(q.say))} className="flex h-14 items-center px-5 font-display text-xl font-extrabold"><Glyph e="🔊" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Hear it</Chunk>}>
       <span className="font-display text-2xl font-extrabold text-white">{band === "big" ? "Which one is spelled right?" : band === "middle" ? "Tap the word you hear!" : "Tap the picture you hear!"}</span>
       <div className="flex gap-5">
         {q.options.map((o) => (
           <Chunk key={`${q.say}-${o.id}`} tone="white" onClick={() => (hit(o.id === q.answer), next())} className="l-rise flex h-48 w-56 flex-col items-center justify-center gap-2 text-[var(--l-ink)]">
-            <span className="text-3xl">🚀</span>
+            <Glyph e="🚀" size={40} />
             {o.face}
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-5xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={64} className="l-pop-in" />}
       <AutoSay text={q.say} />
     </Frame>
   );
@@ -380,12 +381,12 @@ export function RhymeTime({ onEnd }: GameProps) {
     }
   };
   return (
-    <Frame left={left} score={score} locked={locked} top={<Chunk tone="blue" onClick={() => void say(q.target.word)} className="flex h-14 items-center gap-2 px-5 font-display text-xl font-extrabold">🔊 {q.target.emoji} {q.target.word}</Chunk>}>
+    <Frame left={left} score={score} locked={locked} top={<Chunk tone="blue" onClick={() => void say(q.target.word)} className="flex h-14 items-center gap-2 px-5 font-display text-xl font-extrabold"><Glyph e="🔊" size={30} /> <GlyphRow s={q.target.emoji} size={36} /> {q.target.word}</Chunk>}>
       <span className="font-display text-2xl font-extrabold text-white">Tap everything that rhymes with “{q.target.word}”!</span>
       <div className="grid grid-cols-3 gap-4">
         {q.cards.map((c) => (
           <Chunk key={`${q.target.word}-${c.word}`} tone={found.includes(c.word) ? "green" : "white"} onClick={() => tap(c)} className={cn("flex h-36 w-44 flex-col items-center justify-center gap-1", miss === c.word && "l-shake")}>
-            <span className="text-6xl">{c.emoji}</span>
+            <GlyphRow s={c.emoji ?? ""} size={72} />
             <span className="font-reading text-2xl font-bold">{c.word}</span>
           </Chunk>
         ))}
@@ -419,7 +420,7 @@ export function Opposites({ onEnd }: GameProps) {
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-5xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={64} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -456,7 +457,7 @@ export function BinaryBlitz({ band, onEnd }: GameProps) {
       <div className="flex gap-5 rounded-[28px] bg-[#1e293b] px-6 py-6">
         {vals.map((v, i) => (
           <button key={v} type="button" onClick={() => flip(i)} className="flex flex-col items-center gap-2">
-            <span className={cn("text-7xl transition-all", on[i] ? "drop-shadow-[0_0_24px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")}>💡</span>
+            <Glyph e="💡" size={88} className={cn("transition-all", on[i] ? "drop-shadow-[0_0_24px_rgba(250,204,21,0.95)]" : "opacity-25 grayscale")} />
             {band !== "little" && <span className="rounded-full bg-white/15 px-3 py-0.5 font-display text-xl font-extrabold text-white">{v}</span>}
           </button>
         ))}
@@ -467,7 +468,7 @@ export function BinaryBlitz({ band, onEnd }: GameProps) {
           ✓ Go
         </Chunk>
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-4xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={54} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -489,20 +490,20 @@ export function BugSquash({ band, onEnd }: GameProps) {
   const { flash, hit, locked } = useHit(() => setScore((s) => s + 1), () => setScore((s) => Math.max(0, s - 1)));
   const left = useClock(ROUND, () => onEnd(score));
   return (
-    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🐞 Tap the bug!</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-coral)] px-5 py-1.5 font-display text-2xl font-extrabold text-white"><Glyph e="🐞" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Tap the bug!</span>}>
       <div className="flex flex-col items-center gap-2 rounded-[24px] bg-white/95 px-6 py-4">
         <span className="font-display text-lg font-extrabold text-[var(--l-ink-2)]">The path should go:</span>
-        <div className="flex gap-2 text-5xl">{q.path.map((d, k) => <span key={k}>{ARROW[d]}</span>)}</div>
+        <div className="flex gap-2">{q.path.map((d, k) => <Glyph key={k} e={ARROW[d]} size={56} />)}</div>
       </div>
       <span className="font-display text-xl font-extrabold text-white">The program says:</span>
       <div className="flex gap-3">
         {q.prog.map((d, k) => (
-          <Chunk key={`${q.path.join("")}-${k}`} tone="blue" onClick={() => (hit(k === q.bug), setQ(makeBug(band)))} className="flex h-24 w-24 items-center justify-center text-5xl">
-            {ARROW[d]}
+          <Chunk key={`${q.path.join("")}-${k}`} tone="blue" onClick={() => (hit(k === q.bug), setQ(makeBug(band)))} className="flex h-24 w-24 items-center justify-center">
+            <Glyph e={ARROW[d]} size={60} />
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-5xl">{flash.ok ? "✅ Squashed!" : "❌"}</span>}
+      {flash && <span key={flash.k} className="l-pop-in font-display text-4xl font-extrabold text-white"><WithGlyphs text={flash.ok ? "✅ Squashed!" : "❌"} size={56} /></span>}
     </Frame>
   );
 }
@@ -531,16 +532,16 @@ export function SinkFloat({ onEnd }: GameProps) {
   return (
     <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">Sink or float?</span>}>
       <div className="relative h-[280px] w-[420px] overflow-hidden rounded-[28px]" style={{ background: "linear-gradient(#f0f9ff 0 32%, #7dd3fc 32%, #0284c7)" }}>
-        <span key={`${q[1]}${drop?.k ?? ""}`} className="absolute left-1/2 text-7xl" style={{ top: drop ? (drop.floats ? "20%" : "72%") : "4%", transform: "translateX(-50%)", transition: drop ? "top 600ms cubic-bezier(0.34,1.4,0.64,1)" : "none" }}>
-          {q[0]}
+        <span key={`${q[1]}${drop?.k ?? ""}`} className="absolute left-1/2 block" style={{ top: drop ? (drop.floats ? "20%" : "72%") : "4%", transform: "translateX(-50%)", transition: drop ? "top 600ms cubic-bezier(0.34,1.4,0.64,1)" : "none" }}>
+          <Glyph e={q[0]} size={92} />
         </span>
       </div>
       <span className="font-display text-3xl font-extrabold text-white">{q[1]}</span>
       <div className="flex gap-5">
-        <Chunk tone="teal" onClick={() => guess(true)} className="flex h-20 w-48 items-center justify-center font-display text-2xl font-extrabold">⛵ Floats</Chunk>
-        <Chunk tone="blue" onClick={() => guess(false)} className="flex h-20 w-48 items-center justify-center font-display text-2xl font-extrabold">⬇️ Sinks</Chunk>
+        <Chunk tone="teal" onClick={() => guess(true)} className="flex h-20 w-48 items-center justify-center font-display text-2xl font-extrabold"><Glyph e="⛵" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Floats</Chunk>
+        <Chunk tone="blue" onClick={() => guess(false)} className="flex h-20 w-48 items-center justify-center font-display text-2xl font-extrabold"><Glyph e="⬇️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Sinks</Chunk>
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-4xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={54} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -618,28 +619,28 @@ export function RobotPath({ band, onEnd }: GameProps) {
   };
   const bot = walking ? (walkTo(q.size, q.start, walking.prog.slice(0, walking.step)) ?? q.start) : q.start;
   return (
-    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🤖 Which program reaches the ⭐?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-blue)] px-5 py-1.5 font-display text-2xl font-extrabold text-white"><Glyph e="🤖" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Which program reaches the <Glyph e="⭐" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" />?</span>}>
       <div className="relative rounded-[20px] bg-white/95 p-2 shadow-[0_6px_0_rgba(0,40,80,0.16)]" style={{ width: q.size * C + 16, height: q.size * C + 16 }}>
         {Array.from({ length: q.size * q.size }, (_, i) => (
           <span key={i} className="absolute rounded-xl bg-[#e0f2fe]" style={{ left: 8 + (i % q.size) * C + 3, top: 8 + Math.floor(i / q.size) * C + 3, width: C - 6, height: C - 6 }} />
         ))}
-        <span className="absolute flex items-center justify-center" style={{ left: 8 + q.goal[0] * C, top: 8 + q.goal[1] * C, width: C, height: C, fontSize: C * 0.55 }}>
-          ⭐
+        <span className="absolute flex items-center justify-center" style={{ left: 8 + q.goal[0] * C, top: 8 + q.goal[1] * C, width: C, height: C, }}>
+          <Glyph e="⭐" size={C * 0.72} />
         </span>
-        <span key={`${q.start.join()}${q.goal.join()}`} className="absolute flex items-center justify-center" style={{ left: 8 + bot[0] * C, top: 8 + bot[1] * C, width: C, height: C, fontSize: C * 0.6, transition: "left 200ms ease-out, top 200ms ease-out" }}>
-          🤖
+        <span key={`${q.start.join()}${q.goal.join()}`} className="absolute flex items-center justify-center" style={{ left: 8 + bot[0] * C, top: 8 + bot[1] * C, width: C, height: C, transition: "left 200ms ease-out, top 200ms ease-out" }}>
+          <Glyph e="🤖" size={C * 0.8} />
         </span>
       </div>
       <div className="flex flex-wrap justify-center gap-4">
         {q.options.map((p, i) => (
-          <Chunk key={`${q.start.join()}${q.goal.join()}-${p.join()}`} tone="white" onClick={() => pick(i)} className={cn("flex h-20 items-center justify-center gap-1 px-4 text-4xl", walking && i !== q.answer && "opacity-40")}>
+          <Chunk key={`${q.start.join()}${q.goal.join()}-${p.join()}`} tone="white" onClick={() => pick(i)} className={cn("flex h-20 items-center justify-center gap-1 px-4", walking && i !== q.answer && "opacity-40")}>
             {p.map((d, k) => (
-              <span key={k}>{ARROW[d]}</span>
+              <Glyph key={k} e={ARROW[d]} size={44} />
             ))}
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-4xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={54} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -674,27 +675,27 @@ export function LoopSpotter({ band, onEnd }: GameProps) {
   const left = useClock(ROUND, () => onEnd(score));
   const id = q.seq.join("");
   return (
-    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[#ff9149] px-5 py-1.5 font-display text-2xl font-extrabold text-white">🔁 Which loop makes this?</span>}>
-      <div key={id} className="l-pop-in flex max-w-[900px] flex-wrap justify-center gap-1.5 rounded-[24px] bg-white/95 px-5 py-4 text-5xl shadow-[0_6px_0_rgba(0,40,80,0.16)]">
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[#ff9149] px-5 py-1.5 font-display text-2xl font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Which loop makes this?</span>}>
+      <div key={id} className="l-pop-in flex max-w-[900px] flex-wrap justify-center gap-1.5 rounded-[24px] bg-white/95 px-5 py-4 shadow-[0_6px_0_rgba(0,40,80,0.16)]">
         {q.seq.map((x, i) => (
-          <span key={i}>{x}</span>
+          <Glyph key={i} e={x} size={56} />
         ))}
       </div>
       <div className="flex flex-wrap justify-center gap-4">
         {q.options.map((o, i) => (
           <Chunk key={`${id}-${i}`} tone="white" onClick={() => (hit(i === q.answer), setQ(makeLoopQ(band)))} className="flex flex-col items-start p-3">
             <span className="rounded-[16px] bg-[#ff9149] px-3 pb-2 pt-1 shadow-[0_4px_0_#e26f27]">
-              <span className="font-display text-xl font-extrabold text-white">🔁 Repeat ×{o.times}</span>
-              <span className="mt-1 flex gap-1 rounded-xl bg-white/90 px-2 py-1 text-4xl">
+              <span className="font-display text-xl font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Repeat ×{o.times}</span>
+              <span className="mt-1 flex gap-1 rounded-xl bg-white/90 px-2 py-1">
                 {o.unit.map((x, k) => (
-                  <span key={k}>{x}</span>
+                  <Glyph key={k} e={x} size={44} />
                 ))}
               </span>
             </span>
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-4xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={54} className="l-pop-in" />}
     </Frame>
   );
 }
@@ -779,7 +780,7 @@ export function PySpeed({ onEnd }: GameProps) {
     setQ(makePyQ(q.code));
   };
   return (
-    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[#0f172a] px-5 py-1.5 font-display text-2xl font-extrabold text-[#86efac]">▶ What does it print?</span>}>
+    <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[#0f172a] px-5 py-1.5 font-display text-2xl font-extrabold text-[#86efac]"><Glyph e="▶" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> What does it print?</span>}>
       <div key={q.code} className="l-pop-in whitespace-pre rounded-[24px] bg-[#0f172a] px-8 py-5 font-mono text-[40px] text-[#e2e8f0] shadow-[0_8px_0_rgba(0,0,0,0.3)]">
         {colorize(q.code)}
       </div>
@@ -790,7 +791,7 @@ export function PySpeed({ onEnd }: GameProps) {
           </Chunk>
         ))}
       </div>
-      {flash && (flash.ok ? <span key={flash.k} className="l-pop-in text-5xl">✅</span> : miss && <span key={miss} className="l-pop-in rounded-2xl bg-black/70 px-5 py-2 font-mono text-2xl text-[#fca5a5]">❌ {miss}</span>)}
+      {flash && (flash.ok ? <span key={flash.k} className="l-pop-in text-5xl"><Glyph e="✅" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span> : miss && <span key={miss} className="l-pop-in rounded-2xl bg-black/70 px-5 py-2 font-mono text-2xl text-[#fca5a5]"><Glyph e="❌" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {miss}</span>)}
     </Frame>
   );
 }
@@ -816,17 +817,17 @@ export function AnimalGroups({ band, onEnd }: GameProps) {
   return (
     <Frame left={left} score={score} locked={locked} top={<span className="rounded-full bg-[var(--l-green)] px-5 py-1.5 font-display text-2xl font-extrabold text-white">{band === "little" ? "Where does it live?" : "Which animal group?"}</span>}>
       <div key={q[1]} className="l-pop-in flex flex-col items-center gap-1">
-        <span className="text-9xl">{q[0]}</span>
+        <Glyph e={q[0]} size={150} />
         <span className="font-display text-3xl font-extrabold text-white">{q[1]}</span>
       </div>
       <div className="grid grid-cols-3 gap-3">
         {groups.map(([id, label]) => (
           <Chunk key={id} tone="white" onClick={() => (hit(id === answer), setQ(pickOne(ANIMALS.filter((a) => a !== q))))} className="flex h-20 min-w-[190px] items-center justify-center px-4 font-display text-2xl font-extrabold text-[var(--l-ink)]">
-            {label}
+            <WithGlyphs text={label} size={40} />
           </Chunk>
         ))}
       </div>
-      {flash && <span key={flash.k} className="l-pop-in text-4xl">{flash.ok ? "✅" : "❌"}</span>}
+      {flash && <Glyph key={flash.k} e={flash.ok ? "✅" : "❌"} size={54} className="l-pop-in" />}
     </Frame>
   );
 }

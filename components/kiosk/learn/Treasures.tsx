@@ -1,5 +1,6 @@
 "use client";
 
+import { Glyph, GlyphRow } from "./art/Glyph";
 import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -15,6 +16,7 @@ import { say } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk } from "./kit";
 import { StickerAlbum } from "./StickerAlbum";
+import { DECOR_ART, artUrl } from "./tank/art";
 
 // Treasures: everything a child has collected, one tap from Learn home. The sticker album, Bible
 // hero cards (flip them over), the trophy room (badges for effort as much as for winning), and the
@@ -57,7 +59,9 @@ export function Treasures({
         <Chunk tone="white" onClick={() => (sfx("tap"), onBack())} aria-label="Back" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
           <ArrowLeft className="h-7 w-7 text-[var(--l-ink)]" strokeWidth={3} />
         </Chunk>
-        <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">💰 Treasures</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={artUrl(DECOR_ART.chest)} alt="" width={72} height={60} className="max-w-none drop-shadow-[0_4px_0_rgba(0,40,80,0.18)]" />
+        <p className="font-display text-[34px] font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">Treasures</p>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {TABS.filter((t) => t.show).map((t) => (
@@ -69,9 +73,11 @@ export function Treasures({
               setTab(t.id);
               void say(t.id === "stickers" ? SAY.stickerBook : t.id === "heroes" ? SAY.heroBinder : t.id === "trophies" ? SAY.trophies : SAY.verseVault);
             }}
-            className="flex shrink-0 items-center gap-2 px-4 py-2.5"
+            className="flex shrink-0 items-center gap-3 px-4 py-2.5"
           >
-            <span className="text-3xl leading-none">{t.emoji}</span>
+            <span className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", tab === t.id ? "bg-white/25" : "bg-[var(--l-card-2)]")}>
+              <GlyphRow s={t.emoji} size={40} />
+            </span>
             <span className="text-left">
               <span className={cn("block font-display text-lg font-extrabold leading-tight", tab === t.id ? "text-white" : "text-[var(--l-ink)]")}>{t.label}</span>
               <span className={cn("block font-display text-sm font-bold", tab === t.id ? "text-white/85" : "text-[var(--l-ink-2)]")}>{t.sub}</span>
@@ -89,8 +95,8 @@ export function Treasures({
             const v = Math.min(b.goal, stats[b.stat]);
             return (
               <div key={b.id} className={cn("l-rise flex flex-col items-center gap-1.5 rounded-[24px] bg-white p-4 text-center shadow-[0_5px_0_var(--l-line)]", !got && "opacity-80")} style={{ animationDelay: `${Math.min(i, 16) * 25}ms` }}>
-                <span className={cn("flex h-20 w-20 items-center justify-center rounded-full text-[44px]", got && "l-shiny")} style={{ boxShadow: `0 0 0 5px ${got ? TIER_COLOR[b.tier] : "#dbe8f1"}`, background: got ? `${TIER_COLOR[b.tier]}22` : "#f2f8fc" }}>
-                  <span style={got ? undefined : { filter: "grayscale(1) opacity(0.35)" }}>{b.emoji}</span>
+                <span className={cn("relative flex h-24 w-24 items-center justify-center rounded-full", got && "l-shiny")} style={{ boxShadow: got ? `0 0 0 6px #ffffff, 0 0 0 10px ${TIER_COLOR[b.tier]}, 0 7px 0 10px rgba(0,40,80,0.12)` : "0 0 0 5px #dbe8f1", background: got ? `radial-gradient(circle at 35% 30%, #ffffff, ${TIER_COLOR[b.tier]}33)` : "#f2f8fc" }}>
+                  <GlyphRow s={b.emoji} size={62} style={got ? undefined : { filter: "grayscale(1) opacity(0.3)" }} />
                 </span>
                 <span className="font-display text-lg font-extrabold leading-tight text-[var(--l-ink)]">{b.name}</span>
                 <span className="font-display text-sm font-bold leading-snug text-[var(--l-ink-2)]">{b.desc}</span>
@@ -136,10 +142,10 @@ function HeroBinder({ cards, reduced }: { cards: ReturnType<typeof heroCards>; r
               {/* Front */}
               <span className={cn("absolute inset-0 flex flex-col items-center justify-between overflow-hidden rounded-[22px] p-3 [backface-visibility:hidden]", card?.holo && !reduced && "l-shiny")} style={{ background: card ? `linear-gradient(160deg, ${h.color}, ${h.color}cc)` : "linear-gradient(160deg,#cfdbe6,#b7c7d6)", boxShadow: `0 6px 0 ${card ? HERO_RARITY_COLOR[h.rarity] : "#9fb3c6"}, inset 0 0 0 4px rgba(255,255,255,0.6)` }}>
                 <span className="self-start rounded-full bg-white/85 px-2 font-display text-[11px] font-extrabold uppercase tracking-wider" style={{ color: HERO_RARITY_COLOR[h.rarity] }}>
-                  {card?.holo ? "✨ Holo" : h.rarity}
+                  {card?.holo ? "Holo" : h.rarity}
                 </span>
-                <span className="text-[88px] leading-none drop-shadow-[0_6px_0_rgba(0,0,0,0.15)]" style={card ? undefined : { filter: "brightness(0) opacity(0.25)" }}>
-                  {h.emoji}
+                <span className="flex h-[118px] w-[118px] items-center justify-center rounded-full bg-white/25 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.5)]">
+                  <GlyphRow s={h.emoji} size={100} style={card ? { filter: "drop-shadow(0 6px 0 rgba(0,0,0,0.15))" } : { filter: "brightness(0) opacity(0.25)" }} />
                 </span>
                 <span className="w-full">
                   <span className="block font-display text-xl font-extrabold leading-tight text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.2)]">{card ? h.name : "???"}</span>
@@ -148,11 +154,13 @@ function HeroBinder({ cards, reduced }: { cards: ReturnType<typeof heroCards>; r
               </span>
               {/* Back */}
               <span className="absolute inset-0 flex flex-col justify-between gap-2 rounded-[22px] bg-white p-4 text-left shadow-[0_6px_0_var(--l-line)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                <span className="font-display text-lg font-extrabold text-[var(--l-ink)]">
-                  {h.emoji} {h.name}
+                <span className="flex items-center gap-2 font-display text-lg font-extrabold text-[var(--l-ink)]">
+                  <GlyphRow s={h.emoji} size={36} /> {h.name}
                 </span>
                 <span className="font-reading text-[15px] font-bold leading-snug text-[var(--l-ink)]">{h.fact}</span>
-                <span className="rounded-xl bg-[var(--l-card-2)] px-2 py-1 font-display text-sm font-extrabold text-[var(--l-violet)]">📖 {h.ref}</span>
+                <span className="flex items-center gap-1.5 rounded-xl bg-[var(--l-card-2)] px-2 py-1 font-display text-sm font-extrabold text-[var(--l-violet)]">
+                  <Glyph e="📖" size={22} /> {h.ref}
+                </span>
               </span>
             </span>
           </button>
@@ -174,7 +182,7 @@ function VerseVault({ skills }: { skills: KidLearn["skills"] }) {
   if (!list.length)
     return (
       <div className="flex flex-col items-center gap-3 rounded-[30px] bg-white/92 px-6 py-10 text-center shadow-[0_6px_0_var(--l-line)]">
-        <span className="text-[80px] leading-none">💎</span>
+        <Glyph e="💎" size={96} />
         <p className="font-display text-2xl font-extrabold text-[var(--l-ink)]">Your vault is ready for treasure</p>
         <p className="max-w-[520px] font-display text-lg font-bold text-[var(--l-ink-2)]">Every memory verse you learn on the Lighthouse voyage becomes a gem here — and it shines brighter as you master it.</p>
       </div>
@@ -182,7 +190,7 @@ function VerseVault({ skills }: { skills: KidLearn["skills"] }) {
   return (
     <div className="flex flex-col gap-3">
       <p className="font-display text-xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">
-        {list.length} verse{list.length === 1 ? "" : "s"} in your heart · 👑 {mastered} mastered
+        {list.length} verse{list.length === 1 ? "" : "s"} in your heart · <Glyph e="👑" size={28} className="mx-1 inline-block align-[-0.3em]" /> {mastered} mastered
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {list.map(({ v, s }) => {
@@ -200,18 +208,22 @@ function VerseVault({ skills }: { skills: KidLearn["skills"] }) {
               }}
               className="flex items-start gap-3 rounded-[24px] bg-white p-4 text-left shadow-[0_5px_0_var(--l-line)]"
             >
-              <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl", tier === "gold" && "l-shiny")} style={{ background: `${color}22`, boxShadow: `0 0 0 3px ${color}` }}>
-                {tier === "gold" ? "👑" : "💎"}
+              <span className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl", tier === "gold" && "l-shiny")} style={{ background: `${color}22`, boxShadow: `0 0 0 3px ${color}` }}>
+                <Glyph e={tier === "gold" ? "👑" : "💎"} size={46} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-display text-lg font-extrabold text-[var(--l-ink)]">
-                  {v.pic} {v.ref}
+                <span className="flex flex-wrap items-center gap-1.5 font-display text-lg font-extrabold text-[var(--l-ink)]">
+                  {v.pic && <GlyphRow s={v.pic} size={28} />} {v.ref}
                   <span className="ml-2 font-display text-sm font-bold" style={{ color }}>
                     {tier === "gold" ? "Mastered" : tier === "green" ? "Getting strong" : "Learning"}
                   </span>
                 </span>
                 <span className={cn("block font-reading text-[17px] font-bold leading-snug text-[#3b2a14]", !isOpen && "line-clamp-2")}>{v.text}</span>
-                {isOpen && <span className="mt-2 block rounded-xl bg-[var(--l-card-2)] px-3 py-2 font-display text-[15px] font-bold text-[var(--l-ink)]">💡 {v.meaning}</span>}
+                {isOpen && (
+                  <span className="mt-2 flex items-start gap-2 rounded-xl bg-[var(--l-card-2)] px-3 py-2 font-display text-[15px] font-bold text-[var(--l-ink)]">
+                    <Glyph e="💡" size={24} /> {v.meaning}
+                  </span>
+                )}
               </span>
             </button>
           );

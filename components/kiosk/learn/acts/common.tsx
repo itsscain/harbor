@@ -9,6 +9,7 @@ import { partsKey, say, speakingNow, subscribeVoice, type Part } from "@/lib/lea
 import { cn } from "@/lib/cn";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk, SpeakerButton, type Tone } from "../kit";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
 // What every activity gets from the lesson player, and the small pieces most of them share.
 
@@ -152,21 +153,21 @@ export function MiniSpeaker({ parts, className, light }: { parts: Part[]; classN
   );
 }
 
-/** The instruction row: replay button + a short line of text (for grown-ups watching, and readers). */
+/** The question card: the replay button and the question, on white so it reads on any sea. */
 export function PromptRow({ parts, children, className }: { parts: Part[] | null; children: ReactNode; className?: string }) {
   // A child who can't read leans on this button the most: make it big.
   const voice = useContext(VoiceCtx);
   return (
-    <div className={cn("flex items-center justify-center gap-4", className)}>
-      <SpeakerButton parts={parts} size={voice === "all" ? 72 : voice === "core" ? 62 : 56} />
-      <p className="min-w-0 text-balance font-display text-2xl font-bold leading-tight text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)] sm:text-[28px]">{children}</p>
+    <div className={cn("l-prompt-in flex max-w-[min(94vw,940px)] items-center gap-4 rounded-[32px] bg-white/95 py-2.5 pl-2.5 pr-7 shadow-[0_6px_0_rgba(0,40,80,0.14),0_16px_34px_rgba(0,40,80,0.14)]", className)}>
+      <SpeakerButton parts={parts} size={voice === "all" ? 70 : voice === "core" ? 62 : 56} />
+      <p className="min-w-0 text-balance font-display text-2xl font-extrabold leading-tight text-[var(--l-ink)] sm:text-[28px]">{typeof children === "string" ? <WithGlyphs text={children} /> : children}</p>
     </div>
   );
 }
 
 /** A sound shown inside a prompt line ("starts with  m"). */
 export function SoundChip({ text }: { text: string }) {
-  return <span className="font-reading mx-1 inline-block rounded-xl bg-white px-3 py-0.5 align-middle text-[0.95em] font-bold text-[var(--l-ink)] shadow-[0_3px_0_var(--l-line)]">{text.replace("_", "–")}</span>;
+  return <span className="font-reading mx-1 inline-block rounded-xl bg-[#fff3c4] px-3 py-0.5 align-middle text-[0.95em] font-bold text-[var(--l-ink)] shadow-[0_3px_0_#f2d27a]">{text.replace("_", "–")}</span>;
 }
 
 /** Choice state for "tap the right one" activities: the found answer, misses, which tile to shake.
@@ -232,11 +233,11 @@ export function ChoiceTile({
       disabled={state === "dim"}
       onClick={(e) => onPick(e.currentTarget)}
       className={cn(
-        "relative flex items-center justify-center transition-opacity",
+        "l-tile relative flex items-center justify-center transition-[opacity,filter] duration-200",
         state === "right" && "l-boing",
         state === "hint" && "l-hint",
-        state === "dim" && "opacity-40",
-        (state === "wrong" || state === "tried") && "opacity-60",
+        state === "dim" && "opacity-40 saturate-50",
+        (state === "wrong" || state === "tried") && "opacity-55 saturate-[0.35]",
         className,
       )}
       style={style}
@@ -245,7 +246,14 @@ export function ChoiceTile({
         {children}
       </span>
       {state === "right" && (
-        <span className="l-pop-in absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl shadow-[0_3px_0_var(--l-green-edge)]">✅</span>
+        <span className="l-pop-in absolute -right-3 -top-3 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_3px_0_var(--l-green-edge)]">
+          <Glyph e="✅" size={40} />
+        </span>
+      )}
+      {(state === "wrong" || state === "tried") && (
+        <span className="l-pop-in absolute -right-2.5 -top-2.5 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_3px_0_var(--l-line)]">
+          <Glyph e="❌" size={26} />
+        </span>
       )}
     </Chunk>
   );
@@ -259,11 +267,8 @@ export function tileState(id: string, c: { found: string | null; shake: { id: st
   return "idle";
 }
 
-/** A big emoji picture on a tile. */
+/** A big picture on a tile (the drawing for the content's emoji) — drawn pictures have their own
+ *  margin, so they're shown a good deal bigger than the emoji font was. */
 export function Picture({ emoji, size = 112 }: { emoji: string; size?: number }) {
-  return (
-    <span aria-hidden style={{ fontSize: size, lineHeight: 1 }} className="select-none">
-      {emoji}
-    </span>
-  );
+  return <GlyphRow s={emoji} size={size * 1.32} />;
 }

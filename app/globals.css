@@ -1325,6 +1325,22 @@ html[data-sheet-open] .toast-host {
 @keyframes aq-tap { 0%, 40% { transform: scale(0.3); opacity: 0; } 50% { opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
 .aq-tap { animation: aq-tap 1.3s ease-out infinite; }
 .learn-root[data-reduced="true"] [class*="aq-"] { animation: none !important; }
+/* Answer tiles: a soft sheen on top and a touch of shade below, on any color. */
+.l-tile { background-image: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 40%, rgba(0,40,80,0.05) 100%); border-radius: 28px; }
+/* The question card drops in. */
+@keyframes l-prompt-in { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
+.l-prompt-in { animation: l-prompt-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* The lesson's sea: clouds drift across, waves roll (each row is two screens wide and slides by
+   half, so it loops), bubbles rise, the sun's rays turn slowly. */
+@keyframes l-cloud { from { transform: translateX(-30vw); } to { transform: translateX(110vw); } }
+.l-cloud { animation: l-cloud 100s linear infinite; }
+@keyframes l-wave { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.l-wave-slow { animation: l-wave 26s linear infinite; }
+.l-wave-fast { animation: l-wave 15s linear infinite; }
+@keyframes l-bubble { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: 1; } 50% { transform: translateY(-30vh) translateX(10px); } 100% { transform: translateY(-62vh) translateX(-6px); opacity: 0; } }
+.l-bubble { animation: l-bubble 11s ease-in infinite; }
+@keyframes l-sunrays { 0%, 100% { transform: rotate(0deg); opacity: 0.18; } 50% { transform: rotate(4deg); opacity: 0.3; } }
+.l-sunrays { animation: l-sunrays 14s ease-in-out infinite; transform-origin: 85% 0%; }
 /* Reduced motion: every Learn animation holds still. */
 .learn-root[data-reduced="true"] [class*="l-"] { animation: none !important; }
 .learn-root[data-reduced="true"] .robot * { animation: none !important; }

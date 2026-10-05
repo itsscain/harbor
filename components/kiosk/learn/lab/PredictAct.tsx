@@ -15,6 +15,7 @@ import { PromptRow, useLater, usePrompt } from "../acts/common";
 import { BlockPill, Editor } from "../code/Editor";
 import { MOVE_EMOJI, NOTE_COLOR, stepTarget, type ListPath } from "../code/blocks";
 import { TopBoat } from "../KidBoat";
+import { Glyph } from "../art/Glyph";
 
 // Be the computer: read a program BEFORE it runs and predict what it will do — where the boat will
 // stop, how many bells will ring, which of three programs reaches the island. Then it runs, block by
@@ -223,7 +224,7 @@ export function PredictAct({ act, fx, onDone }: ActProps<"predict">) {
               return (
                 <Chunk key={i} tone={bad ? "ghost" : "white"} disabled={bad || phase === "run" || phase === "right"} onClick={(e) => tapProgram(i, e.currentTarget)} className={cn("flex min-h-[72px] flex-wrap items-center gap-1.5 px-3 py-2 transition-transform", bad && "opacity-50", testing === i && "scale-[1.03] ring-[5px] ring-[var(--l-gold)]")}>
                   <ProgramStrip prog={prog} />
-                  {bad && <span className="ml-auto text-3xl">❌</span>}
+                  {bad && <Glyph e="❌" size={40} className="ml-auto" />}
                 </Chunk>
               );
             })}
@@ -241,7 +242,7 @@ function ProgramStrip({ prog }: { prog: Block[] }) {
       {prog.map((b, k) =>
         b.op === "repeat" ? (
           <span key={k} className="flex items-center gap-1 rounded-2xl bg-[#ff9149] py-1 pl-2 pr-1 shadow-[0_4px_0_#e26f27]">
-            <span className="font-display text-base font-extrabold text-white">🔁×{b.n}</span>
+            <span className="font-display text-base font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" />×{b.n}</span>
             <span className="flex gap-1 rounded-xl bg-white/80 p-1">
               <ProgramStrip prog={b.body ?? []} />
             </span>
@@ -277,10 +278,10 @@ function MiniSea({ map, state, angle, trail, bump, look, mars, guess, truth, onT
               aria-label={`row ${y + 1}, column ${x + 1}`}
             >
               {trailSet.has(k) && ch !== "S" && <span className="absolute rounded-full" style={{ width: cell * 0.18, height: cell * 0.18, background: mars ? "rgba(90,30,10,0.35)" : "rgba(255,255,255,0.6)" }} />}
-              {ch === "#" && <span style={{ fontSize: cell * 0.72, lineHeight: 1 }}>{mars ? "⛰️" : "🪨"}</span>}
-              {ch === "*" && !got && <span className="l-bob" style={{ fontSize: cell * 0.56, lineHeight: 1 }}>🐚</span>}
-              {ch === "G" && <span style={{ fontSize: cell * 0.68, lineHeight: 1 }}>{mars ? "🚩" : "🏝️"}</span>}
-              {isGuess && <span className="l-pop-in absolute inset-1 flex items-start justify-end rounded-xl ring-4 ring-[var(--l-violet)]"><span className="-mr-1 -mt-2 text-2xl">📍</span></span>}
+              {ch === "#" && <Glyph e={mars ? "⛰️" : "🪨"} size={cell * 0.86} />}
+              {ch === "*" && !got && <span className="l-bob" style={{ fontSize: cell * 0.56, lineHeight: 1 }}><Glyph e="🐚" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
+              {ch === "G" && <Glyph e={mars ? "🚩" : "🏝️"} size={cell * 0.82} />}
+              {isGuess && <span className="l-pop-in absolute inset-1 flex items-start justify-end rounded-xl ring-4 ring-[var(--l-violet)]"><Glyph e="📍" size={32} className="-mr-1 -mt-2" /></span>}
               {isTruth && <span className="l-pop-in absolute inset-1 rounded-xl ring-[6px] ring-[var(--l-gold)]" />}
             </button>
           );
@@ -289,7 +290,7 @@ function MiniSea({ map, state, angle, trail, bump, look, mars, guess, truth, onT
       {state && (
         <span className="pointer-events-none absolute flex items-center justify-center" style={{ left: 0, top: 0, width: cell, height: cell, transform: `translate(${state.x * cell}px, ${state.y * cell}px)`, transition: "transform 300ms cubic-bezier(0.34,1.3,0.64,1)" }}>
           <span key={bump} className={cn("flex items-center justify-center", bump > 0 && "l-shake")} style={{ transform: `rotate(${angle}deg)`, transition: "transform 260ms ease-out" }}>
-            {mars ? <span style={{ fontSize: cell * 0.7 }}>🛸</span> : <TopBoat look={look} size={cell * 0.92} />}
+            {mars ? <span style={{ fontSize: cell * 0.7 }}><Glyph e="🛸" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span> : <TopBoat look={look} size={cell * 0.92} />}
           </span>
         </span>
       )}
@@ -309,9 +310,9 @@ function SeqStage({ sim, beat }: { sim: CodeLevel["sim"]; beat: { op: string; k:
           ))}
         </div>
       ) : (
-        <span key={beat?.k ?? -1} className={cn("text-8xl", beat && "l-hop")}>🤖</span>
+        <span key={beat?.k ?? -1} className={cn("text-8xl", beat && "l-hop")}><Glyph e="🤖" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
       )}
-      {beat && sim !== "music" && <span key={`m${beat.k}`} className="l-pop-in absolute right-10 top-8 text-6xl">{MOVE_EMOJI[beat.op] ?? "✨"}</span>}
+      {beat && sim !== "music" && <Glyph key={`m${beat.k}`} e={MOVE_EMOJI[beat.op] ?? "✨"} size={76} className="l-pop-in absolute right-10 top-8" />}
       <span key={beat?.n ?? 0} className="l-pop-in rounded-full bg-white px-5 py-1.5 font-display text-3xl font-extrabold text-[var(--l-ink)]">{beat?.n ?? 0}</span>
     </div>
   );

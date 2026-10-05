@@ -3,8 +3,9 @@
 // Proves every coding level's answer really wins (and every "fix the bug" program really fails),
 // that every choice item's answer is among its options with no look-alike duplicates, that sort/
 // match/order items are well-formed, that every skill can be brought back for review, that every
-// Python Peek program really prints (or crashes) the way the lesson says (learn-python.mjs), and
-// that lesson ids are unique. Exits non-zero on any problem.
+// Python Peek program really prints (or crashes) the way the lesson says (learn-python.mjs), that
+// lesson ids are unique, and that every emoji Learn shows has a drawing (learn-art.mjs). Exits
+// non-zero on any problem.
 
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -285,5 +286,17 @@ for (const c of Object.values(COURSES)) for (const u of c.units) for (const l of
   ids.add(l.id);
 }
 console.log(`code puzzles: ${levels} · loaded in ${loadMs}ms`);
+
+// ── Pictures: every emoji Learn shows must have a drawing (Learn never shows the emoji font) ──
+{
+  const { execFileSync } = await import("node:child_process");
+  try {
+    const out = execFileSync(process.execPath, [join(ROOT, "scripts", "learn-art.mjs"), "missing", "--strict"], { encoding: "utf8" });
+    console.log(out.split("\n")[0]);
+  } catch (err) {
+    const out = String(err.stdout ?? "");
+    bad("pictures", `${out.split("\n")[0]} — draw them in components/kiosk/learn/art/pics (see STYLE.md): ${out.split("\n")[1] ?? ""}`);
+  }
+}
 console.log(problems ? `\n${problems} problem(s)` : "\nAll good.");
 process.exit(problems ? 1 : 0);

@@ -3,22 +3,16 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { ShapeName, Visual as V } from "@/lib/learn/types";
+import { emojisIn, isEmoji } from "../art";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
-// The pictures an item shows — one renderer for all of math, reading and manners: emoji scenes,
+// The pictures an item shows — one renderer for all of math, reading and manners: picture scenes,
 // counting groups, ten-frames, number lines, clocks, coins, base-ten blocks, fractions, arrays,
-// shapes, patterns, graphs, rulers, grids, angles, words and passages. Everything is big, flat
-// and high-contrast, sized for a wall tablet and a five-year-old across the room.
+// shapes, patterns, graphs, rulers, grids, angles, words and passages. Everything is big, drawn
+// (never the emoji font) and high-contrast, sized for a wall tablet and a five-year-old across
+// the room.
 
 const INK = "var(--l-ink)";
-
-/** How many visible characters (emoji with skin tones/ZWJ count as one). */
-function graphemes(s: string): number {
-  try {
-    return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)].length;
-  } catch {
-    return [...s].length;
-  }
-}
 
 export function Visual({ v, size = "md", className }: { v: V; size?: "sm" | "md" | "lg"; className?: string }) {
   const k = size === "sm" ? 0.55 : size === "lg" ? 1.2 : 1;
@@ -28,15 +22,15 @@ export function Visual({ v, size = "md", className }: { v: V; size?: "sm" | "md"
 function render(v: V, k: number): ReactNode {
   switch (v.type) {
     case "emoji": {
-      const px = (v.size === "xl" ? 150 : v.size === "lg" ? 112 : 76) * k;
-      return <span aria-hidden className="select-none leading-none" style={{ fontSize: px }}>{v.emoji}</span>;
+      const px = (v.size === "xl" ? 160 : v.size === "lg" ? 120 : 86) * k;
+      return <GlyphRow s={v.emoji} size={px} className="l-pop-in" />;
     }
     case "scene": {
-      // A scene is a few emoji side by side — sized so they always sit on one line.
-      const n = Math.max(1, graphemes(v.emoji));
+      // A scene is a few pictures side by side — sized so they always sit on one line.
+      const n = Math.max(1, emojisIn(v.emoji).length);
       return (
         <div className="flex flex-col items-center gap-2">
-          <span aria-hidden className="select-none whitespace-nowrap leading-none" style={{ fontSize: Math.min(120, 300 / n) * k }}>{v.emoji}</span>
+          <GlyphRow s={v.emoji} size={Math.min(128, 330 / n) * k} gap={0.04} />
           {v.caption && <span className="font-display text-xl font-bold text-[var(--l-ink-2)]">{v.caption}</span>}
         </div>
       );
@@ -93,7 +87,7 @@ function render(v: V, k: number): ReactNode {
       return (
         <div className="inline-grid gap-1 rounded-2xl bg-[var(--l-card-2)] p-3" style={{ gridTemplateColumns: `repeat(${v.cols}, auto)` }}>
           {Array.from({ length: v.rows * v.cols }, (_, i) => (
-            <span key={i} className="leading-none" style={{ fontSize: Math.max(26, 54 - v.cols * 3) * k }}>{v.emoji}</span>
+            <Glyph key={i} e={v.emoji} size={Math.max(30, 60 - v.cols * 3) * k} />
           ))}
         </div>
       );
@@ -102,19 +96,22 @@ function render(v: V, k: number): ReactNode {
     case "pattern":
       return (
         <div className="flex flex-wrap items-center justify-center gap-2">
-          {v.items.map((it, i) => (
-            <span
-              key={i}
-              className={cn("flex items-center justify-center rounded-2xl font-display font-extrabold", i === v.blank ? "border-4 border-dashed border-[var(--l-gold)] bg-white/70 text-[var(--l-gold-edge)]" : "bg-[var(--l-card-2)]")}
-              style={{ minWidth: 72 * k, height: 72 * k, fontSize: (it.length > 2 ? 30 : 44) * k, padding: "0 10px", color: INK }}
-            >
-              {i === v.blank ? "?" : it}
-            </span>
-          ))}
+          {v.items.map((it, i) => {
+            const pic = isEmoji(it) && emojisIn(it).length === 1;
+            return (
+              <span
+                key={i}
+                className={cn("flex items-center justify-center rounded-2xl font-display font-extrabold", i === v.blank ? "border-4 border-dashed border-[var(--l-gold)] bg-white/70 text-[var(--l-gold-edge)]" : "bg-[var(--l-card-2)]")}
+                style={{ minWidth: 76 * k, height: 76 * k, fontSize: (it.length > 2 ? 30 : 44) * k, padding: pic ? 6 * k : "0 10px", color: INK }}
+              >
+                {i === v.blank ? "?" : pic ? <Glyph e={it} size={60 * k} /> : <WithGlyphs text={it} />}
+              </span>
+            );
+          })}
         </div>
       );
     case "equation":
-      return <span className="font-display font-extrabold tabular-nums tracking-tight" style={{ fontSize: (v.text.length > 14 ? 54 : 72) * k, color: INK }}>{v.text}</span>;
+      return <span className="font-display font-extrabold tabular-nums tracking-tight" style={{ fontSize: (v.text.length > 14 ? 54 : 72) * k, color: INK }}><WithGlyphs text={v.text} /></span>;
     case "word": {
       const [a, b] = v.highlight ?? [0, 0];
       return (
@@ -135,7 +132,7 @@ function render(v: V, k: number): ReactNode {
       return (
         <div className="max-h-[46dvh] w-full max-w-[860px] overflow-y-auto rounded-[24px] bg-[var(--l-card-2)] px-6 py-5 text-left">
           <p className="flex items-center gap-2 font-display text-2xl font-extrabold" style={{ color: INK }}>
-            {v.emoji && <span className="text-3xl">{v.emoji}</span>}
+            {v.emoji && <GlyphRow s={v.emoji} size={40} />}
             {v.title}
           </p>
           <div className="mt-2 space-y-3 font-reading text-[25px] font-medium leading-[1.55]" style={{ color: INK }}>
@@ -167,14 +164,19 @@ function render(v: V, k: number): ReactNode {
 }
 
 function Things({ emoji, n, k, crossed }: { emoji: string; n: number; k: number; crossed?: boolean }) {
-  const px = (n <= 5 ? 64 : n <= 10 ? 52 : n <= 15 ? 42 : 34) * k;
+  const px = (n <= 5 ? 72 : n <= 10 ? 58 : n <= 15 ? 46 : 38) * k;
   const cols = n <= 5 ? n : n <= 10 ? 5 : Math.ceil(n / 3);
   return (
-    <span className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.max(1, cols)}, auto)` }}>
+    <span className="inline-grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.max(1, cols)}, auto)` }}>
       {Array.from({ length: n }, (_, i) => (
-        <span key={i} className="relative leading-none" style={{ fontSize: px }}>
-          {emoji}
-          {crossed && <span className="absolute inset-0 flex items-center justify-center text-[var(--l-coral)]" style={{ fontSize: px * 0.9 }}>✕</span>}
+        <span key={i} className={cn("relative block", crossed && "opacity-60")} style={{ width: px, height: px }}>
+          <Glyph e={emoji} size={px} />
+          {crossed && (
+            <svg viewBox="0 0 10 10" className="absolute inset-[12%]" aria-hidden>
+              <path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" stroke="#2a2f45" strokeWidth="2.6" strokeLinecap="round" />
+              <path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" stroke="var(--l-coral)" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          )}
         </span>
       ))}
     </span>
@@ -408,7 +410,7 @@ function Bars({ data, k }: { data: { label: string; value: number; emoji?: strin
           <div className="relative flex w-16 items-end justify-center rounded-t-xl" style={{ height: H }}>
             <div className="w-full rounded-t-xl" style={{ height: (d.value / max) * H, background: ["var(--l-blue)", "var(--l-coral)", "var(--l-green)", "var(--l-violet)", "var(--l-orange)"][i % 5], boxShadow: "inset 0 -6px 0 rgba(0,0,0,0.12)" }} />
           </div>
-          <span className="text-3xl leading-none">{d.emoji}</span>
+          {d.emoji ? <Glyph e={d.emoji} size={40} /> : null}
           <span className="font-display text-base font-bold" style={{ color: INK }}>{d.label}</span>
         </div>
       ))}
@@ -422,8 +424,8 @@ function Ruler({ length, emoji, k }: { length: number; emoji: string; k: number 
   return (
     <div className="flex flex-col items-start" style={{ width: u * total + 20 }}>
       <div className="flex items-center" style={{ width: u * length, height: 64 * k, marginLeft: 10 }}>
-        <span className="flex h-full w-full items-center justify-center rounded-2xl bg-white/70 leading-none" style={{ fontSize: 50 * k }}>
-          {Array.from({ length: Math.max(1, Math.round(length / 2)) }, () => emoji).join("")}
+        <span className="flex h-full w-full items-center justify-center rounded-2xl bg-white/70">
+          <GlyphRow s={Array.from({ length: Math.max(1, Math.round(length / 2)) }, () => emoji).join("")} size={52 * k} gap={0} />
         </span>
       </div>
       <svg width={u * total + 20} height={56 * k} viewBox={`0 0 ${u * total + 20} ${56 * k}`}>

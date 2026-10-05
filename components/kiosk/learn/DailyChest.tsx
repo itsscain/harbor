@@ -10,6 +10,8 @@ import { say } from "@/lib/learn/audio";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Confetti } from "../Confetti";
 import { Chunk, ShellIcon } from "./kit";
+import { CHEST, Chest } from "./LessonDone";
+import { Glyph, GlyphRow } from "./art/Glyph";
 
 // Once a day, a treasure chest: a handful of shells, and sometimes a sticker. A small, reliable
 // reason to come back tomorrow (and the streak does the rest).
@@ -43,8 +45,15 @@ export function DailyChest({ ready, prize, accent, reduced, onOpen, onClose }: {
       <div className="relative">{open && !reduced && <Confetti count={50} spread={420} accent={accent} />}</div>
       <div className="l-pop-in flex w-full max-w-md flex-col items-center gap-4 rounded-[34px] bg-white p-7 text-center shadow-[0_10px_0_var(--l-line)]" onClick={(e) => e.stopPropagation()}>
         <p className="font-display text-3xl font-extrabold text-[var(--l-ink)]">{open ? "Treasure!" : ready ? "Your daily chest!" : "Come back tomorrow!"}</p>
-        <button type="button" onClick={tap} disabled={open || !ready} className={cn("text-[120px] leading-none", ready && !open && !reduced && "l-chest")} aria-label="Open the chest">
-          {open ? "🎉" : ready ? "🎁" : "🌙"}
+        <button type="button" onClick={tap} disabled={open || !ready} className={cn("relative block", ready && !open && !reduced && "l-chest")} aria-label="Open the chest">
+          {ready || open ? (
+            <span className={cn("block origin-bottom transition-transform duration-500", open && "scale-90")}>
+              <Chest open={open} c={CHEST.gold} />
+            </span>
+          ) : (
+            <Glyph e="🌙" size={150} />
+          )}
+          {open && <Glyph e="🎉" size={64} className="l-pop-in absolute -right-6 -top-4" />}
         </button>
         {open ? (
           <div className="l-rise flex flex-col items-center gap-3">
@@ -53,11 +62,12 @@ export function DailyChest({ ready, prize, accent, reduced, onOpen, onClose }: {
             </span>
             {prize.sticker && (
               <span className="flex items-center gap-3 rounded-[22px] bg-[var(--l-card-2)] px-5 py-3">
-                <span className={cn("flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white text-4xl", prize.shiny && "l-shiny")} style={{ boxShadow: `0 0 0 4px ${prize.shiny ? "#ffd700" : RARITY_COLOR[prize.sticker.rarity]}` }}>
-                  {prize.sticker.emoji}
+                <span className={cn("flex h-20 w-20 items-center justify-center rounded-full", prize.shiny && "l-shiny")} style={{ background: "radial-gradient(circle at 35% 30%, #ffffff, #eef5fb)", boxShadow: `0 0 0 5px #ffffff, 0 0 0 9px ${prize.shiny ? "#ffd700" : RARITY_COLOR[prize.sticker.rarity]}, 0 6px 0 9px rgba(0,40,80,0.12)` }}>
+                  <GlyphRow s={prize.sticker.emoji} size={58} />
                 </span>
                 <span className="font-display text-xl font-extrabold text-[var(--l-ink)]">
-                  {prize.shiny ? "✨ Shiny " : ""}
+                  {prize.shiny && <Glyph e="✨" size={26} className="mr-1 inline-block align-[-0.3em]" />}
+                  {prize.shiny ? "Shiny " : ""}
                   {prize.sticker.name}
                 </span>
               </span>

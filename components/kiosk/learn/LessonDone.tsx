@@ -1,5 +1,7 @@
 "use client";
 
+import { Glyph, GlyphRow, WithGlyphs } from "./art/Glyph";
+import { LessonBackdrop } from "./LessonScene";
 import { useEffect, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import type { Lesson, Unit } from "@/lib/learn/types";
@@ -59,7 +61,7 @@ export type DoneInfo = {
 };
 
 type Phase = "stars" | "chest" | "open" | "summary";
-const CHEST: Record<ChestKind, { body: string; dark: string; band: string; name: string }> = {
+export const CHEST: Record<ChestKind, { body: string; dark: string; band: string; name: string }> = {
   wood: { body: "#b8692a", dark: "#97521d", band: "#ffc83d", name: "Treasure chest" },
   silver: { body: "#9aa9bd", dark: "#738399", band: "#e8eef6", name: "Silver chest" },
   gold: { body: "#f2b52a", dark: "#c98a0c", band: "#fff1b3", name: "Golden chest" },
@@ -193,17 +195,23 @@ export function LessonDone({
   const ring = s ? RARITY_COLOR[s.rarity] : "var(--l-blue)";
   const chest = info.chest ? CHEST[info.chest] : null;
   return (
-    <div className="fixed inset-0 z-[46] flex flex-col items-center overflow-y-auto px-5 pb-8 pt-6" style={{ background: "var(--l-bg)" }}>
+    <div className="fixed inset-0 z-[46] overflow-y-auto">
+      <div className="pointer-events-none fixed inset-0">
+        <LessonBackdrop subject={lesson.subject} reduced={reduced} />
+      </div>
       <div className="relative">{party > 0 && !reduced && <Confetti key={party} count={info.shiny || s?.rarity === "legendary" ? 80 : 44} spread={460} accent={accent} />}</div>
-      <div className="flex w-full max-w-[1100px] flex-col items-center gap-5">
+      <div className="relative mx-auto flex w-full max-w-[1100px] flex-col items-center gap-5 px-5 pb-10 pt-6">
         <div className="flex items-center gap-4">
-          <SideBoat look={look} size={104} bob={!reduced} showTrail />
+          <SideBoat look={look} size={112} bob={!reduced} showTrail />
           <div>
-            <p className="font-display text-[44px] font-extrabold leading-none text-white drop-shadow-[0_3px_0_rgba(0,40,80,0.25)]">
+            <p className={cn("inline-block rounded-[22px] px-5 py-1.5 font-display text-[46px] font-extrabold leading-none shadow-[0_6px_0_rgba(0,40,80,0.18)]", !info.passed ? "bg-white text-[var(--l-ink)]" : info.stars >= 3 ? "bg-[linear-gradient(180deg,#fff3a8,#ffd23a)] text-[#6b4400]" : "bg-white text-[var(--l-ink)]")}>
               {!info.passed ? "So close!" : info.stars >= 3 ? "Perfect!" : lesson.kind === "boss" ? "Boss beaten!" : "Level complete!"}
             </p>
-            <p className="mt-1 font-display text-xl font-bold text-white/85">
-              {info.label} · {lesson.emoji} {lesson.title}
+            <p className="mt-2 flex items-center gap-2 font-display text-xl font-bold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.3)]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90">
+                <GlyphRow s={lesson.emoji} size={26} />
+              </span>
+              {info.label} · {lesson.title}
             </p>
           </div>
         </div>
@@ -211,14 +219,11 @@ export function LessonDone({
         <div className="grid w-full items-center gap-4 lg:grid-cols-2 lg:gap-8">
           <div className="flex flex-col items-center gap-4">
             {/* Stars */}
-            <div className="flex items-end gap-3">
+            <div className="relative flex items-end gap-2">
+              {info.passed && <span className="pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: "radial-gradient(ellipse, rgba(255,240,160,0.75) 0%, transparent 65%)" }} />}
               {[0, 1, 2].map((k) => (
-                <span
-                  key={k}
-                  className={cn("select-none", k < shown && "l-star-in")}
-                  style={{ fontSize: k === 1 ? 104 : 84, lineHeight: 1, opacity: !info.passed || k < shown ? 1 : 0, filter: k < info.stars ? "drop-shadow(0 6px 0 rgba(160,100,0,0.35))" : "grayscale(1) opacity(0.4)" }}
-                >
-                  ⭐
+                <span key={k} className={cn("relative block", k < shown && "l-star-in", k !== 1 && "translate-y-2")} style={{ opacity: !info.passed || k < shown ? 1 : 0 }}>
+                  <Glyph e="⭐" size={k === 1 ? 132 : 104} style={{ filter: k < info.stars ? "drop-shadow(0 6px 0 rgba(160,100,0,0.3))" : "grayscale(1) opacity(0.4)" }} />
                 </span>
               ))}
             </div>
@@ -232,9 +237,11 @@ export function LessonDone({
             )}
 
             {/* Shells */}
-            <div className="flex items-center gap-3 rounded-full bg-white py-2 pl-3 pr-6 shadow-[0_5px_0_var(--l-line)]">
-              <ShellIcon size={42} />
-              <span className="font-display text-3xl font-extrabold tabular-nums text-[var(--l-ink)]">+{shellCount}</span>
+            <div className="flex items-center gap-3 rounded-full bg-white py-2 pl-3 pr-6 shadow-[0_6px_0_var(--l-line)]">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#fff3df]">
+                <ShellIcon size={40} />
+              </span>
+              <span className="font-display text-4xl font-extrabold tabular-nums text-[var(--l-ink)]">+{shellCount}</span>
               <span className="font-display text-lg font-bold text-[var(--l-ink-2)]">shells</span>
             </div>
 
@@ -252,7 +259,11 @@ export function LessonDone({
                     <div className="absolute inset-x-2 top-1 h-1.5 rounded-full bg-white/40" />
                   </div>
                 </div>
-                {levelUp && <p className="l-pop-in mt-3 text-center font-display text-2xl font-extrabold text-[var(--l-violet)]">🎉 Level up! You&rsquo;re a {info.levelNames[1]}!</p>}
+                {levelUp && (
+                  <p className="l-pop-in mt-3 flex items-center justify-center gap-2 text-center font-display text-2xl font-extrabold text-[var(--l-violet)]">
+                    <Glyph e="🎉" size={38} /> Level up! You&rsquo;re a {info.levelNames[1]}!
+                  </p>
+                )}
               </div>
             )}
 
@@ -260,7 +271,7 @@ export function LessonDone({
               <div className="l-rise flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-3 rounded-full bg-white py-2 pl-2 pr-5 shadow-[0_5px_0_var(--l-line)]">
                   <Ring value={info.goal.after / info.goal.target} size={52} stroke={7} color="var(--l-green)" track="var(--l-card-2)">
-                    <span className="text-xl">{info.goal.after >= info.goal.target ? "✅" : "🎯"}</span>
+                    <Glyph e={info.goal.after >= info.goal.target ? "✅" : "🎯"} size={30} />
                   </Ring>
                   <span className="font-display text-lg font-bold text-[var(--l-ink)]">
                     {Math.min(info.goal.after, info.goal.target)}/{info.goal.target} today{goalHit ? " — goal!" : ""}
@@ -268,7 +279,7 @@ export function LessonDone({
                 </div>
                 {info.streak.after > 0 && (
                   <div className="flex items-center gap-2 rounded-full bg-white px-5 py-3 shadow-[0_5px_0_var(--l-line)]">
-                    <span className="l-flame text-2xl">🔥</span>
+                    <Glyph e="🔥" size={32} className="l-flame" />
                     <span className="font-display text-lg font-bold text-[var(--l-ink)]">
                       {info.streak.after} day{info.streak.after === 1 ? "" : "s"} in a row
                     </span>
@@ -276,7 +287,7 @@ export function LessonDone({
                 )}
                 {info.wallStars > 0 && (
                   <div className="flex items-center gap-2 rounded-full bg-white px-5 py-3 shadow-[0_5px_0_var(--l-line)]">
-                    <span className="text-2xl">⭐</span>
+                    <Glyph e="⭐" size={32} />
                     <span className="font-display text-lg font-bold text-[var(--l-ink)]">+{info.wallStars} for your store</span>
                   </div>
                 )}
@@ -304,19 +315,21 @@ export function LessonDone({
                 </span>
                 {phase === "chest" && (
                   <span className="l-pulse rounded-full bg-white px-5 py-2 font-display text-xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_var(--l-line)]">
-                    {info.chest === "gold" ? "✨ Golden chest! Tap!" : info.chest === "silver" ? "Silver chest! Tap!" : "Tap to open!"}
+                    <WithGlyphs text={info.chest === "gold" ? "✨ Golden chest! Tap!" : info.chest === "silver" ? "Silver chest! Tap!" : "Tap to open!"} />
                   </span>
                 )}
               </button>
               {phase !== "chest" && (
                 <div className="absolute left-1/2 top-0 z-[2] flex -translate-x-1/2 flex-col items-center">
-                  <div className={cn("l-pop-in relative flex h-[164px] w-[164px] items-center justify-center overflow-hidden rounded-full bg-white", info.shiny && "l-shiny")} style={{ boxShadow: `0 0 0 8px ${info.shiny ? "#ffd700" : ring}, 0 10px 0 8px rgba(0,40,80,0.15)`, animationDelay: "450ms" }}>
-                    <span style={{ fontSize: 100, lineHeight: 1, filter: info.shiny ? "drop-shadow(0 0 12px #ffd700) saturate(1.4)" : undefined }}>{s.emoji}</span>
+                  {/* The sticker itself: a die-cut sticker with a white edge, in its rarity's ring. */}
+                  <div className={cn("l-pop-in relative flex h-[176px] w-[176px] items-center justify-center overflow-hidden rounded-full", info.shiny && "l-shiny")} style={{ background: `radial-gradient(circle at 35% 30%, #ffffff, ${ring}33)`, boxShadow: `0 0 0 8px #ffffff, 0 0 0 14px ${info.shiny ? "#ffd700" : ring}, 0 12px 0 14px rgba(0,40,80,0.15)`, animationDelay: "450ms" }}>
+                    <GlyphRow s={s.emoji} size={128} style={{ filter: info.shiny ? "drop-shadow(0 0 12px #ffd700) saturate(1.35)" : "drop-shadow(0 4px 0 rgba(0,40,80,0.12))" }} />
                   </div>
                   {info.newSticker && <span className="l-pop-in absolute -right-4 top-0 rotate-12 rounded-full bg-[var(--l-coral)] px-3 py-1 font-display text-lg font-extrabold text-white shadow-[0_3px_0_var(--l-coral-edge)]">NEW!</span>}
                   <div className="l-rise mt-3 flex flex-wrap items-center justify-center gap-2" style={{ animationDelay: "650ms" }}>
                     <span className="font-display text-2xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.3)]">
-                      {info.shiny ? "✨ Shiny " : ""}
+                      {info.shiny && <Glyph e="✨" size={30} className="mr-1 inline-block align-[-0.3em]" />}
+                      {info.shiny ? "Shiny " : ""}
                       {s.name}
                     </span>
                     <span className="rounded-full px-3 py-0.5 font-display text-base font-extrabold text-white" style={{ background: ring }}>
@@ -334,7 +347,8 @@ export function LessonDone({
           <div className="l-pop-in flex flex-wrap items-center justify-center gap-3 rounded-[26px] bg-white px-6 py-4 shadow-[0_7px_0_var(--l-line)]">
             {info.setDone && (
               <span className="font-display text-2xl font-extrabold text-[var(--l-ink)]">
-                {info.setDone.emoji} {info.setDone.name} set complete!{" "}
+                <GlyphRow s={info.setDone.emoji} size={34} className="mr-1.5 align-[-0.35em]" />
+                {info.setDone.name} set complete!{" "}
                 <span className="whitespace-nowrap text-[var(--l-gold-edge)]">
                   +60 <ShellIcon size={26} className="-mt-1 align-middle" />
                 </span>
@@ -342,11 +356,16 @@ export function LessonDone({
             )}
             {info.worldDone && (
               <span className="font-display text-2xl font-extrabold text-[var(--l-ink)]">
-                🏝️ {info.worldDone.title} complete!{" "}
+                <Glyph e="🏝️" size={38} className="mr-1.5 inline-block align-[-0.4em]" />
+                {info.worldDone.title} complete!{" "}
                 <span className="whitespace-nowrap text-[var(--l-gold-edge)]">
                   +100 <ShellIcon size={26} className="-mt-1 align-middle" />
                 </span>
-                {info.nextWorld && <span className="block text-lg text-[var(--l-ink-2)]">Next island: {info.nextWorld.emoji} {info.nextWorld.title}</span>}
+                {info.nextWorld && (
+                  <span className="mt-1 flex items-center gap-1.5 text-lg text-[var(--l-ink-2)]">
+                    Next island: <GlyphRow s={info.nextWorld.emoji} size={26} /> {info.nextWorld.title}
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -356,9 +375,9 @@ export function LessonDone({
           <div className="flex w-full max-w-[980px] flex-wrap items-stretch justify-center gap-3">
             {info.card && (
               <div className="l-card-in flex items-center gap-3 rounded-[24px] p-3 pr-5 text-white shadow-[0_7px_0_rgba(0,40,80,0.18)]" style={{ background: `linear-gradient(150deg, ${info.card.hero.color}, ${info.card.hero.color}cc)`, animationDelay: "1500ms" }}>
-                <span className={cn("flex h-[86px] w-[66px] items-center justify-center rounded-[14px] bg-white/25 text-[46px] shadow-[inset_0_0_0_3px_rgba(255,255,255,0.6)]", info.card.holo && "l-shiny")}>{info.card.hero.emoji}</span>
+                <GlyphRow s={info.card.hero.emoji ?? ""} size={55} className={cn("flex h-[86px] w-[66px] items-center justify-center rounded-[14px] bg-white/25 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.6)]", info.card.holo && "l-shiny")} />
                 <span>
-                  <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-white/85">{info.card.upgrade ? "✨ Now holo!" : info.card.holo ? "✨ Holo hero card!" : "New hero card!"}</span>
+                  <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-white/85"><WithGlyphs text={info.card.upgrade ? "✨ Now holo!" : info.card.holo ? "✨ Holo hero card!" : "New hero card!"} /></span>
                   <span className="block font-display text-2xl font-extrabold leading-tight drop-shadow-[0_2px_0_rgba(0,0,0,0.15)]">{info.card.hero.name}</span>
                   <span className="mt-0.5 inline-block rounded-full bg-white/90 px-2.5 font-display text-sm font-extrabold text-[var(--l-ink)]">{info.card.hero.trait}</span>
                 </span>
@@ -383,7 +402,9 @@ export function LessonDone({
             )}
             {info.badges?.map((b, i) => (
               <div key={b.id} className="l-pop-in flex items-center gap-3 rounded-[24px] bg-white p-3 pr-5 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: `${1900 + i * 150}ms` }}>
-                <span className="l-shiny flex h-14 w-14 items-center justify-center rounded-full text-3xl" style={{ boxShadow: `0 0 0 4px ${TIER_COLOR[b.tier]}`, background: `${TIER_COLOR[b.tier]}22` }}>{b.emoji}</span>
+                <span className="l-shiny flex h-16 w-16 items-center justify-center rounded-full" style={{ boxShadow: `0 0 0 4px ${TIER_COLOR[b.tier]}`, background: `${TIER_COLOR[b.tier]}22` }}>
+                  <GlyphRow s={b.emoji} size={44} />
+                </span>
                 <span>
                   <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-[var(--l-ink-2)]">New badge</span>
                   <span className="block font-display text-xl font-extrabold leading-tight text-[var(--l-ink)]">{b.name}</span>
@@ -398,7 +419,7 @@ export function LessonDone({
             )}
             {info.challenge && (
               <div className="l-rise flex w-full max-w-[760px] items-start gap-3 rounded-[24px] border-[4px] border-dashed border-[var(--l-gold)] bg-white/95 p-4 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: "2300ms" }}>
-                <span className="text-[40px] leading-none">⚓</span>
+                <Glyph e="⚓" size={48} />
                 <span>
                   <span className="block font-display text-sm font-extrabold uppercase tracking-wider text-[var(--l-gold-edge)]">Captain&apos;s challenge for today</span>
                   <span className="block font-display text-xl font-extrabold leading-snug text-[var(--l-ink)]">{info.challenge}</span>
@@ -414,12 +435,12 @@ export function LessonDone({
               <>
                 {next && (
                   <Chunk tone="green" onClick={() => (sfx("pick"), onNext())} className="flex h-20 items-center justify-center gap-3 font-display text-[28px] font-extrabold">
-                    Next: {next.emoji} {next.title}
+                    Next: <GlyphRow s={next.emoji} size={44} /> {next.title}
                   </Chunk>
                 )}
                 {info.stars < 3 && (
                   <Chunk tone="white" onClick={() => (sfx("pick"), onRetry())} className="flex h-16 items-center justify-center gap-2 font-display text-xl font-bold text-[var(--l-ink)]">
-                    ⭐ Try for 3 stars
+                    <Glyph e="⭐" size={32} /> Try for 3 stars
                   </Chunk>
                 )}
               </>
@@ -427,11 +448,11 @@ export function LessonDone({
               <>
                 {info.canPractice && (
                   <Chunk tone="teal" onClick={() => (sfx("pick"), onPractice())} className="flex h-20 items-center justify-center gap-3 font-display text-[26px] font-extrabold">
-                    🏝️ Practice the tricky ones
+                    <Glyph e="🏝️" size={44} /> Practice the tricky ones
                   </Chunk>
                 )}
                 <Chunk tone={info.canPractice ? "white" : "green"} onClick={() => (sfx("pick"), onRetry())} className={cn("flex items-center justify-center gap-2 font-display font-extrabold", info.canPractice ? "h-16 text-xl text-[var(--l-ink)]" : "h-20 text-[26px]")}>
-                  🔁 Try the level again
+                  <Glyph e="🔁" size={36} /> Try the level again
                 </Chunk>
               </>
             )}
@@ -445,26 +466,42 @@ export function LessonDone({
   );
 }
 
-/** A treasure chest in its tier's colors (closed, or with its lid flipped up). */
-function Chest({ open, c }: { open: boolean; c: (typeof CHEST)[ChestKind] }) {
+/** A treasure chest in its tier's colors (closed, or with its lid flipped up), in the house style. */
+export function Chest({ open, c }: { open: boolean; c: (typeof CHEST)[ChestKind] }) {
+  const OL = "#2a2f45";
   return (
-    <svg viewBox="0 0 200 170" width="210" height="178" aria-hidden>
-      <ellipse cx="100" cy="160" rx="78" ry="8" fill="rgba(0,40,80,0.18)" />
-      <rect x="28" y="78" width="144" height="78" rx="14" fill={c.body} />
-      <rect x="28" y="78" width="144" height="16" fill={c.dark} />
-      <rect x="50" y="78" width="16" height="78" fill={c.band} />
-      <rect x="134" y="78" width="16" height="78" fill={c.band} />
-      <rect x="28" y="140" width="144" height="8" fill={c.dark} opacity="0.6" />
-      <g style={{ transformOrigin: "30px 78px", transform: open ? "translate(-8px,-26px) rotate(-22deg)" : "none", transition: "transform 420ms cubic-bezier(0.34,1.56,0.64,1)" }}>
-        <path d="M28 80 L28 58 Q28 26 100 26 Q172 26 172 58 L172 80 Z" fill={c.body} style={{ filter: "brightness(1.08)" }} />
-        <path d="M28 80 L28 70 L172 70 L172 80 Z" fill={c.dark} />
-        <path d="M50 80 L50 32 Q58 29 66 28 L66 80 Z" fill={c.band} />
-        <path d="M134 80 L134 28 Q142 29 150 32 L150 80 Z" fill={c.band} />
-        <path d="M44 44 Q100 30 156 44" stroke="rgba(255,255,255,0.35)" strokeWidth="5" fill="none" strokeLinecap="round" />
+    <svg viewBox="0 0 200 175" width="220" height="192" aria-hidden>
+      <defs>
+        <linearGradient id="chB" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={c.body} />
+          <stop offset="1" stopColor={c.dark} />
+        </linearGradient>
+        <linearGradient id="chL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.35" />
+          <stop offset="0.4" stopColor={c.body} />
+          <stop offset="1" stopColor={c.dark} />
+        </linearGradient>
+        <radialGradient id="chG" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#fff7b0" stopOpacity="0.95" />
+          <stop offset="1" stopColor="#ffd23a" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="100" cy="165" rx="80" ry="8" fill="rgba(0,40,80,0.18)" />
+      {open && <ellipse cx="100" cy="76" rx="86" ry="46" fill="url(#chG)" />}
+      <rect x="26" y="78" width="148" height="80" rx="14" fill="url(#chB)" stroke={OL} strokeWidth="4" />
+      <path d="M30 104 H170 M30 128 H170" stroke={c.dark} strokeWidth="3" opacity="0.55" />
+      <rect x="48" y="80" width="18" height="76" fill={c.band} stroke={OL} strokeWidth="3" />
+      <rect x="134" y="80" width="18" height="76" fill={c.band} stroke={OL} strokeWidth="3" />
+      <g style={{ transformOrigin: "30px 78px", transform: open ? "translate(-8px,-28px) rotate(-22deg)" : "none", transition: "transform 420ms cubic-bezier(0.34,1.56,0.64,1)" }}>
+        <path d="M26 82 L26 58 Q26 24 100 24 Q174 24 174 58 L174 82 Z" fill="url(#chL)" stroke={OL} strokeWidth="4" strokeLinejoin="round" />
+        <path d="M48 82 L48 30 Q57 27 66 26 L66 82 Z" fill={c.band} stroke={OL} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M134 82 L134 26 Q143 27 152 30 L152 82 Z" fill={c.band} stroke={OL} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M40 46 Q100 32 160 46" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="6" fill="none" strokeLinecap="round" />
       </g>
-      <rect x="86" y="70" width="28" height="34" rx="7" fill={c.band} stroke={c.dark} strokeWidth="3" />
-      <circle cx="100" cy="84" r="4.5" fill="#7a4a12" />
-      <rect x="98" y="86" width="4" height="9" rx="2" fill="#7a4a12" />
+      <rect x="84" y="70" width="32" height="38" rx="8" fill={c.band} stroke={OL} strokeWidth="3.5" />
+      <circle cx="100" cy="85" r="5" fill={OL} />
+      <rect x="97.5" y="87" width="5" height="10" rx="2.5" fill={OL} />
+      <ellipse cx="54" cy="94" rx="10" ry="4" fill="#ffffff" opacity="0.35" transform="rotate(-12 54 94)" />
     </svg>
   );
 }

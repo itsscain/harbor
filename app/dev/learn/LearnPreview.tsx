@@ -99,7 +99,7 @@ function makeState(grade: string, fresh: boolean, aq: string | null, tank: strin
   return { deviceSecret: "dev", householdId: HH, kind: "wall", snapshot, pinHash: null, lastSync: now, points: { [CADE]: 12 }, progress: {}, outbox: [], learn, learnOutbox: [], learnEvents: [] };
 }
 
-export function LearnPreview({ lesson, grade, fresh, aq, tank }: { lesson: string | null; grade: string; fresh: boolean; aq: string | null; tank: string | null }) {
+export function LearnPreview({ lesson, only, grade, fresh, aq, tank }: { lesson: string | null; only: string | null; grade: string; fresh: boolean; aq: string | null; tank: string | null }) {
   const [state, setState] = useState<KioskState>(() => makeState(grade, fresh, aq, tank));
   const kiosk = useMemo(() => {
     const base = {
@@ -128,7 +128,7 @@ export function LearnPreview({ lesson, grade, fresh, aq, tank }: { lesson: strin
     <div className="fixed inset-0 overflow-hidden overscroll-none select-none">
       <div className="kiosk-root h-full w-full overflow-y-auto bg-kbg text-ktext">
         {lesson ? (
-          <LearnApp kiosk={kiosk} child={child} accent="#4AA8F0" reduced={false} sound intensity={1} header={null} startWith={lesson} />
+          <LearnApp kiosk={kiosk} child={child} accent="#4AA8F0" reduced={false} sound intensity={1} header={null} startWith={only ? `${lesson}#${only}` : lesson} />
         ) : (
           <ChildView kiosk={kiosk} childId={CADE} onHome={() => {}} onOpenCalm={() => {}} />
         )}

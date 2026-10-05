@@ -108,15 +108,15 @@ const HABITAT_SORT: SortMany = {
   items: [
     ["Camel", "desert", "🐪"], ["Cactus", "desert", "🌵"], ["Fennec fox", "desert", "🦊"], ["Rattlesnake", "desert", "🐍"], ["Roadrunner", "desert", "🐦"], ["Gila monster", "desert", "🦎"],
     ["Octopus", "ocean", "🐙"], ["Blue whale", "ocean", "🐋"], ["Sea star", "ocean", "⭐"], ["Clownfish", "ocean", "🐠"], ["Sea turtle", "ocean", "🐢"], ["Shark", "ocean", "🦈"],
-    ["Polar bear", "arctic", "🐻"], ["Caribou", "arctic", "🦌"], ["Arctic fox", "arctic", "🦊"], ["Snowy owl", "arctic", "🦉"], ["Arctic hare", "arctic", "🐇"], ["Musk ox", "arctic", "🐂"],
+    ["Polar bear", "arctic", "🐻‍❄️"], ["Caribou", "arctic", "🦌"], ["Arctic fox", "arctic", "🦊"], ["Snowy owl", "arctic", "🦉"], ["Arctic hare", "arctic", "🐇"], ["Musk ox", "arctic", "🐂"],
     ["Toucan", "rainforest", "🦜"], ["Sloth", "rainforest", "🦥"], ["Jaguar", "rainforest", "🐆"], ["Poison dart frog", "rainforest", "🐸"], ["Orangutan", "rainforest", "🦧"], ["Gorilla", "rainforest", "🦍"],
   ],
 };
 const ADAPTATIONS: Pol[] = [
   { q: "What is an adaptation?", e: "🦆🐪", a: "A feature that helps it survive", w: ["A place animals visit", "A kind of food"], why: "Adaptations, like a duck's webbed feet or a camel's hump, help living things survive where they live." },
   { q: "How does a camel's hump help it in the desert?", e: "🐪🏜️", a: "It stores fat for energy", w: ["It is full of water", "It helps it swim"], why: "A camel's hump is fat, not water! Its body can use that fat when food is hard to find." },
-  { q: "How does a polar bear stay warm in the icy Arctic?", e: "🐻❄️", a: "Thick fur and a layer of fat", w: ["It wears a snow coat", "It sleeps by a fire"], why: "Polar bears have thick fur plus a layer of fat called blubber that can be 4 inches thick!" },
-  { q: "A polar bear's fur looks white. What color is its skin?", e: "🐻🔍", a: "Black", w: ["White", "Pink"], why: "Whoa — under that white-looking fur, a polar bear's skin is black!" },
+  { q: "How does a polar bear stay warm in the icy Arctic?", e: "🐻‍❄️❄️", a: "Thick fur and a layer of fat", w: ["It wears a snow coat", "It sleeps by a fire"], why: "Polar bears have thick fur plus a layer of fat called blubber that can be 4 inches thick!" },
+  { q: "A polar bear's fur looks white. What color is its skin?", e: "🐻‍❄️🔍", a: "Black", w: ["White", "Pink"], why: "Whoa — under that white-looking fur, a polar bear's skin is black!" },
   { q: "A cactus lives where it hardly ever rains. How does it survive?", e: "🌵☀️", a: "It stores water in its stem", w: ["It drinks from rivers", "It has big, thin leaves"], why: "A cactus stem is a water tank! Its spines are leaves that lose almost no water." },
   { q: "Why do ducks have webbed feet?", e: "🦆💧", a: "To paddle through water", w: ["To climb trees", "To dig in sand"], why: "Webbed feet push lots of water, like flippers, so ducks can swim fast." },
   { q: "Why do many desert animals come out at night?", e: "🦊🌙", a: "It's cooler at night", w: ["They can't see in the day", "To look at the stars"], why: "Deserts can be scorching by day, so many animals rest in cool burrows until dark." },

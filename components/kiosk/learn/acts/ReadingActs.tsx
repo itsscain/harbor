@@ -9,6 +9,7 @@ import { clipMs, say, type Part } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk, useDrag, useShuffled, shuffleSeeded } from "../kit";
 import { ChoiceTile, Picture, PromptRow, SoundChip, tileState, useChoice, useLater, usePrompt, type ActProps } from "./common";
+import { Glyph, GlyphRow } from "../art/Glyph";
 
 const show = (g: string) => g.replace("_", "–");
 const isGroup = (g: string) => g.replace("_", "").length > 1;
@@ -403,7 +404,7 @@ export function BlendAct({ act, fx, onDone }: ActProps<"blend">) {
             role="button"
             aria-label="Slide to sound it out"
             className={cn("l-drag absolute left-0 top-[6px] flex items-center justify-center rounded-full bg-[var(--l-blue)] shadow-[0_5px_0_var(--l-blue-edge)]", phase === "slide" && x === 0 && "l-ring")}
-            style={{ width: BOAT, height: BOAT, transform: `translateX(${x}px)`, fontSize: 46 }}
+            style={{ width: BOAT, height: BOAT, transform: `translateX(${x}px)` }}
             onPointerDown={(e) => {
               if (finished.current || (slide.current && slide.current.id === -1)) return;
               const m = measure();
@@ -425,7 +426,7 @@ export function BlendAct({ act, fx, onDone }: ActProps<"blend">) {
               if (Math.abs(e.clientX - s.downX) < 6 && x < 6) autoSail(); // a tap: sail by itself
             }}
           >
-            ⛵
+            <Glyph e="⛵" size={BOAT * 0.72} />
           </div>
         </div>
       </div>
@@ -520,12 +521,12 @@ export function PopAct({ act, fx, onDone }: ActProps<"pop">) {
   return (
     <div className="flex h-full w-full flex-col items-center gap-4">
       <PromptRow parts={parts}>
-        Pop every <span className="font-reading rounded-xl bg-white px-3 text-[var(--l-ink)]">{act.word}</span>
+        Pop every <span className="font-reading rounded-xl bg-[#fff3c4] px-3 text-[var(--l-ink)] shadow-[0_3px_0_#f2d27a]">{act.word}</span>
       </PromptRow>
       <div className="flex gap-2" aria-label={`${popped} of ${NEED} popped`}>
         {Array.from({ length: NEED }, (_, i) => (
           <span key={i} className={cn("flex h-11 w-11 items-center justify-center rounded-full text-2xl transition-all", i < popped ? "l-pop-in bg-[var(--l-gold)] shadow-[0_4px_0_var(--l-gold-edge)]" : "bg-white/25")}>
-            {i < popped ? "⭐" : ""}
+            {i < popped ? <Glyph e="⭐" size={32} /> : null}
           </span>
         ))}
       </div>
@@ -605,9 +606,7 @@ export function SentenceAct({ act, fx, onDone }: ActProps<"sentence">) {
         <>
           <PromptRow parts={[SAY.readSentence]}>Read it! Tap a word for help.</PromptRow>
           <div className="flex max-w-[960px] flex-col items-center gap-5 rounded-[30px] bg-white px-8 py-7 shadow-[0_8px_0_var(--l-line)]">
-            <span style={{ fontSize: 88, lineHeight: 1 }} aria-hidden>
-              {act.emoji}
-            </span>
+            <GlyphRow s={act.emoji} size={104} className="l-pop-in" />
             <p className="flex flex-wrap justify-center gap-x-4 gap-y-2">
               {words.map((w, i) => (
                 <button

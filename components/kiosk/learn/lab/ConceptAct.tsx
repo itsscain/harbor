@@ -10,6 +10,7 @@ import { Chunk } from "../kit";
 import type { ActProps } from "../acts/common";
 import { MiniSpeaker, useLater } from "../acts/common";
 import { BlockPill } from "../code/Editor";
+import { Glyph, WithGlyphs } from "../art/Glyph";
 
 // Code Lab concept cards: a big coding idea, shown — not told. Each idea is a few frames; every
 // frame has one sentence (spoken for kids who can't read yet) and a little animated demo of
@@ -39,7 +40,7 @@ export function ConceptAct({ act, fx, onDone }: ActProps<"concept">) {
   };
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-4">
-      <span className="l-pop-in rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-violet-edge)]">💡 {act.title}</span>
+      <span className="l-pop-in rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-violet-edge)]"><Glyph e="💡" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {act.title}</span>
       <div className="relative flex min-h-[300px] w-full items-center justify-center rounded-[32px] bg-white/95 px-4 py-6 shadow-[0_8px_0_rgba(0,40,80,0.16)]">
         <Demo concept={act.concept} frame={frame} reduced={fx.reduced} />
       </div>
@@ -135,14 +136,14 @@ function Path({ cells = 5, pos, goal, fell, mood, actor = "🤖", goalEmoji = "�
         <span key={x} className="absolute rounded-2xl bg-[#e0f2fe] shadow-[inset_0_-4px_0_#bae6fd]" style={{ left: x * W + 4, top: 22, width: W - 8, height: W - 8 }} />
       ))}
       {goal !== undefined && (
-        <span className={cn("absolute flex items-center justify-center text-5xl", pos === goal && !fell && "l-boing")} style={{ left: goal * W, top: 22, width: W, height: W - 8 }}>
-          {goalEmoji}
+        <span className={cn("absolute flex items-center justify-center", pos === goal && !fell && "l-boing")} style={{ left: goal * W, top: 22, width: W, height: W - 8 }}>
+          <Glyph e={goalEmoji} size={64} />
         </span>
       )}
       <span className="absolute flex items-center justify-center" style={{ left: 0, top: 18, width: W, height: W, transform: `translate(${pos * W}px, ${fell ? 40 : 0}px) rotate(${fell ? 40 : 0}deg)`, transition: "transform 420ms cubic-bezier(0.34,1.3,0.64,1)", opacity: fell ? 0.5 : 1 }}>
-        <span key={move ?? ""} className={cn("text-6xl", move && "l-hop")}>{actor}</span>
+        <Glyph key={move ?? ""} e={actor} size={76} className={cn(move && "l-hop")} />
       </span>
-      {mood && <span className="l-pop-in absolute -top-3 text-4xl" style={{ left: pos * W + W * 0.62 }}>{mood}</span>}
+      {mood && <Glyph e={mood} size={48} className="l-pop-in absolute -top-3" style={{ left: pos * W + W * 0.62 }} />}
     </div>
   );
 }
@@ -179,7 +180,7 @@ function BugDemo({ frame }: { frame: number }) {
     <div className="flex flex-col items-center gap-5">
       <div className="relative">
         <Cards cards={cards} at={frame === 1 ? -1 : run.i} bad={frame === 1 ? 2 : undefined} fixed={frame === 2 ? 2 : undefined} />
-        {frame === 1 && <span className="l-pop-in absolute -top-10 left-1/2 text-5xl">🔍</span>}
+        {frame === 1 && <Glyph e="🔍" size={60} className="l-pop-in absolute -top-10 left-1/2" />}
       </div>
       <Path pos={frame === 1 ? 1 : run.pos} goal={4} mood={run.done ? (frame === 2 ? "🎉" : "🐞") : frame === 1 ? "🐞" : undefined} />
     </div>
@@ -196,7 +197,7 @@ function LoopDemo({ frame }: { frame: number }) {
         <Cards cards={claps} at={run.i} />
       ) : (
         <div className="l-pop-in flex items-center gap-3 rounded-[20px] bg-[#ff9149] px-4 py-3 shadow-[0_5px_0_#e26f27]">
-          <span className="font-display text-xl font-extrabold text-white">🔁 Repeat</span>
+          <span className="font-display text-xl font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Repeat</span>
           <span className="rounded-xl bg-white px-3 py-1 font-display text-xl font-extrabold text-[#e26f27]">×6</span>
           <span className={cn("rounded-2xl", frame === 2 && run.i >= 0 && run.i < 6 && "ring-[5px] ring-[var(--l-gold)]")}>
             <BlockPill op="clap" band="middle" />
@@ -205,8 +206,8 @@ function LoopDemo({ frame }: { frame: number }) {
         </div>
       )}
       <div className="flex items-center gap-6">
-        <span key={run.i} className={cn("text-7xl", run.i >= 0 && run.i < 6 && "l-hop")}>🤖</span>
-        <span className="font-display text-5xl font-extrabold text-[var(--l-ink)]">👏 × {n}</span>
+        <span key={run.i} className={cn("text-7xl", run.i >= 0 && run.i < 6 && "l-hop")}><Glyph e="🤖" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
+        <span className="font-display text-5xl font-extrabold text-[var(--l-ink)]"><Glyph e="👏" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> × {n}</span>
       </div>
       {frame >= 1 && <span className="l-pop-in rounded-full bg-[#dcfce7] px-4 py-1.5 font-display text-xl font-extrabold text-[#166534]">6 blocks → 1 loop</span>}
     </div>
@@ -218,19 +219,19 @@ function IfDemo({ frame }: { frame: number }) {
   return (
     <div className="flex flex-col items-center gap-5">
       <div className="flex items-center gap-3 rounded-[20px] bg-[#a855f7] px-4 py-3 font-display text-xl font-extrabold text-white shadow-[0_5px_0_#7e22ce]">
-        ❓ If
+        <Glyph e="❓" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> If
         <span className={cn("rounded-xl bg-white px-3 py-1 text-[#7e22ce]", frame === 1 && "bg-[#bbf7d0] text-[#15803d]", frame === 2 && "bg-[#fecaca] text-[#b91c1c]")}>
-          🌧️ raining? {frame === 1 ? "✓" : frame === 2 ? "✗" : ""}
+          <Glyph e="🌧️" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> raining? {frame === 1 ? "✓" : frame === 2 ? "✗" : ""}
         </span>
-        <span className={cn("rounded-xl bg-white/85 px-3 py-1 text-[var(--l-ink)]", frame === 1 && "ring-4 ring-[var(--l-gold)]")}>☂️ umbrella</span>
+        <span className={cn("rounded-xl bg-white/85 px-3 py-1 text-[var(--l-ink)]", frame === 1 && "ring-4 ring-[var(--l-gold)]")}><Glyph e="☂️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> umbrella</span>
         <span className="text-white/90">else</span>
-        <span className={cn("rounded-xl bg-white/85 px-3 py-1 text-[var(--l-ink)]", frame === 2 && "ring-4 ring-[var(--l-gold)]")}>😎 sunglasses</span>
+        <span className={cn("rounded-xl bg-white/85 px-3 py-1 text-[var(--l-ink)]", frame === 2 && "ring-4 ring-[var(--l-gold)]")}><Glyph e="😎" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> sunglasses</span>
       </div>
       <div className="relative flex h-44 w-[420px] items-end justify-center overflow-hidden rounded-[24px]" style={{ background: frame === 0 ? "linear-gradient(#cbd5e1,#e2e8f0)" : rainy ? "linear-gradient(#64748b,#94a3b8)" : "linear-gradient(#7dd3fc,#e0f2fe)" }}>
-        <span className="absolute left-6 top-3 text-5xl">{frame === 0 ? "❔" : rainy ? "🌧️" : "☀️"}</span>
+        <Glyph e={frame === 0 ? "❔" : rainy ? "🌧️" : "☀️"} size={64} className="absolute left-6 top-3" />
         {rainy && <span className="l-rain pointer-events-none absolute inset-0" />}
-        <span key={frame} className="l-hop mb-3 text-7xl">🤖</span>
-        {frame > 0 && <span key={`g${frame}`} className="l-pop-in mb-16 -ml-6 text-5xl">{rainy ? "☂️" : "😎"}</span>}
+        <span key={frame} className="l-hop mb-3 text-7xl"><Glyph e="🤖" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
+        {frame > 0 && <Glyph key={`g${frame}`} e={rainy ? "☂️" : "😎"} size={64} className="l-pop-in mb-16 -ml-6" />}
       </div>
     </div>
   );
@@ -264,9 +265,9 @@ function UntilDemo({ frame }: { frame: number }) {
   return (
     <div className="flex flex-col items-center gap-5">
       <div className="flex items-center gap-3 rounded-[20px] bg-[#ff9149] px-4 py-3 font-display text-xl font-extrabold text-white shadow-[0_5px_0_#e26f27]">
-        🔁 Repeat until
+        <Glyph e="🔁" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> Repeat until
         <span className={cn("rounded-xl bg-white px-3 py-1 text-[#e26f27]", lastCheck === true && "bg-[#bbf7d0] text-[#15803d]", lastCheck === false && "bg-[#fecaca] text-[#b91c1c]")}>
-          🚪 at the door? {lastCheck === undefined ? "" : lastCheck ? "✓ yes!" : "✗ no"}
+          <Glyph e="🚪" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> at the door? {lastCheck === undefined ? "" : lastCheck ? "✓ yes!" : "✗ no"}
         </span>
         <BlockPill op="right" band="middle" size="sm" />
       </div>
@@ -287,7 +288,7 @@ function FunctionDemo({ frame }: { frame: number }) {
       ) : (
         <div className="flex flex-wrap items-center justify-center gap-4">
           <div className="l-pop-in rounded-[20px] bg-[#ff6aa2] p-3 shadow-[0_5px_0_#e0457f]">
-            <span className="mb-2 block font-display text-xl font-extrabold text-white">🧩 dance =</span>
+            <span className="mb-2 block font-display text-xl font-extrabold text-white"><Glyph e="🧩" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> dance =</span>
             <div className="flex gap-2 rounded-xl bg-white/85 p-2">
               {steps.map((c) => (
                 <BlockPill key={c} op={CARD_OP[c]} band="middle" size="sm" />
@@ -305,7 +306,7 @@ function FunctionDemo({ frame }: { frame: number }) {
           )}
         </div>
       )}
-      <span key={run.i} className={cn("text-8xl", move && "l-hop")}>🤖</span>
+      <span key={run.i} className={cn("text-8xl", move && "l-hop")}><Glyph e="🤖" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
       {frame === 2 && <span className="font-display text-xl font-extrabold text-[var(--l-ink)]">2 blocks → {Math.max(0, Math.min(6, run.i + 1))} moves</span>}
     </div>
   );
@@ -332,13 +333,13 @@ function VariableDemo({ frame }: { frame: number }) {
       <div className="relative flex flex-col items-center">
         <span className="rounded-t-xl bg-[var(--l-orange)] px-4 py-1 font-mono text-lg font-bold text-white">coins</span>
         <span key={shown} className="l-pop-in flex h-32 w-40 items-center justify-center rounded-[22px] border-[6px] border-[var(--l-orange)] bg-white font-display text-7xl font-extrabold text-[var(--l-ink)]">{shown}</span>
-        {frame === 1 && v > 0 && <span key={`c${v}`} className="l-float-num absolute -top-4 text-5xl">🪙</span>}
+        {frame === 1 && v > 0 && <span key={`c${v}`} className="l-float-num absolute -top-4 text-5xl"><Glyph e="🪙" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
       </div>
       {frame === 2 && (
         <div className="l-pop-in flex gap-3 font-display text-xl font-extrabold">
-          <span className="rounded-full bg-[#fff7d6] px-4 py-1.5 text-[#7a5200]">🏆 score: 3</span>
-          <span className="rounded-full bg-[#fee2e2] px-4 py-1.5 text-[#b91c1c]">❤️ lives: 2</span>
-          <span className="rounded-full bg-[#e0f2fe] px-4 py-1.5 text-[#075985]">⏱️ time: 30</span>
+          <span className="rounded-full bg-[#fff7d6] px-4 py-1.5 text-[#7a5200]"><Glyph e="🏆" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> score: 3</span>
+          <span className="rounded-full bg-[#fee2e2] px-4 py-1.5 text-[#b91c1c]"><Glyph e="❤️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> lives: 2</span>
+          <span className="rounded-full bg-[#e0f2fe] px-4 py-1.5 text-[#075985]"><Glyph e="⏱️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> time: 30</span>
         </div>
       )}
     </div>
@@ -350,7 +351,7 @@ function EventDemo({ frame }: { frame: number }) {
   return (
     <div className="flex flex-col items-center gap-5">
       <div className="flex items-center gap-3 rounded-[20px] bg-[#facc15] px-4 py-3 font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_5px_0_#ca8a04]">
-        ⚡ When <span className="rounded-xl bg-white px-3 py-1">🐸 tapped</span> → <span className="rounded-xl bg-white px-3 py-1">⬆️ jump</span>
+        <Glyph e="⚡" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> When <span className="rounded-xl bg-white px-3 py-1"><Glyph e="🐸" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> tapped</span> → <span className="rounded-xl bg-white px-3 py-1"><Glyph e="⬆️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> jump</span>
       </div>
       <button
         type="button"
@@ -362,15 +363,15 @@ function EventDemo({ frame }: { frame: number }) {
         className={cn("rounded-full p-4", frame >= 1 && "l-pulse")}
         aria-label="Tap the frog"
       >
-        <span key={hops} className={cn("block text-8xl", hops > 0 && "l-hop")}>🐸</span>
+        <span key={hops} className={cn("block text-8xl", hops > 0 && "l-hop")}><Glyph e="🐸" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
       </button>
-      {frame >= 1 && <span className="font-display text-xl font-extrabold text-[var(--l-ink)]">{hops === 0 ? "👆 Tap the frog!" : `Jumps: ${hops}`}</span>}
+      {frame >= 1 && <span className="font-display text-xl font-extrabold text-[var(--l-ink)]"><WithGlyphs text={hops === 0 ? "👆 Tap the frog!" : `Jumps: ${hops}`} /></span>}
       {frame === 2 && (
         <div className="flex gap-3 text-4xl">
-          <span>👆</span>
-          <span>🖱️</span>
-          <span>⌨️</span>
-          <span>⏰</span>
+          <span><Glyph e="👆" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
+          <span><Glyph e="🖱️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
+          <span><Glyph e="⌨️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
+          <span><Glyph e="⏰" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
         </div>
       )}
     </div>
@@ -418,7 +419,7 @@ function BinaryDemo({ frame }: { frame: number }) {
       <div className="flex gap-5">
         {vals.map((v, i) => (
           <div key={v} className="flex flex-col items-center gap-2">
-            <span className={cn("text-7xl transition-all", on[i] ? "drop-shadow-[0_0_24px_rgba(250,204,21,0.9)]" : "opacity-30 grayscale")}>💡</span>
+            <Glyph e="💡" size={88} className={cn("transition-all", on[i] ? "drop-shadow-[0_0_24px_rgba(250,204,21,0.9)]" : "opacity-30 grayscale")} />
             <span className="font-mono text-2xl font-bold text-[var(--l-ink)]">{on[i] ? 1 : 0}</span>
             {frame >= 1 && <span className="rounded-full bg-[var(--l-card-2)] px-3 py-0.5 font-display text-xl font-extrabold text-[var(--l-ink)]">{v}</span>}
           </div>
@@ -480,7 +481,7 @@ function SearchDemo({ frame }: { frame: number }) {
           </span>
         ))}
       </div>
-      {guess && <span className="l-pop-in rounded-full bg-[#fff7d6] px-4 py-1.5 font-display text-xl font-extrabold text-[#7a5200]">Guess {guess}? “Higher!” ⬆️</span>}
+      {guess && <span className="l-pop-in rounded-full bg-[#fff7d6] px-4 py-1.5 font-display text-xl font-extrabold text-[#7a5200]">Guess {guess}? “Higher!” <Glyph e="⬆️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
       {frame === 2 && <span className="font-display text-xl font-extrabold text-[var(--l-ink)]">16 → 8 → 4 → 2 → 1</span>}
     </div>
   );
@@ -516,7 +517,7 @@ function CoordsDemo({ frame }: { frame: number }) {
         </span>
       ))}
       <span className="absolute flex items-center justify-center text-5xl" style={{ left: L + x * C, top: (ROWS - 1 - y) * C, width: C, height: C, transition: "all 700ms cubic-bezier(0.34,1.3,0.64,1)" }}>
-        {frame === 2 ? "💎" : "📍"}
+        <Glyph e={frame === 2 ? "💎" : "📍"} size="1.1em" />
       </span>
       {frame >= 1 && <span className="l-pop-in absolute -top-10 left-1/2 -translate-x-1/2 rounded-full bg-[#fff7d6] px-4 py-1 font-display text-xl font-extrabold text-[#7a5200]">({x}, {y})</span>}
     </div>
@@ -528,12 +529,12 @@ function MachineDemo({ frame }: { frame: number }) {
   return (
     <div className="flex items-center gap-4">
       <span key={`in${frame}`} className={cn("flex h-20 w-20 items-center justify-center rounded-full bg-[var(--l-blue)] font-display text-4xl font-extrabold text-white shadow-[0_5px_0_var(--l-blue-edge)]", frame >= 1 && "l-pop-in")}>{input}</span>
-      <span className="text-4xl">➡️</span>
+      <Glyph e="➡️" size={48} />
       <div className="flex h-36 w-44 flex-col items-center justify-center rounded-[26px] bg-[#64748b] font-display text-white shadow-[0_8px_0_#475569]">
-        <span className={cn("text-4xl", frame >= 1 && "l-spin-slow")}>⚙️</span>
+        <Glyph e="⚙️" size={48} className={cn("", frame >= 1 && "l-spin-slow")} />
         <span className="text-3xl font-extrabold">× 2</span>
       </div>
-      <span className="text-4xl">➡️</span>
+      <Glyph e="➡️" size={48} />
       <span key={`out${frame}`} className={cn("flex h-20 w-20 items-center justify-center rounded-full font-display text-4xl font-extrabold text-white shadow-[0_5px_0_var(--l-green-edge)]", frame >= 1 ? "l-pop-in bg-[var(--l-green)]" : "bg-slate-300")} style={{ animationDelay: "600ms" }}>
         {frame >= 1 ? input * 2 : "?"}
       </span>
@@ -555,10 +556,10 @@ function LogicDemo({ frame }: { frame: number }) {
           </button>
         ))}
       </div>
-      <span className="text-4xl">➡️</span>
+      <Glyph e="➡️" size={48} />
       <span className="flex h-24 w-28 items-center justify-center rounded-[22px] bg-[#334155] font-display text-3xl font-extrabold text-white shadow-[0_6px_0_#1e293b]">{g}</span>
-      <span className="text-4xl">➡️</span>
-      <span className={cn("text-8xl transition-all", out ? "drop-shadow-[0_0_28px_rgba(250,204,21,0.95)]" : "opacity-30 grayscale")}>💡</span>
+      <Glyph e="➡️" size={48} />
+      <Glyph e="💡" size={112} className={cn("transition-all", out ? "drop-shadow-[0_0_28px_rgba(250,204,21,0.95)]" : "opacity-30 grayscale")} />
     </div>
   );
 }
@@ -572,7 +573,7 @@ function CipherDemo({ frame }: { frame: number }) {
         {letters.map((l, i) => (
           <div key={l} className="flex flex-col items-center gap-1">
             <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white font-mono text-2xl font-bold text-[var(--l-ink)] shadow-[0_3px_0_var(--l-line)]">{l}</span>
-            {frame >= 1 && <span className="l-pop-in text-xl" style={{ animationDelay: `${i * 60}ms` }}>⬇️</span>}
+            {frame >= 1 && <span className="l-pop-in text-xl" style={{ animationDelay: `${i * 60}ms` }}><Glyph e="⬇️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
             {frame >= 1 && <span className="l-pop-in flex h-12 w-12 items-center justify-center rounded-xl bg-[#ede9fe] font-mono text-2xl font-bold text-[#6d28d9]" style={{ animationDelay: `${i * 60}ms` }}>{String.fromCharCode(l.charCodeAt(0) + 1)}</span>}
           </div>
         ))}
@@ -600,15 +601,15 @@ function NestedDemo({ frame }: { frame: number }) {
   return (
     <div className="flex items-center gap-8">
       <div className="rounded-[20px] bg-[#ff9149] p-3 shadow-[0_5px_0_#e26f27]">
-        <span className="font-display text-lg font-extrabold text-white">🔁 Repeat ×3</span>
+        <span className="font-display text-lg font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Repeat ×3</span>
         <div className={cn("mt-2 rounded-[16px] bg-[#ffb27a] p-2", frame === 1 && "ring-[5px] ring-[var(--l-gold)]")}>
-          <span className="font-display text-base font-extrabold text-white">🔁 Repeat ×4</span>
-          <div className="mt-1 rounded-xl bg-white/85 p-1.5 text-2xl">⭐</div>
+          <span className="font-display text-base font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Repeat ×4</span>
+          <div className="mt-1 rounded-xl bg-white/85 p-1.5 text-2xl"><Glyph e="⭐" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></div>
         </div>
       </div>
       <div className="grid grid-cols-4 gap-2">
         {Array.from({ length: 12 }, (_, i) => (
-          <span key={i} className={cn("text-4xl transition-all", i < n ? "l-pop-in" : "opacity-15 grayscale")}>⭐</span>
+          <span key={i} className={cn("text-4xl transition-all", i < n ? "l-pop-in" : "opacity-15 grayscale")}><Glyph e="⭐" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
         ))}
       </div>
     </div>
@@ -639,8 +640,8 @@ function PythonDemo({ frame }: { frame: number }) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-6">
       <div className="rounded-[20px] bg-[#ff9149] p-3 shadow-[0_5px_0_#e26f27]">
-        <span className="font-display text-xl font-extrabold text-white">🔁 Repeat ×3</span>
-        <div className="mt-2 rounded-[14px] bg-[#3b82f6] px-4 py-2 font-display text-xl font-extrabold text-white shadow-[0_4px_0_#1d4ed8]">{frame === 3 ? "💬 say Ahoy!" : "👏 clap"}</div>
+        <span className="font-display text-xl font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Repeat ×3</span>
+        <div className="mt-2 rounded-[14px] bg-[#3b82f6] px-4 py-2 font-display text-xl font-extrabold text-white shadow-[0_4px_0_#1d4ed8]"><WithGlyphs text={frame === 3 ? "💬 say Ahoy!" : "👏 clap"} /></div>
       </div>
       <ArrowRight className="h-10 w-10 text-[var(--l-ink-2)]" strokeWidth={3} />
       <div className="min-w-[330px] overflow-hidden rounded-[20px] bg-[#0f172a] shadow-[0_6px_0_rgba(0,40,80,0.25)]">

@@ -5,6 +5,7 @@ import { Play, Square, RotateCcw, Delete, Trash2, Eye, Code2, Rabbit, Turtle as 
 import { cn } from "@/lib/cn";
 import type { Block, CodeLevel, Dir } from "@/lib/learn/types";
 import { DEFAULT_LOOK } from "@/lib/learn/meta";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 import {
   blockCount, drawTarget, gridEngine, parseGrid, pixelEngine, runLevel, sameSeg, toPython, toText, turtleEngine,
   type GridState, type PixelState, type RunResult, type Step, type TurtleState,
@@ -553,13 +554,13 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
         <PromptRow parts={parts}>{goal || "Build a program!"}</PromptRow>
         <div ref={stageRef} className="relative flex min-h-[300px] w-full flex-1 items-center justify-center">
           {stage}
-          {phase === "demo" && <span className="l-pop-in pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--l-violet)] px-5 py-2 font-display text-xl font-extrabold text-white shadow-[0_5px_0_var(--l-violet-edge)]">👀 Watch!</span>}
+          {phase === "demo" && <span className="l-pop-in pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--l-violet)] px-5 py-2 font-display text-xl font-extrabold text-white shadow-[0_5px_0_var(--l-violet-edge)]"><Glyph e="👀" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Watch!</span>}
         </div>
         {running && hud && <StepHud hud={hud} band={band} />}
         {recap && phase === "won" && <RecapCard recap={recap} band={band} />}
         {msg && (
           <p key={msg.k} className={cn("l-pop-in max-w-[640px] rounded-[20px] px-5 py-3 text-center font-display text-xl font-bold", msg.tone === "good" ? "bg-[#dcfce7] text-[#166534]" : msg.tone === "bad" ? "bg-white text-[var(--l-coral-edge)]" : "bg-[#fff7d6] text-[#7a5200]")}>
-            {msg.text}
+            <WithGlyphs text={msg.text} />
           </p>
         )}
         <div className="flex flex-wrap justify-center gap-2">
@@ -579,10 +580,10 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
       {/* Program */}
       <div className="flex min-h-[330px] w-full flex-col gap-3 rounded-[28px] bg-white/92 p-3 shadow-[0_8px_0_rgba(0,40,80,0.18)] lg:w-[46%] lg:min-w-[420px]">
         <div className="flex items-center gap-2 px-1">
-          <span className="font-display text-lg font-extrabold text-[var(--l-ink)]">{level.buggy ? "🐞 Fix this program" : "Your program"}</span>
+          <span className="font-display text-lg font-extrabold text-[var(--l-ink)]"><WithGlyphs text={level.buggy ? "🐞 Fix this program" : "Your program"} /></span>
           {band !== "little" && (
             <span className={cn("rounded-full px-2.5 py-0.5 font-display text-sm font-extrabold", n <= level.best ? "bg-[#dcfce7] text-[#166534]" : "bg-[var(--l-card-2)] text-[var(--l-ink-2)]")}>
-              {n} block{n === 1 ? "" : "s"} · ⭐ {level.best}
+              {n} block{n === 1 ? "" : "s"} · <Glyph e="⭐" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {level.best}
             </span>
           )}
           <span className="ml-auto flex items-center gap-1.5">
@@ -600,7 +601,7 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
         <div className={cn("grid min-h-0 flex-1 gap-3", showCode && text.length ? "grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]" : "grid-cols-1")}>
           <div className="min-h-[150px] overflow-y-auto overflow-x-hidden rounded-2xl bg-[var(--l-card-2)] p-2">
             {prog.length === 0 && cursor.list.length === 0 && (
-              <p className="px-2 pb-1 pt-2 font-display text-base font-bold text-[var(--l-ink-2)]">{band === "little" ? "Tap a block below 👇" : "Tap blocks below to build your program."}</p>
+              <p className="px-2 pb-1 pt-2 font-display text-base font-bold text-[var(--l-ink-2)]"><WithGlyphs text={band === "little" ? "Tap a block below 👇" : "Tap blocks below to build your program."} /></p>
             )}
             <Editor prog={prog} cursor={cursor} sel={sel} band={band} running={running} active={active} bad={bad} loops={loops} onCursor={(c) => (touch(), setCursor(c), setSel(null))} onSelect={setSel} onDelete={del} onCount={count} onCond={cond} />
           </div>
@@ -723,11 +724,11 @@ function RecapCard({ recap, band }: { recap: Recap; band: Band }) {
       <div className="flex flex-wrap justify-center gap-2">
         {chips.map(([icon, n, label], i) => (
           <span key={label} className="l-pop-in flex items-center gap-1.5 rounded-full bg-[var(--l-card-2)] px-3 py-1 font-display text-lg font-extrabold text-[var(--l-ink)]" style={{ animationDelay: `${i * 110}ms` }}>
-            <span className="text-xl">{icon}</span> {n} {band !== "little" && <span className="text-base font-bold text-[var(--l-ink-2)]">{label}</span>}
+            <Glyph e={icon} size={26} /> {n} {band !== "little" && <span className="text-base font-bold text-[var(--l-ink-2)]">{label}</span>}
           </span>
         ))}
       </div>
-      {band !== "little" && <p className="text-balance text-center font-display text-lg font-bold text-[var(--l-ink)]">{recap.text}</p>}
+      {band !== "little" && <p className="text-balance text-center font-display text-lg font-bold text-[var(--l-ink)]"><WithGlyphs text={recap.text} /></p>}
     </div>
   );
 }
@@ -735,17 +736,17 @@ function RecapCard({ recap, band }: { recap: Recap; band: Band }) {
 function StepHud({ hud, band }: { hud: Hud; band: Band }) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 rounded-full bg-black/25 px-3 py-1.5 font-display font-extrabold text-white">
-      <span className="rounded-full bg-white/20 px-3 py-0.5 text-base">{band === "little" ? `👣 ${hud.n}` : `Step ${hud.n}`}</span>
+      <span className="rounded-full bg-white/20 px-3 py-0.5 text-base"><WithGlyphs text={band === "little" ? `👣 ${hud.n}` : `Step ${hud.n}`} /></span>
       {hud.check ? (
         <span key={hud.n} className={cn("l-pop-in flex items-center gap-1.5 rounded-full px-3 py-0.5 text-base", hud.check.yes ? "bg-[#16a34a]" : "bg-[#dc2626]")}>
-          {hud.check.icon} {band !== "little" && `${hud.check.word}?`} {hud.check.yes ? "✓ yes" : "✗ no"}
+          <GlyphRow s={hud.check.icon} size={22} /> {band !== "little" && `${hud.check.word}?`} {hud.check.yes ? "✓ yes" : "✗ no"}
         </span>
       ) : hud.op && hud.op !== "def" ? (
         <span key={hud.n} className="l-pop-in">
           <BlockPill op={hud.op} block={hud.block} band={band} size="sm" />
         </span>
       ) : null}
-      {hud.pass && <span className="rounded-full bg-[#ff9149] px-3 py-0.5 text-base">🔁 {hud.pass.n ? `${hud.pass.k} of ${hud.pass.n}` : `#${hud.pass.k}`}</span>}
+      {hud.pass && <span className="rounded-full bg-[#ff9149] px-3 py-0.5 text-base"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {hud.pass.n ? `${hud.pass.k} of ${hud.pass.n}` : `#${hud.pass.k}`}</span>}
     </div>
   );
 }

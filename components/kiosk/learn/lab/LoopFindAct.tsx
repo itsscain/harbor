@@ -9,6 +9,7 @@ import { Chunk, useShuffled } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, useLater, usePrompt } from "../acts/common";
 import { BlockPill } from "../code/Editor";
+import { Glyph } from "../art/Glyph";
 
 // Loop Detective: a long program that does the same thing again and again. Find the part that
 // repeats (the groups light up, numbered, so you SEE the repetition), count how many times, and
@@ -91,7 +92,7 @@ export function LoopFindAct({ act, fx, onDone }: ActProps<"loopfind">) {
       ) : (
         <div className="l-pop-in flex flex-wrap items-center justify-center gap-3">
           <div className="flex items-center gap-2 rounded-[22px] bg-[#ff9149] p-3 shadow-[0_6px_0_#e26f27]">
-            <span className="font-display text-2xl font-extrabold text-white">🔁 Repeat</span>
+            <span className="font-display text-2xl font-extrabold text-white"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Repeat</span>
             <span className="rounded-xl bg-white px-3 py-1 font-display text-2xl font-extrabold text-[#e26f27]">×{act.times}</span>
             <span className="flex gap-1.5 rounded-xl bg-white/85 p-1.5">
               {chunk.map((op, i) => (

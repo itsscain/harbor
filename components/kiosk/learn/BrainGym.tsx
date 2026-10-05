@@ -1,5 +1,6 @@
 "use client";
 
+import { Glyph, GlyphRow, WithGlyphs } from "./art/Glyph";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -106,14 +107,14 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
             <ArrowLeft className="h-7 w-7 text-[var(--l-ink)]" strokeWidth={3} />
           </Chunk>
           <div>
-            <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">🕹️ Game Arcade</p>
+            <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]"><Glyph e="🕹️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Game Arcade</p>
             <p className="font-display text-base font-bold text-white/90">Beat your own best! {paidToday < GYM_PAID_PER_DAY ? `${GYM_PAID_PER_DAY - paidToday} shell round${GYM_PAID_PER_DAY - paidToday === 1 ? "" : "s"} left today` : "Shell rounds done today — play for records!"}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {ARCADE_CATS.map((c) => (
             <Chunk key={c.id} tone={cat === c.id ? "gold" : "ghost"} onClick={() => (sfx("tap"), setCat(c.id))} className="flex h-14 items-center gap-2 px-5 font-display text-xl font-extrabold">
-              <span className="text-2xl">{c.emoji}</span> {c.label}
+              <GlyphRow s={c.emoji ?? ""} size={32} /> {c.label}
             </Chunk>
           ))}
         </div>
@@ -132,8 +133,8 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
               style={{ animationDelay: `${i * 60}ms` }}
             >
               <span className="flex w-full items-center justify-between">
-                <span className="flex h-16 w-16 items-center justify-center rounded-2xl text-[40px]" style={{ background: `${x.color}33` }}>
-                  {x.emoji}
+                <span className="flex h-[72px] w-[72px] items-center justify-center rounded-[22px] shadow-[inset_0_-4px_0_rgba(0,40,80,0.1)]" style={{ background: `radial-gradient(circle at 35% 28%, #ffffffcc, ${x.color}66)` }}>
+                  <GlyphRow s={x.emoji} size={52} />
                 </span>
                 <span className="rounded-full px-3 py-1 font-display text-sm font-extrabold text-white" style={{ background: x.color }}>
                   {x.skill}
@@ -141,7 +142,7 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
               </span>
               <span className="font-display text-2xl font-extrabold text-[var(--l-ink)]">{x.name}</span>
               <span className="font-display text-base font-bold leading-snug text-[var(--l-ink-2)]">{x.how}</span>
-              <span className="font-display text-lg font-extrabold text-[var(--l-violet)]">🏅 Best: {bests[x.id] ?? "—"}</span>
+              <span className="font-display text-lg font-extrabold text-[var(--l-violet)]"><Glyph e="🏅" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Best: {bests[x.id] ?? "—"}</span>
             </Chunk>
           ))}
         </div>
@@ -155,14 +156,15 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
           <ArrowLeft className="h-7 w-7" strokeWidth={3} />
         </Chunk>
         <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">
-          {g.emoji} {g.name}
+          <GlyphRow s={g.emoji} size={44} className="mr-2 align-[-0.4em]" />
+          {g.name}
         </p>
-        <span className="ml-auto rounded-full bg-white/90 px-4 py-1.5 font-display text-lg font-extrabold text-[var(--l-ink)]">🏅 Best {bests[g.id] ?? 0}</span>
+        <span className="ml-auto rounded-full bg-white/90 px-4 py-1.5 font-display text-lg font-extrabold text-[var(--l-ink)]"><Glyph e="🏅" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Best {bests[g.id] ?? 0}</span>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center p-5">
         {phase === "intro" && (
           <div className="l-pop-in flex max-w-lg flex-col items-center gap-4 rounded-[34px] bg-white p-8 text-center shadow-[0_10px_0_var(--l-line)]">
-            <span className="text-[96px] leading-none">{g.emoji}</span>
+            <GlyphRow s={g.emoji ?? ""} size={115} />
             <p className="font-display text-2xl font-bold text-[var(--l-ink)]">{g.how}</p>
             <Chunk tone="green" onClick={() => (sfx("pick"), void say(SAY.ready), setPhase("play"))} className={cn("flex h-20 w-64 items-center justify-center font-display text-3xl font-extrabold", !reduced && "l-pulse")}>
               Go!
@@ -192,7 +194,7 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
           <div className="l-pop-in flex max-w-lg flex-col items-center gap-4 rounded-[34px] bg-white p-8 text-center shadow-[0_10px_0_var(--l-line)]">
             <p className="font-display text-xl font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">{SAY.timesUp.replace("!", "")}</p>
             <p className="font-display text-[80px] font-extrabold leading-none text-[var(--l-ink)]">{score}</p>
-            {score > (bests[g.id] ?? 0) ? <p className="l-pop-in rounded-full bg-[var(--l-gold)] px-5 py-2 font-display text-2xl font-extrabold text-[#5a3b00]">🏆 New record!</p> : <p className="font-display text-lg font-bold text-[var(--l-ink-2)]">Your best is {bests[g.id]}. Try again to beat it!</p>}
+            {score > (bests[g.id] ?? 0) ? <p className="l-pop-in rounded-full bg-[var(--l-gold)] px-5 py-2 font-display text-2xl font-extrabold text-[#5a3b00]"><Glyph e="🏆" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> New record!</p> : <p className="font-display text-lg font-bold text-[var(--l-ink-2)]">Your best is {bests[g.id]}. Try again to beat it!</p>}
             {paid > 0 && (
               <p className="flex items-center gap-2 font-display text-2xl font-extrabold text-[var(--l-ink)]">
                 <ShellIcon size={32} /> +{paid} shells
@@ -290,7 +292,7 @@ function Lights({ band, onEnd }: { band: Band; onEnd: (score: number) => void })
   };
   return (
     <div className="flex flex-col items-center gap-6">
-      <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">{showing ? "👀 Watch…" : "👆 Your turn!"}</p>
+      <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]"><WithGlyphs text={showing ? "👀 Watch…" : "👆 Your turn!"} size={44} /></p>
       <div className="grid grid-cols-2 gap-5">
         {LIGHTS.map((l, k) => (
           <button key={k} type="button" onClick={() => tap(k)} className="h-[170px] w-[170px] rounded-[40px] transition-all duration-150" style={{ background: l.c, opacity: lit === k ? 1 : 0.45, transform: lit === k ? "scale(1.06)" : "none", boxShadow: lit === k ? `0 0 40px 10px ${l.c}, 0 8px 0 rgba(0,0,0,0.2)` : "0 8px 0 rgba(0,0,0,0.2)" }} aria-label={`Light ${k + 1}`} />
@@ -351,13 +353,13 @@ function FishShark({ band, reduced, onEnd }: { band: Band; reduced: boolean; onE
       <p className="font-display text-2xl font-extrabold text-white">Score: {score}</p>
       <div className="reef-tank relative w-full flex-1 overflow-hidden rounded-[34px]">
         {pops.map((p) => (
-          <button key={p.id} type="button" onClick={() => tap(p)} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[84px] leading-none", !reduced && "l-pop-in")} style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-label={p.shark ? "shark" : "fish"}>
-            {p.e}
+          <button key={p.id} type="button" onClick={() => tap(p)} className={cn("absolute -translate-x-1/2 -translate-y-1/2", !reduced && "l-pop-in")} style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-label={p.shark ? "shark" : "fish"}>
+            <Glyph e={p.e} size={96} />
           </button>
         ))}
         {flash && (
           <span key={flash.id} className="l-float-num pointer-events-none absolute left-1/2 top-6 font-display text-4xl font-extrabold" style={{ color: flash.ok ? "#fff" : "#ffb3a8" }}>
-            {flash.ok ? "+1" : "−1 🦈"}
+            <WithGlyphs text={flash.ok ? "+1" : "−1 🦈"} size={44} />
           </span>
         )}
       </div>
@@ -407,7 +409,7 @@ function Switch({ band, onEnd }: { band: Band; onEnd: (score: number) => void })
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-5">
       <ClockBar left={left} total={total} />
-      <p key={rule} className="l-pop-in rounded-full bg-white px-7 py-3 font-display text-3xl font-extrabold text-[var(--l-ink)] shadow-[0_5px_0_var(--l-line)]">{rule === "color" ? "🎨 Sort by COLOR" : "🔷 Sort by SHAPE"}</p>
+      <p key={rule} className="l-pop-in rounded-full bg-white px-7 py-3 font-display text-3xl font-extrabold text-[var(--l-ink)] shadow-[0_5px_0_var(--l-line)]"><WithGlyphs text={rule === "color" ? "🎨 Sort by COLOR" : "🔷 Sort by SHAPE"} size={42} /></p>
       <div key={`${count}:${shake}`} className={cn("rounded-[30px] bg-white p-5 shadow-[0_8px_0_var(--l-line)]", shake ? "l-shake" : "l-pop-in")}>
         <Shape shape={card.shape} color={COLORS[card.color]} px={150} />
       </div>
@@ -545,15 +547,18 @@ function StarGrid({ band, onEnd }: { band: Band; onEnd: (score: number) => void 
   return (
     <div className="flex flex-col items-center gap-5">
       <p className="font-display text-3xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.25)]">
-        {showing ? "👀 Remember!" : "👆 Where were they?"} {"❤️".repeat(lives)}
+        <WithGlyphs text={showing ? "👀 Remember!" : "👆 Where were they?"} size={44} />{" "}
+        {Array.from({ length: lives }, (_, k) => (
+          <Glyph key={k} e="❤️" size={36} className="inline-block align-[-0.3em]" />
+        ))}
       </p>
       <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}>
         {Array.from({ length: size * size }, (_, i) => {
           const isStar = stars.includes(i);
           const on = (showing && isStar) || picked.includes(i);
           return (
-            <button key={i} type="button" onClick={() => tap(i)} className={cn("flex h-[104px] w-[104px] items-center justify-center rounded-[24px] text-[56px] transition-colors", on ? "bg-[var(--l-gold)]" : "bg-white/85")} aria-label={`Spot ${i + 1}`}>
-              {on ? "⭐" : ""}
+            <button key={i} type="button" onClick={() => tap(i)} className={cn("flex h-[104px] w-[104px] items-center justify-center rounded-[24px] transition-colors", on ? "bg-[var(--l-gold)]" : "bg-white/85")} aria-label={`Spot ${i + 1}`}>
+              {on ? <Glyph e="⭐" size={70} className="l-pop-in" /> : null}
             </button>
           );
         })}

@@ -11,6 +11,7 @@ import { Chunk } from "../kit";
 import { TopBoat } from "../KidBoat";
 import { HearButton, type LessonFx } from "../acts/common";
 import { BlockPill } from "./Editor";
+import { Glyph } from "../art/Glyph";
 
 // Boat School: the lesson every child does once, before their first boat puzzle — and it can't be
 // skipped. Hands-on, one idea at a time:
@@ -197,7 +198,7 @@ export function BoatSchool({ fx, look, band, onDone }: { fx: LessonFx; look: Boa
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-4">
       <div className="flex items-center gap-3">
-        <span className="rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-violet-edge)]">⛵ Boat School</span>
+        <span className="rounded-full bg-[var(--l-violet)] px-5 py-1.5 font-display text-xl font-extrabold text-white shadow-[0_4px_0_var(--l-violet-edge)]"><Glyph e="⛵" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Boat School</span>
         <span className="flex gap-1.5" aria-label={`step ${stageNo + 1} of ${STAGES.length}`}>
           {STAGES.map((s, i) => (
             <span key={s} className={cn("h-3 rounded-full transition-all", i === stageNo ? "w-7 bg-white" : i < stageNo ? "w-3 bg-white/85" : "w-3 bg-white/30")} />
@@ -209,9 +210,9 @@ export function BoatSchool({ fx, look, band, onDone }: { fx: LessonFx; look: Boa
       <div ref={seaRef} className="relative overflow-hidden rounded-[22px] shadow-[0_8px_0_rgba(0,40,80,0.22)]" style={{ width: C * COLS, height: C * 1.3, background: "radial-gradient(circle at 50% 120%, rgba(255,255,255,0.18) 0 30%, transparent 31%) 0 0/34px 20px, linear-gradient(160deg, #48d0ef, #1aa6d6)" }}>
         {Array.from({ length: COLS }, (_, x) => (
           <span key={x} className="absolute flex items-center justify-center" style={{ left: x * C, top: C * 0.15, width: C, height: C, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.14)" }}>
-            {x === ISLAND && <span className={cn(arrived && "l-boing")} style={{ fontSize: C * 0.7, lineHeight: 1 }}>🏝️</span>}
+            {x === ISLAND && <span className={cn(arrived && "l-boing")} style={{ fontSize: C * 0.7, lineHeight: 1 }}><Glyph e="🏝️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
             {x === ISLAND && <span className="absolute inset-1 rounded-xl ring-4 ring-[var(--l-gold)]/70" />}
-            {x === ROCK && <span style={{ fontSize: C * 0.72, lineHeight: 1 }}>🪨</span>}
+            {x === ROCK && <span style={{ fontSize: C * 0.72, lineHeight: 1 }}><Glyph e="🪨" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
             {x >= 1 && x <= ISLAND && badges >= x && (
               <span className="l-pop-in absolute -top-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--l-gold)] font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_3px_0_var(--l-gold-edge)]">{x}</span>
             )}
@@ -229,11 +230,11 @@ export function BoatSchool({ fx, look, band, onDone }: { fx: LessonFx; look: Boa
         </span>
         {bump > 0 && stage !== "rule" && (
           <span key={`b${bump}`} className="l-pop-in pointer-events-none absolute flex items-center justify-center" style={{ left: (ROCK - 0.5) * C, top: C * 0.15, width: C, height: C, fontSize: C * 0.6 }}>
-            💦
+            <Glyph e="💦" size={C * 0.72} />
           </span>
         )}
         {arrived && running && blocks > ISLAND && (
-          <span className="l-pop-in absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-4 py-1 font-display text-base font-extrabold text-[var(--l-ink)]">🏝️ It made it… but there are more blocks!</span>
+          <span className="l-pop-in absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-4 py-1 font-display text-base font-extrabold text-[var(--l-ink)]"><Glyph e="🏝️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> It made it… but there are more blocks!</span>
         )}
       </div>
 
@@ -265,7 +266,7 @@ export function BoatSchool({ fx, look, band, onDone }: { fx: LessonFx; look: Boa
           <button type="button" onClick={addArrow} disabled={!expectArrow} className={cn("rounded-2xl transition-transform active:translate-y-1", !expectArrow && "opacity-40")} aria-label="Add an arrow block">
             <BlockPill op="right" band={band} size="lg" />
           </button>
-          {expectArrow && <span className="l-bob pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2 text-5xl">👆</span>}
+          {expectArrow && <Glyph e="👆" size={60} className="l-bob pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2" />}
         </div>
         {stage === "rule" ? (
           canAct && (
@@ -278,7 +279,7 @@ export function BoatSchool({ fx, look, band, onDone }: { fx: LessonFx; look: Boa
             <Chunk tone="green" disabled={!expectPlay} onClick={run} className={cn("flex h-20 items-center gap-3 px-10 font-display text-3xl font-extrabold", !expectPlay && "opacity-40")}>
               <Play className="h-8 w-8" fill="currentColor" /> Play
             </Chunk>
-            {expectPlay && <span className="l-bob pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2 text-5xl">👆</span>}
+            {expectPlay && <Glyph e="👆" size={60} className="l-bob pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2" />}
           </div>
         )}
       </div>

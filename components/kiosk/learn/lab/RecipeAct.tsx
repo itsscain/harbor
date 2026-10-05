@@ -11,6 +11,7 @@ import { sfx } from "@/lib/learn/sfx";
 import { Chunk, useShuffledApart } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, useLater, usePrompt } from "../acts/common";
+import { Glyph, GlyphRow } from "../art/Glyph";
 
 // Robot Chef: a robot that does EXACTLY what the instructions say, in the order they say it. Put
 // the steps in order and press play — pour the milk before there's a cup and you get milk all
@@ -100,33 +101,33 @@ export function RecipeAct({ act, fx, onDone }: ActProps<"recipe">) {
           <span className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.9) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.9) 2px, transparent 2px)", backgroundSize: "34px 34px" }} />
           <span className="pointer-events-none absolute right-6 top-5 h-24 w-32 overflow-hidden rounded-xl border-[6px] border-white bg-gradient-to-b from-[#7dd3fc] to-[#e0f2fe] shadow-[0_4px_0_rgba(0,40,80,0.12)]">
             <span className="absolute left-1/2 top-0 h-full w-1.5 -translate-x-1/2 bg-white" />
-            <span className="absolute left-3 top-2 text-2xl">☀️</span>
-            <span className="absolute bottom-1 right-2 text-xl">🌳</span>
+            <Glyph e="☀️" size={32} className="absolute left-3 top-2" />
+            <Glyph e="🌳" size={28} className="absolute bottom-1 right-2" />
           </span>
           <span className="pointer-events-none absolute left-5 top-6 flex items-end gap-1.5 border-b-[7px] border-[#b45309] px-2 pb-0.5 text-3xl">
-            <span>{act.scene}</span>
-            <span>🍯</span>
-            <span>🧂</span>
+            <GlyphRow s={act.scene} size="1.25em" />
+            <span><Glyph e="🍯" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
+            <span><Glyph e="🧂" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
           </span>
           <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-[#d97706] to-[#92400e] shadow-[inset_0_6px_0_rgba(255,255,255,0.25)]" />
           {failing && (
             <div className="l-pop-in absolute left-1/2 top-6 z-[1] flex max-w-[86%] -translate-x-1/2 items-center gap-3 rounded-[22px] bg-white px-4 py-3 shadow-[0_6px_0_var(--l-line)]">
-              <span className="l-shake text-5xl">{failing.failEmoji ?? "💥"}</span>
+              <GlyphRow s={failing.failEmoji ?? "💥"} size={60} className="l-shake" />
               <span className="font-display text-xl font-bold leading-snug text-[var(--l-coral-edge)]">{failing.fail ?? "Oops! The robot can't do that yet."}</span>
             </div>
           )}
           {done && (
             <div className="l-pop-in absolute inset-x-0 top-6 z-[1] flex flex-col items-center gap-1">
-              <span className="l-boing text-8xl">{act.doneEmoji}</span>
+              <GlyphRow s={act.doneEmoji ?? ""} size={112} className="l-boing" />
               <span className="rounded-full bg-white px-5 py-1.5 font-display text-2xl font-extrabold text-[#166534] shadow-[0_4px_0_var(--l-line)]">{act.done}</span>
             </div>
           )}
           <div className="relative z-[1] flex items-end gap-4">
-            <span key={at} className={cn("text-8xl", phase === "run" && "l-hop", failing && "grayscale-[0.4]")}>{failing ? "😵" : done ? "🥳" : "🤖"}</span>
+            <Glyph key={at} e={failing ? "😵" : done ? "🥳" : "🤖"} size={112} className={cn(phase === "run" && "l-hop", failing && "grayscale-[0.4]")} />
             {/* What the robot has done so far piles up on the counter. */}
             <div className="mb-2 flex min-h-[64px] min-w-[180px] flex-wrap items-end gap-1 rounded-t-2xl border-b-[10px] border-[#b45309] px-2">
               {made.map((s, i) => (
-                <span key={`${s.id}${i}`} className="l-pop-in text-5xl">{s.emoji}</span>
+                <GlyphRow key={`${s.id}${i}`} s={s.emoji} size={60} className="l-pop-in" />
               ))}
             </div>
           </div>
@@ -134,16 +135,16 @@ export function RecipeAct({ act, fx, onDone }: ActProps<"recipe">) {
 
         {/* The program */}
         <div className="flex w-full flex-col gap-3 rounded-[28px] bg-white/92 p-3 shadow-[0_8px_0_rgba(0,40,80,0.18)] lg:w-[48%]">
-          <span className="px-1 font-display text-lg font-extrabold text-[var(--l-ink)]">🤖 The robot&apos;s program</span>
+          <span className="px-1 font-display text-lg font-extrabold text-[var(--l-ink)]"><Glyph e="🤖" size="1.25em" className="mr-1 inline-block align-[-0.28em]" /> The robot&apos;s program</span>
           <ol className="flex min-h-[120px] flex-col gap-2 rounded-2xl bg-[var(--l-card-2)] p-2">
-            {prog.length === 0 && <li className="px-2 py-3 font-display text-base font-bold text-[var(--l-ink-2)]">Tap the steps below, in order 👇</li>}
+            {prog.length === 0 && <li className="px-2 py-3 font-display text-base font-bold text-[var(--l-ink-2)]">Tap the steps below, in order <Glyph e="👇" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></li>}
             {prog.map((id, i) => {
               const s = byId(id);
               return (
                 <li key={id}>
                   <button type="button" disabled={!editing} onClick={() => remove(id)} className={cn("flex w-full items-center gap-3 rounded-2xl bg-white px-3 py-2 text-left shadow-[0_4px_0_var(--l-line)] transition-transform", i === at && phase === "run" && "scale-[1.03] ring-[5px] ring-[var(--l-gold)]", i === failAt && "l-pulse ring-[5px] ring-[var(--l-coral)]", done && "bg-[#dcfce7]")}>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--l-gold)] font-display text-base font-extrabold text-[#5a3b00]">{i + 1}</span>
-                    <span className="text-3xl">{s.emoji}</span>
+                    <GlyphRow s={s.emoji ?? ""} size={40} />
                     <span className="font-reading text-[21px] font-bold leading-tight text-[var(--l-ink)]">{s.text}</span>
                   </button>
                 </li>
@@ -153,7 +154,7 @@ export function RecipeAct({ act, fx, onDone }: ActProps<"recipe">) {
           <div className="flex flex-wrap gap-2">
             {left.map((s) => (
               <Chunk key={s.id} tone="white" disabled={!editing} onClick={() => add(s)} className="flex min-h-[64px] items-center gap-2 px-3 text-left">
-                <span className="text-3xl">{s.emoji}</span>
+                <GlyphRow s={s.emoji ?? ""} size={40} />
                 <span className="font-reading text-[19px] font-bold leading-tight text-[var(--l-ink)]">{s.text}</span>
               </Chunk>
             ))}

@@ -11,6 +11,7 @@ import { sfx } from "@/lib/learn/sfx";
 import { Chunk } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, useLater, usePrompt } from "../acts/common";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
 // Sorting Factory: things roll down a conveyor belt, and YOUR rule decides where each one goes.
 // "For each thing: IF it's red → red bin, ELSE → blue bin." Tap the chips to build the rule, run
@@ -116,26 +117,29 @@ export function FactoryAct({ act, fx, onDone }: ActProps<"factory">) {
         <div className="flex w-full items-center gap-3">
           <div className="relative flex min-h-[86px] flex-1 items-center gap-2 overflow-hidden rounded-2xl bg-[#475569] px-3 py-2" style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 18px, transparent 18px 36px)" }}>
             {waiting.map((it) => (
-              <span key={it.id} className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-4xl shadow-[0_4px_0_rgba(0,0,0,0.25)] transition-all duration-300", act.items[cur]?.id === it.id && "-translate-y-1 scale-110 ring-[5px] ring-[var(--l-gold)]")} title={it.name}>
-                {it.emoji}
+              <span key={it.id} className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_4px_0_rgba(0,0,0,0.25)] transition-all duration-300", act.items[cur]?.id === it.id && "-translate-y-1 scale-110 ring-[5px] ring-[var(--l-gold)]")} title={it.name}>
+                <GlyphRow s={it.emoji} size={50} />
               </span>
             ))}
           </div>
-          <span className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#1e293b] text-3xl shadow-[0_4px_0_rgba(0,0,0,0.3)]", line && (line.yes ? "ring-[5px] ring-[#22c55e]" : "ring-[5px] ring-[#ef4444]"))}>📡</span>
+          <span className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#1e293b] shadow-[0_4px_0_rgba(0,0,0,0.3)]", line && (line.yes ? "ring-[5px] ring-[#22c55e]" : "ring-[5px] ring-[#ef4444]"))}>
+            <Glyph e="📡" size={44} />
+          </span>
         </div>
         <div className="flex w-full flex-wrap justify-center gap-3">
           {act.bins.map((b) => (
             <div key={b.id} className="flex min-w-[160px] flex-1 flex-col items-center gap-1 rounded-2xl border-[4px] border-white/80 bg-white/60 p-2">
               <span className="font-display text-lg font-extrabold text-[var(--l-ink)]">
-                {b.emoji} {b.label}
+                <GlyphRow s={b.emoji} size={30} className="mr-1 align-[-0.3em]" />
+                {b.label}
               </span>
               <div className="flex min-h-[58px] flex-wrap justify-center gap-1">
                 {placed
                   .filter((p) => p.bin === b.id)
                   .map((p) => (
-                    <span key={p.id} className="l-pop-in relative text-4xl">
-                      {act.items.find((x) => x.id === p.id)?.emoji}
-                      {!p.ok && <span className="absolute -right-2 -top-2 text-xl">❌</span>}
+                    <span key={p.id} className="l-pop-in relative">
+                      <GlyphRow s={act.items.find((x) => x.id === p.id)?.emoji ?? ""} size={46} />
+                      {!p.ok && <Glyph e="❌" size={28} className="absolute -right-2 -top-2" />}
                     </span>
                   ))}
               </div>
@@ -146,21 +150,21 @@ export function FactoryAct({ act, fx, onDone }: ActProps<"factory">) {
 
       {/* The rule */}
       <div className="flex w-full flex-col gap-2 rounded-[26px] bg-white/95 p-4 shadow-[0_8px_0_rgba(0,40,80,0.16)]">
-        <span className="font-display text-lg font-extrabold text-[var(--l-ink-2)]">🔁 For each thing on the belt:</span>
+        <span className="font-display text-lg font-extrabold text-[var(--l-ink-2)]"><Glyph e="🔁" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> For each thing on the belt:</span>
         {rules.map((r, k) => (
           <RuleRow key={k} lead={k === 0 ? "IF" : "ELSE IF"} active={line?.i === k ? line.yes : null}>
             <Pick onClick={() => setCond(k)} disabled={!editing} empty={!r.cond} tone="violet">
-              {r.cond ? `${condOf(r.cond)?.icon} ${condOf(r.cond)?.label}` : "tap to pick ❓"}
+              <WithGlyphs text={r.cond ? `${condOf(r.cond)?.icon} ${condOf(r.cond)?.label}` : "tap to pick ❓"} />
             </Pick>
             <span className="font-display text-2xl font-extrabold text-[var(--l-ink)]">→</span>
             <Pick onClick={() => setBin(k)} disabled={!editing} empty={!r.bin} tone="teal">
-              {r.bin ? `${binOf(r.bin)?.emoji} ${binOf(r.bin)?.label}` : "pick a bin 📦"}
+              <WithGlyphs text={r.bin ? `${binOf(r.bin)?.emoji} ${binOf(r.bin)?.label}` : "pick a bin 📦"} />
             </Pick>
           </RuleRow>
         ))}
         <RuleRow lead="ELSE" active={line?.i === -1 ? true : null}>
           <Pick onClick={() => setBin(-1)} disabled={!editing} empty={!elseBin} tone="teal">
-            {elseBin ? `${binOf(elseBin)?.emoji} ${binOf(elseBin)?.label}` : "pick a bin 📦"}
+            <WithGlyphs text={elseBin ? `${binOf(elseBin)?.emoji} ${binOf(elseBin)?.label}` : "pick a bin 📦"} />
           </Pick>
         </RuleRow>
         <Chunk tone="green" disabled={!editing || !ready} onClick={run} className={cn("mt-1 flex h-16 items-center justify-center gap-2 font-display text-2xl font-extrabold", editing && ready && "l-pulse")}>

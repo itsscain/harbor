@@ -10,6 +10,7 @@ import { sfx } from "@/lib/learn/sfx";
 import { Chunk, useShuffled } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, useLater, usePrompt } from "../acts/common";
+import { Glyph, GlyphRow } from "../art/Glyph";
 
 // Treasure Counter: a variable is a box with a name that holds a number, and a program can change
 // what's inside. Read the little program, predict what the box holds at the end — then watch it
@@ -65,7 +66,7 @@ export function VariableAct({ act, fx, onDone }: ActProps<"variable">) {
   return (
     <div className="flex w-full max-w-[1120px] flex-col gap-4">
       <PromptRow parts={[SAY.varIntro]}>
-        What will <code className="rounded-lg bg-white/90 px-2 font-mono text-[var(--l-ink)]">{act.name}</code> be at the end?
+        What will <code className="rounded-lg bg-[#fff3c4] px-2 font-mono text-[var(--l-ink)] shadow-[0_3px_0_#f2d27a]">{act.name}</code> be at the end?
       </PromptRow>
       <div className="flex w-full flex-col items-stretch gap-4 lg:flex-row">
         {/* The program */}
@@ -76,7 +77,7 @@ export function VariableAct({ act, fx, onDone }: ActProps<"variable">) {
               <span style={{ paddingLeft: ln.depth * 28 }} className="whitespace-pre">
                 {colorize(ln.text, act.name)}
               </span>
-              {line === i && <span className="ml-auto text-xl">👈</span>}
+              {line === i && <Glyph e="👈" size={28} className="ml-auto" />}
             </div>
           ))}
         </div>
@@ -84,7 +85,8 @@ export function VariableAct({ act, fx, onDone }: ActProps<"variable">) {
         <div className="flex w-full flex-col items-center gap-3 lg:w-[40%]">
           <div className="relative flex flex-col items-center">
             <span className="rounded-t-xl bg-[var(--l-orange)] px-4 py-1 font-mono text-xl font-bold text-white">
-              {act.emoji} {act.name}
+              <GlyphRow s={act.emoji} size="1.3em" className="mr-1 align-[-0.3em]" />
+              {act.name}
             </span>
             <span key={bumpKey} className={cn("flex h-32 w-44 items-center justify-center rounded-[24px] border-[6px] border-[var(--l-orange)] bg-white font-display text-7xl font-extrabold text-[var(--l-ink)]", bumpKey > 0 && "l-pop-in")}>
               {value ?? "?"}

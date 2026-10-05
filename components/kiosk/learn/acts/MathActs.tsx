@@ -8,6 +8,7 @@ import { say, type Part } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk, useDrag, useShuffled } from "../kit";
 import { ChoiceTile, PromptRow, tileState, useChoice, useLater, usePrompt, type ActProps } from "./common";
+import { Glyph } from "../art/Glyph";
 
 // Math you can touch: count things by tapping them, fill a net by dragging, push two groups
 // together to add. Counting walks up a musical scale, so every count is a tiny tune.
@@ -45,6 +46,11 @@ function NumberTiles({ options, answer, c }: { options: number[]; answer: number
 }
 
 // ── Count: tap each thing, then pick how many ────────────────────────────────────────────
+/** Things to count are big — as big as fits: three are huge, ten are still easy to tap. */
+const countSize = (n: number) => {
+  const px = n <= 3 ? 156 : n <= 5 ? 134 : n <= 8 ? 112 : n <= 10 ? 98 : 82;
+  return `clamp(64px, ${(px / 8.2).toFixed(1)}vh, ${px}px)`;
+};
 export function CountAct({ act, fx, onDone }: ActProps<"count">) {
   const spots = useMemo(() => scatter(act.n, act.n * 7 + act.emoji.length), [act.n, act.emoji]);
   const [counted, setCounted] = useState<number[]>([]);
@@ -69,7 +75,7 @@ export function CountAct({ act, fx, onDone }: ActProps<"count">) {
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <PromptRow parts={parts}>{counted.length < act.n ? "Tap each one to count" : "How many are there?"}</PromptRow>
-      <div className="relative h-[clamp(240px,38vh,360px)] w-[min(92vw,820px)] rounded-[32px] bg-white/25 shadow-[inset_0_0_0_4px_rgba(255,255,255,0.45)]">
+      <div className="relative h-[clamp(270px,44vh,420px)] w-[min(94vw,900px)] rounded-[36px] bg-white/30 shadow-[inset_0_0_0_4px_rgba(255,255,255,0.55),0_10px_30px_rgba(0,40,80,0.12)]" style={{ backgroundImage: "radial-gradient(ellipse 30px 7px at 50% 50%, transparent 60%, rgba(255,255,255,0.45) 62%, transparent 72%)", backgroundSize: "110px 60px" }}>
         {spots.map((s, i) => {
           const k = counted.indexOf(i);
           return (
@@ -78,10 +84,12 @@ export function CountAct({ act, fx, onDone }: ActProps<"count">) {
               type="button"
               onClick={(e) => tap(i, e.currentTarget)}
               className={cn("absolute -translate-x-1/2 -translate-y-1/2 select-none transition-transform", k >= 0 ? "scale-110" : "active:scale-95")}
-              style={{ left: `${s.x}%`, top: `${s.y}%`, fontSize: "clamp(58px, 9vh, 84px)", lineHeight: 1 }}
+              style={{ left: `${s.x}%`, top: `${s.y}%` }}
               aria-label={k >= 0 ? `counted ${k + 1}` : "count me"}
             >
-              <span className={cn("block", k >= 0 && "l-boing")}>{act.emoji}</span>
+              <span className={cn("block", k >= 0 && "l-boing")}>
+                <Glyph e={act.emoji} size={countSize(act.n)} />
+              </span>
               {k >= 0 && (
                 <span className="l-pop-in absolute -right-3 -top-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--l-gold)] font-display text-xl font-extrabold text-[#5a3b00] shadow-[0_3px_0_var(--l-gold-edge)]">
                   {k + 1}
@@ -155,10 +163,10 @@ export function MakeAct({ act, fx, onDone }: ActProps<"make">) {
         )}
         style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.12) 0 2px, transparent 2px 22px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.12) 0 2px, transparent 2px 22px)" }}
       >
-        {inNet.length === 0 && <span className="pointer-events-none text-6xl opacity-80">🥅</span>}
+        {inNet.length === 0 && <Glyph e="🥅" size={124} className="pointer-events-none opacity-60" />}
         {inNet.map((id) => (
-          <button key={id} type="button" onClick={() => remove(id)} className="l-pop-in select-none" style={{ fontSize: "clamp(52px, 8vh, 72px)", lineHeight: 1 }} aria-label="take it out">
-            {act.emoji}
+          <button key={id} type="button" onClick={() => remove(id)} className="l-pop-in select-none" aria-label="take it out">
+            <Glyph e={act.emoji} size="clamp(58px, 9vh, 80px)" />
           </button>
         ))}
         <span className="absolute -top-6 right-6 flex h-14 min-w-14 items-center justify-center rounded-full bg-white px-3 font-display text-3xl font-extrabold text-[var(--l-ink)] shadow-[0_4px_0_var(--l-line)]">{inNet.length}</span>
@@ -189,8 +197,8 @@ export function MakeAct({ act, fx, onDone }: ActProps<"make">) {
 function Thing({ emoji, onPut, onTap, disabled }: { emoji: string; onPut: (t: HTMLElement | null) => void; onTap: () => void; disabled: boolean }) {
   const { handlers, dragging } = useDrag({ onDrop: onPut, onTap, onLift: () => sfx("lift"), disabled });
   return (
-    <div {...handlers} data-dragging={dragging} role="button" aria-label="drag me" className="l-drag l-chunk flex h-[clamp(84px,12vh,100px)] w-[clamp(84px,12vh,100px)] items-center justify-center" style={{ fontSize: "clamp(50px, 7.5vh, 64px)", lineHeight: 1 } as CSSProperties}>
-      {emoji}
+    <div {...handlers} data-dragging={dragging} role="button" aria-label="drag me" className="l-drag l-chunk flex h-[clamp(84px,12vh,100px)] w-[clamp(84px,12vh,100px)] items-center justify-center" style={{} as CSSProperties}>
+      <Glyph e={emoji} size="clamp(58px, 8.6vh, 74px)" />
     </div>
   );
 }
@@ -222,8 +230,8 @@ export function AddAct({ act, fx, onDone }: ActProps<"add">) {
   }
 
   const item = (i: number, extraClass?: string) => (
-    <span key={i} className={cn("inline-block select-none transition-transform duration-200", lit >= i && "-translate-y-2 scale-110", extraClass)} style={{ fontSize: "clamp(50px, 8vh, 70px)", lineHeight: 1 }}>
-      {act.emoji}
+    <span key={i} className={cn("inline-block select-none transition-transform duration-200", lit >= i && "-translate-y-2 scale-110", extraClass)}>
+      <Glyph e={act.emoji} size={sum > 6 ? "clamp(56px, 9vh, 80px)" : "clamp(68px, 12vh, 104px)"} />
     </span>
   );
 
@@ -237,22 +245,22 @@ export function AddAct({ act, fx, onDone }: ActProps<"add">) {
       </PromptRow>
       {!merged ? (
         <div className="flex items-center gap-5">
-          <div data-drop="left" className="flex min-h-[200px] min-w-[200px] max-w-[360px] flex-wrap items-center justify-center gap-2 rounded-[32px] border-[5px] border-dashed border-white/85 bg-white/15 p-5">
+          <div data-drop="left" className="flex min-h-[240px] min-w-[240px] max-w-[420px] flex-wrap items-center justify-center gap-2 rounded-[32px] border-[5px] border-dashed border-white/85 bg-white/15 p-5">
             {Array.from({ length: act.a }, (_, i) => item(i))}
           </div>
           <span className="font-display text-7xl font-extrabold text-white drop-shadow-[0_3px_0_rgba(0,40,80,0.3)]">+</span>
-          <div {...handlers} data-dragging={dragging} role="button" aria-label="push together" className="l-drag l-chunk flex min-h-[200px] min-w-[200px] max-w-[360px] flex-wrap items-center justify-center gap-2 p-5" style={{ "--f": "var(--l-card)", "--e": "var(--l-violet-edge)" } as CSSProperties}>
+          <div {...handlers} data-dragging={dragging} role="button" aria-label="push together" className="l-drag l-chunk flex min-h-[240px] min-w-[240px] max-w-[420px] flex-wrap items-center justify-center gap-2 p-5" style={{ "--f": "var(--l-card)", "--e": "var(--l-violet-edge)" } as CSSProperties}>
             {Array.from({ length: act.b }, (_, i) => item(act.a + i))}
           </div>
         </div>
       ) : (
-        <div className="l-pop-in flex min-h-[200px] max-w-[760px] flex-wrap items-center justify-center gap-3 rounded-[32px] bg-white px-8 py-6 shadow-[0_8px_0_var(--l-line)]">
+        <div className="l-pop-in flex min-h-[240px] max-w-[900px] flex-wrap items-center justify-center gap-3 rounded-[32px] bg-white px-8 py-6 shadow-[0_8px_0_var(--l-line)]">
           {Array.from({ length: sum }, (_, i) => item(i))}
         </div>
       )}
       {!merged && (
         <Chunk tone="violet" onClick={merge} className="flex h-20 items-center gap-3 px-9 font-display text-2xl font-bold">
-          👐 Push together
+          <Glyph e="👐" size={40} /> Push together
         </Chunk>
       )}
       {merged && (

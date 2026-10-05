@@ -6,6 +6,7 @@ import { sfx } from "@/lib/learn/sfx";
 import { useShuffled } from "../kit";
 import type { ActProps } from "../acts/common";
 import { ChoiceTile, PromptRow, tileState, useChoice, useLater, usePrompt } from "../acts/common";
+import { Glyph } from "../art/Glyph";
 
 // Python Peek: the bridge from blocks to real code. A few lines of genuine Python — variables,
 // loops, if/else, functions, lists — and one question: what will it do? Answer, and the program
@@ -73,7 +74,7 @@ export function CodeReadAct({ act, fx, onDone }: ActProps<"coderead">) {
             <span className="h-3 w-3 rounded-full bg-[#facc15]" />
             <span className="h-3 w-3 rounded-full bg-[#22c55e]" />
             <span className="ml-2 font-mono text-sm text-[#94a3b8]">{bug ? "buggy.py" : "voyage.py"}</span>
-            {bug && !c.found && <span className="ml-auto text-sm font-bold text-[#fca5a5]">🐞 tap the line with the bug</span>}
+            {bug && !c.found && <span className="ml-auto text-sm font-bold text-[#fca5a5]"><Glyph e="🐞" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> tap the line with the bug</span>}
           </div>
           <div className="overflow-x-auto p-3">
             {act.lines.map((ln, i) => {
@@ -119,10 +120,10 @@ export function CodeReadAct({ act, fx, onDone }: ActProps<"coderead">) {
               c.found ? (
                 <span className="text-[#22c55e]">✓ Fixed — output</span>
               ) : (
-                <span className="text-[#f87171]">▶ Output — not right!</span>
+                <span className="text-[#f87171]"><Glyph e="▶" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Output — not right!</span>
               )
             ) : (
-              <span className="text-[#22c55e]">▶ Output</span>
+              <span className="text-[#22c55e]"><Glyph e="▶" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Output</span>
             )}
             {c.found && shown > 0 && (
               <span key={shown} className="l-pop-in rounded-full bg-white/10 px-2 py-0.5 normal-case text-[#a7f3d0]">

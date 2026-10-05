@@ -10,6 +10,7 @@ import { sfx } from "@/lib/learn/sfx";
 import { Chunk } from "../kit";
 import type { ActProps, LessonFx } from "../acts/common";
 import { PromptRow, useLater, usePrompt } from "../acts/common";
+import { Glyph, GlyphRow, WithGlyphs, SvgGlyph } from "../art/Glyph";
 
 // Discovery labs: hands-on science on the wall. Every lab runs the scientist's loop — PREDICT what
 // will happen, TEST it and watch, then EXPLAIN why — because guessing first (and being surprised)
@@ -93,21 +94,21 @@ function PredictTest({ prompt, spec, fx, onDone }: LabProps<"float" | "magnet" |
           {spec.lab === "magnet" && <MagnetScene thing={thing} tested={tested} />}
           {spec.lab === "circuit" && <CircuitScene thing={thing} tested={tested} />}
           <span className="absolute left-4 top-3 rounded-full bg-white/85 px-3 py-1 font-display text-sm font-extrabold text-[var(--l-ink-2)]">
-            🧪 {i + 1} of {spec.things.length}
+            <Glyph e="🧪" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> {i + 1} of {spec.things.length}
           </span>
         </div>
         <div className="flex w-full max-w-[440px] flex-col justify-center gap-3">
           <div className="flex items-center gap-3 rounded-[22px] bg-white/95 px-4 py-3 shadow-[0_5px_0_rgba(0,40,80,0.14)]">
-            <span className="text-6xl">{thing.emoji}</span>
+            <GlyphRow s={thing.emoji ?? ""} size={72} />
             <span className="font-display text-3xl font-extrabold text-[var(--l-ink)]">{thing.name}</span>
           </div>
           {!tested ? (
             <>
-              <span className="text-center font-display text-lg font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.3)]">🤔 What&apos;s your prediction?</span>
+              <span className="text-center font-display text-lg font-extrabold text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.3)]"><Glyph e="🤔" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> What&apos;s your prediction?</span>
               <div className="grid grid-cols-2 gap-3">
                 {[true, false].map((g) => (
                   <Chunk key={String(g)} tone={guess === g ? "gold" : "white"} disabled={guess !== null} onClick={() => predict(g)} className="flex h-20 items-center justify-center px-2 font-display text-2xl font-extrabold">
-                    {g ? t.yes : t.no}
+                    <WithGlyphs text={g ? t.yes : t.no} />
                   </Chunk>
                 ))}
               </div>
@@ -115,9 +116,9 @@ function PredictTest({ prompt, spec, fx, onDone }: LabProps<"float" | "magnet" |
           ) : (
             <div className="l-card-in flex flex-col gap-2 rounded-[22px] bg-white px-4 py-3 shadow-[0_5px_0_var(--l-line)]">
               <span className={cn("font-display text-2xl font-extrabold", guess === thing.yes ? "text-[#166534]" : "text-[var(--l-coral-edge)]")}>
-                {guess === thing.yes ? "✅ You predicted it!" : "😮 Surprise!"} {thing.yes ? t.yes : t.no}
+                <WithGlyphs text={`${guess === thing.yes ? "✅ You predicted it!" : "😮 Surprise!"} ${thing.yes ? t.yes : t.no}`} />
               </span>
-              <span className="font-display text-xl font-bold leading-snug text-[var(--l-ink)]">💡 {thing.why}</span>
+              <span className="font-display text-xl font-bold leading-snug text-[var(--l-ink)]"><Glyph e="💡" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {thing.why}</span>
               <Chunk tone="blue" onClick={next} className="mt-1 flex h-14 items-center justify-center gap-2 font-display text-xl font-extrabold">
                 {last ? "Finish" : "Next thing"} <ArrowRight className="h-6 w-6" strokeWidth={3} />
               </Chunk>
@@ -125,9 +126,9 @@ function PredictTest({ prompt, spec, fx, onDone }: LabProps<"float" | "magnet" |
           )}
           <div className="flex justify-center gap-2">
             {log.map((l, k) => (
-              <span key={k} className="flex items-center gap-0.5 rounded-full bg-white/85 px-2 py-0.5 text-2xl">
-                {l.thing.emoji}
-                <span className="text-base">{l.right ? "✅" : "🔁"}</span>
+              <span key={k} className="flex items-center gap-0.5 rounded-full bg-white/85 px-2 py-0.5">
+                <GlyphRow s={l.thing.emoji} size={30} />
+                <Glyph e={l.right ? "✅" : "🔁"} size={18} />
               </span>
             ))}
           </div>
@@ -151,10 +152,12 @@ function FloatScene({ thing, tested }: { thing: LabThing; tested: boolean }) {
           transition: tested ? (thing.yes ? "top 900ms cubic-bezier(0.34,1.6,0.64,1)" : "top 1400ms cubic-bezier(0.45,0,0.55,1)") : "none",
         }}
       >
-        <span className={cn("block", tested && thing.yes && "l-bob")}>{thing.emoji}</span>
+        <span className={cn("block", tested && thing.yes && "l-bob")}>
+          <GlyphRow s={thing.emoji} size="1.15em" />
+        </span>
       </span>
-      {tested && <span className="l-pop-in absolute left-1/2 top-[27%] -translate-x-1/2 text-4xl opacity-80">💦</span>}
-      {tested && !thing.yes && <span className="l-bubble-up pointer-events-none absolute left-[55%] top-[70%] text-2xl">💧</span>}
+      {tested && <Glyph e="💦" size={48} className="l-pop-in absolute left-1/2 top-[27%] -translate-x-1/2 opacity-80" />}
+      {tested && !thing.yes && <Glyph e="💧" size={32} className="l-bubble-up pointer-events-none absolute left-[55%] top-[70%]" />}
     </>
   );
 }
@@ -162,13 +165,11 @@ function FloatScene({ thing, tested }: { thing: LabThing; tested: boolean }) {
 function MagnetScene({ thing, tested }: { thing: LabThing; tested: boolean }) {
   return (
     <div className="relative h-full w-full">
-      <span className="absolute text-8xl" style={{ left: tested ? "54%" : "12%", top: "34%", transition: "left 700ms cubic-bezier(0.34,1.3,0.64,1)", transform: "rotate(90deg)" }}>
-        🧲
+      <Glyph e="🧲" size={112} className="absolute" style={{ left: tested ? "54%" : "12%", top: "34%", transition: "left 700ms cubic-bezier(0.34,1.3,0.64,1)", transform: "rotate(90deg)" }} />
+      <span key={thing.id} className={cn("absolute block", tested && !thing.yes && "l-wobble")} style={{ left: tested && thing.yes ? "66%" : "72%", top: "36%", transition: "left 260ms ease-in 520ms" }}>
+        <GlyphRow s={thing.emoji} size={88} />
       </span>
-      <span key={thing.id} className={cn("absolute text-7xl", tested && !thing.yes && "l-wobble")} style={{ left: tested && thing.yes ? "66%" : "72%", top: "36%", transition: "left 260ms ease-in 520ms" }}>
-        {thing.emoji}
-      </span>
-      {tested && thing.yes && <span className="l-pop-in absolute left-[62%] top-[24%] text-4xl" style={{ animationDelay: "700ms" }}>✨</span>}
+      {tested && thing.yes && <Glyph e="✨" size={48} className="l-pop-in absolute left-[62%] top-[24%]" style={{ animationDelay: "700ms" }} />}
     </div>
   );
 }
@@ -184,10 +185,8 @@ function CircuitScene({ thing, tested }: { thing: LabThing; tested: boolean }) {
       <rect x="50" y="102" width="20" height="10" rx="3" fill="#9ca3af" />
       <text x="60" y="150" textAnchor="middle" fill="#fde047" fontSize="20" fontWeight="bold">+</text>
       <circle cx="200" cy="40" r="30" fill={lit ? "#fde047" : "#e5e7eb"} stroke="#64748b" strokeWidth="4" style={{ filter: lit ? "drop-shadow(0 0 20px rgba(250,204,21,0.95))" : undefined, transition: "all 400ms" }} />
-      <text x="200" y="52" textAnchor="middle" fontSize="34">{lit ? "💡" : ""}</text>
-      <text key={thing.id} x="200" y={tested ? 232 : 150} textAnchor="middle" fontSize="44" style={{ transition: "all 500ms" }}>
-        {thing.emoji}
-      </text>
+      {lit && <SvgGlyph e="💡" x={200} y={40} size={44} />}
+      <SvgGlyph key={thing.id} e={thing.emoji} x={200} y={tested ? 216 : 134} size={56} style={{ transition: "all 500ms" }} />
     </svg>
   );
 }
@@ -236,12 +235,12 @@ function StatesLab({ prompt, spec, fx, onDone }: LabProps<"states">) {
       <PromptRow parts={[SAY.labStates]}>{prompt}</PromptRow>
       <div className="flex flex-wrap items-center justify-center gap-6">
         <div className="relative flex h-[300px] w-[230px] items-end justify-center overflow-hidden rounded-b-[60px] rounded-t-xl border-[6px] border-white/80 bg-white/30">
-          {state === "solid" && <span className="mb-6 text-8xl">🧊</span>}
+          {state === "solid" && <Glyph e="🧊" size={112} className="mb-6" />}
           {state === "liquid" && <span className="absolute inset-x-0 bottom-0 h-[55%] bg-[#38bdf8]/70" />}
           {state === "gas" && (
             <>
-              <span className="l-rise absolute bottom-10 left-8 text-5xl opacity-80">💨</span>
-              <span className="l-rise absolute bottom-16 right-10 text-5xl opacity-70" style={{ animationDelay: "400ms" }}>💨</span>
+              <Glyph e="💨" size={60} className="l-rise absolute bottom-10 left-8 opacity-80" />
+              <Glyph e="💨" size={60} className="l-rise absolute bottom-16 right-10 opacity-70" style={{ animationDelay: "400ms" }} />
             </>
           )}
           <span className="absolute right-2 top-2 rounded-full bg-white px-2 py-0.5 font-mono text-lg font-bold text-[var(--l-ink)]">{temp}°C</span>
@@ -317,27 +316,28 @@ function PlantLab({ prompt, spec, fx, onDone }: LabProps<"plant">) {
       }
     }, 1600);
   };
-  const size = phase === "won" ? 1 : phase === "grow" ? 0.6 : 0.3;
+  const size = phase === "won" ? 1 : phase === "grow" ? 0.7 : 0.46;
   return (
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-4">
       <PromptRow parts={[SAY.labPlant]}>{prompt}</PromptRow>
       <div className="relative flex h-[300px] w-full max-w-[560px] items-end justify-center overflow-hidden rounded-[28px] shadow-[0_8px_0_rgba(0,40,80,0.18)]" style={{ background: on.includes("sun") ? "linear-gradient(#7dd3fc,#e0f2fe)" : "linear-gradient(#334155,#64748b)" }}>
-        {on.includes("sun") && <span className="l-rays absolute right-6 top-4 text-6xl">☀️</span>}
+        {on.includes("sun") && <Glyph e="☀️" size={72} className="l-rays absolute right-6 top-4" />}
         {on.includes("water") && phase !== "set" && <span className="l-rain pointer-events-none absolute inset-0 opacity-70" />}
         <span className="absolute bottom-0 h-16 w-full" style={{ background: on.includes("soil") ? "#7c4a1f" : "#d6d3d1" }} />
-        <span className={cn("relative mb-12 origin-bottom text-[150px] leading-none transition-transform duration-[1400ms]", phase === "wilt" && "l-droop")} style={{ transform: `scale(${size})` }}>
-          {phase === "won" ? "🌻" : phase === "wilt" ? "🥀" : "🌱"}
+        <span className={cn("relative mb-12 block origin-bottom transition-transform duration-[1400ms]", phase === "wilt" && "l-droop")} style={{ transform: `scale(${size})` }}>
+          <Glyph e={phase === "won" ? "🌻" : phase === "wilt" ? "🥀" : "🌱"} size={170} />
         </span>
       </div>
       {missing && (
         <span className="l-card-in rounded-[20px] bg-white px-5 py-2 font-display text-xl font-bold text-[var(--l-coral-edge)] shadow-[0_4px_0_var(--l-line)]">
-          {NEEDS.find((x) => x.id === missing)?.emoji} {NEEDS.find((x) => x.id === missing)?.why}
+          <GlyphRow s={NEEDS.find((x) => x.id === missing)?.emoji ?? ""} size="1.3em" className="mr-1 align-[-0.3em]" />
+          {NEEDS.find((x) => x.id === missing)?.why}
         </span>
       )}
       <div className="flex flex-wrap justify-center gap-3">
         {NEEDS.map((n) => (
           <Chunk key={n.id} tone={on.includes(n.id) ? "teal" : "white"} disabled={phase === "grow" || phase === "won"} onClick={() => toggle(n.id)} className="flex h-16 items-center gap-2 px-4 font-display text-xl font-extrabold">
-            <span className="text-3xl">{n.emoji}</span> {n.label} {on.includes(n.id) ? "✓" : ""}
+            <GlyphRow s={n.emoji ?? ""} size={40} /> {n.label} {on.includes(n.id) ? "✓" : ""}
           </Chunk>
         ))}
         <Chunk tone="green" disabled={phase === "grow" || phase === "won"} onClick={grow} className="l-pulse flex h-16 items-center gap-2 px-6 font-display text-2xl font-extrabold">
@@ -377,23 +377,23 @@ function ShadowLab({ prompt, spec, fx, onDone }: LabProps<"shadow">) {
     <div className="flex w-full max-w-[1000px] flex-col items-center gap-4">
       <PromptRow parts={[SAY.labShadow]}>{prompt}</PromptRow>
       <div className="relative h-[300px] w-full max-w-[640px] overflow-hidden rounded-[28px] shadow-[0_8px_0_rgba(0,40,80,0.18)]" style={{ background: `linear-gradient(${height > 0.4 ? "#7dd3fc" : "#fdba74"}, #fef3c7)` }}>
-        <span className="absolute text-6xl" style={{ left: `${sx}%`, top: `${sy}%`, transform: "translate(-50%,-50%)", transition: "all 500ms ease" }}>☀️</span>
+        <span className="absolute text-6xl" style={{ left: `${sx}%`, top: `${sy}%`, transform: "translate(-50%,-50%)", transition: "all 500ms ease" }}><Glyph e="☀️" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>
         <span className="absolute bottom-0 h-[22%] w-full bg-[#86efac]" />
         {/* the shadow lies on the ground, away from the sun */}
         <span className="absolute bottom-[19%] h-5 rounded-full bg-black/35 blur-[1px]" style={{ left: dir >= 0 ? "50%" : `calc(50% - ${len}px)`, width: dir === 0 ? len : len, transform: dir === 0 ? "translateX(-50%)" : undefined, transition: "all 500ms ease" }} />
-        <span className="absolute bottom-[19%] left-1/2 -translate-x-1/2 text-[120px] leading-none">🧍</span>
+        <Glyph e="🧍" size={144} className="absolute bottom-[19%] left-1/2 -translate-x-1/2" />
       </div>
       <div className="flex items-center gap-3">
         <Chunk tone="white" disabled={done || pos === 0} onClick={() => (sfx("tick"), setPos((p) => Math.max(0, p - 1)))} className="flex h-14 items-center px-4 font-display text-lg font-extrabold text-[var(--l-ink)]">
-          🌅 Earlier
+          <Glyph e="🌅" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> Earlier
         </Chunk>
         <input type="range" min={0} max={6} value={pos} onChange={(e) => (sfx("tick"), setPos(Number(e.target.value)))} disabled={done} className="h-4 w-[300px] accent-[var(--l-gold)]" aria-label="Move the sun" />
         <Chunk tone="white" disabled={done || pos === 6} onClick={() => (sfx("tick"), setPos((p) => Math.min(6, p + 1)))} className="flex h-14 items-center px-4 font-display text-lg font-extrabold text-[var(--l-ink)]">
-          Later 🌇
+          Later <Glyph e="🌇" size="1.2em" className="ml-1 inline-block align-[-0.25em]" />
         </Chunk>
       </div>
       <Chunk tone="green" disabled={done} onClick={check} className="flex h-16 items-center gap-2 px-8 font-display text-2xl font-extrabold">
-        ✅ Check
+        <Glyph e="✅" size="1.2em" className="mr-1 inline-block align-[-0.25em]" /> Check
       </Chunk>
     </div>
   );
@@ -451,9 +451,7 @@ function RampLab({ prompt, spec, fx, onDone }: LabProps<"ramp">) {
             </g>
           ))}
         </svg>
-        <span className="absolute text-5xl" style={{ left: rolling || dist !== null ? 180 + ((dist ?? d) / 100) * 470 : 20, bottom: rolling || dist !== null ? 26 : 30 + ramp - 6, transition: rolling ? "left 1400ms cubic-bezier(0.2,0.7,0.35,1), bottom 500ms ease-in" : "none" }}>
-          🚗
-        </span>
+        <Glyph e="🚗" size={60} className="absolute" style={{ left: rolling || dist !== null ? 180 + ((dist ?? d) / 100) * 470 : 20, bottom: rolling || dist !== null ? 26 : 30 + ramp - 6, transition: rolling ? "left 1400ms cubic-bezier(0.2,0.7,0.35,1), bottom 500ms ease-in" : "none" }} />
         {dist !== null && <span className="l-pop-in absolute right-4 top-3 rounded-full bg-white px-4 py-1 font-display text-xl font-extrabold text-[var(--l-ink)]">Rolled {dist} cm</span>}
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -466,14 +464,15 @@ function RampLab({ prompt, spec, fx, onDone }: LabProps<"ramp">) {
         <span className="ml-2 font-display text-lg font-extrabold text-white">Floor:</span>
         {SURF.map((s, k) => (
           <Chunk key={s.id} tone={surf === k ? "teal" : "white"} disabled={rolling || done} onClick={() => (sfx("tick"), setSurf(k), setDist(null))} className="flex h-12 items-center gap-1 px-3 font-display text-lg font-extrabold">
-            {s.emoji} {s.label}
+            <GlyphRow s={s.emoji} size={30} />
+            {s.label}
           </Chunk>
         ))}
       </div>
       <Chunk tone="green" disabled={rolling || done} onClick={roll} className="l-pulse flex h-16 items-center gap-2 px-8 font-display text-2xl font-extrabold">
         <Play className="h-7 w-7 fill-current" /> Roll!
       </Chunk>
-      {done && <span className="l-pop-in rounded-[20px] bg-white px-5 py-2 text-center font-display text-xl font-bold text-[var(--l-ink)]">{spec.goal === "far" ? "💡 A higher ramp gives more speed, and a smooth floor means less friction to slow it down." : "💡 A low ramp means less speed, and a rough floor has more friction to stop it."}</span>}
+      {done && <span className="l-pop-in rounded-[20px] bg-white px-5 py-2 text-center font-display text-xl font-bold text-[var(--l-ink)]"><WithGlyphs text={spec.goal === "far" ? "💡 A higher ramp gives more speed, and a smooth floor means less friction to slow it down." : "💡 A low ramp means less speed, and a rough floor has more friction to stop it."} /></span>}
     </div>
   );
 }

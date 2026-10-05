@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { partsKey, say, speakingNow, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { ICON_ART, artUrl } from "./tank/art";
+import { Glyph } from "./art/Glyph";
 
 // Harbor Learn's building blocks: chunky press-down tiles, the replay-the-voice button, star
 // bursts, and a pointer-based drag that works with a five-year-old's finger.
@@ -118,10 +119,10 @@ export function BurstLayer({ bursts }: { bursts: Burst[] }) {
         b.bits.map((bit, i) => (
           <span
             key={`${b.id}-${i}`}
-            className="l-particle text-3xl"
+            className="l-particle"
             style={{ left: b.x, top: b.y, "--dx": `${bit.dx}px`, "--dy": `${bit.dy}px`, "--r": `${bit.r}deg`, "--s": bit.s, "--d": `${bit.d}ms` } as CSSProperties}
           >
-            {bit.e}
+            <Glyph e={bit.e} size={36} />
           </span>
         )),
       )}
@@ -230,9 +231,7 @@ export function Stars({ n, size = 20, className }: { n: number; size?: number; c
   return (
     <span className={cn("inline-flex items-center gap-0.5", className)} aria-label={`${n} of 3 stars`}>
       {[0, 1, 2].map((i) => (
-        <span key={i} style={{ fontSize: size, lineHeight: 1, filter: i < n ? "none" : "grayscale(1) opacity(0.35)" }}>
-          ⭐
-        </span>
+        <Glyph key={i} e="⭐" size={size * 1.15} style={{ filter: i < n ? "none" : "grayscale(1) opacity(0.35)" }} />
       ))}
     </span>
   );

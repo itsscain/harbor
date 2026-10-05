@@ -10,6 +10,7 @@ import { note, sfx } from "@/lib/learn/sfx";
 import { Chunk } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, useLater, usePrompt } from "../acts/common";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 
 // Event Studio: apps and games are made of events — "WHEN this is tapped, DO that". Read what the
 // app should do, wire each character to an action, then switch to play mode and tap your own app
@@ -84,14 +85,14 @@ export function EventsAct({ act, fx, onDone }: ActProps<"events">) {
       <PromptRow parts={[act.story]}>{act.prompt}</PromptRow>
       {/* What the app should do: pictures for pre-readers, the words for readers. */}
       <div className="flex flex-wrap items-center justify-center gap-2 rounded-[20px] bg-white/95 px-4 py-2 shadow-[0_5px_0_rgba(0,40,80,0.14)]">
-        <span className="font-display text-lg font-extrabold text-[var(--l-ink-2)]">🎯 Goal:</span>
+        <span className="font-display text-lg font-extrabold text-[var(--l-ink-2)]"><Glyph e="🎯" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Goal:</span>
         {fx.voice === "all" ? (
           act.goal.map((g) => {
             const s = act.sprites.find((x) => x.id === g.sprite);
             const a = actionOf(g.action);
             return (
               <span key={g.sprite} className="flex items-center gap-1.5 rounded-full bg-[var(--l-card-2)] px-3 py-1 font-display text-lg font-extrabold text-[var(--l-ink)]">
-                <span className="text-2xl">{s?.emoji}</span>👆 → <span className="text-2xl">{a?.icon}</span> {a?.label}
+                <GlyphRow s={s?.emoji ?? ""} size={32} /><Glyph e="👆" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> → <GlyphRow s={a?.icon ?? ""} size={32} /> {a?.label}
               </span>
             );
           })
@@ -102,7 +103,7 @@ export function EventsAct({ act, fx, onDone }: ActProps<"events">) {
       <div className="flex w-full flex-col items-stretch gap-4 lg:flex-row">
         {/* The app */}
         <div className={cn("relative flex min-h-[320px] flex-1 flex-wrap items-center justify-center gap-6 overflow-hidden rounded-[28px] p-6 shadow-[0_8px_0_rgba(0,40,80,0.16)]", mode === "build" ? "bg-[#e2e8f0]" : "bg-gradient-to-b from-[#bae6fd] to-[#e0f2fe]")}>
-          <span className="absolute left-4 top-3 rounded-full bg-white/80 px-3 py-1 font-display text-sm font-extrabold text-[var(--l-ink-2)]">{mode === "build" ? "🔧 Building…" : "▶️ Your app is running — tap things!"}</span>
+          <span className="absolute left-4 top-3 rounded-full bg-white/80 px-3 py-1 font-display text-sm font-extrabold text-[var(--l-ink-2)]"><WithGlyphs text={mode === "build" ? "🔧 Building…" : "▶️ Your app is running — tap things!"} /></span>
           {act.sprites.map((s) => {
             const st = fxState[s.id];
             const anim = st && st.k > 0 ? { jump: "l-hop", spin: "l-spin", grow: "l-grow", shake: "l-shake", glow: "l-pop-in", sing: "l-boing", hide: "", count: "l-pop-in", rain: "l-boing", color: "l-pop-in" }[st.fx] : "";
@@ -110,15 +111,15 @@ export function EventsAct({ act, fx, onDone }: ActProps<"events">) {
               <button key={s.id} type="button" disabled={mode === "build"} onClick={(e) => trigger(s, e.currentTarget)} className={cn("relative flex flex-col items-center gap-1 rounded-3xl p-3", mode !== "build" && !tapped.includes(s.id) && "l-pulse")} aria-label={s.name}>
                 <span
                   key={st?.k ?? 0}
-                  className={cn("block text-8xl transition-[opacity,filter] duration-300", anim)}
+                  className={cn("block transition-[opacity,filter] duration-300", anim)}
                   style={{
                     opacity: st?.hidden ? 0.15 : 1,
                     filter: `${st?.fx === "glow" && st.k % 2 === 1 ? "drop-shadow(0 0 26px rgba(250,204,21,0.95)) brightness(1.15)" : ""} ${st?.hue ? `hue-rotate(${st.hue}deg)` : ""}`.trim() || undefined,
                   }}
                 >
-                  {s.emoji}
+                  <GlyphRow s={s.emoji} size={112} />
                 </span>
-                {st?.fx === "sing" && <span key={`n${st.k}`} className="l-float-num absolute -top-2 right-0 text-4xl">🎵</span>}
+                {st?.fx === "sing" && <span key={`n${st.k}`} className="l-float-num absolute -top-2 right-0 text-4xl"><Glyph e="🎵" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /></span>}
                 {(st?.count ?? 0) > 0 && <span key={`c${st?.count}`} className="l-pop-in absolute -right-2 -top-2 flex h-10 min-w-10 items-center justify-center rounded-full bg-[var(--l-gold)] px-2 font-display text-xl font-extrabold text-[#5a3b00]">{st?.count}</span>}
                 <span className="rounded-full bg-white/80 px-3 py-0.5 font-display text-base font-extrabold text-[var(--l-ink)]">{s.name}</span>
               </button>
@@ -127,7 +128,7 @@ export function EventsAct({ act, fx, onDone }: ActProps<"events">) {
         </div>
         {/* The event wiring */}
         <div className="flex w-full flex-col gap-2 rounded-[28px] bg-white/95 p-3 shadow-[0_8px_0_rgba(0,40,80,0.18)] lg:w-[46%]">
-          <span className="px-1 font-display text-lg font-extrabold text-[var(--l-ink)]">⚡ Events</span>
+          <span className="px-1 font-display text-lg font-extrabold text-[var(--l-ink)]"><Glyph e="⚡" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> Events</span>
           {act.sprites.map((s) => {
             const a = actionOf(wires[s.id]);
             const bad = wrong.includes(s.id);
@@ -135,11 +136,12 @@ export function EventsAct({ act, fx, onDone }: ActProps<"events">) {
               <div key={s.id} className={cn("flex flex-wrap items-center gap-2 rounded-2xl bg-[#fef9c3] px-3 py-2 shadow-[0_4px_0_#facc15]", bad && "l-shake bg-[#fee2e2] shadow-[0_4px_0_#f87171]")}>
                 <span className="font-display text-lg font-extrabold text-[#854d0e]">When</span>
                 <span className="rounded-xl bg-white px-2.5 py-1 font-display text-lg font-extrabold text-[var(--l-ink)]">
-                  {s.emoji} {s.name} tapped
+                  <GlyphRow s={s.emoji} size={30} className="mr-1 align-[-0.3em]" />
+                  {s.name} tapped
                 </span>
                 <span className="font-display text-xl font-extrabold text-[#854d0e]">→</span>
                 <Chunk tone={a ? "violet" : "white"} disabled={mode !== "build"} onClick={() => cycle(s.id)} className={cn("flex h-12 items-center px-3 font-display text-lg font-extrabold", !a && "border-[3px] border-dashed border-[var(--l-line)] text-[var(--l-ink-2)]")}>
-                  {a ? `${a.icon} ${a.label}` : "tap to pick ❓"}
+                  <WithGlyphs text={a ? `${a.icon} ${a.label}` : "tap to pick ❓"} />
                 </Chunk>
               </div>
             );

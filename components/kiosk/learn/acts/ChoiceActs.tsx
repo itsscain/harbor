@@ -9,6 +9,7 @@ import { SAY } from "@/lib/learn/script";
 import { sfx, buzz } from "@/lib/learn/sfx";
 import { Chunk, useShuffled } from "../kit";
 import { Visual } from "./Visual";
+import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
 import { ChoiceTile, Hearable, PromptRow, tileState, useChoice, useLater, usePrompt, useSpokenPrompt, type ActProps } from "./common";
 
 // The workhorse activities: pick the answer (pictures, words, numbers, shapes — whatever the item
@@ -21,22 +22,20 @@ function OptionFace({ o, layout }: { o: Option; layout: "grid" | "row" | "list" 
     return (
       <span className="flex flex-col items-center gap-1 p-2">
         <Visual v={o.visual} size="sm" />
-        {o.text && <span className="font-display text-2xl font-extrabold">{o.text}</span>}
+        {o.text && <span className="font-display text-2xl font-extrabold"><WithGlyphs text={o.text} /></span>}
       </span>
     );
   if (o.emoji)
     return (
       <span className="flex flex-col items-center gap-1 p-2">
-        <span className="leading-none" style={{ fontSize: layout === "list" ? 44 : 84 }}>
-          {o.emoji}
-        </span>
-        {o.text && <span className="font-reading text-2xl font-bold">{o.text}</span>}
+        <GlyphRow s={o.emoji} size={layout === "list" ? 48 : 96} />
+        {o.text && <span className="font-reading text-2xl font-bold"><WithGlyphs text={o.text} /></span>}
       </span>
     );
   const long = (o.text ?? "").length > 18;
   return (
     <span className={cn("font-reading font-bold leading-tight", layout === "list" ? "w-full px-3 text-left text-[26px]" : long ? "px-3 text-[24px]" : "px-3 text-[40px]")}>
-      {o.text}
+      <WithGlyphs text={o.text ?? ""} />
     </span>
   );
 }
@@ -239,8 +238,8 @@ function RewindScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
                 <div key={o.id} className="l-rise relative" style={{ animationDelay: `${120 + i * 70}ms` }}>
                   <Hearable parts={voiced ? (o.say?.length ? o.say : o.text ? [o.text] : null) : null}>
                     <Chunk tone="white" disabled={wasTried} onClick={(e) => pick(o, e.currentTarget)} className={cn("flex min-h-[84px] w-full items-center gap-3 px-4 py-3 text-left", wasTried && "opacity-45")}>
-                      {wasTried && <span className="text-2xl">⏪</span>}
-                      <span className={cn("font-reading text-[24px] font-bold leading-snug text-[var(--l-ink)]", wasTried && "line-through decoration-2")}>{o.text}</span>
+                      {wasTried && <Glyph e="⏪" size={30} />}
+                      <span className={cn("font-reading text-[24px] font-bold leading-snug text-[var(--l-ink)]", wasTried && "line-through decoration-2")}><WithGlyphs text={o.text ?? ""} /></span>
                     </Chunk>
                   </Hearable>
                 </div>
@@ -250,12 +249,14 @@ function RewindScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
         ) : (
           <div key={picked.id} className="l-scene-in flex flex-col items-center gap-4 rounded-[32px] px-6 py-6 text-center shadow-[0_8px_0_rgba(0,40,80,0.16)]" style={{ background: right ? "linear-gradient(180deg,#e9fff1,#ffffff)" : "linear-gradient(180deg,#fff0ec,#ffffff)" }}>
             <span className="font-display text-base font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">What happens next…</span>
-            <span className={cn("text-[96px] leading-none", !fx.reduced && (right ? "l-boing" : "l-droop"))}>{picked.then!.emoji}</span>
-            <p className="text-balance font-reading text-[25px] font-bold leading-snug text-[var(--l-ink)]">{picked.then!.text}</p>
+            <span className={cn("block", !fx.reduced && (right ? "l-boing" : "l-droop"))}>
+              <GlyphRow s={picked.then!.emoji} size={110} />
+            </span>
+            <p className="text-balance font-reading text-[25px] font-bold leading-snug text-[var(--l-ink)]"><WithGlyphs text={picked.then!.text} /></p>
             {picked.then!.trust !== undefined && <TrustBridge delta={picked.then!.trust} />}
             {!right && (
               <Chunk tone="violet" onClick={rewind} className={cn("mt-1 flex h-16 items-center gap-3 px-8 font-display text-2xl font-extrabold", !fx.reduced && "l-pulse")}>
-                ⏪ Rewind time
+                <Glyph e="⏪" size={34} /> Rewind time
               </Chunk>
             )}
           </div>
@@ -318,8 +319,8 @@ function PlainScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
                   className={cn("flex min-h-[84px] w-full items-center gap-3 px-4 py-3 text-left", wasTried && !isRight && "opacity-60", isRight && "l-boing", found && !isRight && "opacity-40")}
                 >
                   <span key={shake?.id === o.id ? shake.n : 0} className={cn("flex w-full items-center gap-3", shake?.id === o.id && "l-shake")}>
-                    {o.emoji && <span className="text-[40px] leading-none">{o.emoji}</span>}
-                    <span className={cn("font-reading text-[24px] font-bold leading-snug", isRight ? "text-white" : "text-[var(--l-ink)]")}>{o.text}</span>
+                    {o.emoji && <GlyphRow s={o.emoji} size={46} />}
+                    <span className={cn("font-reading text-[24px] font-bold leading-snug", isRight ? "text-white" : "text-[var(--l-ink)]")}><WithGlyphs text={o.text ?? ""} /></span>
                   </span>
                 </Chunk>
               </Hearable>
@@ -328,7 +329,7 @@ function PlainScenario({ act: a, fx, onDone }: ActProps<"scenario">) {
         })}
         {outcome?.why && !found && (
           <p key={outcome.id} className="l-pop-in rounded-[22px] bg-white/90 px-5 py-3 font-display text-xl font-bold text-[var(--l-coral-edge)]">
-            🤔 {outcome.why} <span className="text-[var(--l-ink-2)]">Try another way.</span>
+            <Glyph e="🤔" size={30} className="mr-1 align-[-0.3em]" /> {outcome.why} <span className="text-[var(--l-ink-2)]">Try another way.</span>
           </p>
         )}
       </div>
