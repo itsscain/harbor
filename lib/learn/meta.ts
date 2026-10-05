@@ -1,9 +1,9 @@
 import type { LevelKind, ThemeId } from "./types";
 
-// Harbor Learn's game layer: shells (the currency a child earns by learning), the Harbor Shop
-// (customize your boat — it's the character that sails every voyage), the world themes the boat
-// sails through, and the titles a sailor earns. Everything is earned by learning; nothing costs
-// real money, ever.
+// Harbor Learn's game layer: shells (the currency a child earns by learning), the Shipyard
+// (design your boat — it's the character that sails every voyage; catalog in ./boats.ts), the
+// world themes the boat sails through, and the titles a sailor earns. Everything is earned by
+// learning; nothing costs real money, ever.
 
 // ── Shells ───────────────────────────────────────────────────────────────────────────────────
 export const SHELLS = {
@@ -30,87 +30,9 @@ export function shellsForLesson(o: { stars: number; kind: LevelKind; firstClear:
   return Math.min(200, n);
 }
 
-// ── The boat (the child's character) + the Harbor Shop ───────────────────────────────────────
-export type Slot = "hull" | "sail" | "flag" | "pet" | "trail";
-export type ShopItem = {
-  id: string;
-  slot: Slot;
-  name: string;
-  price: number;
-  /** hull/sail: colors; sail pattern; flag/pet: emoji; trail: effect emoji. */
-  color?: string;
-  color2?: string;
-  pattern?: "solid" | "stripes" | "dots" | "stars" | "rainbow" | "waves" | "checker";
-  emoji?: string;
-  /** Sailor level needed to buy it. */
-  level?: number;
-};
-
-export const SHOP: ShopItem[] = [
-  // Hulls
-  { id: "hull-coral", slot: "hull", name: "Coral Red", price: 0, color: "#ff7363" },
-  { id: "hull-sky", slot: "hull", name: "Sky Blue", price: 60, color: "#1cb0f6" },
-  { id: "hull-sun", slot: "hull", name: "Sunshine", price: 60, color: "#ffc83d" },
-  { id: "hull-mint", slot: "hull", name: "Mint", price: 80, color: "#3ccf6e" },
-  { id: "hull-grape", slot: "hull", name: "Grape", price: 80, color: "#8b6cff" },
-  { id: "hull-pink", slot: "hull", name: "Bubblegum", price: 100, color: "#ff6aa2" },
-  { id: "hull-navy", slot: "hull", name: "Navy", price: 120, color: "#23407a", level: 3 },
-  { id: "hull-gold", slot: "hull", name: "Golden", price: 400, color: "#e0a21a", level: 8 },
-  { id: "hull-ink", slot: "hull", name: "Midnight", price: 250, color: "#1d2433", level: 5 },
-  // Sails
-  { id: "sail-white", slot: "sail", name: "Classic White", price: 0, color: "#ffffff", pattern: "solid" },
-  { id: "sail-stripes", slot: "sail", name: "Candy Stripes", price: 90, color: "#ffffff", color2: "#ff7363", pattern: "stripes" },
-  { id: "sail-dots", slot: "sail", name: "Polka Dots", price: 90, color: "#fff6d8", color2: "#1cb0f6", pattern: "dots" },
-  { id: "sail-waves", slot: "sail", name: "Ocean Waves", price: 120, color: "#e8f6ff", color2: "#1cb0f6", pattern: "waves" },
-  { id: "sail-stars", slot: "sail", name: "Starry Night", price: 180, color: "#23407a", color2: "#ffc83d", pattern: "stars", level: 3 },
-  { id: "sail-checker", slot: "sail", name: "Race Flag", price: 200, color: "#ffffff", color2: "#17324d", pattern: "checker", level: 4 },
-  { id: "sail-rainbow", slot: "sail", name: "Rainbow", price: 300, pattern: "rainbow", level: 6 },
-  { id: "sail-pirate", slot: "sail", name: "Pirate Black", price: 350, color: "#1d2433", color2: "#ffffff", pattern: "solid", level: 7 },
-  // Flags
-  { id: "flag-pennant", slot: "flag", name: "Red Pennant", price: 0, emoji: "🚩" },
-  { id: "flag-star", slot: "flag", name: "Star", price: 50, emoji: "⭐" },
-  { id: "flag-heart", slot: "flag", name: "Heart", price: 50, emoji: "💖" },
-  { id: "flag-anchor", slot: "flag", name: "Anchor", price: 70, emoji: "⚓" },
-  { id: "flag-rainbow", slot: "flag", name: "Rainbow", price: 90, emoji: "🌈" },
-  { id: "flag-lightning", slot: "flag", name: "Lightning", price: 120, emoji: "⚡", level: 3 },
-  { id: "flag-crown", slot: "flag", name: "Crown", price: 220, emoji: "👑", level: 5 },
-  { id: "flag-pirate", slot: "flag", name: "Jolly Roger", price: 260, emoji: "🏴‍☠️", level: 6 },
-  { id: "flag-dragon", slot: "flag", name: "Dragon", price: 400, emoji: "🐉", level: 9 },
-  // Pets (ride on deck)
-  { id: "pet-parrot", slot: "pet", name: "Polly the Parrot", price: 150, emoji: "🦜" },
-  { id: "pet-cat", slot: "pet", name: "Ship Cat", price: 150, emoji: "🐱" },
-  { id: "pet-dog", slot: "pet", name: "Sea Pup", price: 150, emoji: "🐶" },
-  { id: "pet-penguin", slot: "pet", name: "Penguin", price: 220, emoji: "🐧", level: 3 },
-  { id: "pet-frog", slot: "pet", name: "Frog", price: 180, emoji: "🐸", level: 2 },
-  { id: "pet-octopus", slot: "pet", name: "Octopus Pal", price: 300, emoji: "🐙", level: 5 },
-  { id: "pet-dino", slot: "pet", name: "Baby Dino", price: 380, emoji: "🦖", level: 7 },
-  { id: "pet-unicorn", slot: "pet", name: "Unicorn", price: 500, emoji: "🦄", level: 10 },
-  // Trails (what the boat leaves behind on the map)
-  { id: "trail-bubbles", slot: "trail", name: "Splashes", price: 80, emoji: "💧" },
-  { id: "trail-sparkles", slot: "trail", name: "Sparkles", price: 140, emoji: "✨", level: 2 },
-  { id: "trail-hearts", slot: "trail", name: "Hearts", price: 140, emoji: "💗", level: 2 },
-  { id: "trail-stars", slot: "trail", name: "Stars", price: 200, emoji: "⭐", level: 4 },
-  { id: "trail-rainbow", slot: "trail", name: "Rainbow", price: 320, emoji: "🌈", level: 6 },
-  { id: "trail-fire", slot: "trail", name: "Comet", price: 420, emoji: "☄️", level: 8 },
-];
-
-export const SHOP_BY_ID = new Map(SHOP.map((i) => [i.id, i]));
-export type BoatLook = { hull: string; sail: string; flag: string; pet: string | null; trail: string | null };
-export const DEFAULT_LOOK: BoatLook = { hull: "hull-coral", sail: "sail-white", flag: "flag-pennant", pet: null, trail: null };
-/** Free starter items everyone owns. */
-export const STARTER_ITEMS = SHOP.filter((i) => i.price === 0).map((i) => i.id);
-
-export function lookFrom(raw: unknown): BoatLook {
-  const r = (raw ?? {}) as Partial<BoatLook>;
-  const ok = (id: unknown, slot: Slot) => typeof id === "string" && SHOP_BY_ID.get(id)?.slot === slot;
-  return {
-    hull: ok(r.hull, "hull") ? r.hull! : DEFAULT_LOOK.hull,
-    sail: ok(r.sail, "sail") ? r.sail! : DEFAULT_LOOK.sail,
-    flag: ok(r.flag, "flag") ? r.flag! : DEFAULT_LOOK.flag,
-    pet: ok(r.pet, "pet") ? r.pet! : null,
-    trail: ok(r.trail, "trail") ? r.trail! : null,
-  };
-}
+// ── The boat (the child's character) + the Shipyard: see ./boats.ts ───────────────────────────
+export { SHOP, SHOP_BY_ID, STARTER_ITEMS, DEFAULT_LOOK, lookFrom, equipItem, isOn, modelOf } from "./boats";
+export type { Slot, ShopItem, BoatLook, BoatModel, DeckSpot } from "./boats";
 
 // ── Sailor titles by level ────────────────────────────────────────────────────────────────────
 export const TITLES = ["Deckhand", "Sailor", "Navigator", "Lookout", "First Mate", "Captain", "Commodore", "Admiral", "Sea Legend", "Ocean Master"];

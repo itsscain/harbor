@@ -1,5 +1,5 @@
 import type { Block, CodeLevel } from "@/lib/learn/types";
-import { elseIndex } from "@/lib/learn/program";
+import { elseIndex, toPython } from "@/lib/learn/program";
 
 // The block editor's model: what each block looks like (by age), and immutable edits on the
 // program tree. A "list path" points at a block list: [] is the program itself, and each step
@@ -61,6 +61,8 @@ export function stepTarget(prog: Block[], at: number[]): { list: ListPath; index
   return null;
 }
 export { elseIndex };
+/** One block as a line of Python (a container: just its header line, e.g. "for i in range(3):"). */
+export const pyLine = (b: Block) => toPython([{ ...b, body: [], else: [] }])[0]?.trim() ?? b.op;
 
 // ── Looks ────────────────────────────────────────────────────────────────────────────────────
 export type BlockLook = { icon: string; word: string; color: string; edge: string; text?: string };

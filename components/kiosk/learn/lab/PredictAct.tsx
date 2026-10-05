@@ -204,7 +204,7 @@ export function PredictAct({ act, fx, onDone }: ActProps<"predict">) {
           <div className="w-full max-w-[460px] rounded-[26px] bg-white/92 p-3 shadow-[0_8px_0_rgba(0,40,80,0.18)]">
             <span className="px-1 font-display text-lg font-extrabold text-[var(--l-ink)]">The program</span>
             <div className="mt-2 rounded-2xl bg-[var(--l-card-2)] p-2">
-              <Editor prog={shown} cursor={{ list: [], index: shown.length }} sel={null} band={fx.voice === "all" ? "little" : "middle"} running active={active} onCursor={noop} onSelect={noop} onDelete={noop} onCount={noop} onCond={noop} />
+              <Editor prog={shown} cursor={{ list: [], index: shown.length }} sel={null} band={fx.voice === "all" ? "little" : "middle"} mode="blocks" running active={active} grab={() => ({})} onCursor={noop} onDelete={noop} onCount={noop} onCond={noop} />
             </div>
             {act.ask === "count" && (
               <div className="mt-3 flex justify-center gap-3">

@@ -89,9 +89,12 @@ export class Pen {
   private defs: string[] = [];
   private out: string[] = [];
   private n = 0;
+  /** Prefix for gradient/clip ids — needed when several different drawings sit inline in one
+   *  page (living pets, boat parts), so one drawing's "g0" can't borrow another's. */
+  constructor(private prefix = "") {}
 
   private id() {
-    return `g${this.n++}`;
+    return `${this.prefix}g${this.n++}`;
   }
   private attrs(fill: string, o: Style = {}) {
     const stroke = o.stroke === undefined ? OL : o.stroke;
@@ -232,9 +235,24 @@ export class Pen {
     this.out.push(s);
     return this;
   }
+  /** A named, movable part of a living drawing (a pet's tail, head, eyes…): CSS animates the
+   *  group `.pp-<name>` around its pivot (px, py) — see the `.pet` rules in globals.css. */
+  part(name: string, px: number, py: number, fn: (d: Pen) => void) {
+    this.out.push(`<g class="pp-${name}" style="transform-origin:${f2(px)}px ${f2(py)}px">`);
+    fn(this);
+    this.out.push(`</g>`);
+    return this;
+  }
 
   toSvg(w: number, h: number) {
-    return tidy(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * 2}" height="${h * 2}">${this.defs.length ? `<defs>${this.defs.join("")}</defs>` : ""}${this.out.join("")}</svg>`);
+    return tidy(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * 2}" height="${h * 2}">${this.toInnerRaw()}</svg>`);
+  }
+  /** The drawing without its <svg> wrapper, for an inline <svg> whose parts the page animates. */
+  toInner() {
+    return tidy(this.toInnerRaw());
+  }
+  private toInnerRaw() {
+    return `${this.defs.length ? `<defs>${this.defs.join("")}</defs>` : ""}${this.out.join("")}`;
   }
 }
 
@@ -251,6 +269,13 @@ export function draw(fn: (d: Pen) => void, w = 100, h = 100): Art {
   const d = new Pen();
   fn(d);
   return { svg: d.toSvg(w, h), w, h };
+}
+
+/** Draw a living (inline) picture: its inner SVG, with ids that start with `prefix`. */
+export function drawInline(fn: (d: Pen) => void, prefix: string): string {
+  const d = new Pen(prefix);
+  fn(d);
+  return d.toInner();
 }
 
 // ── Path helpers (return a `d` string) ─────────────────────────────────────────────────────

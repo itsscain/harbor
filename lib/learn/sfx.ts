@@ -240,6 +240,130 @@ export function sfx(name: Sfx, n = 0) {
   }
 }
 
+/** The voices of the boat pets — little synthesized cartoon sounds, soft and friendly. */
+export type PetVoice = "squawk" | "meow" | "woof" | "ribbit" | "blub" | "roar" | "neigh" | "squeak" | "honk" | "hoot" | "chirp" | "purr" | "yip" | "click" | "bark";
+export function petVoice(v: PetVoice) {
+  if (!enabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") void ctx.resume();
+    switch (v) {
+      case "squawk":
+        tone(ctx, 900, 0, 0.13, 0.07, "sawtooth", 1500);
+        noise(ctx, 0, 0.12, 0.04, 2200, 3);
+        tone(ctx, 1100, 0.16, 0.12, 0.06, "sawtooth", 1700);
+        break;
+      case "meow":
+        tone(ctx, 620, 0, 0.16, 0.08, "triangle", 950);
+        tone(ctx, 950, 0.15, 0.24, 0.07, "triangle", 560);
+        break;
+      case "woof":
+      case "bark": {
+        const f = v === "bark" ? 330 : 240;
+        for (const at of [0, 0.2]) {
+          tone(ctx, f, at, 0.12, 0.11, "square", f * 0.62);
+          noise(ctx, at, 0.07, 0.05, 700, 1.2, "lowpass");
+        }
+        break;
+      }
+      case "ribbit":
+        for (const at of [0, 0.17]) for (let k = 0; k < 4; k++) tone(ctx, 320, at + k * 0.025, 0.02, 0.07, "sawtooth", 260);
+        break;
+      case "blub":
+        [0, 0.09, 0.18].forEach((at, i) => tone(ctx, 420 + i * 90, at, 0.08, 0.07, "sine", 900 + i * 160));
+        break;
+      case "roar":
+        tone(ctx, 210, 0, 0.42, 0.08, "sawtooth", 140);
+        tone(ctx, 315, 0, 0.42, 0.04, "triangle", 210);
+        noise(ctx, 0.02, 0.35, 0.03, 500, 0.8, "lowpass");
+        break;
+      case "neigh":
+        tone(ctx, 820, 0, 0.2, 0.06, "triangle", 1250);
+        tone(ctx, 1250, 0.18, 0.32, 0.05, "triangle", 700);
+        break;
+      case "squeak":
+        tone(ctx, 1500, 0, 0.09, 0.06, "sine", 2100);
+        tone(ctx, 1600, 0.12, 0.09, 0.06, "sine", 2300);
+        break;
+      case "honk":
+        tone(ctx, 420, 0, 0.16, 0.08, "square", 380);
+        tone(ctx, 440, 0.2, 0.18, 0.08, "square", 390);
+        break;
+      case "hoot":
+        tone(ctx, 440, 0, 0.22, 0.09, "sine", 400);
+        tone(ctx, 440, 0.32, 0.3, 0.09, "sine", 390);
+        break;
+      case "chirp":
+        tone(ctx, 1800, 0, 0.07, 0.06, "triangle", 2600);
+        tone(ctx, 2000, 0.09, 0.08, 0.05, "triangle", 2900);
+        tone(ctx, 1900, 0.2, 0.08, 0.05, "triangle", 2800);
+        break;
+      case "purr":
+        for (let k = 0; k < 8; k++) noise(ctx, k * 0.06, 0.05, 0.035, 160, 1, "lowpass");
+        break;
+      case "yip":
+        tone(ctx, 900, 0, 0.09, 0.07, "triangle", 1450);
+        tone(ctx, 1000, 0.13, 0.08, 0.06, "triangle", 1500);
+        break;
+      case "click":
+        for (let k = 0; k < 3; k++) noise(ctx, k * 0.09, 0.025, 0.08, 3000, 2);
+        break;
+    }
+  } catch {
+    /* no audio — fine */
+  }
+}
+
+/** Boat sounds: a big ship's horn, a tugboat toot, a rubber duck squeak, the ship's bell, a
+ *  splash and a confetti cannon. */
+export type BoatSound = "horn" | "toot" | "duck" | "bell" | "splash" | "cannon" | "anchor" | "sail";
+export function boatSound(s: BoatSound) {
+  if (!enabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") void ctx.resume();
+    switch (s) {
+      case "horn":
+        tone(ctx, 110, 0, 0.9, 0.12, "sawtooth", 108);
+        tone(ctx, 165, 0, 0.9, 0.07, "triangle", 163);
+        noise(ctx, 0, 0.9, 0.02, 300, 0.7, "lowpass");
+        break;
+      case "toot":
+        tone(ctx, 523, 0, 0.32, 0.08, "square", 520);
+        tone(ctx, 784, 0, 0.32, 0.05, "triangle", 780);
+        tone(ctx, 523, 0.4, 0.5, 0.08, "square", 515);
+        tone(ctx, 784, 0.4, 0.5, 0.05, "triangle", 772);
+        break;
+      case "duck":
+        tone(ctx, 1200, 0, 0.12, 0.08, "square", 1700);
+        tone(ctx, 1700, 0.12, 0.16, 0.06, "square", 900);
+        break;
+      case "bell":
+        bell(ctx, 1046.5, 0, 0.9, 0.16);
+        bell(ctx, 1046.5, 0.45, 0.9, 0.12);
+        break;
+      case "splash":
+        noise(ctx, 0, 0.45, 0.12, 1200, 0.6, "bandpass", 300);
+        break;
+      case "cannon":
+        noise(ctx, 0, 0.3, 0.16, 180, 0.7, "lowpass");
+        [0, 0.12, 0.22, 0.3].forEach((at, i) => bell(ctx, SCALE[4 + i], 0.25 + at, 0.3, 0.07));
+        break;
+      case "anchor":
+        for (let k = 0; k < 6; k++) noise(ctx, k * 0.07, 0.04, 0.06, 2400, 4);
+        noise(ctx, 0.5, 0.4, 0.1, 900, 0.6, "bandpass", 260);
+        break;
+      case "sail":
+        noise(ctx, 0, 0.5, 0.06, 900, 0.5, "bandpass", 2400);
+        break;
+    }
+  } catch {
+    /* no audio — fine */
+  }
+}
+
 /** A short buzz on tablets that can (Android); quietly nothing elsewhere. */
 export function buzz(pattern: number | number[]) {
   if (!enabled || typeof navigator === "undefined" || !("vibrate" in navigator)) return;

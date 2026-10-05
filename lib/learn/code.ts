@@ -80,6 +80,17 @@ const gChannel = (r: Rng, boat: boolean, times: [number, number]): CodeLevel => 
   return (boat ? view : sea)("Spot the pattern — use a loop!", map, solution, { loops: true, hint: "What moves happen again and again?" });
 };
 const gDance = (r: Rng, len: number) => dance("Copy the dance!", genSeq(r, MOVES, len));
+/** Pet Trick Show: the dance engine, performed by the child's own boat pet (4 tricks). */
+const PET_MOVES = ["wave", "spin", "jump", "clap"];
+const petShow = (goal: string, target: string[], solution: Block[] = seqOf(target), x: Extra = {}) => withBest({ sim: "dance", goal, palette: PET_MOVES, target, solution, performer: "pet", ...x });
+const gPetShow = (r: Rng, len: number) => petShow("Copy the trick show!", genSeq(r, PET_MOVES, len));
+const gPetLoop = (r: Rng, o: LoopSpec) => {
+  const { target, solution } = genLoopSeq(r, PET_MOVES, o);
+  return petShow("Use a loop for the encore!", target, solution, { loops: true, hint: "Which tricks happen again and again? Put them in a loop." });
+};
+/** A level as word-only blocks (read the code words) or as code lines (write the code). */
+const words = (l: CodeLevel): CodeLevel => ({ ...l, mode: "words" });
+const codeLines = (l: CodeLevel): CodeLevel => ({ ...l, mode: "code" });
 const gSong = (r: Rng, len: number) => music("Play it back!", genMelody(r, len));
 type LoopSpec = { body: [number, number]; times: [number, number]; tail?: number };
 const gLoopDance = (r: Rng, o: LoopSpec) => {
@@ -208,6 +219,21 @@ const WORLDS: WorldDef[] = [
       dance("The big finale!", ["kick", "kick", "jump", "wave", "spin", "bow"]),
     ] },
   ] },
+  { id: "pettricks", title: "Pet Trick Show", emoji: "🦜", grade: "prek", blurb: "Program your pet's trick show!", story: "Your pet wants to put on a show! Watch the tricks first — then put the trick blocks in order so your pet can do them too.", lessons: [
+    { title: "First tricks", emoji: "🦜", levels: [
+      petShow("Copy the trick show!", ["wave", "jump"]),
+      petShow("Copy the trick show!", ["spin", "clap"]),
+      petShow("Copy the trick show!", ["jump", "spin", "wave"]),
+    ] },
+    { title: "Showtime", emoji: "🎉", levels: (r) => [gPetShow(r, 3), gPetShow(r, 4), petShow("The big trick show!", ["clap", "jump", "spin", "jump"])] },
+    { title: "Encore!", emoji: "🔁", levels: (r) => [
+      petShow("Three jumps! Use a loop.", ["jump", "jump", "jump"], [rep(3, blk("jump"))], { loops: true, hint: "The same trick three times? Put it in a loop!" }),
+      gPetLoop(r, { body: [1, 2], times: [2, 3] }),
+      gPetLoop(r, { body: [2, 2], times: [2, 3] }),
+    ] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [gPetShow(r, 4), gDance(r, 4), gPetLoop(r, { body: [2, 2], times: [2, 2] })] },
+    { title: "Star of the show", emoji: "🏆", kind: "boss", levels: (r) => [gPetShow(r, 5), gPetLoop(r, { body: [2, 3], times: [2, 3] }), gPetShow(r, 6)] },
+  ] },
   // ── Code Lab (Pre-K) ──
   { id: "chef", title: "Robot Chef", emoji: "🤖", grade: "prek", blurb: "The robot does EXACTLY what you say — in the order you say it!", lessons: [
     { title: "Breakfast bot", emoji: "🥣", levels: (r) => [recipeAct(r, "cereal"), recipeAct(r, "fish")] },
@@ -284,6 +310,26 @@ const WORLDS: WorldDef[] = [
       gSea(r, "Collect them all!", { w: 5, h: 4, rocks: 5, shells: 3, len: [8, 10], turns: 3 }),
       gSea(r, "Collect them all!", { w: 5, h: 4, rocks: 6, shells: 2, len: [8, 10], turns: 3, detour: true }),
       gSea(r, "Collect them all!", { w: 5, h: 5, rocks: 7, shells: 3, len: [9, 11], turns: 4 }),
+    ] },
+  ] },
+  { id: "wharf", title: "Word Wharf", emoji: "📖", grade: "k", blurb: "No arrows here — read the code words!", story: "At Word Wharf the blocks have no arrows — only words! Read each one — up, down, left, right — and tell your boat where to go.", lessons: [
+    { title: "Read and sail", emoji: "📖", levels: [
+      words(sea("Read the words — sail to the island!", ["S..G"], [R, R, R], { hint: "Find the word right." })),
+      words(sea("Read the words — sail to the island!", ["S", ".", "G"], [D, D], { hint: "Find the word down." })),
+      words(sea("Read the words — sail to the island!", ["G.", ".S"], [U, L], { hint: "Up first, then left." })),
+    ] },
+    { title: "Word routes", emoji: "🧭", levels: (r) => [
+      words(gSea(r, "Read the words — find the way!", { w: 3, h: 3, rocks: 1, len: [3, 4], turns: 1 })),
+      words(gSea(r, "Read the words — find the way!", { w: 4, h: 3, rocks: 2, len: [4, 5], turns: 2 })),
+      words(gSea(r, "Read the words — find the way!", { w: 4, h: 3, rocks: 3, len: [4, 6], turns: 2, detour: true })),
+    ] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [
+      words(gSea(r, "Read the words — find the way!", { w: 4, h: 4, rocks: 3, len: [5, 6], turns: 2 })),
+      words(gSea(r, "Read the words — find the way!", { w: 4, h: 4, rocks: 4, len: [5, 7], turns: 2, detour: true })),
+    ] },
+    { title: "Word boss", emoji: "🏆", kind: "boss", levels: (r) => [
+      words(gSea(r, "Read the words — the long way home!", { w: 5, h: 4, rocks: 5, len: [6, 8], turns: 3, detour: true })),
+      words(gSea(r, "Read the words — the long way home!", { w: 5, h: 4, rocks: 6, len: [7, 9], turns: 3, detour: true })),
     ] },
   ] },
   { id: "loops", title: "Loop the Loop", emoji: "🔁", grade: "k", blurb: "A repeat block does the same thing again and again.", lessons: [
@@ -562,6 +608,27 @@ const WORLDS: WorldDef[] = [
     { title: "Bug boss", emoji: "🏆", kind: "boss", levels: (r) => [gBug(r, pixel("", PICS.ell)), gBug(r, gChannel(r, true, [4, 5])), gBug(r, gSea(r, "", { w: 5, h: 5, rocks: 8, len: [9, 12], turns: 4, boat: true }))] },
   ] },
   // ── Code Lab (2nd) ──
+  { id: "captain", title: "Code Captain", emoji: "💻", grade: "2", blurb: "Write real code — line by line.", story: "Real programmers write code as words, one line at a time. Tap code lines to build your program — then your boat runs it, line by line!", lessons: [
+    { title: "First lines", emoji: "💻", levels: [
+      codeLines(sea("Write the code: sail to the island!", ["S..G"], [R, R, R], { hint: "right() moves the boat one square to the right." })),
+      codeLines(sea("Write the code: around the rocks!", ["S..", "##.", "G.."], [R, R, D, D, L, L], { hint: "Each line is one move. Read your code from the top." })),
+      codeLines(gSea(rng("captain:1"), "Write the code: find the way!", { w: 4, h: 3, rocks: 3, len: [4, 6], turns: 2 })),
+    ] },
+    { title: "for loops", emoji: "🔁", levels: (r) => [
+      codeLines(sea("Use a for loop!", ["S....G"], [rep(5, R)], { loops: true, hint: "for i in range(5): runs the lines inside it 5 times." })),
+      codeLines(gChannel(r, false, [2, 3])),
+      codeLines(gChannel(r, false, [3, 4])),
+    ] },
+    { title: "Treasure review", emoji: "🗺️", kind: "review", levels: (r) => [
+      codeLines(gSea(r, "Write the code: find the way!", { w: 5, h: 4, rocks: 5, len: [6, 8], turns: 3, detour: true })),
+      codeLines(gChannel(r, false, [3, 4])),
+    ] },
+    { title: "Captain's code", emoji: "🏆", kind: "boss", levels: (r) => [
+      codeLines(gSea(r, "Write the code: the long way home!", { w: 5, h: 5, rocks: 7, len: [8, 10], turns: 4, detour: true })),
+      codeLines(gChannel(r, false, [4, 5])),
+      codeLines(chart("Write the code: key, gate, island!", ["S.k#.", "##.D.", "G...."])),
+    ] },
+  ] },
   { id: "counter", title: "Treasure Counter", emoji: "🪙", grade: "2", blurb: "Variables: boxes with names that hold numbers.", lessons: [
     { title: "The magic box", emoji: "📦", levels: (r) => [concept("variable", "middle"), variableAct(r, 1), variableAct(r, 1)] },
     { title: "Counting in loops", emoji: "🔁", levels: (r) => [variableAct(r, 2), variableAct(r, 1), variableAct(r, 2)] },
@@ -833,16 +900,20 @@ export const CODE_SKILL_LABEL: Record<string, string> = {
 };
 
 const LITTLE: GradeId[] = ["prek", "k"];
+/** Which lessons draw the program's route as it's built ("full"), or just the newest block's
+ *  ("last") — by world, lesson by lesson. Every later level is on its own (a Peek after misses). */
+const PREVIEW: Record<string, ("full" | "last")[]> = { voyage: ["full", "full", "last", "last"], keys: ["last"], wharf: ["full", "last"] };
 const BIG: GradeId[] = ["3", "4", "5"];
 const isLevel = (x: Item): x is CodeLevel => "sim" in x;
 function lessonFrom(w: WorldDef, l: LessonDef, n: number): Lesson {
   const items = typeof l.levels === "function" ? l.levels(rng(`code:${w.id}:${n}`)) : l.levels;
   // Big kids see the real code their blocks make; little ones get picture blocks only.
-  const acts: Activity[] = items.map((x) =>
-    isLevel(x)
-      ? { kind: "code", level: LITTLE.includes(w.grade) ? x : { ...x, textCode: x.textCode ?? BIG.includes(w.grade) }, skill: `c:${skillOf(x)}` }
-      : x,
-  );
+  const preview = PREVIEW[w.id]?.[n - 1];
+  const acts: Activity[] = items.map((x) => {
+    if (!isLevel(x)) return x;
+    const lv = preview && (x.sim === "sea" || x.sim === "rover") && !x.preview ? { ...x, preview } : x;
+    return { kind: "code", level: LITTLE.includes(w.grade) || lv.mode === "code" ? lv : { ...lv, textCode: lv.textCode ?? BIG.includes(w.grade) }, skill: `c:${skillOf(lv)}` };
+  });
   return {
     id: `code.${w.id}.${n}`,
     subject: "code",

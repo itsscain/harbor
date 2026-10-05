@@ -69,9 +69,10 @@ function makeState(grade: string, fresh: boolean, aq: string | null, tank: strin
               "f:verse:gen1-1": [3, 4, now, "0"],
             },
             shells: 640,
-            // A few aquarium things: two eggs bought (hatched below), a flakes pack, three decorations.
-            owned: ["sail-stripes", "egg:sea:dev002", "egg:rare:dev003", "food:flakes:dev001", "decor:grass", "decor:castle", "decor:balloon"],
-            look: { hull: "hull-coral", sail: "sail-stripes", flag: "flag-pennant", pet: null, trail: null },
+            // A pup on deck, a lantern and a wavy paint job; two eggs bought (hatched below), a flakes pack,
+            // three decorations.
+            owned: ["sail-stripes", "pet-dog", "gear-lantern", "paint-waves", "egg:sea:dev002", "egg:rare:dev003", "food:flakes:dev001", "decor:grass", "decor:castle", "decor:balloon"],
+            look: { boat: "boat-sloop", hull: "hull-coral", paint: "paint-waves", sail: "sail-stripes", flag: "flag-pennant", pet: "pet-dog", deck: ["gear-lantern"], trail: null },
             daily: null,
             // A returning learner has been through Boat School (a fresh one gets it first) and has
             // three aquarium friends, one of which had two treats today.

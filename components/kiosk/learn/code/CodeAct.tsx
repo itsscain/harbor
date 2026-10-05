@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Play, Square, RotateCcw, Delete, Trash2, Eye, Code2, Rabbit, Turtle as TurtleIcon, Lightbulb } from "lucide-react";
+import { Play, Square, RotateCcw, Delete, Trash2, Eye, Code2, Rabbit, Turtle as TurtleIcon, Lightbulb, ScanEye } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Block, CodeLevel, Dir } from "@/lib/learn/types";
 import { DEFAULT_LOOK } from "@/lib/learn/meta";
@@ -16,12 +16,13 @@ import { sfx, note } from "@/lib/learn/sfx";
 import { Chunk } from "../kit";
 import type { ActProps } from "../acts/common";
 import { PromptRow, usePrompt } from "../acts/common";
-import { BlockPill, Editor } from "./Editor";
+import { BlockPill, Editor, blockWord, type EditorMode } from "./Editor";
+import { insideOf, useBlockDrag, type DragSrc, type DropAt } from "./dnd";
 import { BoatSchool } from "./BoatSchool";
 import { colorize } from "../lab/CodeReadAct";
 import { DanceStage, MusicStage, PixelStage, SeaStage, TurtleStage, type PixelView, type SeaView, type SeqView, type TurtleView } from "./Stages";
 import {
-  COND_LABEL, blockAt, condsOf, insertAt, isContainer, listAt, nextHint, paletteOf, removeAt, stepTarget, updateAt,
+  COND_LABEL, blockAt, condsOf, insertAt, isContainer, listAt, nextHint, paletteOf, removeAt, sameList, stepTarget, updateAt,
   type Cursor, type ListPath, type Sel,
 } from "./blocks";
 
@@ -129,6 +130,10 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
   const [loops, setLoops] = useState<{ list: ListPath; index: number; k: number; n?: number }[]>([]);
   const [hud, setHud] = useState<Hud | null>(null);
   const [recap, setRecap] = useState<Recap | null>(null);
+  const [peek, setPeek] = useState(false);
+  const peekTimer = useRef<number | null>(null);
+  const zoneRef = useRef<HTMLDivElement | null>(null);
+  const mode: EditorMode = level.mode ?? "blocks";
   const runStats = useRef<Recap | null>(null);
   const token = useRef(0);
   const timers = useRef<number[]>([]);
@@ -136,6 +141,25 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
   const palette = useMemo(() => paletteOf(level, level.solution), [level]);
   const target = useMemo(() => (level.sim === "turtle" ? drawTarget(level.draw ?? []) : []), [level]);
   const isSeq = level.sim === "dance" || level.sim === "music";
+  // The route the program will sail, drawn on the map while it's being built: the whole way
+  // ("full"), just the newest block's moves ("last"), or — later on — only when Peek is pressed.
+  const route = useMemo(() => {
+    const pv = peek ? "full" : level.preview;
+    if ((level.sim !== "sea" && level.sim !== "rover") || !pv || !prog.length || phase === "run" || phase === "demo" || phase === "won") return null;
+    const map = level.maps?.[0];
+    const res = map ? runLevel(level, prog).results[0] : null;
+    if (!map || !res) return null;
+    const acts = res.steps.filter((st) => st.event !== "yes" && st.event !== "no");
+    const states = [gridEngine(map, level.facing ?? "right").init, ...acts.map((st) => st.state as GridState)];
+    let from = 0;
+    if (pv === "last") {
+      const top = prog.length - 1;
+      const k = acts.findIndex((st) => st.at[0] === top);
+      from = k < 0 ? states.length - 1 : k;
+    }
+    const end = states[states.length - 1];
+    return { map: 0, cells: states.slice(from).map((st) => [st.x, st.y] as [number, number]), end, bump: res.fail?.reason === "rock" || res.fail?.reason === "edge" };
+  }, [peek, level, prog, phase]);
 
   const goal = level.goal || (level.buggy ? SAY.codeBug : "");
   const parts: Part[] = [goal || SAY.codeTap];
@@ -191,11 +215,17 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
       setActive(null);
     }
   };
+  /** Read a block's code word aloud as it goes in, so the words stick. */
+  const sayWord = (b: Block) => {
+    if (band === "big" || mode === "code") return;
+    void say([blockWord(b.op, b)]);
+  };
   const add = (make: () => Block) => {
     if (!editing || phase === "won") return;
     touch();
     const b = make();
     sfx("snap");
+    sayWord(b);
     if (b.op === "def") {
       // Functions live at the top, before the program that uses them.
       setProg((p) => [b, ...p]);
@@ -204,6 +234,35 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
     }
     setProg((p) => insertAt(p, cursor, b));
     setCursor(isContainer(b.op) ? { list: [...cursor.list, cursor.index, "b"], index: 0 } : { list: cursor.list, index: cursor.index + 1 });
+    setSel(null);
+    setGhostOp(null);
+    setBad(null);
+  };
+  const dropAt = (src: DragSrc, at: DropAt) => {
+    if (!editing || phase === "won" || !at) return;
+    touch();
+    if (at === "trash") {
+      if (src.kind === "prog") del(src.list, src.index);
+      return;
+    }
+    if (src.kind === "palette") {
+      const b = src.make();
+      if (b.op === "def") return add(src.make);
+      sfx("snap");
+      sayWord(b);
+      setProg((p) => insertAt(p, at, b));
+      setCursor(isContainer(b.op) ? { list: [...at.list, at.index, "b"], index: 0 } : { list: at.list, index: at.index + 1 });
+    } else {
+      // Moving a block (with everything inside it) — never into itself.
+      if (insideOf(at.list, src)) return;
+      sfx("snap");
+      let to = at;
+      // Taking the block out first shifts what came after it in the same list.
+      const list = to.list.map((v, k) => (k % 2 === 0 && typeof v === "number" && sameList(to.list.slice(0, k), src.list) && v > src.index ? v - 1 : v));
+      to = { list, index: sameList(list, src.list) && to.index > src.index ? to.index - 1 : to.index };
+      setProg((p) => insertAt(removeAt(p, src.list, src.index), to, src.block));
+      setCursor({ list: to.list, index: to.index + 1 });
+    }
     setSel(null);
     setGhostOp(null);
     setBad(null);
@@ -264,6 +323,19 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
     sfx("pick");
     setProg((p) => updateAt(p, list, index, { cond: next }));
   };
+
+  const { drag, bind } = useBlockDrag({
+    disabled: !editing || phase === "won",
+    zone: zoneRef,
+    onLift: () => sfx("lift"),
+    onTap: (src) => {
+      if (src.kind === "palette") return add(src.make);
+      touch();
+      sfx("tap");
+      setSel((cur) => (cur && sameList(cur.list, src.list) && cur.index === src.index ? null : { list: src.list, index: src.index }));
+    },
+    onDrop: dropAt,
+  });
 
   // ── Running ──
   const stepMs = (kind: "act" | "check") => {
@@ -519,6 +591,13 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
     } else setMsg({ text: line, tone: "bad", k: Date.now() });
   };
 
+  const doPeek = () => {
+    sfx("pick");
+    setPeek(true);
+    if (peekTimer.current) window.clearTimeout(peekTimer.current);
+    peekTimer.current = window.setTimeout(() => setPeek(false), 3800);
+  };
+
   const stop = () => {
     clearTimers();
     setPhase("edit");
@@ -532,9 +611,9 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
   const v = views;
   const stage =
     level.sim === "sea" || level.sim === "rover" ? (
-      <SeaStage maps={level.maps ?? []} view={v.sea!} look={look} mars={level.sim === "rover"} />
+      <SeaStage maps={level.maps ?? []} view={v.sea!} look={look} mars={level.sim === "rover"} route={route} />
     ) : level.sim === "dance" ? (
-      <DanceStage target={level.target ?? []} view={v.seq!} />
+      <DanceStage target={level.target ?? []} view={v.seq!} pet={level.performer === "pet" ? look.pet ?? "pet-parrot" : null} />
     ) : level.sim === "music" ? (
       <MusicStage target={level.target ?? []} view={v.seq!} />
     ) : level.sim === "turtle" ? (
@@ -545,7 +624,7 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
   const n = blockCount(prog);
   const calls = prog.filter((b) => b.op === "def" && b.name).map((b) => b.name!);
   const running = phase === "run" || phase === "demo";
-  const text = showCode ? (lang === "py" ? toPython(prog) : toText(prog)) : [];
+  const text = showCode && mode !== "code" ? (lang === "py" ? toPython(prog) : toText(prog)) : [];
 
   return (
     <div className="flex h-full w-full flex-col gap-4 lg:flex-row lg:items-stretch">
@@ -569,6 +648,11 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
               <Eye className="h-5 w-5" strokeWidth={2.8} /> {level.sim === "music" ? "Listen again" : "Watch again"}
             </Chunk>
           )}
+          {!level.preview && (level.sim === "sea" || level.sim === "rover") && attempts >= 2 && phase !== "won" && !running && prog.length > 0 && (
+            <Chunk tone="white" onClick={doPeek} className={cn("flex h-12 items-center gap-2 px-4 font-display text-lg font-extrabold text-[var(--l-ink)]", peek && "outline outline-[4px] outline-[var(--l-gold)]")}>
+              <ScanEye className="h-5 w-5" strokeWidth={2.6} /> Peek at my path
+            </Chunk>
+          )}
           {attempts >= 3 && !showSolution && phase !== "won" && (
             <Chunk tone="gold" disabled={running} onClick={() => (sfx("pick"), void say(SAY.showMe), play(level.solution, true))} className="l-pulse flex h-12 items-center gap-2 px-5 font-display text-lg font-extrabold">
               <Lightbulb className="h-5 w-5" strokeWidth={2.8} /> Show me
@@ -580,14 +664,14 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
       {/* Program */}
       <div className="flex min-h-[330px] w-full flex-col gap-3 rounded-[28px] bg-white/92 p-3 shadow-[0_8px_0_rgba(0,40,80,0.18)] lg:w-[46%] lg:min-w-[420px]">
         <div className="flex items-center gap-2 px-1">
-          <span className="font-display text-lg font-extrabold text-[var(--l-ink)]"><WithGlyphs text={level.buggy ? "🐞 Fix this program" : "Your program"} /></span>
+          <span className="font-display text-lg font-extrabold text-[var(--l-ink)]"><WithGlyphs text={level.buggy ? "🐞 Fix this program" : mode === "code" ? "Your code" : "Your program"} /></span>
           {band !== "little" && (
             <span className={cn("rounded-full px-2.5 py-0.5 font-display text-sm font-extrabold", n <= level.best ? "bg-[#dcfce7] text-[#166534]" : "bg-[var(--l-card-2)] text-[var(--l-ink-2)]")}>
               {n} block{n === 1 ? "" : "s"} · <Glyph e="⭐" size="1.25em" className="mx-[0.1em] inline-block align-[-0.28em]" /> {level.best}
             </span>
           )}
           <span className="ml-auto flex items-center gap-1.5">
-            {band !== "little" && (
+            {band !== "little" && mode !== "code" && (
               <button type="button" onClick={() => (sfx("tap"), setShowCode((s) => !s))} className={cn("flex h-10 items-center gap-1 rounded-xl px-2.5 font-display text-sm font-extrabold", showCode ? "bg-[var(--l-ink)] text-white" : "bg-[var(--l-card-2)] text-[var(--l-ink-2)]")} aria-label="Show the code">
                 <Code2 className="h-4 w-4" strokeWidth={2.8} /> Code
               </button>
@@ -599,11 +683,31 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
         </div>
 
         <div className={cn("grid min-h-0 flex-1 gap-3", showCode && text.length ? "grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]" : "grid-cols-1")}>
-          <div className="min-h-[150px] overflow-y-auto overflow-x-hidden rounded-2xl bg-[var(--l-card-2)] p-2">
+          <div ref={zoneRef} className={cn("min-h-[150px] overflow-y-auto overflow-x-hidden rounded-2xl p-2", mode === "code" ? "bg-[#0f172a]" : "bg-[var(--l-card-2)]")}>
             {prog.length === 0 && cursor.list.length === 0 && (
-              <p className="px-2 pb-1 pt-2 font-display text-base font-bold text-[var(--l-ink-2)]"><WithGlyphs text={band === "little" ? "Tap a block below 👇" : "Tap blocks below to build your program."} /></p>
+              <p className={cn("px-2 pb-1 pt-2 font-display text-base font-bold", mode === "code" ? "text-[#94a3b8]" : "text-[var(--l-ink-2)]")}>
+                <WithGlyphs text={band === "little" ? "Tap a block — or drag it up here 👇" : mode === "code" ? "Tap or drag code lines below to write your program." : "Tap blocks below — or drag them into your program."} />
+              </p>
             )}
-            <Editor prog={prog} cursor={cursor} sel={sel} band={band} running={running} active={active} bad={bad} loops={loops} onCursor={(c) => (touch(), setCursor(c), setSel(null))} onSelect={setSel} onDelete={del} onCount={count} onCond={cond} />
+            <Editor
+              prog={prog}
+              cursor={cursor}
+              sel={sel}
+              band={band}
+              mode={mode}
+              running={running}
+              active={active}
+              bad={bad}
+              loops={loops}
+              dragging={!!drag}
+              over={drag?.over && drag.over !== "trash" ? drag.over : null}
+              lifted={drag?.src.kind === "prog" ? { list: drag.src.list, index: drag.src.index } : null}
+              grab={(list, index, block) => bind({ kind: "prog", list, index, block })}
+              onCursor={(c) => (touch(), setCursor(c), setSel(null))}
+              onDelete={del}
+              onCount={count}
+              onCond={cond}
+            />
           </div>
           {showCode && text.length > 0 && (
             <div className="flex min-h-[150px] min-w-0 flex-col overflow-hidden rounded-2xl bg-[#0f172a]">
@@ -635,19 +739,45 @@ function CodeLevel({ act, fx, onDone }: ActProps<"code">) {
           </div>
         )}
 
-        {/* Palette */}
-        <div className="flex flex-wrap gap-2">
+        {/* Palette: tap a block to add it at the glowing slot, or drag it anywhere in the program. */}
+        <div className="relative flex flex-wrap gap-2">
           {palette.map((p) => (
-            <button key={p.op} type="button" disabled={!editing || phase === "won"} onClick={() => add(p.make)} className={cn("rounded-2xl transition-transform active:translate-y-1", ghostOp === p.op && "l-hint")} aria-label={`Add ${p.op}`}>
-              <BlockPill op={p.op} band={band} size={band === "little" ? "lg" : "md"} />
-            </button>
+            <span
+              key={p.op}
+              role="button"
+              tabIndex={0}
+              {...bind({ kind: "palette", op: p.op, block: p.make(), make: p.make })}
+              onKeyDown={(e) => e.key === "Enter" && add(p.make)}
+              className={cn("touch-none cursor-grab rounded-2xl transition-transform active:translate-y-1", ghostOp === p.op && "l-hint", (!editing || phase === "won") && "opacity-50")}
+              aria-label={`Add ${blockWord(p.op)}`}
+            >
+              <BlockPill op={p.op} block={p.make()} band={band} mode={mode} size={band === "little" ? "lg" : "md"} />
+            </span>
           ))}
           {calls.map((name) => (
-            <button key={`call-${name}`} type="button" disabled={!editing || phase === "won"} onClick={() => add(() => ({ op: "call", name }))} className="rounded-2xl active:translate-y-1" aria-label={`Use ${name}`}>
-              <BlockPill op="call" block={{ op: "call", name }} band={band} size={band === "little" ? "lg" : "md"} />
-            </button>
+            <span
+              key={`call-${name}`}
+              role="button"
+              tabIndex={0}
+              {...bind({ kind: "palette", op: "call", block: { op: "call", name }, make: () => ({ op: "call", name }) })}
+              className="touch-none cursor-grab rounded-2xl active:translate-y-1"
+              aria-label={`Use ${name}`}
+            >
+              <BlockPill op="call" block={{ op: "call", name }} band={band} mode={mode} size={band === "little" ? "lg" : "md"} />
+            </span>
           ))}
+          {drag?.src.kind === "prog" && (
+            <div data-trash className={cn("absolute inset-0 flex items-center justify-center gap-2 rounded-2xl border-[4px] border-dashed font-display text-xl font-extrabold transition-colors", drag.over === "trash" ? "border-[var(--l-coral)] bg-[var(--l-coral)] text-white" : "border-[var(--l-coral)] bg-[#fff1f0] text-[var(--l-coral-edge)]")}>
+              <Trash2 className="h-6 w-6" strokeWidth={2.6} /> Drop here to take it out
+            </div>
+          )}
         </div>
+        {/* The block in your finger while dragging. */}
+        {drag && (
+          <div className="pointer-events-none fixed z-[80]" style={{ left: drag.x, top: drag.y, transform: "translate(-50%, -70%) scale(1.08) rotate(-3deg)" }}>
+            <BlockPill op={drag.src.block.op} block={drag.src.block} band={band} mode={mode} className="shadow-[0_12px_24px_rgba(0,30,60,0.35)]" />
+          </div>
+        )}
 
         {/* Controls */}
         <div className="flex items-center gap-2">

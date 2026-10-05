@@ -7,6 +7,8 @@ import type { BoatLook } from "@/lib/learn/meta";
 import { cellKey, parseGrid, sharksAt, type GridState, type PixelState, type Seg, type TurtleState } from "@/lib/learn/program";
 import { TopBoat } from "../KidBoat";
 import { MOVE_EMOJI, NOTE_COLOR, PIXEL_COLOR } from "./blocks";
+import { Pet } from "../boat/Pet";
+import type { Trick } from "../boat/pets";
 import { Glyph, GlyphRow, SvgGlyph } from "../art/Glyph";
 
 // The worlds a program drives. Each is a pure picture of the engine's state; CodeAct feeds them
@@ -26,6 +28,9 @@ export type SeaView = {
 };
 
 const DIR_STEP: Record<Dir, [number, number]> = { up: [0, -1], right: [1, 0], down: [0, 1], left: [-1, 0] };
+const DIR_DEG: Record<Dir, number> = { right: 0, down: 90, left: 180, up: 270 };
+/** The program's route, drawn while it's being built (the early-level scaffold, or a Peek). */
+export type SeaRoute = { map: number; cells: [number, number][]; end: GridState; bump: boolean } | null;
 const CURRENT_TURN: Record<string, number> = { ">": 0, v: 90, "<": 180, "^": 270 };
 
 /** The mission, ticking off as the program runs: keys, gates, buttons, fish, shells, the island. */
@@ -56,12 +61,12 @@ function Mission({ map, s }: { map: string[]; s?: GridState }) {
   );
 }
 
-export function SeaStage({ maps, view, look, mars, width = 560, height = 440 }: { maps: string[][]; view: SeaView; look: BoatLook; mars: boolean; width?: number; height?: number }) {
+export function SeaStage({ maps, view, look, mars, route = null, width = 560, height = 440 }: { maps: string[][]; view: SeaView; look: BoatLook; mars: boolean; route?: SeaRoute; width?: number; height?: number }) {
   const multi = maps.length > 1;
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3">
       <Mission map={maps[view.active]} s={view.states[view.active]} />
-      <OneMap map={maps[view.active]} mapIndex={view.active} view={view} look={look} mars={mars} maxW={width} maxH={multi ? height - 92 : height} />
+      <OneMap map={maps[view.active]} mapIndex={view.active} view={view} look={look} mars={mars} maxW={width} maxH={multi ? height - 92 : height} route={route} />
       {multi && (
         <div className="flex items-center gap-3">
           {maps.map((m, i) => (
@@ -75,7 +80,7 @@ export function SeaStage({ maps, view, look, mars, width = 560, height = 440 }: 
   );
 }
 
-function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: string[]; mapIndex: number; view: SeaView; look: BoatLook; mars: boolean; maxW: number; maxH: number; thumb?: boolean }) {
+function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb, route }: { map: string[]; mapIndex: number; view: SeaView; look: BoatLook; mars: boolean; maxW: number; maxH: number; thumb?: boolean; route?: SeaRoute }) {
   const g = parseGrid(map);
   const cell = Math.floor(Math.min(maxW / g.w, maxH / g.h, thumb ? 24 : 148));
   const s = view.states[mapIndex];
@@ -124,6 +129,7 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
           );
         }),
       )}
+      {route && route.map === mapIndex && !thumb && <RouteOverlay route={route} cell={cell} look={look} mars={mars} />}
       {/* sensor beam */}
       {sensor && s && (
         <span
@@ -176,6 +182,44 @@ function OneMap({ map, mapIndex, view, look, mars, maxW, maxH, thumb }: { map: s
   );
 }
 
+/** Where the program will go: a marching dotted line through every square it sails, a ghost boat
+ *  where it ends up, and a red mark if it would hit a rock or the edge. */
+function RouteOverlay({ route, cell, look, mars }: { route: NonNullable<SeaRoute>; cell: number; look: BoatLook; mars: boolean }) {
+  const pts = route.cells.map(([x, y]) => [(x + 0.5) * cell, (y + 0.5) * cell] as const);
+  const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
+  const end = route.end;
+  const [sx, sy] = DIR_STEP[end.facing];
+  const bx = (end.x + 0.5 + sx * 0.5) * cell;
+  const by = (end.y + 0.5 + sy * 0.5) * cell;
+  const r = cell * 0.13;
+  return (
+    <>
+      <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden>
+        {pts.length > 1 && (
+          <>
+            <path d={d} fill="none" stroke="rgba(0,40,80,0.28)" strokeWidth={cell * 0.17} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={d} fill="none" stroke="#ffe066" strokeWidth={cell * 0.085} strokeDasharray={`${cell * 0.12} ${cell * 0.14}`} strokeLinecap="round" strokeLinejoin="round" className="cd-route" />
+          </>
+        )}
+        {pts.slice(1).map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r={cell * 0.075} fill="#fff" stroke="#e0a800" strokeWidth={2} />
+        ))}
+        {route.bump && (
+          <g>
+            <circle cx={bx} cy={by} r={r * 1.6} fill="#ef4444" stroke="#fff" strokeWidth={3} />
+            <path d={`M${bx - r * 0.7} ${by - r * 0.7} L${bx + r * 0.7} ${by + r * 0.7} M${bx + r * 0.7} ${by - r * 0.7} L${bx - r * 0.7} ${by + r * 0.7}`} stroke="#fff" strokeWidth={3.4} strokeLinecap="round" />
+          </g>
+        )}
+      </svg>
+      {pts.length > 1 && (
+        <span className="pointer-events-none absolute flex items-center justify-center opacity-55" style={{ left: end.x * cell, top: end.y * cell, width: cell, height: cell }}>
+          <span style={{ transform: `rotate(${DIR_DEG[end.facing]}deg)` }}>{mars ? <Rover size={cell * 0.8} /> : <TopBoat look={look} size={cell * 0.8} />}</span>
+        </span>
+      )}
+    </>
+  );
+}
+
 function Rover({ size }: { size: number }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden>
@@ -194,16 +238,23 @@ function Rover({ size }: { size: number }) {
 // ── Robot Dance Party ────────────────────────────────────────────────────────────────────────
 export type SeqView = { done: string[]; current: string | null; key: number; mismatch: number | null; demo: boolean; demoIndex: number | null; won: boolean };
 
-export function DanceStage({ target, view }: { target: string[]; view: SeqView }) {
+const PET_TRICK: Record<string, Trick> = { wave: "wave", spin: "spin", jump: "jump", clap: "flap", kick: "shake", bow: "bounce" };
+export function DanceStage({ target, view, pet = null }: { target: string[]; view: SeqView; pet?: string | null }) {
   return (
     <div className="flex h-full w-full flex-col items-center gap-4">
-      <SeqCards target={target} view={view} render={(m) => <span className="text-[34px] leading-none">{MOVE_EMOJI[m]}</span>} label={view.demo ? "Watch the dance!" : "Copy this dance:"} />
+      <SeqCards target={target} view={view} render={(m) => <Glyph e={MOVE_EMOJI[m] ?? "🤖"} size={38} />} label={pet ? (view.demo ? "Watch the trick show!" : "Copy the tricks:") : view.demo ? "Watch the dance!" : "Copy this dance:"} />
       <div className="relative flex flex-1 items-end justify-center overflow-hidden rounded-[28px] px-10 pb-4" style={{ background: "repeating-conic-gradient(from 45deg, #4c1d95 0 25%, #6d28d9 0 50%) 0 0/64px 64px", minHeight: 300, width: "100%" }}>
         <span className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/30 to-transparent" />
         {["#f472b6", "#facc15", "#38bdf8"].map((c, i) => (
           <span key={c} className="l-pulse pointer-events-none absolute top-0 h-[120%] w-24 origin-top opacity-25 blur-md" style={{ left: `${18 + i * 30}%`, background: `linear-gradient(${c}, transparent)`, transform: `rotate(${(i - 1) * 18}deg)`, animationDelay: `${i * 0.4}s` }} />
         ))}
-        <Robot move={view.current} k={view.key} happy={view.won} sad={view.mismatch !== null} />
+        {pet ? (
+          <span className="relative z-[1] mb-2 block drop-shadow-[0_10px_8px_rgba(0,0,0,0.3)]">
+            <Pet id={pet} size={250} trick={view.current ? { t: PET_TRICK[view.current] ?? "jump", k: view.key } : null} react={view.won ? { mood: "cheer", k: view.key } : view.mismatch !== null ? { mood: "oops", k: view.key } : null} />
+          </span>
+        ) : (
+          <Robot move={view.current} k={view.key} happy={view.won} sad={view.mismatch !== null} />
+        )}
       </div>
     </div>
   );

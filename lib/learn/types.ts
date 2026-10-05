@@ -122,6 +122,15 @@ export type CodeLevel = {
   hint?: string;
   /** Show the "real code" view (older kids). */
   textCode?: boolean;
+  /** The first boat levels draw the program's route on the map while it's being built: "full" =
+   *  the whole route, "last" = just where the newest block goes. The scaffold fades as sailors
+   *  grow; later levels only offer a Peek after a couple of misses. */
+  preview?: "full" | "last";
+  /** How the program reads: picture + word blocks (default), word-only blocks ("words" — read the
+   *  code words), or real code lines ("code" — write Python-style lines with code tiles). */
+  mode?: "words" | "code";
+  /** dance: who performs the routine — the robot (default) or the child's own boat pet. */
+  performer?: "pet";
   // Simulator data
   /** sea / rover: map rows ("." water/ground, "#" rock, "S" start, "G" goal, "*" shell; adventure
    *  seas add "k" key, "D" gate, "b" button, "=" drawbridge, "@" whirlpool, "> < ^ v" currents,

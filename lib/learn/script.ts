@@ -7,6 +7,7 @@ import { numberWord as numberWordFull } from "./gen";
 import { refSpoken, verseSpeech } from "./bible";
 import { CREATURES, EGG_LOOK } from "./reef";
 import { DECOR, FOODS, TANKS } from "./aquarium";
+import { NAME_ADJ, NAME_NOUN, SHOP } from "./boats";
 
 // Everything Harbor Learn says out loud. Lines are pre-recorded in the Harbor voice
 // (scripts/gen-learn-voice.mjs → /public/learn-voice), so a child who can't read yet always hears
@@ -36,7 +37,10 @@ export const SAY = {
   wantToLeave: "Do you want to stop this level?",
   welcomeBack: "Welcome back, captain!",
   dailyChest: "Your daily treasure chest is ready!",
-  shop: "Welcome to the Harbor Shop!",
+  shop: "Welcome to the Shipyard!",
+  sailHello: "Tap the water to sail your boat!",
+  nameBoat: "Pick two words to name your boat!",
+  dragHint: "Tap a block, or drag it into your program.",
   notEnough: "You need more shells for that one. Keep learning to earn more!",
   bought: "It's yours!",
   practiceCove: "Let's practice the tricky ones in Practice Cove!",
@@ -561,6 +565,9 @@ export function lessonClipKeys(lesson: Lesson): string[] {
   return [...keys];
 }
 
+/** The code words on the blocks — each is read aloud as it goes into a program. */
+export const BLOCK_WORDS = ["Up", "Down", "Left", "Right", "Forward", "Turn left", "Turn right", "Repeat", "Repeat until", "If", "Catch", "Wait", "Paint", "Pen up", "Pen down", "Wave", "Spin", "Jump", "Clap", "Kick", "Bow", "Define", "Call"];
+
 /** Words a stitched line can use: "7 + 5 = ?" → seven, plus, five, equals, what. */
 export const MATH_WORDS = ["plus", "minus", "times", "divided by", "equals", "what", "is", "and", "more than", "less than", "point"];
 
@@ -587,6 +594,10 @@ export function allClips(): Clip[] {
     add({ key: cr.fact, text: cr.fact, kind: "line" });
   }
   for (const x of [...Object.values(FOODS), ...Object.values(EGG_LOOK), ...DECOR, ...TANKS]) add({ key: x.name, text: x.name, kind: "word" });
+  // The Shipyard: every boat, color, paint, sail, flag, figurehead, gear, pet and trail says its
+  // name; a boat's name is stitched from "The" + two picked words.
+  for (const it of SHOP) add({ key: it.name, text: it.name, kind: "word" });
+  for (const w of ["The", ...NAME_ADJ, ...NAME_NOUN, ...BLOCK_WORDS]) add({ key: w, text: w, kind: "word" });
   for (const course of Object.values(COURSES))
     for (const u of course.units) {
       const level = voiceLevelFor(u.grade);

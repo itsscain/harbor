@@ -678,7 +678,7 @@ function EggButton({ egg, size, reduced, delay, onTap }: { egg: Egg; size: numbe
 
 /** Two taps to buy: the first asks "tap again to buy it" (out loud), the second buys. A child
  *  tapping fast without looking can't spend shells by accident. */
-function BuyButton({ price, label, can, locked, onBuy, className }: { price: number; label?: string; can: boolean; locked?: number; onBuy: () => void; className?: string }) {
+export function BuyButton({ price, label, can, locked, onBuy, className }: { price: number; label?: string; can: boolean; locked?: number; onBuy: () => void; className?: string }) {
   const [armed, setArmed] = useState(false);
   const [shake, setShake] = useState(0);
   const [shaking, setShaking] = useState(false);

@@ -112,14 +112,14 @@ export function LearnHome({
             <path d="M0 20 Q16 8 32 20 T64 20 T96 20 T128 20 T160 20 T192 20 T224 20 T256 20 V40 H0 Z" fill="#ffffff" opacity="0.45" />
           </svg>
           <span className="absolute bottom-3 left-1/2 -translate-x-[58%]">
-            <SideBoat look={look} size={128} bob={!reduced} showTrail />
+            <SideBoat look={look} size={136} bob={!reduced} showTrail still={reduced} />
           </span>
           {buddy && (
             <span className="absolute bottom-1 right-3 drop-shadow-[0_3px_3px_rgba(0,30,60,0.25)]" aria-label={`Your buddy ${buddy.name}`}>
               <CreatureView id={buddy.id} size={66} animate={!reduced} />
             </span>
           )}
-          <span className="absolute left-3 top-3 rounded-full bg-white/85 px-2.5 py-0.5 font-display text-xs font-extrabold text-[var(--l-ink-2)]">My boat</span>
+          <span className="absolute left-3 top-3 max-w-[230px] truncate rounded-full bg-white/85 px-2.5 py-0.5 font-display text-xs font-extrabold text-[var(--l-ink-2)]">{look.name ? `The ${look.name}` : "My boat"}</span>
         </button>
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 px-6 py-4">
           <div className="min-w-0 flex-1">
@@ -188,8 +188,8 @@ export function LearnHome({
         <QuickTile plate="#ffb3d1" icon={<Glyph e="🕹️" size={50} />} title="Arcade" sub="15+ games!" onClick={() => (sfx("pick"), onOpenGym())} />
         <QuickTile
           plate="#9eeadb"
-          icon={<Glyph e="🛍️" size={50} />}
-          title="Shop"
+          icon={<Glyph e="⛵" size={52} />}
+          title="Shipyard"
           sub={
             <>
               {kid.shells} <ShellIcon size={14} className="-mt-0.5 align-middle" /> to spend

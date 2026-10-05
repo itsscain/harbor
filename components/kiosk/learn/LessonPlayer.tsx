@@ -1,6 +1,8 @@
 "use client";
 
 import { Glyph, GlyphRow, WithGlyphs } from "./art/Glyph";
+import { Pet, type PetReact } from "./boat/Pet";
+import { SideBoat } from "./KidBoat";
 import { LessonBackdrop, SeaLane } from "./LessonScene";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
@@ -36,7 +38,6 @@ import { BinaryAct, SearchAct, SwapSortAct, CipherAct, LogicAct, MachineAct, Plo
 import { LabAct } from "./science/LabAct";
 import { CodeReadAct } from "./lab/CodeReadAct";
 import { CreatureView } from "./tank/CreatureView";
-import { ICON_ART, artUrl } from "./tank/art";
 
 // One level, start to finish. Proven learning moves, built in:
 //  • first-try accuracy decides the stars (60% passes) — honest, so the map means something;
@@ -177,6 +178,15 @@ export function LessonPlayer({
   const [fish, setFish] = useState<{ k: number; caught: boolean; x?: number; y?: number; n?: number } | null>(null);
   const [fishShells, setFishShells] = useState(0);
   const [cheer, setCheer] = useState(0);
+  // The pet (on the boat up top, and big in the corner) cheers a right answer and tilts its head
+  // kindly at a miss, with a speech bubble that says what the voice says.
+  const [petReact, setPetReact] = useState<PetReact>(null);
+  const [bubble, setBubble] = useState<{ text: string; k: number; good: boolean } | null>(null);
+  useEffect(() => {
+    if (!bubble) return;
+    const t = window.setTimeout(() => setBubble(null), 1900);
+    return () => window.clearTimeout(t);
+  }, [bubble]);
   const [glow, setGlow] = useState<{ k: number; gold: boolean } | null>(null);
   // The guessing guard: which activity has been heard, a short pause after a miss, the coach.
   const [heardAt, setHeardAt] = useState(-1);
@@ -264,6 +274,8 @@ export function LessonPlayer({
         line = COMBO[(n === 3 ? 2 : n === 5 ? 0 : n === 8 ? 1 : 3) % COMBO.length];
         setComboFlash({ n, k: Date.now() });
       } else line = PRAISE[praiseRef.current++ % PRAISE.length];
+      setPetReact({ mood: "cheer", k: Date.now() });
+      setBubble({ text: line, k: Date.now(), good: true });
       void say([line, ...(extra.length ? [{ gap: 120 }, ...extra] : [])]);
     },
     [fireAt],
@@ -291,6 +303,8 @@ export function LessonPlayer({
   const miss = useCallback(() => {
     comboRef.current = 0;
     setCombo(0);
+    setPetReact({ mood: "oops", k: Date.now() });
+    setBubble({ text: "Try again!", k: Date.now(), good: false });
     sfx("wrong");
     buzz([0, 30, 40, 30]);
     guard();
@@ -301,8 +315,11 @@ export function LessonPlayer({
       setCombo(0);
       sfx("wrong");
       buzz([0, 30, 40, 30]);
+      setPetReact({ mood: "oops", k: Date.now() });
       if (guard()) return;
-      void say([RETRY[praiseRef.current++ % RETRY.length], ...(reprompt.length ? [{ gap: 250 }, ...reprompt] : [])]);
+      const line = RETRY[praiseRef.current++ % RETRY.length];
+      setBubble({ text: line, k: Date.now(), good: false });
+      void say([line, ...(reprompt.length ? [{ gap: 250 }, ...reprompt] : [])]);
       void el;
     },
     [guard],
@@ -438,19 +455,27 @@ export function LessonPlayer({
   return (
     <div className="fixed inset-0 z-[45] flex flex-col overflow-hidden">
       <LessonBackdrop subject={lesson.subject} dusk={dusk} reduced={reduced} />
-      {/* The aquarium buddy, alive in the corner, cheering on every right answer — swimming behind the
-          activity, so a tall one's buttons are never covered */}
-      {buddy && ready && (
-        <div className="pointer-events-none fixed bottom-2 left-2 flex flex-col items-center" aria-hidden>
-          {cheer > 0 && (
-            <span key={`s${cheer}`} className="l-float-num absolute -top-4 left-1/2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={artUrl(ICON_ART.heart)} alt="" width={30} height={30} />
+      {/* The companion in the corner — the child's own boat pet (or their aquarium buddy) — cheering every
+          right answer and saying so in a bubble. It sits behind the activity, so a tall one's buttons
+          are never covered. */}
+      {ready && introDone && (look.pet || buddy) && (
+        <div className="pointer-events-none fixed bottom-2 left-2 flex items-end" aria-hidden>
+          <span className="relative block drop-shadow-[0_6px_6px_rgba(0,30,60,0.25)]">
+            {look.pet ? (
+              <Pet id={look.pet} size={132} react={petReact} still={reduced} mood={dusk ? "sleep" : "idle"} />
+            ) : (
+              buddy && (
+                <span key={cheer} className={cn("block", cheer > 0 && "l-hop")}>
+                  <CreatureView id={buddy.creature.id} size={Math.round(104 * buddy.scale)} react={cheer} animate={!reduced} />
+                </span>
+              )
+            )}
+          </span>
+          {bubble && (
+            <span key={bubble.k} className={cn("l-say -ml-3 mb-[86px] max-w-[230px] rounded-[22px] rounded-bl-[6px] bg-white px-4 py-2 font-display text-xl font-extrabold leading-tight shadow-[0_5px_0_rgba(0,40,80,0.18)]", bubble.good ? "text-[var(--l-green-edge)]" : "text-[var(--l-coral-edge)]")}>
+              {bubble.text}
             </span>
           )}
-          <span key={cheer} className={cn("block drop-shadow-[0_5px_5px_rgba(0,30,60,0.25)]", cheer > 0 && "l-hop")}>
-            <CreatureView id={buddy.creature.id} size={Math.round(96 * buddy.scale)} react={cheer} animate={!reduced} />
-          </span>
         </div>
       )}
 
@@ -458,11 +483,11 @@ export function LessonPlayer({
       {/* A right answer warms the edges of the screen (gold when the streak is hot). */}
       {glow && !reduced && <div key={glow.k} className={cn("l-edge-glow pointer-events-none fixed inset-0 z-[60]", glow.gold && "l-edge-glow-gold")} aria-hidden />}
       {/* Top bar: leave · the boat sailing the lane · combo · hear again */}
-      <div className="relative flex items-center gap-4 px-5 pb-2 pt-4 sm:px-8">
+      <div className="relative flex items-center gap-4 px-5 pb-1 pt-2 sm:px-8">
         <Chunk tone="ghost" aria-label="Stop the level" onClick={() => (sfx("tap"), setConfirmExit(true), void say(SAY.wantToLeave))} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ borderRadius: 999 }}>
           <X className="h-7 w-7" strokeWidth={3} />
         </Chunk>
-        <SeaLane done={results.length} total={queue.length} boss={boss} look={look} reduced={reduced} hot={combo >= 5} />
+        <SeaLane done={results.length} total={queue.length} boss={boss} look={look} reduced={reduced} hot={combo >= 5} petReact={petReact} />
         <div className={cn("flex h-14 min-w-14 items-center justify-center gap-1 rounded-full px-3 font-display text-2xl font-extrabold text-white transition-all", combo >= 2 ? "bg-[var(--l-orange)] shadow-[0_5px_0_var(--l-orange-edge)]" : "bg-white/25")} aria-label={`${combo} in a row`}>
           <Glyph e="🔥" size={34} className={cn(combo >= 2 ? "l-flame" : "opacity-60 grayscale-[0.6]")} />
           {combo >= 2 && <span key={combo} className="l-pop-in tabular-nums">{combo}</span>}
@@ -489,12 +514,12 @@ export function LessonPlayer({
 
       {/* The activity */}
       <div className="relative flex min-h-0 flex-1">
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 pb-6 pt-2 sm:px-8">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 pb-4 pt-1 sm:px-8">
           {ready && introDone && cur ? (
             <div key={i} className="l-slide-in flex h-full w-full max-w-[1180px] flex-col items-center justify-center gap-1">
               {/* One reserved row for the little signs ("From before!", "Listen…"), so they never cover the
                   question and nothing jumps when the reading ends. */}
-              <div className="flex h-10 shrink-0 items-center justify-center gap-3">
+              <div className="flex h-9 shrink-0 items-center justify-center gap-3">
                 {kindBadge && (
                   <span className="l-pop-in rounded-full bg-white/90 px-4 py-1 font-display text-lg font-extrabold text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">
                     <WithGlyphs text={kindBadge} />
@@ -516,7 +541,7 @@ export function LessonPlayer({
               </div>
             </div>
           ) : (
-            <LevelCard lesson={lesson} items={scoredMain} boss={boss} onGo={lesson.intro && storyTold ? () => setIntroDone(true) : undefined} />
+            <LevelCard lesson={lesson} items={scoredMain} boss={boss} look={look} onGo={lesson.intro && storyTold ? () => setIntroDone(true) : undefined} />
           )}
           {comboFlash && (
             <div key={comboFlash.k} className="l-pop-in pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-full bg-[var(--l-orange)] px-7 py-3 font-display text-3xl font-extrabold text-white shadow-[0_6px_0_var(--l-orange-edge)]">
@@ -589,7 +614,7 @@ export function LessonPlayer({
 
 /** The card a level opens with: which level, what it's called, how many challenges, and three
  *  stars waiting to be won (boss and review levels get their own banners). */
-function LevelCard({ lesson, items, boss, onGo }: { lesson: Lesson; items: number; boss: boolean; onGo?: () => void }) {
+function LevelCard({ lesson, items, boss, onGo, look }: { lesson: Lesson; items: number; boss: boolean; onGo?: () => void; look: BoatLook }) {
   const sl = SUBJECT_LOOK[lesson.subject];
   const isPractice = lesson.id.startsWith("practice:");
   return (
@@ -602,6 +627,10 @@ function LevelCard({ lesson, items, boss, onGo }: { lesson: Lesson; items: numbe
         </svg>
         <span className="absolute left-1/2 top-4 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-4 py-1 font-display text-lg font-extrabold shadow-[0_3px_0_rgba(0,40,80,0.15)]" style={{ color: sl.ink }}>
           {isPractice ? "Practice" : `Level ${levelLabel(lesson)}`} · {COURSES[lesson.subject].title}
+        </span>
+        {/* Your boat, setting out for this level. */}
+        <span className="l-boat-in pointer-events-none absolute -left-2 bottom-1">
+          <SideBoat look={look} size={118} />
         </span>
       </div>
       {/* The level's picture in a big round badge, sitting on the waves. */}

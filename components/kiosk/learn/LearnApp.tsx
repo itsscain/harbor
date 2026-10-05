@@ -7,7 +7,7 @@ import { bandOf, type LearnResult, type Lesson, type SubjectId } from "@/lib/lea
 import { COURSES, lessonById, levelLabel, mixedPractice, nextLessonFor, practiceLesson, unitById } from "@/lib/learn/curriculum";
 import { albumProgress, pickSticker, type ChestKind } from "@/lib/learn/stickers";
 import { levelName, levelOf, mergeKid, starsFor, streakFrom, xpFor } from "@/lib/learn/progress";
-import { SHELLS, shellsForLesson, type BoatLook, type ShopItem } from "@/lib/learn/meta";
+import { SHELLS, equipItem, shellsForLesson, type BoatLook, type ShopItem } from "@/lib/learn/meta";
 import { voiceLevelFor, SAY } from "@/lib/learn/script";
 import { prefetchLibrary, say, stopVoice } from "@/lib/learn/audio";
 import { setSfx } from "@/lib/learn/sfx";
@@ -17,7 +17,8 @@ import { FOOD_ORDER, aquariumOf, foodGrowth, type FoodKind } from "@/lib/learn/a
 import { dayKeyInTz } from "@/lib/tz";
 import { LearnHome } from "./LearnHome";
 import { VoyageMap } from "./VoyageMap";
-import { HarborShop } from "./HarborShop";
+import { Shipyard } from "./boat/Shipyard";
+import { SailMode } from "./boat/SailMode";
 import { DailyChest, dailyPrize } from "./DailyChest";
 import { LessonPlayer, type LessonOutcome } from "./LessonPlayer";
 import { LessonDone, type DoneInfo } from "./LessonDone";
@@ -41,6 +42,7 @@ type Screen =
   | { s: "treasures"; tab?: TreasureTab }
   | { s: "aquarium"; hatch?: string }
   | { s: "shop" }
+  | { s: "sail" }
   | { s: "gym" }
   | { s: "lesson"; lesson: Lesson; playId: string; back: Screen }
   | { s: "done"; lesson: Lesson; info: DoneInfo; next: Lesson | null; missed: string[]; back: Screen };
@@ -241,7 +243,7 @@ export function LearnApp({
   const event = (e: Omit<Parameters<Kiosk["learnEvent"]>[0], "child_id" | "at">) => kiosk.learnEvent({ ...e, child_id: child.id, at: nowIso() });
   const buy = (item: ShopItem) => {
     event({ op_id: `buy:${child.id}:${item.id}`, type: "spend", amount: item.price, item: item.id });
-    equip({ ...look, [item.slot]: item.id });
+    equip(equipItem(look, item));
   };
   const equip = (next: BoatLook) => event({ op_id: `look:${child.id}:${newPlayId()}`, type: "look", look: next });
   const prize = dailyPrize(child.id, todayKey, kid.stickers);
@@ -328,7 +330,9 @@ export function LearnApp({
   } else if (screen.s === "gym") {
     body = <BrainGym band={bandOf(profile.grade)} bests={kid.bests} paidToday={kid.gymToday} reduced={reduced} onBack={() => setScreen({ s: "home" })} onResult={gymResult} />;
   } else if (screen.s === "shop") {
-    body = <HarborShop look={look} owned={kid.owned} shells={kid.shells} level={kid.level} reduced={reduced} onBack={() => setScreen({ s: "home" })} onBuy={buy} onEquip={equip} />;
+    body = <Shipyard look={look} owned={kid.owned} shells={kid.shells} level={kid.level} reduced={reduced} onBack={() => setScreen({ s: "home" })} onBuy={buy} onEquip={equip} onSail={() => setScreen({ s: "sail" })} />;
+  } else if (screen.s === "sail") {
+    body = <SailMode look={look} onBack={() => setScreen({ s: "shop" })} />;
   } else if (screen.s === "lesson") {
     const here = screen;
     body = (

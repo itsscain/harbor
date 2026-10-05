@@ -58,7 +58,15 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   (repeat/if-else/until/functions over six worlds: sea, rover, dance, music, turtle, pixel),
   `code.ts` + `codeGen.ts` the levels (generated maps are solved by search before they're kept).
   Runs record loop passes (`Step.iters`) so the editor shows "pass 2 of 4", a step HUD and a
-  "what your program did" recap. **The boat does every block**: there is no stop-at-the-goal —
+  "what your program did" recap. **The editor** (`code/Editor.tsx`, drag hook `code/dnd.ts`):
+  numbered lines, every block shows its picture AND its code word (read aloud as it goes in),
+  tap-to-add or drag from the palette into any gap, drag to move, drag to the trash;
+  `CodeLevel.mode` = "words" (word-only blocks, Word Wharf) or "code" (Python lines from `pyLine`,
+  Code Captain). **Route preview scaffold**: `CodeLevel.preview` ("full" / "last", set per world +
+  lesson in code.ts `PREVIEW`) draws the program's route on the map while it's being built
+  (`RouteOverlay` in Stages: dotted path, ghost boat, red X on a bump); later levels only get a
+  "Peek at my path" after two different failed runs. `performer: "pet"` = the Pet Trick Show (the
+  dance engine performed by the child's boat pet). **The boat does every block**: there is no stop-at-the-goal —
   extra blocks sail past the island (or crash), and CodeAct explains the overshoot and turns the
   extra blocks red. Before a child's first boat level comes **Boat School** (`code/BoatSchool.tsx`),
   an unskippable hands-on tutorial; finishing it is a ledger `collect` event `tutorial:boat`
@@ -98,11 +106,31 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   everywhere: the pen rounds every number (`tidy` in `pen.ts` — server and browser disagree on
   sin/cos last digits) and any extra gradient ids are counted per picture (a `WeakMap<Pen>`), never
   in a module-level counter. Lessons sit on
-  `LessonBackdrop` (a subject-tinted sea) under the `SeaLane` progress bar (`LessonScene.tsx`).
+  `LessonBackdrop` (a subject-tinted sea with that subject's island on the horizon — `Horizon`)
+  under the `SeaLane` voyage bar (`LessonScene.tsx`): the child's own boat sails it, one buoy per
+  answer, its pet cheering; the same pet sits big in the corner as the lesson companion with a
+  speech bubble (praise / "try again"), falling back to the aquarium buddy.
+  **The boat + the Shipyard** (`components/kiosk/learn/boat/*`, catalog in `lib/learn/boats.ts`):
+  a `BoatLook` = model (`boat-*`: 8 hand-built models in `models.tsx` — sloop → catamaran → tug →
+  schooner → paddle steamer → longship → rubber ducky → galleon, level-gated: the upgrades), hull
+  color, paint job (`skin.tsx` `Paint`), sails (patterns + emblem sails), a waving `Flag`, a
+  figurehead and deck gear (one per spot: bow/mid/stern/mast/side; pictures in `gear.ts` on 40×40
+  boards with fixed anchor points), a pet, a trail and a name (two word wheels, `NAME_ADJ`/`NAME_NOUN`,
+  validated by `lookFrom`). `SideBoat`/`TopBoat` (`Boat.tsx`; `KidBoat.tsx` re-exports) draw it
+  anywhere; `equipItem` handles slots (deck gear swaps per spot, pet/figure/trail toggle). The
+  `look` ledger event carries all of it since migration 0079 (`rpc_learn_sync`). `Shipyard.tsx` =
+  the designer (try on → two-tap `BuyButton` from Aquarium, Surprise me, name panel);
+  `SailMode.tsx` = free play (tap the water to steer, horn, jump, pet trick, the model's special,
+  day → sunset → night, rain/rainbow/snow, sea friends — no shells there).
+  **Living pets** (`boat/pets/*`, `boat/Pet.tsx`): 16 rigged drawings — named `Pen.part`s with
+  pivots (rules in `pets/rig.ts`) that the `.pet` CSS in globals.css animates: idle life, `react`
+  cheer/oops (re-keyed), `mood="sleep"`, tap → its tricks + `petVoice`. Review rigs with
+  `node scripts/learn-art.mjs pets [ids] [--big]` and gear with `… gear`; see every model and part at
+  `/dev/boat` (`?night=1`).
   Kid UI: `LearnApp` → `LearnHome`/`VoyageMap`/`LessonPlayer`/`LessonDone`/`Aquarium`/`Treasures`
   (stickers · hero cards · trophies · verse vault)/`BrainGym` (the Game Arcade: brain games +
-  subject games in `ArcadeGames.tsx`, records as `gym:<game>`)/`HarborShop`/`DailyChest`,
-  the child's boat in `KidBoat.tsx`, activities in `components/kiosk/learn/acts/*` (one `Visual`
+  subject games in `ArcadeGames.tsx`, records as `gym:<game>`)/`Shipyard` + `SailMode`/`DailyChest`,
+  the child's boat in `boat/Boat.tsx`, activities in `components/kiosk/learn/acts/*` (one `Visual`
   renderer for all pictures; `StoryAct`, `VerseAct`, `CharacterActs` = spot/slots/reflect) and
   `code/*` (block editor + stages). Rewards: shells (`meta.ts`), sticker sets/rarity/shiny
   (`stickers.ts`), creatures (`reef.ts`: earned eggs are DERIVED from milestones, only hatches are
@@ -145,6 +173,8 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   `script.ts` (unrecorded math is stitched from number words, the rest uses the device voice).
   After changing content or `script.ts`, run `node scripts/gen-learn-voice.mjs` (local Kokoro
   from node_modules — no download; incremental) and commit the clips + `index.json`.
+  After adding Shipyard items, block words or SAY lines, regenerate the voice too (`allClips` in
+  script.ts records every catalog name, the boat-name words and the block words).
   Preview: `/dev/learn` (`?lesson=<id>&grade=k` jumps into a level; add `&only=<activity kind>`
   for just that level's activities of one kind, e.g. `?lesson=code.factory.1&only=factory`).
 - **Stripe** (`lib/stripe/*`, `app/api/stripe/*`): guarded by `isStripeConfigured()`
