@@ -17,6 +17,8 @@ import { Confetti } from "../Confetti";
 import { Chunk, Ring } from "./kit";
 import { SideBoat } from "./KidBoat";
 import { useLater } from "./acts/common";
+import { CreatureView } from "./tank/CreatureView";
+import { artUrl, eggArt } from "./tank/art";
 
 // The payoff. Passed: stars land one by one, shells count up, the XP bar fills (sometimes a
 // level up), and a treasure chest — wood, silver or gold by how well it went — wobbles until
@@ -358,7 +360,10 @@ export function LessonDone({
             )}
             {!!info.eggs?.length && (
               <div className="l-pop-in flex items-center gap-3 rounded-[24px] bg-white p-3 pr-4 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: "1700ms" }}>
-                <span className={cn("text-[56px] leading-none", !reduced && "l-chest")}>🥚</span>
+                <span className={cn("block", !reduced && "l-chest")}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={artUrl(eggArt(info.eggs[0].tier))} alt="" width={46} height={58} />
+                </span>
                 <span className="max-w-[240px]">
                   <span className="block font-display text-xl font-extrabold leading-tight text-[var(--l-ink)]">{info.eggs.length > 1 ? `${info.eggs.length} new eggs!` : "A new egg!"}</span>
                   <span className="block font-display text-sm font-bold text-[var(--l-ink-2)]">{info.eggs[0].why}</span>
@@ -381,7 +386,7 @@ export function LessonDone({
             ))}
             {info.buddy && (
               <div className="l-pop-in flex items-center gap-3 rounded-[24px] bg-white p-3 pr-5 shadow-[0_7px_0_var(--l-line)]" style={{ animationDelay: "2100ms" }}>
-                <span className={cn("text-[50px] leading-none", !reduced && "l-boing")} style={{ filter: info.buddy.creature.tint }}>{info.buddy.creature.emoji}</span>
+                <CreatureView id={info.buddy.creature.id} size={72} react={info.buddy.grew ? 1 : 0} animate={!reduced} />
                 <span className="font-display text-lg font-extrabold leading-tight text-[var(--l-ink)]">{info.buddy.grew ? `${info.buddy.creature.name} grew up — now ${info.buddy.grew}!` : `${info.buddy.creature.name} is cheering for you!`}</span>
               </div>
             )}

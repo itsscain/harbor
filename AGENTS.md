@@ -103,7 +103,18 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   (`food:<kind>:<id>`, `egg:<tier>:<id>`, `roll:<n>:<id>`, `decor:<id>`, `tank:<id>`) so the
   snapshot's distinct `owned` list still counts them; meals are `collect` `feed:<food>:<egg>`
   (summed per creature as `fed` in `learn_snapshot`, not in `collected`); tank and decoration
-  choices are `collect` `aq:tank:<id>` / `aq:off:<id>` / `aq:on:<id>`. Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill
+  choices are `collect` `aq:tank:<id>` / `aq:off:<id>` / `aq:on:<id>`. **The tank is alive and
+  emoji-free** (`components/kiosk/learn/tank/*`): every creature is drawn from code each frame —
+  `species.ts` (body plan, colors, shape keys, habitat swim/bottom/surface, speed, tap reaction) →
+  `draw/fish.ts` (a spine that bends as it swims: fish, sharks, whales, seal, penguin, croc,
+  plesiosaur, sea dragon) and `draw/critters.ts` (turtle, octopus, squid, crab, lobster/shrimp,
+  snail, duck/swan/flamingo, frog, otter); `engine.ts` simulates and paints the tank on one canvas
+  (wander/rest/dart/turn, follow a finger, sinking food the hungry race to eat, reactions, night =
+  sleepy; adaptive "lite" mode on slow tablets); `scene.ts` = 7 themes, light shafts, caustics,
+  plants; `art.ts` = SVG art for decor, eggs, food and icons (canvas + panels). `CreatureView` is
+  a living portrait (card, Fish Book, hatch, the buddy on the home screen and in lessons).
+  Preview every creature at `/dev/tank` (`?big=1&only=sunny,finn&stage=0..3`); a full tank at
+  `/dev/learn?aq=full&tank=<id>`. Sync: **`rpc_learn_sync(p_secret, p_results, p_events)`** — results (with per-skill
   stats, kind, shells) + a ledger (`earn`/`spend`/`look`/`daily`/`collect` = hatch, buddy,
   tutorial, meal or aquarium choice, `best` = Brain Gym record; spends balance-checked, gym shells
   capped at 3 rounds/day) in `learnOutbox`/`learnEvents`, `finishLesson`/`learnEvent` in `useKiosk`.

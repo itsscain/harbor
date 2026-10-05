@@ -310,6 +310,7 @@ export function LearnApp({
         childId={child.id}
         reduced={reduced}
         accent={accent}
+        night={tone === "dusk"}
         autoHatch={screen.hatch}
         onBack={() => setScreen({ s: "home" })}
         onSpend={aqSpend}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ChevronRight, Play } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Lesson, SubjectId } from "@/lib/learn/types";
@@ -14,6 +14,8 @@ import { playHarborVoice } from "@/lib/kiosk/voice";
 import { Chunk, Ring } from "./kit";
 import { SideBoat } from "./KidBoat";
 import { practiceMission, type KidLearnView } from "./learnData";
+import { CreatureView } from "./tank/CreatureView";
+import { artUrl, eggArt } from "./tank/art";
 
 // The Learn home: the child's own boat (and aquarium buddy), their shells, streak, level and
 // today's goal at a glance; today's mission front and center (a grown-up's pick, or simply what's
@@ -106,8 +108,8 @@ export function LearnHome({
         <button type="button" onClick={() => (sfx("pick"), void say(SAY.shop), onOpenShop())} aria-label="Change your boat" className="relative -my-3">
           <SideBoat look={look} size={104} bob={!reduced} showTrail />
           {buddy && (
-            <span className={cn("absolute -bottom-1 -right-3 text-[40px] leading-none drop-shadow-[0_3px_3px_rgba(0,30,60,0.25)]", !reduced && "l-bob")} style={{ filter: buddy.tint, animationDelay: "0.6s" }} aria-label={`Your buddy ${buddy.name}`}>
-              {buddy.emoji}
+            <span className="absolute -bottom-3 -right-6 drop-shadow-[0_3px_3px_rgba(0,30,60,0.2)]" aria-label={`Your buddy ${buddy.name}`}>
+              <CreatureView id={buddy.id} size={64} animate={!reduced} />
             </span>
           )}
         </button>
@@ -147,9 +149,17 @@ export function LearnHome({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <QuickTile emoji="🎁" title={chestReady ? "Daily chest!" : "Chest opened"} sub={chestReady ? "Tap to open" : "Back tomorrow"} glow={chestReady} reduced={reduced} onClick={() => (sfx("pick"), onOpenChest())} />
         <QuickTile
-          emoji={eggs ? "🥚" : "🐠"}
+          emoji=""
+          icon={
+            eggs || !buddy ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={artUrl(eggArt(eggs ? "golden" : "sea"))} alt="" width={30} height={38} className="mx-1" />
+            ) : (
+              <CreatureView id={buddy.id} size={46} animate={!reduced} />
+            )
+          }
           title="Aquarium"
-          sub={eggs ? `${eggs} egg${eggs === 1 ? "" : "s"} to hatch!` : snack ? "Snack time! 😋" : kid.hatched.length ? `${kid.hatched.length} friend${kid.hatched.length === 1 ? "" : "s"}` : "Get an egg!"}
+          sub={eggs ? `${eggs} egg${eggs === 1 ? "" : "s"} to hatch!` : snack ? "Snack time!" : kid.hatched.length ? `${kid.hatched.length} friend${kid.hatched.length === 1 ? "" : "s"}` : "Get an egg!"}
           glow={eggs > 0}
           reduced={reduced}
           badge={eggs || undefined}
@@ -289,11 +299,11 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function QuickTile({ emoji, title, sub, onClick, glow, reduced, disabled, badge }: { emoji: string; title: string; sub: string; onClick: () => void; glow?: boolean; reduced?: boolean; disabled?: boolean; badge?: number }) {
+function QuickTile({ emoji, icon, title, sub, onClick, glow, reduced, disabled, badge }: { emoji: string; icon?: ReactNode; title: string; sub: string; onClick: () => void; glow?: boolean; reduced?: boolean; disabled?: boolean; badge?: number }) {
   return (
     <Chunk tone="white" disabled={disabled} onClick={onClick} className={cn("l-rise relative flex items-center gap-3 p-3 text-left lg:gap-2 lg:px-2.5", disabled && "opacity-60")}>
       {badge ? <span className="absolute -right-2 -top-2 flex h-8 min-w-8 items-center justify-center rounded-full bg-[var(--l-coral)] px-2 font-display text-lg font-extrabold text-white shadow-[0_3px_0_var(--l-coral-edge)]">{badge}</span> : null}
-      <span className={cn("text-[44px] leading-none lg:text-[36px]", glow && !reduced && "l-chest")}>{emoji}</span>
+      <span className={cn("shrink-0 text-[44px] leading-none lg:text-[36px]", glow && !reduced && "l-chest")}>{icon ?? emoji}</span>
       <span className="min-w-0">
         <span className="block truncate font-display text-xl font-extrabold text-[var(--l-ink)] lg:text-base">{title}</span>
         <span className="block truncate font-display text-sm font-bold text-[var(--l-ink-2)] lg:text-xs">{sub}</span>

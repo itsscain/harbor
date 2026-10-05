@@ -255,8 +255,9 @@ export const SAY = {
   verseVault: "Your verse vault! Every gem is a verse in your heart.",
   // My Aquarium
   aquarium: "Welcome to your aquarium!",
-  aqFood: "Pick a food. Then tap a friend to feed them!",
-  aqTapFriend: "Now tap a friend to feed them!",
+  aqFood: "Pick a food. Then tap the water to feed your friends!",
+  aqTapFriend: "Now tap the water to drop the food in!",
+  aqAllFull: "Everyone is full! Come back tomorrow for more treats.",
   aqYumFlakes: "Yum, flakes!",
   aqYumShrimp: "Shrimp! What a treat!",
   aqYumGolden: "Golden pellets! Sparkly and yummy!",

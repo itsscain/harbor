@@ -66,7 +66,8 @@ const SCALE = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 15
 export type Sfx =
   | "tap" | "pick" | "correct" | "wrong" | "pop" | "snap" | "lift" | "whoosh" | "star" | "chest"
   | "sticker" | "legendary" | "levelup" | "goal" | "move" | "bump" | "turn" | "shell" | "dock" | "count" | "trace" | "unlock"
-  | "note" | "coin" | "hit" | "fish" | "splash" | "buy" | "soft-fail" | "tick" | "paint" | "draw" | "beep" | "boss";
+  | "note" | "coin" | "hit" | "fish" | "splash" | "buy" | "soft-fail" | "tick" | "paint" | "draw" | "beep" | "boss"
+  | "plop" | "gulp" | "bubble" | "chirp";
 
 /** Bells for Music Maker: C D E F G A. */
 export const NOTE_HZ: Record<string, number> = { C: 523.25, D: 587.33, E: 659.25, F: 698.46, G: 783.99, A: 880 };
@@ -216,6 +217,22 @@ export function sfx(name: Sfx, n = 0) {
         break;
       case "beep":
         tone(ctx, 1320, 0, 0.06, 0.05, "square");
+        break;
+      // The aquarium: food landing in the water, a happy gulp, a bubble, a little bird chirp.
+      case "plop":
+        tone(ctx, 520 + Math.random() * 120, 0, 0.12, 0.09, "sine", 160);
+        noise(ctx, 0, 0.08, 0.04, 1800, 0.9);
+        break;
+      case "gulp":
+        tone(ctx, 300, 0, 0.09, 0.12, "sine", 620);
+        tone(ctx, 700, 0.08, 0.1, 0.06, "sine", 1100);
+        break;
+      case "bubble":
+        tone(ctx, 600 + Math.random() * 500, 0, 0.1, 0.06, "sine", 1500 + Math.random() * 400);
+        break;
+      case "chirp":
+        tone(ctx, 1800, 0, 0.07, 0.06, "triangle", 2600);
+        tone(ctx, 2000, 0.09, 0.08, 0.05, "triangle", 2900);
         break;
     }
   } catch {

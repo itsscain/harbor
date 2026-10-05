@@ -34,6 +34,8 @@ import { EventsAct } from "./lab/EventsAct";
 import { BinaryAct, SearchAct, SwapSortAct, CipherAct, LogicAct, MachineAct, PlotAct } from "./lab/PuzzleActs";
 import { LabAct } from "./science/LabAct";
 import { CodeReadAct } from "./lab/CodeReadAct";
+import { CreatureView } from "./tank/CreatureView";
+import { ICON_ART, artUrl } from "./tank/art";
 
 // One level, start to finish. Proven learning moves, built in:
 //  • first-try accuracy decides the stars (60% passes) — honest, so the map means something;
@@ -525,16 +527,17 @@ export function LessonPlayer({
         )}
       </div>
 
-      {/* The reef buddy, cheering from the corner */}
+      {/* The aquarium buddy, alive in the corner, cheering on every right answer */}
       {buddy && ready && (
-        <div className="pointer-events-none fixed bottom-4 left-4 z-[44] flex flex-col items-center" aria-hidden>
+        <div className="pointer-events-none fixed bottom-2 left-2 z-[44] flex flex-col items-center" aria-hidden>
           {cheer > 0 && (
-            <span key={`s${cheer}`} className="l-float-num absolute -top-6 left-1/2 text-2xl">
-              {["✨", "💖", "⭐", "🎉"][cheer % 4]}
+            <span key={`s${cheer}`} className="l-float-num absolute -top-4 left-1/2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={artUrl(ICON_ART.heart)} alt="" width={30} height={30} />
             </span>
           )}
-          <span key={cheer} className={cn("block leading-none drop-shadow-[0_5px_5px_rgba(0,30,60,0.3)]", cheer > 0 ? "l-hop" : !reduced && "l-bob")} style={{ fontSize: 58 * buddy.scale, filter: buddy.creature.tint }}>
-            {buddy.creature.emoji}
+          <span key={cheer} className={cn("block drop-shadow-[0_5px_5px_rgba(0,30,60,0.25)]", cheer > 0 && "l-hop")}>
+            <CreatureView id={buddy.creature.id} size={Math.round(96 * buddy.scale)} react={cheer} animate={!reduced} />
           </span>
         </div>
       )}

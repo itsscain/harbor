@@ -7,6 +7,8 @@ import type { useKiosk } from "@/components/kiosk/useKiosk";
 import type { KioskSnapshot, KioskState } from "@/lib/kiosk/types";
 import type { LearnResult } from "@/lib/learn/types";
 import type { LearnEvent, LearnSnapshot } from "@/lib/learn/progress";
+import { CREATURES } from "@/lib/learn/reef";
+import { DECOR, TANKS } from "@/lib/learn/aquarium";
 
 // Development-only mock wall for Harbor Learn: a real ChildView/LearnApp over an in-memory kiosk
 // state. Finished lessons update progress locally (no network).
@@ -21,7 +23,7 @@ function dayKey(offset: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function makeState(grade: string, fresh: boolean): KioskState {
+function makeState(grade: string, fresh: boolean, aq: string | null, tank: string | null): KioskState {
   const now = new Date().toISOString();
   const snapshot: KioskSnapshot = {
     household: { id: HH, name: "Rivera Family", plus_active: false, parent_pin_set: false, settings: { timezone: "America/New_York" } },
@@ -84,11 +86,21 @@ function makeState(grade: string, fresh: boolean): KioskState {
         },
     server_time: now,
   };
+  // ?aq=full — every creature (at every growth stage), every decoration and tank, food to give.
+  const kid = learn.kids[CADE];
+  if (kid && aq === "full") {
+    kid.xp = 1500;
+    kid.shells = 4000;
+    kid.collected = [["tutorial:boat", null, now], ...CREATURES.map((c, i) => [`hatch:dev-${c.id}`, { creature: c.id, xp: [1450, 1300, 900, 100][i % 4] }, now] as [string, { creature: string; xp: number }, string])];
+    kid.owned = [...kid.owned!, ...DECOR.map((d) => `decor:${d.id}`), ...TANKS.map((t) => `tank:${t.id}`), ...["flakes", "shrimp", "golden"].flatMap((k) => [1, 2, 3].map((n) => `food:${k}:dev${n}`))];
+    kid.fed = {};
+  }
+  if (kid && tank) kid.collected = [...(kid.collected ?? []), [`aq:tank:${tank}`, null, now]];
   return { deviceSecret: "dev", householdId: HH, kind: "wall", snapshot, pinHash: null, lastSync: now, points: { [CADE]: 12 }, progress: {}, outbox: [], learn, learnOutbox: [], learnEvents: [] };
 }
 
-export function LearnPreview({ lesson, grade, fresh }: { lesson: string | null; grade: string; fresh: boolean }) {
-  const [state, setState] = useState<KioskState>(() => makeState(grade, fresh));
+export function LearnPreview({ lesson, grade, fresh, aq, tank }: { lesson: string | null; grade: string; fresh: boolean; aq: string | null; tank: string | null }) {
+  const [state, setState] = useState<KioskState>(() => makeState(grade, fresh, aq, tank));
   const kiosk = useMemo(() => {
     const base = {
       state,
