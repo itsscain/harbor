@@ -190,7 +190,7 @@ export const PIECES: Record<PieceId, { name: string; kind: "style" | "mood"; bui
     kind: "style",
     build: ({ bpm = 100 }) => {
       const s = songScore("entertainer", { inst: "piano", bpm });
-      return withTracks(s, notes("piano", line(48, "r/0.5 0/0.5 4+7+12/0.5 -5/0.5 4+7+12/0.5 0/0.5 4+7+12/0.5 -5/0.5 4+7+12/0.5 5/0.5 9+12+17/0.5 0/0.5 9+12+17/0.5 7/0.5 11+14+17/0.5 -5/0.5 4+7+12/1"), 0.55));
+      return withTracks(s, notes("piano", line(48, "r/0.5 0/0.5 4+7+12/0.5 -5/0.5 4+7+12/0.5 0/0.5 4+7+12/0.5 -5/0.5 4+7+12/0.5 5/0.5 9+12+17/0.5 0/0.5 9+12+17/0.5 7/0.5 11+14+17/0.5 -5/0.5 4+7+12/0.5"), 0.55));
     },
   },
   funk: {

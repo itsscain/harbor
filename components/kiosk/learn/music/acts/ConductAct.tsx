@@ -637,7 +637,8 @@ function LoudSlider({ value, onChange, goal, little, disabled, nudge }: { value:
         </div>
       </div>
       <Glyph e="🐭" size={little ? 50 : 40} />
-      <span className="text-center font-display text-base font-extrabold leading-tight text-white drop-shadow-[0_2px_0_rgba(0,40,80,0.3)]">
+      {/* A pill, so it reads even over the companion pet in the corner. */}
+      <span className="rounded-full bg-white/95 px-3 py-0.5 text-center font-display text-base font-extrabold leading-tight text-[var(--l-ink)] shadow-[0_3px_0_rgba(0,40,80,0.15)]">
         {little ? (
           d.kid
         ) : (

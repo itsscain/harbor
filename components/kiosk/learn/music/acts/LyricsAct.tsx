@@ -67,6 +67,8 @@ function lineScore(a: Lyr, strong: number[] | null, count: boolean): Score {
 }
 /** Smaller text for short (narrow) syllables. */
 const sylSize = (share: number, little: boolean) => (share < 0.075 ? 20 : share < 0.11 ? 24 : little ? 30 : 28);
+/** A word part's font: its usual size, shrunk to fit a narrow note (the tile is an `@container`). */
+const sylFont = (text: string, share: number, little: boolean) => `clamp(13px, ${(100 / (Math.max(1, text.length) * 0.64)).toFixed(1)}cqw, ${sylSize(share, little)}px)`;
 
 export function LyricsAct(props: ActProps<"lyrics">) {
   return props.act.mode === "stress" ? <Stress {...props} /> : <Fit {...props} />;
@@ -249,13 +251,13 @@ function Fit({ act, fx, onDone }: ActProps<"lyrics">) {
                     onClick={() => tapSlot(i)}
                     aria-label={txt ? `Box ${i + 1}: ${txt}` : `Box ${i + 1}: empty — hear its note`}
                     className={cn(
-                      "relative mt-2 flex h-[70px] min-w-0 items-center justify-center rounded-[18px] px-1 transition-all duration-150",
+                      "@container relative mt-2 flex h-[70px] min-w-0 items-center justify-center rounded-[18px] px-1 transition-all duration-150",
                       txt ? (on ? "-translate-y-1 scale-105 bg-[#ff4d8d] text-white shadow-[0_5px_0_#c2306c]" : locked[i] ? "bg-white text-[var(--l-ink)] shadow-[0_5px_0_var(--l-green-edge)]" : "bg-white text-[var(--l-ink)] shadow-[0_5px_0_var(--l-line)]") : on ? "border-[4px] border-dashed border-[#ff4d8d] bg-[#ffe3f0]" : "border-[4px] border-dashed border-[#c9d6e2] bg-[#f2f8fc]",
                       shown.includes(i) && "l-hint",
                     )}
                   >
                     {txt && (
-                      <span key={bad?.idx.includes(i) ? `b${bad.k}` : "ok"} className={cn("l-pop-in truncate font-reading font-bold leading-none", bad?.idx.includes(i) && "l-shake text-[var(--l-coral-edge)]")} style={{ fontSize: sylSize(share, little) }}>
+                      <span key={bad?.idx.includes(i) ? `b${bad.k}` : "ok"} className={cn("l-pop-in truncate font-reading font-bold leading-none", bad?.idx.includes(i) && "l-shake text-[var(--l-coral-edge)]")} style={{ fontSize: sylFont(txt, share, little) }}>
                         {txt}
                       </span>
                     )}
@@ -272,7 +274,12 @@ function Fit({ act, fx, onDone }: ActProps<"lyrics">) {
       <div className="flex min-h-[86px] w-full flex-wrap items-center justify-center gap-3">
         {tiles.map((t) =>
           used.has(t.id) ? (
-            <span key={t.id} className="h-[74px] min-w-[86px] rounded-[20px] bg-black/10 px-4" aria-hidden />
+            // The gap keeps the word's width, so the other words don't slide out from under a finger.
+            <span key={t.id} className="flex h-[74px] min-w-[86px] items-center justify-center rounded-[20px] bg-black/10 px-4" aria-hidden>
+              <span className="invisible font-reading font-bold leading-none" style={{ fontSize: little ? 34 : 30 }}>
+                {t.s}
+              </span>
+            </span>
           ) : (
             <div key={t.id} className={cn("relative", lifted === t.id && "z-[60]")}>
               <WordTile
@@ -511,7 +518,7 @@ function Stress({ act, fx, onDone }: ActProps<"lyrics">) {
                   disabled={!awake}
                   aria-pressed={isPicked}
                   aria-label={`${syl}${isPicked ? ", strong" : ""}`}
-                  className={cn("absolute top-3 flex h-[70px] items-center justify-center rounded-[18px] border-[3px] px-1 transition-all duration-150", on && "-translate-y-1 scale-105", !awake && !right && "cursor-default")}
+                  className={cn("@container absolute top-3 flex h-[70px] items-center justify-center rounded-[18px] border-[3px] px-1 transition-all duration-150", on && "-translate-y-1 scale-105", !awake && !right && "cursor-default")}
                   style={{
                     left: `calc(${x(onsets[i])}% + 3px)`,
                     width: `calc(${w}% - 6px)`,
@@ -525,7 +532,7 @@ function Stress({ act, fx, onDone }: ActProps<"lyrics">) {
                       <SymbolView sym="accent" size={26} />
                     </span>
                   )}
-                  <span key={wrong ? `b${bad?.k}` : "ok"} className={cn("truncate font-reading font-bold leading-none", wrong && "l-shake", on ? "text-white" : "text-[var(--l-ink)]")} style={{ fontSize: sylSize(act.durs[i] / span, little) }}>
+                  <span key={wrong ? `b${bad?.k}` : "ok"} className={cn("truncate font-reading font-bold leading-none", wrong && "l-shake", on ? "text-white" : "text-[var(--l-ink)]")} style={{ fontSize: sylFont(syl, act.durs[i] / span, little) }}>
                     {syl}
                   </span>
                   {wrong && <Glyph e="❌" size={22} className="absolute -right-2 -top-2.5" />}

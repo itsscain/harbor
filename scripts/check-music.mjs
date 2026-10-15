@@ -25,7 +25,7 @@ for (const f of readdirSync(join(ROOT, "lib", "learn"), { recursive: true }).map
 }
 const load = createRequire(join(build, "x.js"));
 const { buildWorlds, makeItemsFor } = load("./gen.js");
-const { musicProblems } = load("./mus/check.js");
+const { musicProblems, songProblems } = load("./mus/check.js");
 
 const bands = process.argv.slice(2).length ? process.argv.slice(2) : ["k1", "g23", "g45", "g6", "g78"];
 let problems = 0;
@@ -33,6 +33,7 @@ const bad = (where, msg) => {
   problems++;
   if (problems <= 80) console.log("✗", where, "—", msg);
 };
+for (const p of songProblems()) bad("songs", p);
 const ids = new Set();
 let totalWorlds = 0;
 let totalLevels = 0;

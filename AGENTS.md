@@ -183,7 +183,8 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   tracks of notes/drum hits at a bpm; MusicShow = pictures of music; IdeaFrame; rules), `theory.ts`
   (spelling in a key → staff steps, scales, solfège, intervals, chords, roman numerals, keys, Kodály
   rhythm cells `RHYTHM`: ta, titi, z, taa, tika…), `score.ts` (melody/tune/rhythm/beat/groove/
-  progression/layer/then/hairpin/timeline), `songs.ts` (public-domain melodies, note-checked),
+  progression/layer/then/hairpin/timeline), `songs.ts` (public-domain melodies, note-checked;
+  one word part per sung note and whole bars after the `pickup` — `songProblems` in check.ts),
   `pieces.ts` (30 style + mood demos written as notes: march, waltz, blues, swing, hip hop, bossa,
   heroic, spooky…), `catalog.ts` (40 instruments + 25 drums: family, how played, range), `judge.ts`
   (taps vs. rhythm: echo is judged on SHAPE at any steady tempo; play-along forgives the tablet's

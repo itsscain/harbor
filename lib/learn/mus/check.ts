@@ -3,6 +3,7 @@ import type { BeatRule, ChordRule, ComposeRule, Meter, MusicShow, Score } from "
 import { DRUM_IDS, INST_IDS, INSTRUMENTS } from "./catalog";
 import { BOTTOM_LINE, RHYTHM, barBeats, barFull, cadenceOf, cellBeats, cellsBeats, near, parseRoman, pulses, spell, spelledName, staffStep } from "./theory";
 import { scoreBeats } from "./score";
+import { SONGS } from "./songs";
 
 // The rules a child's own music must follow — checked the same way on the wall (is this beat,
 // tune, rhythm or progression right?) and by the content checker (can every challenge actually be
@@ -216,6 +217,23 @@ export function staffRange(p: number, clef: "treble" | "bass", key = 0): boolean
   return st >= BOTTOM_LINE[clef] - 7 && st <= BOTTOM_LINE[clef] + 8 + 7;
 }
 const distinct = (xs: unknown[]) => new Set(xs.map((x) => JSON.stringify(x))).size === xs.length;
+
+/** Everything wrong with the song book: a length for every note, one word part per sung note
+ *  (karaoke and the lyric lessons show them one to a note), and whole bars after any pickup. */
+export function songProblems(): string[] {
+  const out: string[] = [];
+  for (const s of SONGS) {
+    if (s.pitches.length !== s.durs.length) out.push(`song ${s.id}: ${s.pitches.length} notes but ${s.durs.length} lengths`);
+    if (s.words) {
+      const sung = s.pitches.filter((p) => p !== null).length;
+      if (s.words.length !== sung) out.push(`song ${s.id}: ${s.words.length} word parts for ${sung} sung notes`);
+      for (const w of s.words) if (/\s/.test(w.trim())) out.push(`song ${s.id}: "${w}" puts two word parts on one note`);
+    }
+    const bars = (s.durs.reduce((a, b) => a + b, 0) - (s.pickup ?? 0)) / barBeats(s.meter);
+    if (!near(bars, Math.round(bars))) out.push(`song ${s.id}: ${bars.toFixed(2)} bars of ${s.meter.join("/")} — not whole bars`);
+  }
+  return out;
+}
 
 /** Everything wrong with one music activity (empty = good). */
 export function musicProblems(a: Activity): string[] {

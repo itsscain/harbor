@@ -198,7 +198,7 @@ const smlHasLa = topic("g2-sml-has-la", (r) => {
   });
 });
 
-const rosieBeat = topic("g2-rosie-beat", (r, d) => beatTap({ music: layer(songScore("rosie", { inst: pick(r, ["bells", "marimba"] as InstId[]), bpm: 100 }), beat({ kick: "x.x." }, { bpm: 100, per: 2, times: 6 })), beats: 8, scaffold: d < 0.5, skill: "u:beat:steady", prompt: "Ring Around the Rosie! Tap the drum on every beat." }));
+const rosieBeat = topic("g2-rosie-beat", (r, d) => beatTap({ music: layer(songScore("rosie", { inst: pick(r, ["bells", "marimba"] as InstId[]), bpm: 100 }), beat({ kick: "x.x." }, { bpm: 100, per: 2, times: 8 })), beats: 8, scaffold: d < 0.5, skill: "u:beat:steady", prompt: "Ring Around the Rosie! Tap the drum on every beat." }));
 const smlUpDown = topic("g2-sml-updown", (r) => {
   const up = r() < 0.5;
   const ps = sp(pick(r, up ? ["mi so la", "mi mi so la", "so la la", "mi so so la"] : ["la so mi", "la la so mi", "so mi mi", "la so so mi"]));
@@ -668,7 +668,7 @@ const strongTap = (three: boolean) => topic(three ? "g2-strong-tap-3" : "g2-stro
 const strongTap2 = strongTap(false);
 const strongTap3 = strongTap(true);
 const IN3 = [["birthday", 12], ["grace", 9], ["bonnie", 10]] as const;
-const NOT3 = [["twinkle", 7], ["mary", 7], ["rainrain", 11], ["jingle", 8], ["hotcross", 6]] as const;
+const NOT3 = [["twinkle", 7], ["mary", 7], ["rainrain", 12], ["jingle", 8], ["hotcross", 6]] as const;
 const songIn3 = topic("g2-song-in-3", (r) => {
   const [y, yn] = pick(r, IN3);
   const [n, nn] = pick(r, NOT3);

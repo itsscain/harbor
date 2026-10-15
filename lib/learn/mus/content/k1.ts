@@ -1378,7 +1378,7 @@ const SOL_MI: WorldDef = {
 // ── Beat or Rhythm Bay (1st): beat vs rhythm, strong and weak beats, ostinato, word rhythms ────
 const BR_SONGS: { id: string; n: number; words: string }[] = [
   { id: "hotcross", n: 17, words: "Hot cross buns" },
-  { id: "rainrain", n: 11, words: "Rain, rain, go away" },
+  { id: "rainrain", n: 12, words: "Rain, rain, go away" },
   { id: "baabaa", n: 9, words: "Baa, baa, black sheep" },
   { id: "rosie", n: 12, words: "Ring around the rosie" },
 ];

@@ -36,7 +36,7 @@ const { runLevel, blockCount } = load("./program.js");
 const { genStats } = load("./codeGen.js");
 const lab = load("./codelab.js");
 const { expand } = load("./codeLabContent.js");
-const { musicProblems } = load("./mus/check.js");
+const { musicProblems, songProblems } = load("./mus/check.js");
 
 let problems = 0;
 const bad = (where, msg) => {
@@ -44,6 +44,7 @@ const bad = (where, msg) => {
   if (problems <= 60) console.log("✗", where, "—", msg);
 };
 for (const p of pythonSelfTest()) bad("python interpreter", p);
+for (const p of songProblems()) bad("songs", p);
 
 // ── Code ──
 let levels = 0;
