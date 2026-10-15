@@ -21,6 +21,7 @@ import { SideBoat } from "./KidBoat";
 import { useLater } from "./acts/common";
 import { CreatureView } from "./tank/CreatureView";
 import { artUrl, eggArt } from "./tank/art";
+import { UnlockCard } from "./music/studio/UnlockCard";
 
 // The payoff. Passed: stars land one by one, shells count up, the XP bar fills (sometimes a
 // level up), and a treasure chest — wood, silver or gold by how well it went — wobbles until
@@ -58,6 +59,8 @@ export type DoneInfo = {
   challenge?: string | null;
   /** The reef buddy (and the stage it just grew into, if it did). */
   buddy?: { creature: Creature; grew: string | null } | null;
+  /** Music: what this level added to the child's Studio ("drum:snare", "note:la"…). */
+  unlocked?: string[];
 };
 
 type Phase = "stars" | "chest" | "open" | "summary";
@@ -79,6 +82,7 @@ export function LessonDone({
   onPractice,
   onHome,
   onHatch,
+  onStudio,
 }: {
   lesson: Lesson;
   info: DoneInfo;
@@ -91,6 +95,8 @@ export function LessonDone({
   onPractice: () => void;
   onHome: () => void;
   onHatch?: () => void;
+  /** Music: open the Studio to try what was just unlocked. */
+  onStudio?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("stars");
   const [shown, setShown] = useState(0);
@@ -179,10 +185,10 @@ export function LessonDone({
         later(() => void say(SAY.goalDone), 400);
       } else if (info.streak.after > info.streak.before) later(() => void say(SAY.streakUp), 400);
       // Then the extra treasures, one at a time.
-      const treat = info.card ? (info.card.holo ? SAY.shinyCard : SAY.newCard) : info.eggs?.length ? SAY.newEgg : info.badges?.length ? SAY.newBadge : info.buddy?.grew ? SAY.buddyGrew : null;
+      const treat = info.card ? (info.card.holo ? SAY.shinyCard : SAY.newCard) : info.unlocked?.length ? SAY.studioUnlock : info.eggs?.length ? SAY.newEgg : info.badges?.length ? SAY.newBadge : info.buddy?.grew ? SAY.buddyGrew : null;
       if (treat) {
         later(() => {
-          sfx(info.card?.holo || info.badges?.length ? "legendary" : "sticker");
+          sfx(info.card?.holo || info.badges?.length || info.unlocked?.length ? "legendary" : "sticker");
           setParty((p) => p + 1);
         }, 1700);
         later(() => void say(treat), 2000);
@@ -371,8 +377,9 @@ export function LessonDone({
           </div>
         )}
 
-        {phase === "summary" && info.passed && (info.card || info.eggs?.length || info.badges?.length || info.buddy || info.challenge) && (
+        {phase === "summary" && info.passed && (info.card || info.eggs?.length || info.badges?.length || info.buddy || info.challenge || info.unlocked?.length) && (
           <div className="flex w-full max-w-[980px] flex-wrap items-stretch justify-center gap-3">
+            {!!info.unlocked?.length && <UnlockCard keys={info.unlocked} onStudio={onStudio} />}
             {info.card && (
               <div className="l-card-in flex items-center gap-3 rounded-[24px] p-3 pr-5 text-white shadow-[0_7px_0_rgba(0,40,80,0.18)]" style={{ background: `linear-gradient(150deg, ${info.card.hero.color}, ${info.card.hero.color}cc)`, animationDelay: "1500ms" }}>
                 <GlyphRow s={info.card.hero.emoji ?? ""} size={55} className={cn("flex h-[86px] w-[66px] items-center justify-center rounded-[14px] bg-white/25 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.6)]", info.card.holo && "l-shiny")} />

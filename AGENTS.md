@@ -177,6 +177,46 @@ AI helpers are hidden behind `FEATURES.ai` in `lib/features.ts` until built-in A
   script.ts records every catalog name, the boat-name words and the block words).
   Preview: `/dev/learn` (`?lesson=<id>&grade=k` jumps into a level; add `&only=<activity kind>`
   for just that level's activities of one kind, e.g. `?lesson=code.factory.1&only=factory`).
+- **Harbor Learn — Music** (`music`, on by default since migration 0080; Kindergarten → 8th grade —
+  grades 6–8 exist for every course now, other courses just top out at 5th): kids hear it, read it, play
+  it and MAKE it. **Engine** `lib/learn/mus/*` (pure, check-learn compiles it): `types.ts` (Score =
+  tracks of notes/drum hits at a bpm; MusicShow = pictures of music; IdeaFrame; rules), `theory.ts`
+  (spelling in a key → staff steps, scales, solfège, intervals, chords, roman numerals, keys, Kodály
+  rhythm cells `RHYTHM`: ta, titi, z, taa, tika…), `score.ts` (melody/tune/rhythm/beat/groove/
+  progression/layer/then/hairpin/timeline), `songs.ts` (public-domain melodies, note-checked),
+  `pieces.ts` (30 style + mood demos written as notes: march, waltz, blues, swing, hip hop, bossa,
+  heroic, spooky…), `catalog.ts` (40 instruments + 25 drums: family, how played, range), `judge.ts`
+  (taps vs. rhythm: echo is judged on SHAPE at any steady tempo; play-along forgives the tablet's
+  delay), `check.ts` (beatFails/composeFails/chordFails/measureDone/strongSyllables — the SAME rules
+  the screens use — plus `musicProblems` for the checker: the staff note IS the answer, every make
+  challenge is solvable and not already solved, rhythms fill their bars), `song.ts` (StudioSong, its
+  compiler and validation), `powers.ts` (Studio unlocks), `synth.ts` (Web Audio: every instrument
+  synthesized — partials, filtered saws with vibrato, Karplus–Strong plucks, formant choir, a full kit;
+  look-ahead scheduler with swing; `tapTime`/`timeOf` for timing; obeys the sound setting).
+  **Content** `lib/learn/mus/content/{k1,g23,g45,g6,g78}.ts` → `lib/learn/music.ts` (ids `mus.*`,
+  skills `u:<family>[:<detail>]`). Every world teaches → practices → creates: a stage's first level is
+  `fixed` and opens with an `idea` (a sounding explainer); generators (`make.ts`) make the practice
+  and the review; the last stage makes something (beatlab/compose/chords/measure/lyrics). Stages can
+  carry `unlocks` ("drum:snare", "note:la", "inst:piano", "scale:minor", "groove:rock", "tool:chords"):
+  passing the stage's last level adds it to the child's **Studio** (worlds before where a child
+  starts count as learned); the finish screen shows "New in your Studio!" (`studio/UnlockCard.tsx`).
+  **15 activity kinds** (types.ts `// ── Music`): idea, listen, rhythm (echo/read/beat/syllables),
+  melody, staff, keys, measure, beatlab, compose, conduct, soundsort, wave, form, lyrics, chords —
+  UI in `components/kiosk/learn/music/acts/*` on the kit `music/kit/*` (usePlayer = play + the beat
+  being heard; Staff/RhythmStrip notation drawn in SVG; Keyboard (multi-touch + glide), Bells, DrumPad,
+  Ladder; MusicVisual lights notes/keys/beats in time; BeatGrid/MelodyGrid/ChordStrip shared with the
+  Studio). A `choice` can show music with `visual: { type: "music", m }`. Builders always have a
+  Check button. **The Studio** (`music/studio/*`, home tile when Music is on): Beat · Tune · Chords ·
+  Words · Song sections · My Songs, tempo/swing/loop length/key — and a Concert (the boat is the stage,
+  the pet dances, hatched aquarium friends are the audience). Songs are ledger `collect` events
+  `song:<id>` with the JSON in `data.song` (newest save wins, empty = deleted; RPC caps 8000 chars;
+  the snapshot returns `songs`), and the parent's Learn tab plays them (`components/app/kids/KidSongs.tsx`).
+  The pet in a lesson grooves to any music playing (`useMusicPlaying`). Arcade Music tab: Rhythm Rush,
+  Simon Sea, Note Ninja, Pitch Pirates (`music/games`). Instrument drawings: `music/art/instruments.ts`
+  (`node scripts/learn-art.mjs instruments` renders a sheet). Check content with
+  `node scripts/check-music.mjs [k1 g23 …]` (fast, per band) and the full `check-learn.mjs`; hear and
+  see everything at `/dev/music` (`window.__music.meter()` reads the output level — the Browser
+  pane can't play sound to you). Grades 6–8 read on their own (voice "keys").
 - **Stripe** (`lib/stripe/*`, `app/api/stripe/*`): guarded by `isStripeConfigured()`
   so the app runs keyless. Webhook → `plus_subscriptions` + `households.plus_active`.
 - **Types**: `lib/database.types.ts` is generated from the live schema (Supabase MCP

@@ -6,6 +6,7 @@ import { CODE } from "./code";
 import { MANNERS } from "./manners";
 import { FAITH } from "./faith";
 import { SCIENCE } from "./science";
+import { MUSIC } from "./music";
 import { pickReview, SKILL_PREFIX, type Skills } from "./mastery";
 import { rng, shuffle } from "./gen";
 
@@ -13,11 +14,11 @@ import { rng, shuffle } from "./gen";
 // (worlds of numbered levels, each unlocked by passing the one before), and build the "double
 // back" practice that brings shaky skills around again.
 
-export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, science: SCIENCE, manners: MANNERS, faith: FAITH };
-export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners", "faith"];
+export const COURSES: Record<SubjectId, Course> = { reading: READING, math: MATH, code: CODE, science: SCIENCE, music: MUSIC, manners: MANNERS, faith: FAITH };
+export const SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "music", "manners", "faith"];
 /** What a child gets before a grown-up chooses: every course, Lighthouse (faith) included. A
  *  parent can still switch any course off for a child. */
-export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "manners", "faith"];
+export const DEFAULT_SUBJECTS: SubjectId[] = ["reading", "math", "code", "science", "music", "manners", "faith"];
 export const isSubject = (s: unknown): s is SubjectId => typeof s === "string" && (SUBJECTS as string[]).includes(s);
 
 /** Kid-facing look for each subject. */
@@ -26,6 +27,7 @@ export const SUBJECT_LOOK: Record<SubjectId, { name: string; from: string; to: s
   math: { name: "Math", from: "#A89BFF", to: "#6E5BFF", ink: "#2A1F7A", island: "🔢" },
   code: { name: "Code", from: "#7CE0C3", to: "#2BB3A3", ink: "#0B4A44", island: "🧩" },
   science: { name: "Discovery", from: "#9BE15D", to: "#22A06B", ink: "#0E4429", island: "🔬" },
+  music: { name: "Music", from: "#FF9AD5", to: "#C04FE6", ink: "#5B0F6E", island: "🎵" },
   manners: { name: "Captain's Code", from: "#FFD66B", to: "#F2A93B", ink: "#6B4206", island: "⚓" },
   faith: { name: "Lighthouse", from: "#8AD4FF", to: "#4A6CF7", ink: "#0E2A6B", island: "🕊️" },
 };
@@ -58,7 +60,8 @@ export function startUnitIndex(subject: SubjectId, grade: GradeId): number {
 
 /** Lessons fit for a grade (for parents assigning): from a grade below to a grade above. */
 export function lessonsForGrade(subject: SubjectId, grade: GradeId, spread = 1): Unit[] {
-  const g = gradeIndex(grade);
+  const top = Math.max(...COURSES[subject].units.map((u) => gradeIndex(u.grade)));
+  const g = Math.min(gradeIndex(grade), top);
   return COURSES[subject].units.filter((u) => Math.abs(gradeIndex(u.grade) - g) <= spread || (g <= 1 && gradeIndex(u.grade) <= 1));
 }
 
@@ -131,6 +134,10 @@ export function courseProgress(subject: SubjectId, grade: GradeId, best: (id: st
 
 // ── Doubling back ────────────────────────────────────────────────────────────────────────────
 
+/** Music builders (a whole beat, a tune, a progression…) are too long to drop into a quick review. */
+const LONG_MUSIC = new Set<Activity["kind"]>(["idea", "beatlab", "compose", "chords", "measure", "conduct", "form", "soundsort", "lyrics", "wave"]);
+const quick = (a: Activity) => !LONG_MUSIC.has(a.kind);
+
 /** Fresh items for a list of skills, a few per skill, mixed. */
 export function itemsForSkills(subject: SubjectId, skills: string[], perSkill: number, seed: string, cap: number): Activity[] {
   const course = COURSES[subject];
@@ -189,7 +196,7 @@ export function mixedPractice(subjects: SubjectId[], skills: Skills, o: { seed: 
   const picked = boostSkills(subjects, skills, o.now, Math.max(2, Math.ceil(n / Math.max(1, subjects.length)) + 1));
   const bySubject = new Map<SubjectId, Activity[]>();
   for (const p of picked) {
-    const [item] = itemsForSkills(p.subject, [p.skill], 1, `${o.seed}:${p.skill}`, 1);
+    const [item] = itemsForSkills(p.subject, [p.skill], 3, `${o.seed}:${p.skill}`, 3).filter(quick);
     if (item) bySubject.set(p.subject, [...(bySubject.get(p.subject) ?? []), item]);
   }
   // Round-robin across subjects so no two neighbors are the same kind of problem.
@@ -226,7 +233,7 @@ export function spiralItems(lesson: Lesson, skills: Skills, now: number, n: numb
   if (lesson.kind === "practice" || lesson.subject === "code" || n <= 0) return [];
   const due = pickReview(skills, { subject: lesson.subject, n, now, exclude: new Set(lesson.skills) });
   if (!due.length) return [];
-  return itemsForSkills(lesson.subject, due, 1, `spiral:${lesson.id}:${new Date(now).toISOString().slice(0, 10)}`, n);
+  return itemsForSkills(lesson.subject, due, 2, `spiral:${lesson.id}:${new Date(now).toISOString().slice(0, 10)}`, n * 2).filter(quick).slice(0, n);
 }
 
 const subjectPrefix = (s: SubjectId) => SKILL_PREFIX[s];

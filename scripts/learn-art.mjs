@@ -2,6 +2,7 @@
 //   node scripts/learn-art.mjs sheet <category|all> [...]   contact sheets (PNG) of the drawings
 //   node scripts/learn-art.mjs show 🍎 🐶 …                  just these, big
 //   node scripts/learn-art.mjs missing [--strict]           emoji Learn shows that have no drawing
+//   node scripts/learn-art.mjs instruments [ids…] [--big]   the Music course's instruments + drums
 // Sheets go to <tmp>/harbor-art-sheets (or --out <dir>). Each tile shows the drawing big, a 36px
 // copy (top right — it must still read that small) and its number + name.
 
@@ -178,8 +179,28 @@ if (cmd === "sheet") {
   console.log((await petSheet(rest)).join("\n"));
 } else if (cmd === "gear") {
   console.log((await gearSheet()).join("\n"));
+} else if (cmd === "instruments") {
+  console.log((await instrumentSheet(rest)).join("\n"));
 } else {
-  console.log("usage: node scripts/learn-art.mjs sheet <category|all> | show <emoji…> | missing [--strict] | pets [ids…]");
+  console.log("usage: node scripts/learn-art.mjs sheet <category|all> | show <emoji…> | missing [--strict] | pets [ids…] | instruments [ids…] [--big]");
+}
+
+/** The Music course's pictures (components/kiosk/learn/music/art/instruments.ts): every
+ *  instrument, drum and music thing, big + a 34px copy, labelled with its id. Pass ids for just
+ *  those, and --big for large tiles. */
+async function instrumentSheet(ids) {
+  const kit = compileSome(join(ROOT, "components", "kiosk", "learn"), ["art", join("music", "art")], "instruments");
+  try {
+    const { INSTRUMENT_ART } = kit.load("./music/art/instruments.js");
+    const all = Object.entries(INSTRUMENT_ART).map(([id, [, fn]]) => [id, id, fn]);
+    const unknown = ids.filter((id) => !INSTRUMENT_ART[id]);
+    if (unknown.length) console.log(`not drawn: ${unknown.join(", ")}`);
+    const defs = ids.length ? all.filter(([id]) => ids.includes(id)) : all;
+    if (!defs.length) return ["(nothing to show)"];
+    return await sheet(ids.length ? "instruments-some" : "instruments", defs, args.includes("--big") ? 220 : 112);
+  } finally {
+    rmSync(kit.build, { recursive: true, force: true });
+  }
 }
 
 /** Living pets in their poses — the CSS motions frozen at their extremes, so a part that

@@ -58,6 +58,17 @@ const FAITH: Record<string, string> = {
 const CHARACTER_STORIES: Record<string, string> = { wolf: "The Boy Who Cried Wolf", toothpaste: "The Toothpaste Test" };
 const COMP: Record<string, string> = { detail: "details", cause: "cause & effect", feeling: "characters' feelings", infer: "inferring", sequence: "sequence", main: "main idea", vocab: "vocabulary" };
 
+/** Music skill families in parent words ("u:rhythm:ta-titi" → "Reading rhythm: ta titi"). */
+const MUSIC: Record<string, string> = {
+  beat: "Steady beat", tempo: "Tempo (fast & slow)", dynamics: "Dynamics (loud & soft)", pitch: "High & low", contour: "Melody shape",
+  duration: "Long & short", timbre: "Instrument sounds", family: "Instrument families", rhythm: "Reading rhythm", rest: "Rests", meter: "Meter",
+  solfege: "Solfège (do re mi)", staff: "Reading the staff", keys: "The keyboard", melody: "Melody", form: "Song form", mood: "Music & feelings",
+  "major-minor": "Major & minor", interval: "Intervals", chord: "Chords", progression: "Chord progressions", scale: "Scales", "key-sig": "Key signatures",
+  circle: "Circle of fifths", genre: "Music styles", history: "Music history", composer: "Composers", lyrics: "Songwriting (lyrics)", syllables: "Syllables",
+  compose: "Composing", beatmaking: "Beat making", acoustics: "Sound science", production: "Music production", cadence: "Cadences", modes: "Modes",
+  film: "Film music", conduct: "Conducting", notation: "Music notation", ear: "Ear training", idea: "Music ideas",
+};
+
 /** Science skills are named after the lesson that teaches them ("Which sense?", "Magnet lab"). */
 let SCI_NAMES: Map<string, string> | null = null;
 function sciName(skill: string): string | null {
@@ -81,6 +92,7 @@ export function skillLabel(skill: string): string {
   if (fam === "f:story") return `Story: ${STORY_BY_ID.get(rest)?.title ?? rest}`;
   if (skill.startsWith("f:")) return FAITH[parts[1]] ?? parts[1].replace(/-/g, " ");
   if (skill.startsWith("s:")) return sciName(skill) ?? parts[1].replace(/-/g, " ");
+  if (skill.startsWith("u:")) return (MUSIC[parts[1]] ?? parts[1].replace(/-/g, " ")) + (rest ? `: ${rest.replace(/[-:]/g, " ")}` : "");
   switch (fam) {
     case "m:add": return rest ? rest.replace("+", " + ") : FAMILY[fam];
     case "m:sub": return rest ? rest.replace("-", " − ") : FAMILY[fam];

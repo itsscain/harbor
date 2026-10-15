@@ -8,6 +8,8 @@ import { refSpoken, verseSpeech } from "./bible";
 import { CREATURES, EGG_LOOK } from "./reef";
 import { DECOR, FOODS, TANKS } from "./aquarium";
 import { NAME_ADJ, NAME_NOUN, SHOP } from "./boats";
+import { SONG_ADJ, SONG_KIND, SONG_NOUN } from "./mus/song";
+import { DRUMS, INSTRUMENTS } from "./mus/catalog";
 
 // Everything Harbor Learn says out loud. Lines are pre-recorded in the Harbor voice
 // (scripts/gen-learn-voice.mjs → /public/learn-voice), so a child who can't read yet always hears
@@ -27,6 +29,7 @@ export const SAY = {
   manners: "Captain's Code",
   faith: "Lighthouse",
   science: "Discovery",
+  music: "Music",
   mission: "Here's your mission!",
   fromGrownup: "A grown-up picked this one for you.",
   letsGo: "Let's go!",
@@ -331,6 +334,55 @@ export const SAY = {
   levelUp: "Level up!",
   streakUp: "Your streak keeps growing!",
   shellsEarned: "You earned shells!",
+
+  // Music
+  musicListen: "Listen!",
+  musicPlayIt: "Tap the play button to hear it.",
+  musicHearEach: "Tap each play button to hear them. Then choose.",
+  echoYourTurn: "Your turn! Tap it back.",
+  readGetReady: "Watch the count, then play!",
+  beatGo: "Tap the drum on every beat!",
+  beatKeep: "Keep the beat going!",
+  rhythmPerfect: "Perfect rhythm!",
+  rhythmClose: "So close! Listen, and try again.",
+  rhythmTooMany: "Too many taps! Listen again.",
+  rhythmTooFew: "A few more taps! Listen again.",
+  rhythmEarly: "A little too early! Try again.",
+  rhythmLate: "A little too late! Try again.",
+  syllableTap: "Tap the drum once for each part of the word.",
+  melodyEcho: "Listen, then play it on the bells!",
+  melodyRead: "Play the notes you see!",
+  melodyWrong: "Oops, not that note. Listen again!",
+  staffPlace: "Tap where the note goes on the staff.",
+  keysCheck: "Tap the keys, then press check.",
+  measureHow: "Drag rhythm cards into each bar. Every bar needs the right number of beats.",
+  measureTooMany: "That bar has too many beats!",
+  measureTooFew: "That bar needs more beats!",
+  beatlabHow: "Tap the squares to make a beat. Press play to hear it!",
+  beatlabCopy: "Listen to the beat, then make the same one.",
+  composeHow: "Tap the notes to write your tune. Then press play!",
+  songSaved: "Your song is saved in your Studio!",
+  conductHow: "Tap the baton to set the speed. Slide up for loud, down for soft.",
+  conductFollow: "The band is following you!",
+  soundsortHow: "Tap a card to hear it. Then drag it to its group.",
+  waveHow: "Slide to change the sound. Watch the wave!",
+  formHow: "Listen to the song. Put the parts in order.",
+  lyricsFit: "Put each word part on its note.",
+  lyricsStress: "Tap the words that land on the strong beats.",
+  chordsHow: "Put the chords in order, then play them!",
+  studioHello: "Welcome to your Studio!",
+  studioName: "Pick words to name your song!",
+  studioBeat: "Make a beat!",
+  studioTune: "Write a tune!",
+  studioChords: "Pick your chords!",
+  studioConcert: "Time for your concert!",
+  studioCrowd: "Your friends came to hear your song!",
+  studioUnlock: "You unlocked something new for your Studio!",
+  studioLocked: "Learn more in Music to unlock this!",
+  gameRush: "Tap each note when it reaches the line!",
+  gameSimon: "Watch and listen, then play it back!",
+  gameNinja: "Name each note, fast!",
+  gamePitch: "Higher or lower? Decide fast!",
 } as const;
 
 /** Instant feedback, rotated so it never sounds like a machine. */
@@ -548,6 +600,49 @@ function activityClips(a: Activity, level: VoiceLevel, subject: SubjectId, add: 
     case "plot":
     case "coderead":
       break;
+    // Music: the fixed instructions live in SAY; these are the item-specific lines.
+    case "idea":
+      if (level !== "keys") a.frames.forEach((fr) => line(fr.text));
+      break;
+    case "listen":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      a.options.forEach(opt);
+      if (why) line(a.why);
+      break;
+    case "rhythm":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (full) a.words?.forEach((w) => word(w.text));
+      break;
+    case "soundsort":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (full) {
+        a.bins.forEach((b) => line(b.label));
+        a.items.forEach((it) => it.label && line(it.label));
+      }
+      break;
+    case "form":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (full) a.options?.forEach(line);
+      break;
+    case "melody":
+    case "staff":
+    case "keys":
+    case "measure":
+    case "beatlab":
+    case "compose":
+    case "conduct":
+    case "wave":
+    case "lyrics":
+    case "chords":
+      if (a.say) lines(a.say);
+      else if (full) line(a.prompt);
+      if (a.kind === "staff" && full) a.options?.forEach(line);
+      if (a.kind === "keys" && why) line(a.why);
+      break;
   }
 }
 
@@ -566,6 +661,9 @@ export function lessonClipKeys(lesson: Lesson): string[] {
 }
 
 /** The code words on the blocks — each is read aloud as it goes into a program. */
+/** Music words every child might hear: solfège, rhythm syllables, letter names. */
+export const MUSIC_WORDS = ["do", "re", "mi", "fa", "so", "la", "ti", "ta", "ti ti", "ta a", "shh", "ti ka ti ka", "C", "D", "E", "F", "G", "A", "B", "C sharp", "D sharp", "F sharp", "G sharp", "A sharp", "D flat", "E flat", "G flat", "A flat", "B flat", "Loud", "Soft", "Fast", "Slow", "High", "Low", "Up", "Down", "Same", "Different", "Long", "Short", "Happy", "Sad", "Steady beat", "No beat", "First", "Second", "Strings", "Woodwinds", "Brass", "Percussion"];
+
 export const BLOCK_WORDS = ["Up", "Down", "Left", "Right", "Forward", "Turn left", "Turn right", "Repeat", "Repeat until", "If", "Catch", "Wait", "Paint", "Pen up", "Pen down", "Wave", "Spin", "Jump", "Clap", "Kick", "Bow", "Define", "Call"];
 
 /** Words a stitched line can use: "7 + 5 = ?" → seven, plus, five, equals, what. */
@@ -597,7 +695,11 @@ export function allClips(): Clip[] {
   // The Shipyard: every boat, color, paint, sail, flag, figurehead, gear, pet and trail says its
   // name; a boat's name is stitched from "The" + two picked words.
   for (const it of SHOP) add({ key: it.name, text: it.name, kind: "word" });
-  for (const w of ["The", ...NAME_ADJ, ...NAME_NOUN, ...BLOCK_WORDS]) add({ key: w, text: w, kind: "word" });
+  for (const w of ["The", ...NAME_ADJ, ...NAME_NOUN, ...BLOCK_WORDS, ...MUSIC_WORDS]) add({ key: w, text: w, kind: "word" });
+  // The Studio: song-title words, and every instrument says its name.
+  for (const w of [...SONG_ADJ, ...SONG_NOUN, ...SONG_KIND]) add({ key: w, text: w, kind: "word" });
+  for (const x of Object.values(INSTRUMENTS)) add({ key: x.name, text: x.name, kind: "word" });
+  for (const x of Object.values(DRUMS)) add({ key: x.name, text: x.name, kind: "word" });
   for (const course of Object.values(COURSES))
     for (const u of course.units) {
       const level = voiceLevelFor(u.grade);

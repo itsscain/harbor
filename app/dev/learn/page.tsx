@@ -6,7 +6,7 @@ import { DonePreview } from "./DonePreview";
 // /dev/learn                 → a child's wall screen with the My Day | Learn switch
 // /dev/learn?lesson=<id>     → straight into a level (e.g. read.ls1.1, code.rover.1, math.add5.1, char.magic-words.1)
 // &only=<activity kind>      → just that level's activities of one kind (e.g. find-letter, factory)
-// &grade=prek|k|1|2|3|4|5    → the child's grade · &fresh=1 → a brand-new learner (who still has
+// &grade=prek|k|1…8    → the child's grade · &fresh=1 → a brand-new learner (who still has
 //                              Boat School, the unskippable boat tutorial, ahead)
 // &aq=full → an aquarium with every creature, decoration and tank · &tank=<id> → that tank
 // ?done=0|1|2|3              → the finish screen with made-up results (0 = "so close")

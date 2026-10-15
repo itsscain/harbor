@@ -12,6 +12,13 @@ import { say } from "@/lib/learn/audio";
 import { sfx } from "@/lib/learn/sfx";
 import { Chunk } from "./kit";
 import { SideBoat } from "./KidBoat";
+import { InstrumentPic } from "./music/kit/kit";
+
+/** The picture for a Studio unlock on the map (a drum or instrument shows itself). */
+const unlockPic = (key: string) => {
+  const [kind, id] = key.split(":");
+  return kind === "drum" || kind === "inst" ? id : kind === "groove" ? "drumkit" : kind === "tool" && id === "chords" ? "piano" : "notes";
+};
 import { Glyph, GlyphRow } from "./art/Glyph";
 import type { KidLearnView } from "./learnData";
 
@@ -295,6 +302,12 @@ function Node({
             </span>
           )}
         </span>
+        {/* Music: this level adds something to the Studio — show what. */}
+        {!!l.lesson.unlocks?.length && !done && (
+          <span className="absolute -left-2 -top-2 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_3px_0_rgba(192,79,230,0.45)] ring-[3px] ring-[#ff6fb5]" aria-label="Unlocks something for your Studio">
+            <InstrumentPic id={unlockPic(l.lesson.unlocks[0])} size={32} />
+          </span>
+        )}
         {l.assigned && !done && (
           <span className="absolute -right-1 -top-1 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--l-coral)] shadow-[0_3px_0_var(--l-coral-edge)]">
             <Glyph e="⭐" size={28} />

@@ -18,7 +18,7 @@ export function gradeForAge(birthday: string | null | undefined): GradeId {
   const schoolYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
   const ageSept = schoolYear - b.getFullYear() - (b.getMonth() > 8 || (b.getMonth() === 8 && b.getDate() > 1) ? 1 : 0);
   if (ageSept <= 4) return "prek";
-  const g: GradeId[] = ["k", "1", "2", "3", "4", "5"];
+  const g: GradeId[] = ["k", "1", "2", "3", "4", "5", "6", "7", "8"];
   return g[Math.min(g.length - 1, ageSept - 5)];
 }
 

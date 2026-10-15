@@ -26,6 +26,9 @@ import { Treasures, type TreasureTab } from "./Treasures";
 import { Aquarium } from "./Aquarium";
 import { BrainGym, type GymGame } from "./BrainGym";
 import { kidLearnView, starsForLesson } from "./learnData";
+import { Studio } from "./music/studio/Studio";
+import { studioPowers } from "@/lib/learn/mus/powers";
+import type { StudioSong } from "@/lib/learn/mus/song";
 
 // Loaded lazily by the wall (see lazy.ts), so it also carries the view-model the badge needs.
 export { kidLearnView };
@@ -44,6 +47,7 @@ type Screen =
   | { s: "shop" }
   | { s: "sail" }
   | { s: "gym" }
+  | { s: "studio" }
   | { s: "lesson"; lesson: Lesson; playId: string; back: Screen }
   | { s: "done"; lesson: Lesson; info: DoneInfo; next: Lesson | null; missed: string[]; back: Screen };
 
@@ -99,7 +103,7 @@ export function LearnApp({
   useEffect(() => {
     setSfx(sound, intensity);
   }, [sound, intensity]);
-  const busy = screen.s === "lesson" || screen.s === "done" || screen.s === "gym";
+  const busy = screen.s === "lesson" || screen.s === "done" || screen.s === "gym" || screen.s === "studio";
   useEffect(() => {
     onBusy?.(busy);
   }, [busy, onBusy]);
@@ -205,6 +209,9 @@ export function LearnApp({
     const statsAfter = badgeStats(after);
     const newBadges = badgesFor(profile.subjects).filter((b) => !earned(b, statsBefore) && earned(b, statsAfter));
     const grew = buddyHatch ? growth(kid.xp + xpGain, buddyHatch, buddyBonus).index > growth(kid.xp, buddyHatch, buddyBonus).index : false;
+    // Music: what passing this level adds to the Studio (that the child didn't have yet).
+    const powersBefore = lesson.subject === "music" && passed && lesson.unlocks?.length ? studioPowers(profile.grade, (id) => kid.lessons[id]?.stars ?? null) : null;
+    const unlocked = powersBefore ? (lesson.unlocks ?? []).filter((k) => !powersBefore.all.has(k)) : [];
     const info: DoneInfo = {
       passed,
       stars,
@@ -231,6 +238,7 @@ export function LearnApp({
       badges: newBadges,
       challenge: passed && unit?.challenge ? unit.challenge : null,
       buddy: buddyCreature && passed ? { creature: buddyCreature, grew: grew && buddyHatch ? growth(kid.xp + xpGain, buddyHatch, buddyBonus).stage.name : null } : null,
+      unlocked,
     };
     const best = (id: string) => (id === lesson.id ? Math.max(prevBest, stars) : kid.lessons[id] ? kid.lessons[id].stars : null);
     const stillAssigned = assignments.map((a) => a.lesson_id).filter((id) => id !== lesson.id || !passed);
@@ -260,6 +268,9 @@ export function LearnApp({
   const aqFeed = (food: FoodKind, egg: string) => event({ op_id: `feed:${child.id}:${egg}:${newPlayId()}`, type: "collect", item: `feed:${food}:${egg}` });
   const aqTank = (id: string) => event({ op_id: `aq:${child.id}:${newPlayId()}`, type: "collect", item: `aq:tank:${id}` });
   const aqDecor = (id: string, on: boolean) => event({ op_id: `aq:${child.id}:${newPlayId()}`, type: "collect", item: `aq:${on ? "on" : "off"}:${id}` });
+  // Studio songs ride the ledger: the newest save of an id wins; an empty song deletes it.
+  const saveSong = (song: StudioSong) => event({ op_id: `song:${child.id}:${song.id}:${newPlayId()}`, type: "collect", item: `song:${song.id}`, data: { song: JSON.stringify({ ...song, at: song.at ?? nowIso() }) } });
+  const deleteSong = (id: string) => event({ op_id: `song:${child.id}:${id}:${newPlayId()}`, type: "collect", item: `song:${id}`, data: { song: "" } });
   const gymResult = (game: GymGame, score: number, shells: number) => {
     if (score > (kid.bests[game] ?? 0)) event({ op_id: `best:${child.id}:${game}:${newPlayId()}`, type: "best", item: `gym:${game}`, amount: Math.min(1000, score) });
     if (shells > 0) event({ op_id: `gym:${child.id}:${newPlayId()}`, type: "earn", amount: shells, reason: "gym" });
@@ -283,6 +294,7 @@ export function LearnApp({
         onOpenTreasures={() => setScreen({ s: "treasures" })}
         onOpenShop={() => setScreen({ s: "shop" })}
         onOpenGym={() => setScreen({ s: "gym" })}
+        onOpenStudio={() => setScreen({ s: "studio" })}
         onOpenChest={() => setChestOpen(true)}
         onPractice={(s) => practice(s, { s: "home" })}
         onBoost={() => boost({ s: "home" })}
@@ -329,6 +341,19 @@ export function LearnApp({
     );
   } else if (screen.s === "gym") {
     body = <BrainGym band={bandOf(profile.grade)} bests={kid.bests} paidToday={kid.gymToday} reduced={reduced} onBack={() => setScreen({ s: "home" })} onResult={gymResult} />;
+  } else if (screen.s === "studio") {
+    body = (
+      <Studio
+        kid={kid}
+        grade={profile.grade}
+        look={look}
+        reduced={reduced}
+        audience={kid.hatched.slice(0, 8).map((h) => ({ id: h.creature, scale: growth(kid.xp, h, foodGrowth(kid.fed[h.egg])).stage.scale }))}
+        onBack={() => setScreen({ s: "home" })}
+        onSave={saveSong}
+        onDelete={deleteSong}
+      />
+    );
   } else if (screen.s === "shop") {
     body = <Shipyard look={look} owned={kid.owned} shells={kid.shells} level={kid.level} reduced={reduced} onBack={() => setScreen({ s: "home" })} onBuy={buy} onEquip={equip} onSail={() => setScreen({ s: "sail" })} />;
   } else if (screen.s === "sail") {
@@ -348,6 +373,7 @@ export function LearnApp({
         buddy={buddyCreature && buddyHatch ? { creature: buddyCreature, scale: growth(kid.xp, buddyHatch, buddyBonus).stage.scale } : null}
         tutorials={[...kid.tutorials].sort().join(",")}
         onTutorial={(id) => event({ op_id: `tutorial:${child.id}:${id}`, type: "collect", item: `tutorial:${id}` })}
+        onSaveSong={saveSong}
         onExit={() => setScreen(here.back)}
         onComplete={(o) => complete(here.lesson, here.playId, o, here.back)}
       />
@@ -368,6 +394,7 @@ export function LearnApp({
         onPractice={() => practice(here.lesson.subject, here.back, here.missed)}
         onHome={() => setScreen(here.back)}
         onHatch={() => setScreen({ s: "aquarium", hatch: here.info.eggs?.[0]?.id })}
+        onStudio={() => setScreen({ s: "studio" })}
       />
     );
   }

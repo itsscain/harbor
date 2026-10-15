@@ -6,6 +6,7 @@ import { skillPicture, skillsFromResults, type SkillInsight } from "./skills";
 import { isMastered, strength, type Skills } from "./mastery";
 import { VERSE_BY_ID } from "./bible";
 import { dayKeyInTz } from "@/lib/tz";
+import { songFrom, type StudioSong } from "./mus/song";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -37,6 +38,8 @@ export type KidLearnData = {
   results: LearnResultRow[];
   skills: Skills;
   tz: string;
+  /** Songs made in the Music Studio (newest first). */
+  songs: StudioSong[];
 };
 
 /** The current time (a helper, so server components can stamp "now" outside render purity rules). */
@@ -54,7 +57,7 @@ export function guessGrade(birthday: string | null | undefined, now = new Date()
   const schoolYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
   const age = schoolYear - b.getFullYear() - (b.getMonth() > 8 || (b.getMonth() === 8 && b.getDate() > 1) ? 1 : 0);
   if (age <= 4) return "prek";
-  const g: GradeId[] = ["k", "1", "2", "3", "4", "5"];
+  const g: GradeId[] = ["k", "1", "2", "3", "4", "5", "6", "7", "8"];
   return g[Math.min(g.length - 1, age - 5)];
 }
 
@@ -68,11 +71,28 @@ export function missionLesson(id: string): { kind: "lesson"; title: string; emoj
 }
 
 export async function loadKidLearn(db: SupabaseClient<Database>, kid: { id: string; birthday: string | null }, tz: string): Promise<KidLearnData> {
-  const [p, a, r] = await Promise.all([
+  const [p, a, r, sg] = await Promise.all([
     db.from("learn_profiles").select("grade, subjects, daily_goal, earn_stars, daily_limit").eq("child_id", kid.id).maybeSingle(),
     db.from("learn_assignments").select("id, lesson_id, note, status, created_at, completed_at").eq("child_id", kid.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(40),
     db.from("learn_results").select("id, lesson_id, subject, stars, correct, total, duration_sec, sticker, completed_at, skills, kind, shells").eq("child_id", kid.id).order("completed_at", { ascending: false }).limit(1000),
+    db.from("learn_ledger").select("item, data, at").eq("child_id", kid.id).eq("type", "collect").like("item", "song:%").order("at", { ascending: false }).limit(200),
   ]);
+  // The newest save of each song wins; an empty one was deleted.
+  const seen = new Set<string>();
+  const songs: StudioSong[] = [];
+  for (const row of (sg.data ?? []) as { item: string | null; data: unknown; at: string }[]) {
+    const id = row.item?.slice(5);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const raw = (row.data as { song?: string } | null)?.song;
+    if (!raw) continue;
+    try {
+      const song = songFrom({ ...JSON.parse(raw), id });
+      if (song) songs.push({ ...song, at: song.at ?? row.at });
+    } catch {
+      /* a damaged save is skipped */
+    }
+  }
   const row = p.data;
   const subjects = (row?.subjects ?? DEFAULT_SUBJECTS).filter(isSubject);
   const results = (r.data ?? []) as LearnResultRow[];
@@ -90,6 +110,7 @@ export async function loadKidLearn(db: SupabaseClient<Database>, kid: { id: stri
     results,
     skills: skillsFromResults(results),
     tz,
+    songs,
   };
 }
 

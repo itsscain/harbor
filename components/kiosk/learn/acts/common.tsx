@@ -5,6 +5,7 @@ import { Volume2 } from "lucide-react";
 import type { Activity } from "@/lib/learn/types";
 import type { VoiceLevel } from "@/lib/learn/script";
 import type { BoatLook } from "@/lib/learn/meta";
+import type { StudioSong } from "@/lib/learn/mus/song";
 import { partsKey, say, speakingNow, subscribeVoice, type Part } from "@/lib/learn/audio";
 import { cn } from "@/lib/cn";
 import { sfx } from "@/lib/learn/sfx";
@@ -40,6 +41,8 @@ export type LessonFx = {
   /** Has this child finished a tutorial (e.g. "boat")? Unskippable tutorials run until they have. */
   tutorialDone: (id: string) => boolean;
   completeTutorial: (id: string) => void;
+  /** Music: keep something the child made (a tune, a beat) in their Studio's My Songs. */
+  saveSong?: (song: StudioSong) => void;
 };
 
 export type ActProps<K extends Activity["kind"]> = {

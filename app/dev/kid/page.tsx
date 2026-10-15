@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { newSong } from "@/lib/learn/mus/song";
 import { DevShell } from "./DevShell";
 import { KidHeader, KidTabs, parseKidTab } from "@/components/app/kids/KidChrome";
 import { KidTodayView, KidRoutinesView, KidChoresView, KidAboutView, KidLearnView } from "@/components/app/kids/KidTabViews";
@@ -116,7 +117,7 @@ function learnMock(fresh: boolean): KidLearnData {
         r("x8", "read.ls1.1", "reading", 3, 74, { "r:sound:m": [4, 4], "r:write:m": [1, 1] }),
       ];
   return {
-    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "science", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
+    profile: { child_id: LEO, grade: "k", subjects: ["reading", "math", "code", "science", "music", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 },
     profileSaved: !fresh,
     tz: "America/New_York",
     assignments: fresh
@@ -129,6 +130,12 @@ function learnMock(fresh: boolean): KidLearnData {
         ],
     results,
     skills: skillsFromResults(results),
+    songs: fresh
+      ? []
+      : [
+          { ...newSong("demo1", { title: "The Groovy Octopus Jam" }), bpm: 104, beat: { rows: ["kick", "clap"], grid: ["x...x...", "..x...x."] }, melody: { inst: "bells", notes: [7, null, 4, 7, 9, null, 7, 4] }, at: ago(2) },
+          { ...newSong("demo2", { title: "The Sleepy Moon Lullaby" }), bpm: 72, melody: { inst: "musicbox", notes: [4, "-", 7, "-", 9, 7, 4, null] }, at: ago(30) },
+        ],
   };
 }
 const LEARN = learnMock(false);

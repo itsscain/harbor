@@ -8,6 +8,9 @@ import { getAudioCtx } from "@/lib/kiosk/audioctx";
 
 let enabled = true;
 let level = 1;
+/** Is Learn sound on, and how loud (the child's sound setting and sensory intensity)? */
+export const sfxOn = () => enabled;
+export const sfxLevel = () => level;
 /** Mute or scale all Learn effects (the child's sound setting and sensory intensity). */
 export function setSfx(on: boolean, intensity = 1) {
   enabled = on;

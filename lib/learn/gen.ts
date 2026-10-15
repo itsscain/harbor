@@ -116,6 +116,10 @@ export type Stage = {
   emojis?: string[];
   /** Per-level Bible hero cards (earned the first time that level is passed). */
   cards?: (string | undefined)[];
+  /** Per-level stories for the level card (read to little ones). */
+  intros?: (string | undefined)[];
+  /** Music: what passing this stage's LAST level adds to the child's Studio. */
+  unlocks?: string[];
 };
 
 export type WorldDef = {
@@ -201,7 +205,9 @@ export function buildWorlds(subject: SubjectId, prefix: string, defs: WorldDef[]
         const acts = st.fixed ? st.fixed(r, li) : items(r, st.topics, st.items ?? w.items ?? 7, d0, d1);
         const title = st.titles?.[li] ?? (st.levels > 1 ? `${st.title} ${li + 1}` : st.title);
         const card = st.cards?.[li];
-        add({ kind: "lesson", title, emoji: st.emojis?.[li] ?? st.emoji, activities: acts, skills: [...new Set(acts.map((a) => a.skill ?? ""))].filter(Boolean), ...(card ? { card } : {}) });
+        const intro = st.intros?.[li];
+        const unlocks = li === st.levels - 1 && st.unlocks?.length ? st.unlocks : undefined;
+        add({ kind: "lesson", title, emoji: st.emojis?.[li] ?? st.emoji, activities: acts, skills: [...new Set(acts.map((a) => a.skill ?? ""))].filter(Boolean), ...(card ? { card } : {}), ...(intro ? { intro } : {}), ...(unlocks ? { unlocks } : {}) });
       }
       done.push(...st.topics);
       if (si % 2 === 1 && si < w.stages.length - 1) {

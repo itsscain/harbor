@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import type { ShapeName, Visual as V } from "@/lib/learn/types";
 import { emojisIn, isEmoji } from "../art";
 import { Glyph, GlyphRow, WithGlyphs } from "../art/Glyph";
+import { MusicVisual } from "../music/kit/visual";
 
 // The pictures an item shows — one renderer for all of math, reading and manners: picture scenes,
 // counting groups, ten-frames, number lines, clocks, coins, base-ten blocks, fractions, arrays,
@@ -152,6 +153,8 @@ function render(v: V, k: number): ReactNode {
       return <Angle deg={v.deg} px={200 * k} />;
     case "lines":
       return <Lines kind={v.kind} px={200 * k} />;
+    case "music":
+      return <MusicVisual m={v.m} size={k < 0.8 ? "sm" : k > 1.1 ? "lg" : "md"} />;
     case "pair":
       return (
         <div className="flex flex-wrap items-center justify-center gap-5">

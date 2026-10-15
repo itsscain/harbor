@@ -11,6 +11,7 @@ import { note, sfx, buzz } from "@/lib/learn/sfx";
 import { Shape } from "./acts/Visual";
 import { Chunk, ShellIcon } from "./kit";
 import { AnimalGroups, BiggerWins, BinaryBlitz, BugSquash, CoinCounter, LoopSpotter, MakeTen, NumberHop, Opposites, PySpeed, RhymeTime, RobotPath, SinkFloat, WordRocket } from "./ArcadeGames";
+import { NoteNinja, PitchPirates, RhythmRush, SimonSea } from "./music/games/MusicGames";
 
 // The Brain Gym: short, fun workouts for the skills behind all learning — holding things in mind
 // (working memory), stopping yourself (inhibitory control), switching rules (flexible thinking),
@@ -22,14 +23,15 @@ import { AnimalGroups, BiggerWins, BinaryBlitz, BugSquash, CoinCounter, LoopSpot
 // The Game Arcade around it adds learning games by subject (numbers, words, code, science) —
 // quick fluency rounds with the same rules: under a minute, beat your own best.
 
-export type GymGame = "lights" | "fish" | "switch" | "count" | "grid" | "ten" | "bigger" | "hop" | "coins" | "rocket" | "rhyme" | "opposites" | "bits" | "bugsquash" | "robot" | "loopspot" | "pyspeed" | "sinkfloat" | "animals";
-export type ArcadeCat = "brain" | "numbers" | "words" | "code" | "science";
+export type GymGame = "lights" | "fish" | "switch" | "count" | "grid" | "ten" | "bigger" | "hop" | "coins" | "rocket" | "rhyme" | "opposites" | "bits" | "bugsquash" | "robot" | "loopspot" | "pyspeed" | "sinkfloat" | "animals" | "rush" | "simon" | "ninja" | "pirates";
+export type ArcadeCat = "brain" | "numbers" | "words" | "code" | "science" | "music";
 export const ARCADE_CATS: { id: ArcadeCat; label: string; emoji: string }[] = [
   { id: "brain", label: "Brain", emoji: "🧠" },
   { id: "numbers", label: "Numbers", emoji: "🔢" },
   { id: "words", label: "Words", emoji: "🔤" },
   { id: "code", label: "Code", emoji: "💻" },
   { id: "science", label: "Science", emoji: "🔬" },
+  { id: "music", label: "Music", emoji: "🎵" },
 ];
 export const GYM: { id: GymGame; cat: ArcadeCat; name: string; emoji: string; skill: string; how: string; color: string; intro: string; bands?: Band[] }[] = [
   { id: "lights", cat: "brain", name: "Lighthouse Lights", emoji: "💡", skill: "Memory", how: "Watch the lights flash, then tap them in the same order.", color: "#ffc83d", intro: SAY.gymLights },
@@ -51,6 +53,10 @@ export const GYM: { id: GymGame; cat: ArcadeCat; name: string; emoji: string; sk
   { id: "pyspeed", cat: "code", name: "Python Speed Run", emoji: "🐍", skill: "Reading code", how: "One line of real Python — tap what it prints. Go fast!", color: "#22c59b", intro: SAY.gamePython, bands: ["big"] },
   { id: "sinkfloat", cat: "science", name: "Sink or Float?", emoji: "⛵", skill: "Science", how: "Will it sink or float? Decide fast!", color: "#1cb0f6", intro: SAY.gameFloat },
   { id: "animals", cat: "science", name: "Animal Groups", emoji: "🐾", skill: "Life science", how: "Put each animal in its group.", color: "#3ccf6e", intro: SAY.gameAnimals },
+  { id: "rush", cat: "music", name: "Rhythm Rush", emoji: "🥁", skill: "Rhythm", how: "Notes fall to the beat of the song. Tap the drum just as each one reaches the line!", color: "#ff6fb5", intro: SAY.gameRush },
+  { id: "simon", cat: "music", name: "Simon Sea", emoji: "🐚", skill: "Musical memory", how: "Listen to the shells sing, then play their tune back. It grows every round!", color: "#22c59b", intro: SAY.gameSimon },
+  { id: "ninja", cat: "music", name: "Note Ninja", emoji: "🎼", skill: "Reading notes", how: "Name each note as fast as you can. Little ones tap the bell that sang!", color: "#8b6cff", intro: SAY.gameNinja },
+  { id: "pirates", cat: "music", name: "Pitch Pirates", emoji: "🏴‍☠️", skill: "Pitch", how: "Two chests sing two notes. Was the second one higher or lower?", color: "#ff9149", intro: SAY.gamePitch },
 ];
 export const GYM_PAID_PER_DAY = 3;
 export const gymShells = (score: number) => Math.min(15, 5 + Math.floor(score / 2));
@@ -190,6 +196,10 @@ export function BrainGym({ band, bests, paidToday, reduced, onBack, onResult }: 
         {phase === "play" && g.id === "pyspeed" && <PySpeed band={band} onEnd={finish} />}
         {phase === "play" && g.id === "sinkfloat" && <SinkFloat band={band} onEnd={finish} />}
         {phase === "play" && g.id === "animals" && <AnimalGroups band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "rush" && <RhythmRush band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "simon" && <SimonSea band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "ninja" && <NoteNinja band={band} onEnd={finish} />}
+        {phase === "play" && g.id === "pirates" && <PitchPirates band={band} onEnd={finish} />}
         {phase === "done" && (
           <div className="l-pop-in flex max-w-lg flex-col items-center gap-4 rounded-[34px] bg-white p-8 text-center shadow-[0_10px_0_var(--l-line)]">
             <p className="font-display text-xl font-extrabold uppercase tracking-wide text-[var(--l-ink-2)]">{SAY.timesUp.replace("!", "")}</p>

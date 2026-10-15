@@ -5,8 +5,11 @@
 // sails through. Every item practices a tagged skill, so the mastery engine can tell what's
 // solid, what's shaky, and what to bring back for review.
 
-export type SubjectId = "reading" | "math" | "code" | "manners" | "faith" | "science";
-export type GradeId = "prek" | "k" | "1" | "2" | "3" | "4" | "5";
+import type { BeatRule, ChordRule, ComposeRule, DrumId, IdeaFrame, InstId, Meter, MOption, MusicShow, Score } from "./mus/types";
+export type { BeatRule, ChordRule, ComposeRule, DrumId, IdeaFrame, InstId, Meter, MOption, MusicShow, Score } from "./mus/types";
+
+export type SubjectId = "reading" | "math" | "code" | "manners" | "faith" | "science" | "music";
+export type GradeId = "prek" | "k" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8";
 
 export const GRADES: { id: GradeId; label: string; short: string; age: string }[] = [
   { id: "prek", label: "Pre-K", short: "Pre-K", age: "ages 3–4" },
@@ -16,10 +19,13 @@ export const GRADES: { id: GradeId; label: string; short: string; age: string }[
   { id: "3", label: "3rd grade", short: "3rd", age: "ages 8–9" },
   { id: "4", label: "4th grade", short: "4th", age: "ages 9–10" },
   { id: "5", label: "5th grade", short: "5th", age: "ages 10–11" },
+  { id: "6", label: "6th grade", short: "6th", age: "ages 11–12" },
+  { id: "7", label: "7th grade", short: "7th", age: "ages 12–13" },
+  { id: "8", label: "8th grade", short: "8th", age: "ages 13–14" },
 ];
 export const gradeIndex = (g: GradeId) => Math.max(0, GRADES.findIndex((x) => x.id === g));
 export const isGrade = (v: unknown): v is GradeId => typeof v === "string" && GRADES.some((g) => g.id === v);
-/** Little (Pre-K–K: pictures + voice, no reading needed) · Middle (1–2) · Big (3–5: reads on their own). */
+/** Little (Pre-K–K: pictures + voice, no reading needed) · Middle (1–2) · Big (3rd and up: reads on their own). */
 export type Band = "little" | "middle" | "big";
 export const bandOf = (g: GradeId): Band => (gradeIndex(g) <= 1 ? "little" : gradeIndex(g) <= 3 ? "middle" : "big");
 
@@ -52,7 +58,9 @@ export type Visual =
   | { type: "grid"; cols: number; rows: number; fill?: [number, number][]; point?: [number, number]; axes?: boolean }
   | { type: "angle"; deg: number }
   | { type: "lines"; kind: "parallel" | "perpendicular" | "intersecting" }
-  | { type: "pair"; left: Visual; right: Visual; mid?: string };
+  | { type: "pair"; left: Visual; right: Visual; mid?: string }
+  /** A picture of music (a staff, a rhythm, a keyboard…), drawn by the music kit. */
+  | { type: "music"; m: MusicShow };
 
 /** One answer choice. `say` = clip keys spoken when it's read aloud; `why` = the explanation;
  *  `then` = what happens next if you choose it (a scene that plays out — and can be rewound). */
@@ -278,6 +286,52 @@ export type Activity = (
   | { kind: "plot"; cols: number; rows: number; target: [number, number]; emoji: string; mode: "place" | "read"; options?: string[] }
   /** Discovery lab: a hands-on science experiment. */
   | { kind: "lab"; prompt: string; spec: LabSpec }
+  // ── Music (see lib/learn/mus/types.ts; UI in components/kiosk/learn/music) ──
+  /** A music explainer: frames of one sentence + a picture of the idea that plays (and a pad to try it). */
+  | { kind: "idea"; title: string; frames: IdeaFrame[] }
+  /** Hear it, then choose. `sound` is what to listen to (it plays by itself for little ones, and the
+   *  picture `show` lights up in time); options may be sounds too (each with its own play button). */
+  | { kind: "listen"; prompt: string; say?: string[]; sound?: Score; show?: MusicShow; options: MOption[]; answer: string; why?: string; layout?: "grid" | "row" | "list" }
+  /** Rhythm on the drum. echo = hear it, tap it back · read = see it, play it after a count-in ·
+   *  beat = tap the steady beat with the music · syllables = tap once for each syllable of a word.
+   *  `cells` are rhythm cell ids (theory.ts RHYTHM: "ta", "titi", "z"…). `scaffold` shows the beat
+   *  pulsing while you tap (the first levels). */
+  | { kind: "rhythm"; mode: "echo" | "read" | "beat" | "syllables"; prompt: string; say?: string[]; cells?: string[]; meter?: Meter; bpm: number; show?: "sticks" | "notes" | "icons" | "none"; drum?: DrumId; music?: Score; words?: { text: string; syllables: number; emoji?: string }[]; beats?: number; scaffold?: boolean }
+  /** Play notes on the bells or keyboard. echo = hear and copy · read = play what's written (staff or
+   *  ladder) · find = play the note asked for (`notes` has one pitch). */
+  | { kind: "melody"; mode: "echo" | "read" | "find"; prompt: string; say?: string[]; notes: number[]; pads: number[]; inst?: InstId; on?: "bells" | "keys"; labels?: "solfege" | "letters" | "colors" | "none"; tonic?: number; show?: "staff" | "ladder" | "none"; clef?: "treble" | "bass"; durs?: number[]; bpm?: number }
+  /** The staff. name = which note is it (`options` + `answer`) · place = tap the line or space where
+   *  the note goes (`notes` has one pitch) · write = place a run of notes in order. */
+  | { kind: "staff"; mode: "name" | "place" | "write"; prompt: string; say?: string[]; clef: "treble" | "bass"; notes: number[]; key?: number; options?: string[]; answer?: string; hear?: boolean }
+  /** The keyboard. find = tap the key(s) asked for · chord / scale / interval = build it, then Check.
+   *  `answer` is MIDI pitches; `octaveFree` accepts the right notes in any octave. */
+  | { kind: "keys"; task: "find" | "chord" | "scale" | "interval"; prompt: string; say?: string[]; answer: number[]; lo: number; hi: number; labels?: boolean; given?: number[]; octaveFree?: boolean; why?: string }
+  /** Rhythm cards into measures. fill = make every bar full · fix = one bar has the wrong number of
+   *  beats · dictation = write what you hear (`target`) · create = your own rhythm (it must use the
+   *  `must` cards). Cards are rhythm cell ids. `given` pre-fills bars (null = empty). */
+  | { kind: "measure"; mode: "fill" | "fix" | "dictation" | "create"; prompt: string; say?: string[]; meter: Meter; bars: number; cards: string[]; given?: (string[] | null)[]; target?: string[][]; must?: string[]; bpm?: number }
+  /** The Beat Lab grid (one row per drum, "x" = hit, "." = rest). copy = rebuild the beat you hear ·
+   *  make = your own beat that follows the rules · fix = change the beat until it matches. */
+  | { kind: "beatlab"; mode: "copy" | "make" | "fix"; prompt: string; say?: string[]; rows: DrumId[]; steps: 4 | 8 | 16; bpm: number; target?: string[]; rules?: BeatRule[]; start?: string[]; swing?: number }
+  /** Write a melody on a note grid (one note or rest per slot) that follows the rules — then hear it
+   *  with a band and keep it in your Studio. `pitches` are the notes offered, low → high. */
+  | { kind: "compose"; prompt: string; say?: string[]; pitches: number[]; slots: number; dur: number; inst?: InstId; bpm: number; rules: ComposeRule[]; tonic: number; labels?: "solfege" | "letters" | "colors" | "none"; backing?: Score; start?: (number | null)[]; lyric?: string[] }
+  /** Be the conductor: tap the beat to set the tempo, raise and lower your hand for the volume.
+   *  `goal.tempo` is a bpm range; `goal.dyn` a loudness range 0–1. */
+  | { kind: "conduct"; prompt: string; say?: string[]; goal: { tempo?: [number, number]; dyn?: [number, number] }; music: Score; word?: string }
+  /** Drag sound cards (tap one to hear it) into groups. */
+  | { kind: "soundsort"; prompt: string; say?: string[]; bins: { id: string; label: string; emoji?: string; inst?: InstId | DrumId }[]; items: { id: string; label?: string; emoji?: string; inst?: InstId | DrumId; sound?: Score; bin: string }[] }
+  /** Sound waves you can see and hear. match = slide until it sounds the same as the target ·
+   *  higher / lower / louder / softer / octave = change it that way. */
+  | { kind: "wave"; mode: "match" | "higher" | "lower" | "louder" | "softer" | "octave"; prompt: string; say?: string[]; hz: number; amp: number; target?: { hz: number; amp: number } }
+  /** Song form. build = drag section blocks into the order you hear · label = which form is it? */
+  | { kind: "form"; mode: "build" | "label"; prompt: string; say?: string[]; sections: Record<string, Score>; order: string[]; options?: string[]; answer?: string }
+  /** Words in songs. fit = put each syllable on its note · stress = tap the syllables that land on the
+   *  strong beats. */
+  | { kind: "lyrics"; mode: "fit" | "stress"; prompt: string; say?: string[]; syllables: string[]; durs: number[]; pitches?: number[]; stress?: number[]; bpm: number; meter: Meter }
+  /** Chords. match = put the chord cards in the order you hear · build = make a progression that
+   *  follows the rules. Chords are roman numerals in the key ("I", "IV", "V7", "vi"…). */
+  | { kind: "chords"; mode: "match" | "build"; prompt: string; say?: string[]; tonic: number; scale: "major" | "minor"; palette: string[]; bars: number; answer?: string[]; rules?: ChordRule[]; inst?: InstId; bpm: number; beat?: boolean }
 ) & {
   /** The skill this item practices (mastery tracking + review). */
   skill?: string;
@@ -302,6 +356,9 @@ export type Lesson = {
   card?: string;
   /** A short story that sets up the level (shown on its opening card, read to little ones). */
   intro?: string;
+  /** Music: what passing this level adds to the child's Studio ("drum:snare", "note:la", "inst:piano",
+   *  "tool:chords"…; see lib/learn/mus/powers.ts). */
+  unlocks?: string[];
 };
 
 export type ThemeId = "shallows" | "coral" | "kelp" | "pirate" | "ice" | "volcano" | "jungle" | "night" | "storm" | "sky" | "deep" | "candy";

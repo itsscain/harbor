@@ -4,13 +4,14 @@ import { Glyph, GlyphRow, WithGlyphs } from "./art/Glyph";
 import { Pet, type PetReact } from "./boat/Pet";
 import { SideBoat } from "./KidBoat";
 import { LessonBackdrop, SeaLane } from "./LessonScene";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Activity, Lesson } from "@/lib/learn/types";
 import type { BoatLook } from "@/lib/learn/meta";
 import type { Skills } from "@/lib/learn/mastery";
 import type { Creature } from "@/lib/learn/reef";
+import type { StudioSong } from "@/lib/learn/mus/song";
 import { COURSES, SUBJECT_LOOK, levelLabel, spiralItems } from "@/lib/learn/curriculum";
 import { rng, int } from "@/lib/learn/gen";
 import { COMBO, PRAISE, RETRY, SAY, lessonClipKeys, type VoiceLevel } from "@/lib/learn/script";
@@ -38,6 +39,30 @@ import { BinaryAct, SearchAct, SwapSortAct, CipherAct, LogicAct, MachineAct, Plo
 import { LabAct } from "./science/LabAct";
 import { CodeReadAct } from "./lab/CodeReadAct";
 import { CreatureView } from "./tank/CreatureView";
+import { IdeaAct } from "./music/acts/IdeaAct";
+import { ListenAct } from "./music/acts/ListenAct";
+import { RhythmAct } from "./music/acts/RhythmAct";
+import { MelodyAct } from "./music/acts/MelodyAct";
+import { StaffAct } from "./music/acts/StaffAct";
+import { KeysAct } from "./music/acts/KeysAct";
+import { MeasureAct } from "./music/acts/MeasureAct";
+import { BeatLabAct } from "./music/acts/BeatLabAct";
+import { ComposeAct } from "./music/acts/ComposeAct";
+import { ConductAct } from "./music/acts/ConductAct";
+import { SoundSortAct } from "./music/acts/SoundSortAct";
+import { WaveAct } from "./music/acts/WaveAct";
+import { FormAct } from "./music/acts/FormAct";
+import { LyricsAct } from "./music/acts/LyricsAct";
+import { ChordsAct } from "./music/acts/ChordsAct";
+import { useMusicPlaying } from "./music/kit/player";
+import { InstrumentPic } from "./music/kit/kit";
+import { powerName } from "@/lib/learn/mus/powers";
+
+/** The picture for a Studio unlock (a drum or instrument shows itself). */
+const unlockPicOf = (key: string) => {
+  const [kind, id] = key.split(":");
+  return kind === "drum" || kind === "inst" ? id : kind === "groove" ? "drumkit" : kind === "tool" && id === "chords" ? "piano" : "notes";
+};
 
 // One level, start to finish. Proven learning moves, built in:
 //  • first-try accuracy decides the stars (60% passes) — honest, so the map means something;
@@ -71,10 +96,10 @@ const secondsSince = (t: number) => Math.round((Date.now() - t) / 1000);
 const nowMs = () => Date.now();
 /** Introductions (meet a letter, hear a story or a verse) and reflections have nothing to get
  *  wrong — they teach, and the items after them check. */
-const isScored = (a: Activity) => a.kind !== "meet" && a.kind !== "story" && a.kind !== "reflect" && a.kind !== "concept" && !(a.kind === "verse" && a.v.step === "listen");
+const isScored = (a: Activity) => a.kind !== "meet" && a.kind !== "story" && a.kind !== "reflect" && a.kind !== "concept" && a.kind !== "idea" && !(a.kind === "verse" && a.v.step === "listen");
 /** Big hands-on activities (a whole program, a factory, an experiment) aren't replayed in the
  *  retry round — the level's next items and later reviews bring the skill back instead. */
-const LONG_KINDS = new Set<Activity["kind"]>(["code", "predict", "loopfind", "recipe", "factory", "variable", "events", "search", "swapsort", "lab", "concept"]);
+const LONG_KINDS = new Set<Activity["kind"]>(["code", "predict", "loopfind", "recipe", "factory", "variable", "events", "search", "swapsort", "lab", "concept", "idea", "beatlab", "compose", "conduct", "soundsort", "form", "chords", "measure", "lyrics", "wave"]);
 
 function ActView({ act: a, ...props }: { act: Activity; fx: LessonFx; onDone: (m: number) => void }): ReactNode {
   switch (a.kind) {
@@ -120,6 +145,21 @@ function ActView({ act: a, ...props }: { act: Activity; fx: LessonFx; onDone: (m
     case "plot": return <PlotAct act={a} {...props} />;
     case "lab": return <LabAct act={a} {...props} />;
     case "coderead": return <CodeReadAct act={a} {...props} />;
+    case "idea": return <IdeaAct act={a} {...props} />;
+    case "listen": return <ListenAct act={a} {...props} />;
+    case "rhythm": return <RhythmAct act={a} {...props} />;
+    case "melody": return <MelodyAct act={a} {...props} />;
+    case "staff": return <StaffAct act={a} {...props} />;
+    case "keys": return <KeysAct act={a} {...props} />;
+    case "measure": return <MeasureAct act={a} {...props} />;
+    case "beatlab": return <BeatLabAct act={a} {...props} />;
+    case "compose": return <ComposeAct act={a} {...props} />;
+    case "conduct": return <ConductAct act={a} {...props} />;
+    case "soundsort": return <SoundSortAct act={a} {...props} />;
+    case "wave": return <WaveAct act={a} {...props} />;
+    case "form": return <FormAct act={a} {...props} />;
+    case "lyrics": return <LyricsAct act={a} {...props} />;
+    case "chords": return <ChordsAct act={a} {...props} />;
   }
 }
 
@@ -134,6 +174,7 @@ export function LessonPlayer({
   buddy,
   tutorials,
   onTutorial,
+  onSaveSong,
   onExit,
   onComplete,
 }: {
@@ -152,6 +193,8 @@ export function LessonPlayer({
   /** Tutorials this child has finished ("boat,…"), and how to record one. */
   tutorials: string;
   onTutorial: (id: string) => void;
+  /** Music: a creation to keep in the Studio. */
+  onSaveSong?: (song: StudioSong) => void;
   onExit: () => void;
   onComplete: (o: LessonOutcome) => void;
 }) {
@@ -196,8 +239,10 @@ export function LessonPlayer({
   const coolTimer = useRef<number | undefined>(undefined);
   // The latest "record a tutorial" callback (a stable fx doesn't change every time the app renders).
   const tutorialRef = useRef(onTutorial);
+  const saveRef = useRef(onSaveSong);
   useEffect(() => {
     tutorialRef.current = onTutorial;
+    saveRef.current = onSaveSong;
   });
   const promptRef = useRef<Part[]>([]);
   const comboRef = useRef(0);
@@ -351,6 +396,7 @@ export function LessonPlayer({
       look,
       tutorialDone: (id) => tutorials.split(",").includes(id),
       completeTutorial: (id) => tutorialRef.current(id),
+      saveSong: (song) => saveRef.current?.(song),
     }),
     [right, wrong, miss, explain, fireAt, firstTime, playId, i, reduced, voice, look, tutorials],
   );
@@ -451,6 +497,7 @@ export function LessonPlayer({
   }, [listening, i]);
 
   const kindBadge = cur?.kind === "spiral" ? "🗺️ From before!" : cur?.kind === "retry" ? "🔁 Try again!" : null;
+  const music = useMusicPlaying();
 
   return (
     <div className="fixed inset-0 z-[45] flex flex-col overflow-hidden">
@@ -460,7 +507,7 @@ export function LessonPlayer({
           are never covered. */}
       {ready && introDone && (look.pet || buddy) && (
         <div className="pointer-events-none fixed bottom-2 left-2 flex items-end" aria-hidden>
-          <span className="relative block drop-shadow-[0_6px_6px_rgba(0,30,60,0.25)]">
+          <span className={cn("relative block drop-shadow-[0_6px_6px_rgba(0,30,60,0.25)]", music.playing && !reduced && "m-groove")} style={music.playing ? ({ "--beat": `${60 / Math.max(40, music.bpm)}s` } as CSSProperties) : undefined}>
             {look.pet ? (
               <Pet id={look.pet} size={132} react={petReact} still={reduced} mood={dusk ? "sleep" : "idle"} />
             ) : (
@@ -659,6 +706,14 @@ function LevelCard({ lesson, items, boss, onGo, look }: { lesson: Lesson; items:
         {items > 0 && (
           <span className="flex items-center gap-1.5 rounded-full bg-[var(--l-card-2)] px-4 py-1 font-display text-lg font-bold text-[var(--l-ink-2)]">
             <Glyph e="🎯" size={26} /> {items} challenge{items === 1 ? "" : "s"}
+          </span>
+        )}
+        {!!lesson.unlocks?.length && (
+          <span className="l-rise flex items-center gap-2 rounded-full bg-[#ffe3f0] py-1 pl-1 pr-4 font-display text-lg font-extrabold text-[#9b2d73]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+              <InstrumentPic id={unlockPicOf(lesson.unlocks[0])} size={28} />
+            </span>
+            Studio prize: {lesson.unlocks.map(powerName).join(", ")}
           </span>
         )}
         {lesson.intro && (

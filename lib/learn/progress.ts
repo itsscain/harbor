@@ -2,6 +2,7 @@ import type { LearnResult, LessonProgress, SubjectId } from "./types";
 import { mergeSkills, type Skills } from "./mastery";
 import { DEFAULT_LOOK, STARTER_ITEMS, TITLES, lookFrom, type BoatLook } from "./meta";
 import { FOOD_ORDER, type Fed, type FoodKind } from "./aquarium";
+import { songFrom, type StudioSong } from "./mus/song";
 
 // A kid's Learn progress, merged from what the server knows and what this screen finished but
 // hasn't synced yet — so stars, streaks, shells, stickers and skills are right even offline.
@@ -14,13 +15,14 @@ export type LearnEvent = {
    *  collect: an egg hatched ("hatch:<egg>", data {creature, xp}), a reef buddy picked
    *  ("buddy:<creature>"), a tutorial finished ("tutorial:<id>"), a creature fed
    *  ("feed:<food>:<egg>"), a tank chosen ("aq:tank:<id>") or a decoration put away / back
-   *  ("aq:off:<id>" / "aq:on:<id>") · best: a Brain Gym record ("gym:<game>", amount = score). */
+   *  ("aq:off:<id>" / "aq:on:<id>"), a song saved in the Studio ("song:<id>", data.song = its JSON;
+   *  an empty song deletes it) · best: a Brain Gym record ("gym:<game>", amount = score). */
   type: "earn" | "spend" | "look" | "daily" | "collect" | "best";
   amount?: number;
   item?: string;
   reason?: string;
   look?: BoatLook;
-  data?: { creature?: string; xp?: number };
+  data?: { creature?: string; xp?: number; song?: string };
   at: string;
 };
 
@@ -51,6 +53,8 @@ export type LearnSnapshot = {
       gym_today?: number;
       /** Meals per creature (by egg): [flakes, shrimp, golden, last meal, meals today]. */
       fed?: Record<string, [number, number, number, string | null, number]>;
+      /** The newest version of each saved Studio song: [item, { song }, at]. */
+      songs?: [string, { song?: string } | null, string][];
     }
   >;
   server_time?: string;
@@ -88,6 +92,8 @@ export type KidLearn = {
   fed: Record<string, Fed>;
   tank: string | null;
   decorOff: Set<string>;
+  /** Songs made in the Studio (newest first). */
+  songs: StudioSong[];
 };
 
 export const XP_PER_LEVEL = 150;
@@ -161,6 +167,23 @@ export function mergeKid(
     fed[egg] = { n: { ...f.n, [kind]: f.n[kind] + 1 }, last: !f.last || at > f.last ? at : f.last, today: f.today + (dayOf(at) === todayKey ? 1 : 0) };
   };
   for (const [item, data, at] of base?.collected ?? []) collect(item, data, at);
+  // Studio songs: the newest save of each id wins; an empty song means it was deleted.
+  const songs = new Map<string, { song: StudioSong | null; at: string }>();
+  const keepSong = (item: string, raw: string | undefined, at: string) => {
+    const id = item.slice(5);
+    const cur = songs.get(id);
+    if (cur && cur.at > at) return;
+    let parsed: StudioSong | null = null;
+    if (raw) {
+      try {
+        parsed = songFrom({ ...JSON.parse(raw), id });
+      } catch {
+        parsed = null;
+      }
+    }
+    songs.set(id, { song: parsed ? { ...parsed, at: parsed.at ?? at } : null, at });
+  };
+  for (const [item, data, at] of base?.songs ?? []) if (item.startsWith("song:")) keepSong(item, data?.song, at);
   const serverToday = base?.today !== undefined && snap?.server_time && dayOf(snap.server_time) === todayKey ? base.today : null;
   let todayCount = serverToday ?? Object.values(lessons).filter((l) => dayOf(l.last) === todayKey).length;
 
@@ -187,6 +210,7 @@ export function mergeKid(
       stickers[id] = (stickers[id] ?? 0) + 1;
     }
     if (e.type === "collect" && e.item?.startsWith("feed:")) eat(e.item, e.at);
+    else if (e.type === "collect" && e.item?.startsWith("song:")) keepSong(e.item, e.data?.song, e.at);
     else if (e.type === "collect" && e.item) collect(e.item, e.data, e.at);
     if (e.type === "best" && e.item?.startsWith("gym:")) bests[e.item.slice(4)] = Math.max(bests[e.item.slice(4)] ?? 0, e.amount ?? 0);
     if (e.type === "earn" && e.reason === "gym" && dayOf(e.at) === todayKey) gymToday++;
@@ -219,6 +243,7 @@ export function mergeKid(
     fed,
     tank,
     decorOff,
+    songs: [...songs.values()].map((x) => x.song).filter((x): x is StudioSong => !!x).sort((a, b) => (b.at ?? "").localeCompare(a.at ?? "")),
   };
 }
 
@@ -240,4 +265,6 @@ export const subjectOfLesson = (id: string): SubjectId =>
           ? "faith"
           : id.startsWith("sci.") || id.startsWith("practice:science")
             ? "science"
-            : "reading";
+            : id.startsWith("mus.") || id.startsWith("practice:music")
+              ? "music"
+              : "reading";

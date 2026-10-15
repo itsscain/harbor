@@ -1,6 +1,9 @@
 // Harbor Learn content checker — run after editing any course:
 //   node scripts/check-learn.mjs
 // Proves every coding level's answer really wins (and every "fix the bug" program really fails),
+// every music item is right by the theory engine (lib/learn/mus/check.ts: the note on the staff is
+// the answer, every Beat Lab / compose / chord challenge can be met and isn't already met, rhythms
+// fill their bars, sounds are playable),
 // that every choice item's answer is among its options with no look-alike duplicates, that sort/
 // match/order items are well-formed, that every skill can be brought back for review, that every
 // Python Peek program really prints (or crashes) the way the lesson says (learn-python.mjs), that
@@ -33,6 +36,7 @@ const { runLevel, blockCount } = load("./program.js");
 const { genStats } = load("./codeGen.js");
 const lab = load("./codelab.js");
 const { expand } = load("./codeLabContent.js");
+const { musicProblems } = load("./mus/check.js");
 
 let problems = 0;
 const bad = (where, msg) => {
@@ -78,6 +82,7 @@ for (const c of Object.values(COURSES)) {
         const where = `${l.id}#${i + 1} ${a.kind}`;
         if (!a.skill && a.kind !== "concept") bad(where, "no skill tag");
         checkLab(a, where);
+        for (const p of musicProblems(a)) bad(where, p);
         if (a.kind === "choice" || a.kind === "scenario") {
           const ids = a.options.map((o) => o.id);
           if (new Set(ids).size !== ids.length) bad(where, `duplicate options ${ids}`);

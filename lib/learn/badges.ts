@@ -36,6 +36,9 @@ export type BadgeStats = {
   manners: number;
   faith: number;
   science: number;
+  music: number;
+  /** Songs kept in the Studio. */
+  songs: number;
   /** Discovery lab levels passed. */
   labs: number;
   /** Code Lab levels passed (concepts, predicting, factories, apps…). */
@@ -76,6 +79,10 @@ export const BADGES: Badge[] = [
   b("sci1", "Junior Scientist", "🔬", "Finish a Discovery island", "bronze", "science", 1, "science"),
   b("lab5", "Lab Explorer", "🧪", "Pass 5 lab levels", "bronze", "labs", 5, "science"),
   b("lab20", "Master Scientist", "🥽", "Pass 20 lab levels", "silver", "labs", 20, "science"),
+  b("mus1", "Junior Musician", "🎵", "Finish a Music island", "bronze", "music", 1, "music"),
+  b("mus10", "Maestro", "🎻", "Finish 10 Music islands", "gold", "music", 10, "music"),
+  b("song1", "Songwriter", "🎼", "Keep your first song in the Studio", "bronze", "songs", 1, "music"),
+  b("song10", "Hit Maker", "🎤", "Keep 10 songs in the Studio", "silver", "songs", 10, "music"),
   b("codelab5", "Computer Thinker", "🖥️", "Pass 5 Code Lab levels", "bronze", "codelab", 5, "code"),
   b("codelab25", "Software Engineer", "👩‍💻", "Pass 25 Code Lab levels", "gold", "codelab", 25, "code"),
   b("faith1", "Light Bearer", "✝️", "Finish a Lighthouse island", "bronze", "faith", 1, "faith"),
@@ -112,7 +119,7 @@ export function heroCards(lessons: KidLearn["lessons"]): { hero: Hero; holo: boo
 }
 
 /** Every number the badges look at. */
-export function badgeStats(kid: Pick<KidLearn, "lessons" | "days" | "skills" | "stickers" | "hatched" | "bests">): BadgeStats {
+export function badgeStats(kid: Pick<KidLearn, "lessons" | "days" | "skills" | "stickers" | "hatched" | "bests"> & { songs?: unknown[] }): BadgeStats {
   const entries = Object.entries(kid.lessons);
   const passed = entries.filter(([, p]) => p.stars >= 1);
   const lessonOf = (id: string) => (id.startsWith("practice:") ? null : lessonById(id));
@@ -141,6 +148,8 @@ export function badgeStats(kid: Pick<KidLearn, "lessons" | "days" | "skills" | "
     manners: by("manners"),
     faith: by("faith"),
     science: by("science"),
+    music: by("music"),
+    songs: kid.songs?.length ?? 0,
     labs: passed.filter(([id]) => lessonOf(id)?.activities.some((a) => a.kind === "lab")).length,
     codelab: passed.filter(([id]) => lessonOf(id)?.subject === "code" && lessonOf(id)?.activities.some((a) => a.kind !== "code")).length,
   };

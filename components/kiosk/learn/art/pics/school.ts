@@ -626,6 +626,18 @@ export const SCHOOL: PicDef[] = [
     },
   ],
   [
+    "🎚️",
+    "level slider",
+    (d) => {
+      d.path(rr(22, 8, 56, 84, 12), d.fill(P.ink, "v"), { sw: 3.5 });
+      [30, 44, 58, 72].forEach((y) => d.line(30, y, 38, y, { sw: 2.2, color: "#8fa3c7" }));
+      d.line(50, 18, 50, 82, { sw: 6, color: "#12152a" });
+      d.path(rr(38, 44, 24, 14, 4), d.fill(P.silver, "v"), { sw: 2.6 });
+      d.line(41, 51, 59, 51, { sw: 2, color: P.red[1] });
+      d.shine(30, 16, 8, 3, 0.5, -10);
+    },
+  ],
+  [
     "🎛️",
     "control knobs",
     (d) => {

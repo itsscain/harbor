@@ -334,6 +334,7 @@ export const SYMBOLS: PicDef[] = [
   // Math.
   ["➕", "plus", (d) => d.tube("M50 18 V82 M18 50 H82", P.green[1], 15, 3.5)],
   ["➖", "minus", (d) => d.tube("M18 50 H82", P.red[1], 15, 3.5)],
+  ["🟰", "equals", (d) => d.tube("M18 37 H82 M18 63 H82", P.blue[1], 14, 3.5)],
   ["✖️", "times", (d) => d.tube("M26 26 L74 74 M74 26 L26 74", P.orange[1], 15, 3.5)],
   ["➗", "divide", (d) => {
     d.tube("M18 50 H82", P.violet[1], 13, 3.5);
@@ -350,10 +351,13 @@ export const SYMBOLS: PicDef[] = [
   // Numbers and letters.
   ["0️⃣", "zero", keycap("0")],
   ["1️⃣", "one", keycap("1")],
+  ["2️⃣", "two", keycap("2")],
   ["3️⃣", "three", keycap("3")],
+  ["4️⃣", "four", keycap("4")],
   ["5️⃣", "five", keycap("5")],
   ["6️⃣", "six", keycap("6")],
   ["7️⃣", "seven", keycap("7")],
+  ["8️⃣", "eight", keycap("8")],
   ["9️⃣", "nine", keycap("9")],
   ["🔟", "ten", keycap("10")],
   ["🔢", "numbers", grid4("1234", P.blue)],

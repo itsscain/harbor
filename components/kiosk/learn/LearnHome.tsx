@@ -17,6 +17,7 @@ import { SideBoat } from "./KidBoat";
 import { practiceMission, type KidLearnView } from "./learnData";
 import { CreatureView } from "./tank/CreatureView";
 import { DECOR_ART, artUrl, eggArt } from "./tank/art";
+import { InstrumentPic } from "./music/kit/kit";
 
 // The Learn home: the child's own boat (and aquarium buddy), their shells, streak, level and
 // today's goal at a glance; today's mission front and center (a grown-up's pick, or simply what's
@@ -41,6 +42,7 @@ export function LearnHome({
   onOpenTreasures,
   onOpenShop,
   onOpenGym,
+  onOpenStudio,
   onOpenChest,
   onPractice,
   onBoost,
@@ -62,6 +64,8 @@ export function LearnHome({
   onOpenTreasures: () => void;
   onOpenShop: () => void;
   onOpenGym: () => void;
+  /** Music: the Studio (shown when Music is on). */
+  onOpenStudio?: () => void;
   onOpenChest: () => void;
   onPractice: (s: SubjectId) => void;
   onBoost: () => void;
@@ -84,6 +88,7 @@ export function LearnHome({
   const due = boostSkills(profile.subjects, kid.skills, nowMs()).length;
   const limitHit = left === 0;
   const compact = profile.subjects.length >= 5;
+  const studio = profile.subjects.includes("music");
   const six = profile.subjects.length >= 6;
 
   useEffect(() => {
@@ -161,7 +166,7 @@ export function LearnHome({
       </div>
 
       {/* Quick row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className={cn("grid grid-cols-2 gap-3", studio ? "sm:grid-cols-4 lg:grid-cols-7" : "sm:grid-cols-3 lg:grid-cols-6")}>
         <QuickTile plate="#ffd86b" icon={<Glyph e="🎁" size={50} />} title={chestReady ? "Daily chest!" : "Chest opened"} sub={chestReady ? "Tap to open" : "Back tomorrow"} glow={chestReady} reduced={reduced} onClick={() => (sfx("pick"), onOpenChest())} />
         <QuickTile
           plate="#8fdcff"
@@ -185,7 +190,10 @@ export function LearnHome({
           // eslint-disable-next-line @next/next/no-img-element
           icon={<img src={artUrl(DECOR_ART.chest)} alt="" width={56} height={47} className="max-w-none" />} title="Treasures" sub="Stickers & more" onClick={() => (sfx("pick"), onOpenTreasures())} />
         <QuickTile plate="#c9b8ff" icon={<Glyph e="⚡" size={48} />} title="Brain Boost" sub={due ? `${due} to refresh` : "All fresh!"} glow={due >= 4} reduced={reduced} disabled={due < 3 || limitHit} onClick={() => (sfx("pick"), onBoost())} />
-        <QuickTile plate="#ffb3d1" icon={<Glyph e="🕹️" size={50} />} title="Arcade" sub="15+ games!" onClick={() => (sfx("pick"), onOpenGym())} />
+        <QuickTile plate="#ffb3d1" icon={<Glyph e="🕹️" size={50} />} title="Arcade" sub="20+ games!" onClick={() => (sfx("pick"), onOpenGym())} />
+        {studio && onOpenStudio && (
+          <QuickTile plate="#ffc2e2" icon={<InstrumentPic id="notes" size={56} />} title="Studio" sub={kid.songs.length ? `${kid.songs.length} song${kid.songs.length === 1 ? "" : "s"}` : "Make a song!"} onClick={() => (sfx("pick"), void say(SAY.studioHello), onOpenStudio())} />
+        )}
         <QuickTile
           plate="#9eeadb"
           icon={<Glyph e="⛵" size={52} />}
@@ -250,7 +258,7 @@ export function LearnHome({
       )}
 
       {/* Subject islands */}
-      <div className={cn("grid gap-4", profile.subjects.length >= 6 ? "sm:grid-cols-2 lg:grid-cols-3" : profile.subjects.length === 5 ? "sm:grid-cols-2 lg:grid-cols-5" : profile.subjects.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3")}>
+      <div className={cn("grid gap-4", profile.subjects.length >= 7 ? "sm:grid-cols-2 lg:grid-cols-4" : profile.subjects.length === 6 ? "sm:grid-cols-2 lg:grid-cols-3" : profile.subjects.length === 5 ? "sm:grid-cols-2 lg:grid-cols-5" : profile.subjects.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3")}>
         {profile.subjects.map((s, i) => {
           const sl = SUBJECT_LOOK[s];
           const map = courseMap(s, profile.grade, best, new Set(assignedIds));

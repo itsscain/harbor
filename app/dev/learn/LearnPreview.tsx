@@ -46,7 +46,7 @@ function makeState(grade: string, fresh: boolean, aq: string | null, tank: strin
     server_time: now,
   };
   const learn: LearnSnapshot = {
-    profiles: [{ child_id: CADE, grade, subjects: ["reading", "math", "code", "science", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 }],
+    profiles: [{ child_id: CADE, grade, subjects: ["reading", "math", "code", "science", "music", "manners", "faith"], daily_goal: 2, earn_stars: true, daily_limit: 0 }],
     assignments: fresh ? [] : [{ id: "a1", child_id: CADE, lesson_id: "read.ls1.3", note: "Let's learn some new letters!", created_at: now }],
     kids: fresh
       ? {}

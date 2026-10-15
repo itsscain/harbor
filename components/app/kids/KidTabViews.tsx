@@ -5,6 +5,7 @@ import { AddRoutineSheet } from "./AddRoutineSheet";
 import { KidStarsCard, KidChoreList } from "./KidChoresParts";
 import { KidProfileCard, KidWallFeel, KidDangerZone } from "./KidAboutParts";
 import { LearnSettingsRow, MissionsCard, type MissionRow } from "./KidLearnParts";
+import { KidSongs } from "./KidSongs";
 import { summarize, type KidLearnData, type UnitChip } from "@/lib/learn/parent";
 import { COURSES } from "@/lib/learn/curriculum";
 import type { SubjectId } from "@/lib/learn/types";
@@ -437,6 +438,15 @@ export function KidLearnView({ kid, data, now }: { kid: KidBasics; data: KidLear
                 </div>
               ))}
             </div>
+          </section>
+        </>
+      )}
+
+      {(data.songs.length > 0 || data.profile.subjects.includes("music")) && (
+        <>
+          <SectionTitle>Songs {kid.name} made</SectionTitle>
+          <section className="rounded-2xl border border-line bg-surface p-4">
+            <KidSongs kidName={kid.name} songs={data.songs} tz={data.tz} />
           </section>
         </>
       )}
